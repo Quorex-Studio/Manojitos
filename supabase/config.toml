@@ -1,1 +1,4 @@
 project_id = "utfoempgdbhhikpvbvir"
+
+[functions.get-bcv-rate]
+verify_jwt = false
