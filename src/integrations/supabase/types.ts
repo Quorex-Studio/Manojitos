@@ -14,7 +14,282 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      debts: {
+        Row: {
+          amount_bs: number | null
+          amount_usd: number
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          sale_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_bs?: number | null
+          amount_usd: number
+          client_name: string
+          client_phone?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          sale_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_bs?: number | null
+          amount_usd?: number
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          sale_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debts_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exchange_rates: {
+        Row: {
+          created_at: string
+          id: string
+          rate: number
+          source: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rate: number
+          source?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rate?: number
+          source?: string | null
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          price_usd: number
+          sold_count: number
+          stock: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          price_usd?: number
+          sold_count?: number
+          stock?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          price_usd?: number
+          sold_count?: number
+          stock?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      providers: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      purchases: {
+        Row: {
+          amount_bs: number | null
+          amount_usd: number
+          created_at: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          provider_id: string | null
+          provider_name: string
+          purchase_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_bs?: number | null
+          amount_usd: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          provider_id?: string | null
+          provider_name: string
+          purchase_date?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_bs?: number | null
+          amount_usd?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          provider_id?: string | null
+          provider_name?: string
+          purchase_date?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          client_name: string | null
+          client_phone: string | null
+          created_at: string
+          id: string
+          is_credit: boolean
+          notes: string | null
+          payment_method: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          total_bs: number | null
+          total_usd: number
+          unit_price_usd: number
+          user_id: string
+        }
+        Insert: {
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string
+          id?: string
+          is_credit?: boolean
+          notes?: string | null
+          payment_method: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          total_bs?: number | null
+          total_usd: number
+          unit_price_usd: number
+          user_id: string
+        }
+        Update: {
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string
+          id?: string
+          is_credit?: boolean
+          notes?: string | null
+          payment_method?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          total_bs?: number | null
+          total_usd?: number
+          unit_price_usd?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
