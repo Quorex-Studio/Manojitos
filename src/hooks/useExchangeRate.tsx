@@ -21,7 +21,10 @@ export function useExchangeRate() {
     setLoading(false);
   };
 
+  // Note: Direct inserts are blocked by RLS. Use the get-bcv-rate edge function instead.
+  // This function is kept for backwards compatibility but will fail without the edge function.
   const updateRate = async (newRate: number) => {
+    console.warn('Direct rate updates are deprecated. Use the get-bcv-rate edge function.');
     const { error } = await supabase
       .from('exchange_rates')
       .insert({ rate: newRate, source: 'manual' });
