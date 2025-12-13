@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -32,43 +31,69 @@ serve(async (req) => {
 
     // Only fetch from BCV API if no manual rate provided
     if (!manualRate) {
-      console.log('Fetching BCV rate...');
+      console.log('Fetching BCV rate from APIs...');
       
-      // Try to fetch the BCV rate from a known API
-      const response = await fetch('https://pydolarve.org/api/v1/dollar?page=bcv');
-      
-      if (!response.ok) {
-        console.error('Failed to fetch from primary API, status:', response.status);
-        throw new Error('Failed to fetch exchange rate');
-      }
+      // Try multiple API sources with timeout
+      const fetchWithTimeout = async (url: string, timeoutMs = 5000) => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const response = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeout);
+          return response;
+        } catch (e) {
+          clearTimeout(timeout);
+          throw e;
+        }
+      };
 
-      const data = await response.json();
-      console.log('API Response:', JSON.stringify(data));
-
-      // Extract the BCV rate from the response
-      if (data && data.monitors && data.monitors.usd) {
-        rate = data.monitors.usd.price;
-      } else if (data && data.price) {
-        rate = data.price;
-      }
-
-      if (!rate) {
-        // Fallback: try alternative API
-        console.log('Trying alternative API...');
-        const altResponse = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
-        
-        if (altResponse.ok) {
-          const altData = await altResponse.json();
-          console.log('Alternative API Response:', JSON.stringify(altData));
-          if (altData && altData.promedio) {
-            rate = altData.promedio;
+      // Try exchangerate-api.com as primary (more reliable)
+      try {
+        console.log('Trying exchangerate-api.com...');
+        const response = await fetchWithTimeout('https://v6.exchangerate-api.com/v6/latest/USD');
+        if (response.ok) {
+          const data = await response.json();
+          // Note: This API may not have VES, fallback to estimate
+          if (data.conversion_rates?.VES) {
+            rate = data.conversion_rates.VES;
+            console.log('Got rate from exchangerate-api:', rate);
           }
         }
+      } catch (e) {
+        console.log('exchangerate-api failed:', e);
       }
-    }
 
-    if (!rate) {
-      throw new Error('Could not extract rate from API response');
+      // Try alternative if first failed
+      if (!rate) {
+        try {
+          console.log('Trying alternative API...');
+          const response = await fetchWithTimeout('https://open.er-api.com/v6/latest/USD');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.rates?.VES) {
+              rate = data.rates.VES;
+              console.log('Got rate from open.er-api:', rate);
+            }
+          }
+        } catch (e) {
+          console.log('open.er-api failed:', e);
+        }
+      }
+
+      // If all APIs fail, return error asking for manual input
+      if (!rate) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'No se pudo obtener la tasa automáticamente',
+            details: 'Por favor, ingresa la tasa manualmente.',
+            requiresManualInput: true
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 503 
+          }
+        );
+      }
     }
 
     console.log('Rate to save:', rate, 'Source:', source);
@@ -107,12 +132,13 @@ serve(async (req) => {
       }
     );
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch BCV rate';
+    const errorMessage = error instanceof Error ? error.message : 'Failed to process exchange rate';
     console.error('Error in get-bcv-rate function:', errorMessage);
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
-        details: 'Could not retrieve the exchange rate. Please try again or enter manually.'
+        details: 'Por favor, ingresa la tasa manualmente.',
+        requiresManualInput: true
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
