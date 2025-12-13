@@ -18,18 +18,34 @@ export default function Settings() {
   const [fetchingBCV, setFetchingBCV] = useState(false);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
+  // Updates rate via edge function (uses service role key to bypass RLS)
   const handleUpdateRate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRate) return;
     
     setLoading(true);
-    const { error } = await updateRate(Number(newRate));
-    if (!error) {
-      setNewRate('');
+    try {
+      const { data, error } = await supabase.functions.invoke('get-bcv-rate', {
+        body: { rate: Number(newRate) }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.saved) {
+        setNewRate('');
+        refetch();
+        toast({ title: 'Éxito', description: `Tasa actualizada: Bs. ${data.rate}` });
+      } else {
+        throw new Error('No se pudo guardar la tasa');
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'No se pudo actualizar la tasa', variant: 'destructive' });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
+  // Fetches BCV rate via edge function (saves using service role key)
   const handleFetchBCV = async () => {
     setFetchingBCV(true);
     try {
@@ -37,8 +53,8 @@ export default function Settings() {
       
       if (error) throw error;
       
-      if (data?.rate) {
-        await updateRate(data.rate);
+      if (data?.saved) {
+        refetch();
         toast({ title: 'Éxito', description: `Tasa BCV actualizada: Bs. ${data.rate}` });
       } else {
         throw new Error('No se pudo obtener la tasa');
