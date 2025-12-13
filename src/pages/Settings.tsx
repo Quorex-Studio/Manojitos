@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Settings as SettingsIcon, RefreshCw, DollarSign, Moon, Sun, Loader2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -12,11 +12,35 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function Settings() {
-  const { rate, lastUpdate, updateRate, refetch } = useExchangeRate();
+  const { rate, loading: rateLoading, lastUpdate, refetch } = useExchangeRate();
   const [newRate, setNewRate] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetchingBCV, setFetchingBCV] = useState(false);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const autoFetchAttempted = useRef(false);
+
+  // Auto-fetch BCV rate on page load if no rate exists or rate is older than 24 hours
+  useEffect(() => {
+    if (rateLoading || autoFetchAttempted.current) return;
+    
+    const shouldAutoFetch = () => {
+      // No rate set - fetch automatically
+      if (rate === 0) return true;
+      
+      // Rate is older than 24 hours - fetch automatically
+      if (lastUpdate) {
+        const hoursSinceUpdate = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceUpdate >= 24) return true;
+      }
+      
+      return false;
+    };
+
+    if (shouldAutoFetch()) {
+      autoFetchAttempted.current = true;
+      handleFetchBCV();
+    }
+  }, [rate, rateLoading, lastUpdate]);
 
   // Updates rate via edge function (uses service role key to bypass RLS)
   const handleUpdateRate = async (e: React.FormEvent) => {
