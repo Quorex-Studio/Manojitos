@@ -127,71 +127,104 @@ export type Database = {
       }
       credits: {
         Row: {
+          auto_limit_adjustment: boolean | null
+          avg_payment_days: number | null
           blocked_at: string | null
           blocked_reason: string | null
           client_email: string | null
           client_name: string
           client_phone: string | null
           client_user_id: string | null
+          consecutive_late_payments: number | null
           created_at: string
           credit_limit: number
           current_balance: number
           cut_off_day: number
+          early_payment_discount: number | null
           grace_days: number
           id: string
           is_blocked: boolean
+          last_late_date: string | null
           last_payment_date: string | null
           last_reminder_sent_at: string | null
           next_due_date: string | null
           notes: string | null
           reminders_sent: Json | null
+          restriction_level: number | null
           status: string
+          total_paid_late: number | null
+          total_paid_on_time: number | null
+          total_purchases: number | null
+          trust_level: string | null
+          trust_score: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          auto_limit_adjustment?: boolean | null
+          avg_payment_days?: number | null
           blocked_at?: string | null
           blocked_reason?: string | null
           client_email?: string | null
           client_name: string
           client_phone?: string | null
           client_user_id?: string | null
+          consecutive_late_payments?: number | null
           created_at?: string
           credit_limit?: number
           current_balance?: number
           cut_off_day?: number
+          early_payment_discount?: number | null
           grace_days?: number
           id?: string
           is_blocked?: boolean
+          last_late_date?: string | null
           last_payment_date?: string | null
           last_reminder_sent_at?: string | null
           next_due_date?: string | null
           notes?: string | null
           reminders_sent?: Json | null
+          restriction_level?: number | null
           status?: string
+          total_paid_late?: number | null
+          total_paid_on_time?: number | null
+          total_purchases?: number | null
+          trust_level?: string | null
+          trust_score?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          auto_limit_adjustment?: boolean | null
+          avg_payment_days?: number | null
           blocked_at?: string | null
           blocked_reason?: string | null
           client_email?: string | null
           client_name?: string
           client_phone?: string | null
           client_user_id?: string | null
+          consecutive_late_payments?: number | null
           created_at?: string
           credit_limit?: number
           current_balance?: number
           cut_off_day?: number
+          early_payment_discount?: number | null
           grace_days?: number
           id?: string
           is_blocked?: boolean
+          last_late_date?: string | null
           last_payment_date?: string | null
           last_reminder_sent_at?: string | null
           next_due_date?: string | null
           notes?: string | null
           reminders_sent?: Json | null
+          restriction_level?: number | null
           status?: string
+          total_paid_late?: number | null
+          total_paid_on_time?: number | null
+          total_purchases?: number | null
+          trust_level?: string | null
+          trust_score?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -314,6 +347,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "notifications_credit_id_fkey"
+            columns: ["credit_id"]
+            isOneToOne: false
+            referencedRelation: "credits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_promises: {
+        Row: {
+          accepted_at: string | null
+          actual_amount_paid: number | null
+          actual_payment_date: string | null
+          client_accepted: boolean | null
+          created_at: string
+          credit_id: string
+          id: string
+          notes: string | null
+          promised_amount: number
+          promised_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          actual_amount_paid?: number | null
+          actual_payment_date?: string | null
+          client_accepted?: boolean | null
+          created_at?: string
+          credit_id: string
+          id?: string
+          notes?: string | null
+          promised_amount: number
+          promised_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          actual_amount_paid?: number | null
+          actual_payment_date?: string | null
+          client_accepted?: boolean | null
+          created_at?: string
+          credit_id?: string
+          id?: string
+          notes?: string | null
+          promised_amount?: number
+          promised_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_promises_credit_id_fkey"
             columns: ["credit_id"]
             isOneToOne: false
             referencedRelation: "credits"
@@ -539,6 +628,21 @@ export type Database = {
         }
         Returns: string
       }
+      calculate_trust_score: {
+        Args: {
+          p_consecutive_late: number
+          p_current_score: number
+          p_total_paid_late: number
+          p_total_paid_on_time: number
+          p_total_purchases: number
+        }
+        Returns: number
+      }
+      get_restriction_level: {
+        Args: { p_is_blocked: boolean; p_trust_level: string }
+        Returns: number
+      }
+      get_trust_level: { Args: { p_score: number }; Returns: string }
       get_unread_notifications_count: {
         Args: { p_user_id: string }
         Returns: number
