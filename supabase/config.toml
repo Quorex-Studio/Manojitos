@@ -2,3 +2,6 @@ project_id = "utfoempgdbhhikpvbvir"
 
 [functions.get-bcv-rate]
 verify_jwt = false
+
+[functions.send-credit-notifications]
+verify_jwt = true

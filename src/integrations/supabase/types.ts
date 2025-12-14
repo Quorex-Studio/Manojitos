@@ -20,8 +20,11 @@ export type Database = {
           created_at: string
           credit_id: string
           delivered: boolean | null
+          delivery_status: string | null
+          error_message: string | null
           id: string
           message: string
+          notification_id: string | null
           reminder_type: string
           sent_at: string | null
         }
@@ -30,8 +33,11 @@ export type Database = {
           created_at?: string
           credit_id: string
           delivered?: boolean | null
+          delivery_status?: string | null
+          error_message?: string | null
           id?: string
           message: string
+          notification_id?: string | null
           reminder_type: string
           sent_at?: string | null
         }
@@ -40,8 +46,11 @@ export type Database = {
           created_at?: string
           credit_id?: string
           delivered?: boolean | null
+          delivery_status?: string | null
+          error_message?: string | null
           id?: string
           message?: string
+          notification_id?: string | null
           reminder_type?: string
           sent_at?: string | null
         }
@@ -51,6 +60,13 @@ export type Database = {
             columns: ["credit_id"]
             isOneToOne: false
             referencedRelation: "credits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_reminders_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
             referencedColumns: ["id"]
           },
         ]
@@ -251,6 +267,59 @@ export type Database = {
           source?: string | null
         }
         Relationships: []
+      }
+      notifications: {
+        Row: {
+          channel: string
+          created_at: string
+          credit_id: string | null
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json | null
+          read_at: string | null
+          sent_at: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          credit_id?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          metadata?: Json | null
+          read_at?: string | null
+          sent_at?: string
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          credit_id?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata?: Json | null
+          read_at?: string | null
+          sent_at?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_credit_id_fkey"
+            columns: ["credit_id"]
+            isOneToOne: false
+            referencedRelation: "credits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -469,6 +538,10 @@ export type Database = {
           p_next_due_date: string
         }
         Returns: string
+      }
+      get_unread_notifications_count: {
+        Args: { p_user_id: string }
+        Returns: number
       }
     }
     Enums: {

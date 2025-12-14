@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -112,6 +113,12 @@ export function AppSidebar() {
               );
             })}
           </nav>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 mb-4">
+            <NotificationBell />
+            <ThemeToggle />
+          </div>
 
           {/* Logout */}
           <Button

@@ -22,6 +22,7 @@ import {
   Send,
   Lock,
   Unlock,
+  Bell,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -47,8 +50,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCredits, calculateCreditStatus } from '@/hooks/useCredits';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { NotificationCenter, CreditReminderHistoryPanel } from '@/components/notifications/NotificationCenter';
 
 // Configuración de estados con colores
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -70,6 +75,7 @@ const REMINDER_TEMPLATES = {
 export default function Credits() {
   const { isAdmin } = useAuth();
   const { credits, isLoading, createCredit, updateCredit, toggleBlock, registerPayment, createReminder } = useCredits();
+  const { sendManualNotification } = useNotifications();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -81,6 +87,10 @@ export default function Credits() {
   const [paymentDescription, setPaymentDescription] = useState('');
   const [reminderType, setReminderType] = useState('3_DAYS_BEFORE');
   const [customMessage, setCustomMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('credits');
+  
+  // Canales de notificación seleccionados
+  const [selectedChannels, setSelectedChannels] = useState<('internal' | 'email' | 'sms')[]>(['internal', 'email']);
 
   // Formulario de nuevo crédito
   const [newCredit, setNewCredit] = useState({
@@ -182,17 +192,19 @@ export default function Credits() {
       .replace('{monto}', `$${credit.current_balance.toFixed(2)}`);
   };
 
-  // Manejar envío de recordatorio
+  // Manejar envío de recordatorio por múltiples canales
   const handleSendReminder = async () => {
-    if (!selectedCredit) return;
+    if (!selectedCredit || selectedChannels.length === 0) return;
     
     const credit = credits.find(c => c.id === selectedCredit);
     if (!credit) return;
 
     const message = customMessage || generateReminderMessage(credit);
     
-    await createReminder.mutateAsync({
+    // Enviar a través del edge function
+    await sendManualNotification.mutateAsync({
       creditId: selectedCredit,
+      channels: selectedChannels,
       reminderType,
       message,
     });
@@ -200,6 +212,16 @@ export default function Credits() {
     setIsReminderOpen(false);
     setCustomMessage('');
     setSelectedCredit(null);
+    setSelectedChannels(['internal', 'email']);
+  };
+  
+  // Toggle canal de notificación
+  const toggleChannel = (channel: 'internal' | 'email' | 'sms') => {
+    setSelectedChannels(prev => 
+      prev.includes(channel) 
+        ? prev.filter(c => c !== channel)
+        : [...prev, channel]
+    );
   };
 
   // Si no es admin, mostrar acceso denegado
@@ -233,17 +255,17 @@ export default function Credits() {
           <div>
             <h1 className="text-3xl font-bold text-gradient-gold">Gestión de Créditos</h1>
             <p className="text-muted-foreground mt-1">
-              Control de fiados y recordatorios automáticos
+              Control de fiados y notificaciones automáticas
             </p>
           </div>
           
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Nuevo Crédito
-              </Button>
-            </DialogTrigger>
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Nuevo Crédito
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Crear Nuevo Crédito</DialogTitle>
@@ -644,6 +666,27 @@ export default function Credits() {
               </div>
               
               <div className="space-y-2">
+                <Label>Canales de Envío</Label>
+                <div className="flex flex-wrap gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={selectedChannels.includes('internal')} onCheckedChange={() => toggleChannel('internal')} />
+                    <Bell className="h-4 w-4" />
+                    <span className="text-sm">Interno</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={selectedChannels.includes('email')} onCheckedChange={() => toggleChannel('email')} />
+                    <Mail className="h-4 w-4" />
+                    <span className="text-sm">Email</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={selectedChannels.includes('sms')} onCheckedChange={() => toggleChannel('sms')} />
+                    <Phone className="h-4 w-4" />
+                    <span className="text-sm">SMS</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
                 <Label htmlFor="custom_message">Mensaje</Label>
                 <Textarea
                   id="custom_message"
@@ -651,9 +694,6 @@ export default function Credits() {
                   onChange={e => setCustomMessage(e.target.value)}
                   rows={5}
                 />
-                <p className="text-xs text-muted-foreground">
-                  El mensaje será enviado cuando integres WhatsApp. Por ahora se guardará como pendiente.
-                </p>
               </div>
             </div>
             
@@ -663,11 +703,11 @@ export default function Credits() {
               </Button>
               <Button 
                 onClick={handleSendReminder}
-                disabled={!customMessage || createReminder.isPending}
+                disabled={!customMessage || selectedChannels.length === 0 || sendManualNotification.isPending}
               >
-                {createReminder.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {sendManualNotification.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 <Send className="h-4 w-4 mr-2" />
-                Crear Recordatorio
+                Enviar Recordatorio
               </Button>
             </DialogFooter>
           </DialogContent>
