@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   Store,
-  FileUp
+  FileUp,
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ const menuItems = [
   { icon: FileUp, label: 'Importar', path: '/import-products' },
   { icon: ShoppingCart, label: 'Ventas', path: '/sales' },
   { icon: CreditCard, label: 'Deudas', path: '/debts' },
+  { icon: Wallet, label: 'Créditos', path: '/credits' },
   { icon: Truck, label: 'Proveedores', path: '/providers' },
   { icon: FileText, label: 'Reportes', path: '/reports' },
   { icon: Settings, label: 'Configuración', path: '/settings' },
