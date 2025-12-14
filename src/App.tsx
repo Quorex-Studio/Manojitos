@@ -16,6 +16,7 @@ import Debts from "./pages/Debts";
 import Providers from "./pages/Providers";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import ImportProducts from "./pages/ImportProducts";
 
 // Customer Pages
 import StoreFront from "./pages/StoreFront";
@@ -87,6 +88,7 @@ function AppRoutes() {
       <Route path="/providers" element={<ProtectedRoute><Providers /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/import-products" element={<ProtectedRoute><ImportProducts /></ProtectedRoute>} />
       
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
