@@ -317,8 +317,8 @@ export default function StoreCatalog() {
             ) : filteredProducts.length > 0 ? (
               <div className={`grid gap-4 md:gap-6 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                 <AnimatePresence mode="popLayout">
-                  {filteredProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
+                  {filteredProducts.map((product, index) => (
+                    <ProductCard key={product.id} product={product} index={index} />
                   ))}
                 </AnimatePresence>
               </div>
