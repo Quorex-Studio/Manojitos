@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Search, Menu, X, Heart, User } from 'lucide-react';
+import { ShoppingBag, Search, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { UserMenu } from '@/components/ui/user-menu';
 import { useCart } from '@/contexts/CartContext';
-import { useAuth } from '@/hooks/useAuth';
 
 // Header de la tienda para clientes
 export function StoreHeader() {
@@ -14,7 +15,6 @@ export function StoreHeader() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { getItemCount } = useCart();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const itemCount = getItemCount();
 
@@ -98,12 +98,11 @@ export function StoreHeader() {
               <Search className="h-5 w-5" />
             </Button>
 
-            {/* User */}
-            <Link to={user ? "/checkout" : "/cliente/auth"}>
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
+            {/* User Menu */}
+            <UserMenu />
 
             {/* Cart */}
             <Link to="/carrito" className="relative">
