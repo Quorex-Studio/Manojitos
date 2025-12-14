@@ -11,7 +11,8 @@ import {
   LogOut,
   Menu,
   X,
-  Store
+  Store,
+  FileUp
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { cn } from '@/lib/utils';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Package, label: 'Productos', path: '/products' },
+  { icon: FileUp, label: 'Importar', path: '/import-products' },
   { icon: ShoppingCart, label: 'Ventas', path: '/sales' },
   { icon: CreditCard, label: 'Deudas', path: '/debts' },
   { icon: Truck, label: 'Proveedores', path: '/providers' },
