@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 // Menú de usuario con estados autenticado/no autenticado
 export function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -114,15 +114,17 @@ export function UserMenu() {
 
               {/* Opciones del menú */}
               <div className="p-2">
-                {/* Enlace al panel admin (solo si está autenticado como admin) */}
-                <Link
-                  to="/dashboard"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
-                >
-                  <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-                  <span>Panel Admin</span>
-                </Link>
+                {/* Enlace al panel admin (solo si es admin) */}
+                {isAdmin && (
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                    <span>Panel Admin</span>
+                  </Link>
+                )}
 
                 <Link
                   to="/settings"

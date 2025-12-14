@@ -30,9 +30,9 @@ import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-// Ruta protegida para el panel administrativo
+// Ruta protegida para el panel administrativo (solo admins)
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
   
   if (loading) {
     return (
@@ -42,8 +42,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
   
+  // Si no está autenticado, redirigir a login
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+  
+  // Si está autenticado pero NO es admin, redirigir a tienda
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
   }
   
   return <>{children}</>;
