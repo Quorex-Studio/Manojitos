@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { ShoppingBag, Search, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,14 +9,31 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { UserMenu } from '@/components/ui/user-menu';
 import { useCart } from '@/contexts/CartContext';
 
-// Header de la tienda para clientes
+// Header de la tienda con animaciones premium
 export function StoreHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isScrolled, setIsScrolled] = useState(false);
   const { getItemCount } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
   const itemCount = getItemCount();
+
+  // Detectar scroll para cambiar estilo del header
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Cerrar menú al cambiar de ruta
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setIsSearchOpen(false);
+  }, [location.pathname]);
 
   // Manejar búsqueda
   const handleSearch = (e: React.FormEvent) => {
@@ -28,23 +45,54 @@ export function StoreHeader() {
     }
   };
 
+  // Links de navegación
+  const navLinks = [
+    { to: '/', label: 'Inicio' },
+    { to: '/tienda', label: 'Tienda' },
+    { to: '/tienda?category=destacados', label: 'Destacados' },
+  ];
+
   return (
-    <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-md border-b border-border/50">
+    <motion.header 
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-background/98 backdrop-blur-xl shadow-lg border-b border-border/30' 
+          : 'bg-background/95 backdrop-blur-md border-b border-border/50'
+      }`}
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+    >
       <div className="container mx-auto px-4">
         {/* Top bar - Solo en desktop */}
-        <div className="hidden md:flex items-center justify-end py-2 text-sm text-muted-foreground border-b border-border/30">
-          <span>Envíos a toda Venezuela 🇻🇪</span>
-        </div>
+        <AnimatePresence>
+          {!isScrolled && (
+            <motion.div 
+              className="hidden md:flex items-center justify-end py-2 text-sm text-muted-foreground border-b border-border/30"
+              initial={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <span>Envíos a toda Venezuela 🇻🇪</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Main header */}
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className={`flex items-center justify-between transition-all duration-300 ${
+          isScrolled ? 'h-14 md:h-16' : 'h-16 md:h-20'
+        }`}>
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <motion.div
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               className="flex items-center"
             >
-              <span className="text-2xl md:text-3xl font-serif font-bold text-gradient-gold">
+              <span className={`font-serif font-bold text-gradient-gold transition-all duration-300 ${
+                isScrolled ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'
+              }`}>
                 Manojitos
               </span>
             </motion.div>
@@ -52,41 +100,43 @@ export function StoreHeader() {
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link 
-              to="/" 
-              className="text-foreground/80 hover:text-foreground transition-colors font-medium"
-            >
-              Inicio
-            </Link>
-            <Link 
-              to="/tienda" 
-              className="text-foreground/80 hover:text-foreground transition-colors font-medium"
-            >
-              Tienda
-            </Link>
-            <Link 
-              to="/tienda?category=destacados" 
-              className="text-foreground/80 hover:text-foreground transition-colors font-medium"
-            >
-              Destacados
-            </Link>
+            {navLinks.map((link) => (
+              <Link 
+                key={link.to}
+                to={link.to} 
+                className="relative text-foreground/80 hover:text-foreground transition-colors font-medium group"
+              >
+                {link.label}
+                <motion.span 
+                  className="absolute -bottom-1 left-0 w-full h-0.5 bg-gold origin-left"
+                  initial={{ scaleX: 0 }}
+                  whileHover={{ scaleX: 1 }}
+                  transition={{ duration: 0.2 }}
+                />
+              </Link>
+            ))}
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1 md:gap-3">
             {/* Search - Desktop */}
-            <div className="hidden md:block relative">
+            <motion.div 
+              className="hidden md:block relative"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
               <form onSubmit={handleSearch} className="relative">
                 <Input
                   type="text"
                   placeholder="Buscar productos..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-64 pl-10 pr-4 h-10 bg-secondary/50 border-border/50 rounded-full"
+                  className="w-48 lg:w-64 pl-10 pr-4 h-10 bg-secondary/50 border-border/50 rounded-full focus:w-72 transition-all duration-300"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </form>
-            </div>
+            </motion.div>
 
             {/* Search - Mobile */}
             <Button
@@ -95,7 +145,12 @@ export function StoreHeader() {
               className="md:hidden"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
             >
-              <Search className="h-5 w-5" />
+              <motion.div
+                animate={{ rotate: isSearchOpen ? 90 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Search className="h-5 w-5" />
+              </motion.div>
             </Button>
 
             {/* Theme Toggle */}
@@ -104,28 +159,39 @@ export function StoreHeader() {
             {/* User Menu */}
             <UserMenu />
 
-            {/* Cart */}
+            {/* Cart con badge animado premium */}
             <Link to="/carrito" className="relative">
-              <Button variant="ghost" size="icon" className="relative">
-                <ShoppingBag className="h-5 w-5" />
-                <AnimatePresence>
-                  {itemCount > 0 && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                      className="absolute -top-1 -right-1"
-                    >
-                      <Badge 
-                        variant="default" 
-                        className="h-5 w-5 p-0 flex items-center justify-center text-xs bg-accent text-accent-foreground"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button variant="ghost" size="icon" className="relative">
+                  <ShoppingBag className="h-5 w-5" />
+                  <AnimatePresence mode="wait">
+                    {itemCount > 0 && (
+                      <motion.div
+                        key={itemCount}
+                        initial={{ scale: 0, y: 10 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0, y: -10 }}
+                        transition={{ 
+                          type: 'spring', 
+                          stiffness: 500, 
+                          damping: 25 
+                        }}
+                        className="absolute -top-1 -right-1"
                       >
-                        {itemCount > 99 ? '99+' : itemCount}
-                      </Badge>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Button>
+                        <Badge 
+                          variant="default" 
+                          className="h-5 min-w-5 p-0 px-1 flex items-center justify-center text-xs bg-gold text-white font-bold shadow-gold"
+                        >
+                          {itemCount > 99 ? '99+' : itemCount}
+                        </Badge>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Button>
+              </motion.div>
             </Link>
 
             {/* Mobile menu toggle */}
@@ -135,7 +201,12 @@ export function StoreHeader() {
               className="md:hidden"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <motion.div
+                animate={{ rotate: isMenuOpen ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </motion.div>
             </Button>
           </div>
         </div>
@@ -147,10 +218,16 @@ export function StoreHeader() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
               className="md:hidden overflow-hidden"
             >
               <form onSubmit={handleSearch} className="py-3">
-                <div className="relative">
+                <motion.div 
+                  className="relative"
+                  initial={{ y: -10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                >
                   <Input
                     type="text"
                     placeholder="Buscar productos..."
@@ -160,7 +237,7 @@ export function StoreHeader() {
                     autoFocus
                   />
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                </div>
+                </motion.div>
               </form>
             </motion.div>
           )}
@@ -173,42 +250,47 @@ export function StoreHeader() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
               className="md:hidden overflow-hidden border-t border-border/30"
             >
-              <div className="py-4 space-y-2">
-                <Link 
-                  to="/"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block py-3 px-4 text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+              <div className="py-4 space-y-1">
+                {navLinks.map((link, index) => (
+                  <motion.div
+                    key={link.to}
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: index * 0.08 }}
+                  >
+                    <Link 
+                      to={link.to}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block py-3 px-4 text-foreground hover:bg-secondary/50 rounded-xl transition-all duration-200 active:scale-[0.98]"
+                    >
+                      {link.label}
+                    </Link>
+                  </motion.div>
+                ))}
+                <motion.div
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: navLinks.length * 0.08 }}
                 >
-                  Inicio
-                </Link>
-                <Link 
-                  to="/tienda"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block py-3 px-4 text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                >
-                  Tienda
-                </Link>
-                <Link 
-                  to="/tienda?category=destacados"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block py-3 px-4 text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                >
-                  Destacados
-                </Link>
-                <Link 
-                  to="/carrito"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block py-3 px-4 text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                >
-                  Mi Carrito ({itemCount})
-                </Link>
+                  <Link 
+                    to="/carrito"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center justify-between py-3 px-4 text-foreground hover:bg-secondary/50 rounded-xl transition-all duration-200"
+                  >
+                    <span>Mi Carrito</span>
+                    {itemCount > 0 && (
+                      <Badge className="bg-gold text-white">{itemCount}</Badge>
+                    )}
+                  </Link>
+                </motion.div>
               </div>
             </motion.nav>
           )}
         </AnimatePresence>
       </div>
-    </header>
+    </motion.header>
   );
 }

@@ -116,6 +116,15 @@
     @apply border-border;
   }
 
+  /* Transición suave global para cambio de tema */
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  html.theme-transitioning * {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Quicksand', sans-serif;
@@ -155,22 +164,26 @@
   }
 
   .hover-lift {
-    @apply transition-all duration-300 ease-out;
+    @apply transition-all duration-300 ease-out cursor-pointer;
   }
 
   .hover-lift:hover {
     @apply -translate-y-1;
-    box-shadow: 0 12px 40px 0 hsl(var(--rose) / 0.2);
+    box-shadow: 0 16px 48px 0 hsl(var(--rose) / 0.15);
   }
 
   .btn-gold {
-    @apply gradient-gold text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300;
+    @apply gradient-gold text-white font-medium shadow-lg transition-all duration-300;
     box-shadow: 0 4px 20px 0 hsl(var(--gold) / 0.4);
   }
 
   .btn-gold:hover {
-    box-shadow: 0 6px 30px 0 hsl(var(--gold) / 0.5);
-    transform: translateY(-2px);
+    box-shadow: 0 8px 32px 0 hsl(var(--gold) / 0.5);
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  .btn-gold:active {
+    transform: translateY(0) scale(0.98);
   }
 
   .input-glass {
