@@ -74,7 +74,7 @@ const REMINDER_TEMPLATES = {
 
 export default function Credits() {
   const { isAdmin } = useAuth();
-  const { credits, isLoading, createCredit, updateCredit, toggleBlock, registerPayment, createReminder } = useCredits();
+  const { credits, isLoading, createCredit, updateCredit, toggleBlock, registerPayment, createReminder, stats } = useCredits();
   const { sendManualNotification } = useNotifications();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -110,41 +110,12 @@ export default function Credits() {
         credit.client_phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         credit.client_email?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const calculatedStatus = calculateCreditStatus(
-        credit.next_due_date,
-        credit.grace_days,
-        credit.is_blocked
-      );
-      
-      const matchesStatus = statusFilter === 'all' || calculatedStatus === statusFilter;
+      const matchesStatus = statusFilter === 'all' || credit.calculatedStatus === statusFilter;
       
       return matchesSearch && matchesStatus;
     });
   }, [credits, searchTerm, statusFilter]);
 
-  // Estadísticas
-  const stats = useMemo(() => {
-    const byStatus = {
-      ACTIVO: 0,
-      POR_VENCER: 0,
-      EN_GRACIA: 0,
-      VENCIDO: 0,
-      BLOQUEADO: 0,
-    };
-    let totalBalance = 0;
-
-    credits.forEach(credit => {
-      const status = calculateCreditStatus(
-        credit.next_due_date,
-        credit.grace_days,
-        credit.is_blocked
-      );
-      byStatus[status as keyof typeof byStatus]++;
-      totalBalance += credit.current_balance;
-    });
-
-    return { byStatus, totalBalance, total: credits.length };
-  }, [credits]);
 
   // Manejar creación de crédito
   const handleCreateCredit = async () => {
@@ -450,12 +421,8 @@ export default function Credits() {
           <div className="grid gap-4">
             <AnimatePresence>
               {filteredCredits.map((credit, index) => {
-                const status = calculateCreditStatus(
-                  credit.next_due_date,
-                  credit.grace_days,
-                  credit.is_blocked
-                );
-                const statusConfig = STATUS_CONFIG[status];
+                const status = credit.calculatedStatus || 'ACTIVO';
+                const statusConfig = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.ACTIVO;
 
                 return (
                   <motion.div
