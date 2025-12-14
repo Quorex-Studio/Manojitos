@@ -14,6 +14,173 @@ export type Database = {
   }
   public: {
     Tables: {
+      credit_reminders: {
+        Row: {
+          channel: string
+          created_at: string
+          credit_id: string
+          delivered: boolean | null
+          id: string
+          message: string
+          reminder_type: string
+          sent_at: string | null
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          credit_id: string
+          delivered?: boolean | null
+          id?: string
+          message: string
+          reminder_type: string
+          sent_at?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          credit_id?: string
+          delivered?: boolean | null
+          id?: string
+          message?: string
+          reminder_type?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_reminders_credit_id_fkey"
+            columns: ["credit_id"]
+            isOneToOne: false
+            referencedRelation: "credits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          credit_id: string
+          description: string | null
+          id: string
+          new_balance: number
+          previous_balance: number
+          sale_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credit_id: string
+          description?: string | null
+          id?: string
+          new_balance: number
+          previous_balance: number
+          sale_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credit_id?: string
+          description?: string | null
+          id?: string
+          new_balance?: number
+          previous_balance?: number
+          sale_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_credit_id_fkey"
+            columns: ["credit_id"]
+            isOneToOne: false
+            referencedRelation: "credits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credits: {
+        Row: {
+          blocked_at: string | null
+          blocked_reason: string | null
+          client_email: string | null
+          client_name: string
+          client_phone: string | null
+          client_user_id: string | null
+          created_at: string
+          credit_limit: number
+          current_balance: number
+          cut_off_day: number
+          grace_days: number
+          id: string
+          is_blocked: boolean
+          last_payment_date: string | null
+          last_reminder_sent_at: string | null
+          next_due_date: string | null
+          notes: string | null
+          reminders_sent: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blocked_at?: string | null
+          blocked_reason?: string | null
+          client_email?: string | null
+          client_name: string
+          client_phone?: string | null
+          client_user_id?: string | null
+          created_at?: string
+          credit_limit?: number
+          current_balance?: number
+          cut_off_day?: number
+          grace_days?: number
+          id?: string
+          is_blocked?: boolean
+          last_payment_date?: string | null
+          last_reminder_sent_at?: string | null
+          next_due_date?: string | null
+          notes?: string | null
+          reminders_sent?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blocked_at?: string | null
+          blocked_reason?: string | null
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string | null
+          client_user_id?: string | null
+          created_at?: string
+          credit_limit?: number
+          current_balance?: number
+          cut_off_day?: number
+          grace_days?: number
+          id?: string
+          is_blocked?: boolean
+          last_payment_date?: string | null
+          last_reminder_sent_at?: string | null
+          next_due_date?: string | null
+          notes?: string | null
+          reminders_sent?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       debts: {
         Row: {
           amount_bs: number | null
@@ -295,7 +462,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_credit_status: {
+        Args: {
+          p_grace_days: number
+          p_is_blocked: boolean
+          p_next_due_date: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
