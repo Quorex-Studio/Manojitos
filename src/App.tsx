@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { CartProvider } from "@/contexts/CartContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 // Admin Pages
 import Auth from "./pages/Auth";
@@ -26,7 +27,6 @@ import CustomerAuth from "./pages/CustomerAuth";
 
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
 
 const queryClient = new QueryClient();
 
@@ -49,16 +49,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Inicializador de tema
-function ThemeInitializer({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    const theme = localStorage.getItem('theme');
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    }
-  }, []);
-  return <>{children}</>;
-}
 
 // Rutas de la aplicación
 function AppRoutes() {
@@ -100,9 +90,9 @@ function AppRoutes() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <CartProvider>
-        <ThemeInitializer>
+    <ThemeProvider>
+      <AuthProvider>
+        <CartProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -110,9 +100,9 @@ const App = () => (
               <AppRoutes />
             </BrowserRouter>
           </TooltipProvider>
-        </ThemeInitializer>
-      </CartProvider>
-    </AuthProvider>
+        </CartProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

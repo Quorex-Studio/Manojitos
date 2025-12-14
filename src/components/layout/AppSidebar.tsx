@@ -10,10 +10,12 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  Store
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -63,11 +65,20 @@ export function AppSidebar() {
       >
         <div className="flex flex-col h-full p-6">
           {/* Logo */}
-          <div className="mb-10">
+          <div className="mb-8">
             <h1 className="font-serif text-3xl font-bold text-gradient-gold">
               Manojitos
             </h1>
             <p className="text-muted-foreground text-sm mt-1">Sistema de Gestión</p>
+          </div>
+
+          {/* Theme Toggle y Ver Tienda */}
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/50">
+            <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Store className="h-4 w-4" />
+              <span>Ver tienda</span>
+            </Link>
+            <ThemeToggle />
           </div>
 
           {/* Navigation */}
