@@ -11,11 +11,41 @@ const corsHeaders = {
 // Supabase client with service role for admin operations
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Resend client for emails
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+// Verify admin authorization
+async function verifyAdminAuth(authHeader: string | null): Promise<{ isAdmin: boolean; error?: string }> {
+  if (!authHeader) {
+    return { isAdmin: false, error: "Authentication required" };
+  }
+
+  // Create client with user's auth token to verify their identity
+  const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+  
+  if (authError || !user) {
+    console.error("Auth error:", authError);
+    return { isAdmin: false, error: "Invalid authentication" };
+  }
+
+  // Check if user is admin
+  const isAdmin = user.app_metadata?.is_super_admin === true;
+  if (!isAdmin) {
+    console.log(`User ${user.id} attempted admin action without admin privileges`);
+    return { isAdmin: false, error: "Admin access required" };
+  }
+
+  console.log(`Admin access verified for user ${user.id}`);
+  return { isAdmin: true };
+}
 
 // Types
 interface NotificationRequest {
@@ -412,6 +442,21 @@ serve(async (req) => {
   }
 
   try {
+    // Verify admin authentication before processing any action
+    const authHeader = req.headers.get("Authorization");
+    const { isAdmin, error: authError } = await verifyAdminAuth(authHeader);
+    
+    if (!isAdmin) {
+      console.error("Authorization failed:", authError);
+      return new Response(
+        JSON.stringify({ success: false, error: authError }),
+        { 
+          status: authError === "Authentication required" ? 401 : 403, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
     const body: NotificationRequest = await req.json();
     console.log("Request received:", body.action);
 
