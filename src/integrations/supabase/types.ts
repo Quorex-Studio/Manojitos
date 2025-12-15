@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      business_rules: {
+        Row: {
+          actions: Json
+          conditions: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          priority: number | null
+          rule_key: string
+          rule_name: string
+          rule_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          rule_key: string
+          rule_name: string
+          rule_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          rule_key?: string
+          rule_name?: string
+          rule_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       credit_reminders: {
         Row: {
           channel: string
@@ -230,6 +275,129 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_payment_methods: {
+        Row: {
+          alias: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          is_active: boolean | null
+          is_preferred: boolean | null
+          method_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alias?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          is_active?: boolean | null
+          is_preferred?: boolean | null
+          method_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alias?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          is_active?: boolean | null
+          is_preferred?: boolean | null
+          method_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      customer_profiles: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          notes: string | null
+          notification_preferences: Json | null
+          phone: string
+          phone_verified: boolean | null
+          state: string | null
+          updated_at: string
+          user_id: string
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          notes?: string | null
+          notification_preferences?: Json | null
+          phone: string
+          phone_verified?: boolean | null
+          state?: string | null
+          updated_at?: string
+          user_id: string
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          notes?: string | null
+          notification_preferences?: Json | null
+          phone?: string
+          phone_verified?: boolean | null
+          state?: string | null
+          updated_at?: string
+          user_id?: string
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
+      customer_timeline: {
+        Row: {
+          created_at: string
+          customer_phone: string | null
+          customer_user_id: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       debts: {
         Row: {
           amount_bs: number | null
@@ -300,6 +468,75 @@ export type Database = {
           source?: string | null
         }
         Relationships: []
+      }
+      ledger_entries: {
+        Row: {
+          amount_bs: number | null
+          amount_usd: number
+          balance_after_bs: number | null
+          balance_after_usd: number
+          created_at: string
+          description: string | null
+          entry_type: string
+          id: string
+          is_reversal: boolean | null
+          metadata: Json | null
+          reference_id: string | null
+          reference_type: string
+          reversal_of_id: string | null
+          reversed_by_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_bs?: number | null
+          amount_usd: number
+          balance_after_bs?: number | null
+          balance_after_usd: number
+          created_at?: string
+          description?: string | null
+          entry_type: string
+          id?: string
+          is_reversal?: boolean | null
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type: string
+          reversal_of_id?: string | null
+          reversed_by_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_bs?: number | null
+          amount_usd?: number
+          balance_after_bs?: number | null
+          balance_after_usd?: number
+          created_at?: string
+          description?: string | null
+          entry_type?: string
+          id?: string
+          is_reversal?: boolean | null
+          metadata?: Json | null
+          reference_id?: string | null
+          reference_type?: string
+          reversal_of_id?: string | null
+          reversed_by_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_reversal_of_id_fkey"
+            columns: ["reversal_of_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_reversed_by_id_fkey"
+            columns: ["reversed_by_id"]
+            isOneToOne: false
+            referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -568,6 +805,7 @@ export type Database = {
           product_id: string | null
           product_name: string
           quantity: number
+          status: string
           total_bs: number | null
           total_usd: number
           unit_price_usd: number
@@ -584,6 +822,7 @@ export type Database = {
           product_id?: string | null
           product_name: string
           quantity?: number
+          status?: string
           total_bs?: number | null
           total_usd: number
           unit_price_usd: number
@@ -600,6 +839,7 @@ export type Database = {
           product_id?: string | null
           product_name?: string
           quantity?: number
+          status?: string
           total_bs?: number | null
           total_usd?: number
           unit_price_usd?: number
@@ -637,6 +877,23 @@ export type Database = {
           p_total_purchases: number
         }
         Returns: number
+      }
+      create_ledger_entry: {
+        Args: {
+          p_amount_bs: number
+          p_amount_usd: number
+          p_description: string
+          p_entry_type: string
+          p_metadata?: Json
+          p_reference_id: string
+          p_reference_type: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      evaluate_business_rules: {
+        Args: { p_admin_user_id: string; p_context: Json }
+        Returns: Json
       }
       get_restriction_level: {
         Args: { p_is_blocked: boolean; p_trust_level: string }
