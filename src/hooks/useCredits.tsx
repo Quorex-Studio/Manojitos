@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
+import { creditSchema, paymentPromiseSchema, validateInput, sanitizeText } from '@/lib/validations';
 
 // Tipos para créditos con campos profesionales
 export interface Credit {
@@ -211,21 +212,33 @@ export function useCredits() {
     mutationFn: async (creditData: CreditInput) => {
       if (!user) throw new Error('No autenticado');
 
+      // Validate input before database operation
+      const validated = validateInput(creditSchema, {
+        client_name: creditData.client_name,
+        client_email: creditData.client_email,
+        client_phone: creditData.client_phone,
+        credit_limit: creditData.credit_limit || 0,
+        current_balance: 0,
+        cut_off_day: creditData.cut_off_day || 15,
+        grace_days: creditData.grace_days || 3,
+        notes: creditData.notes,
+      });
+
       const { data, error } = await supabase
         .from('credits')
-        .insert({
+        .insert([{
           user_id: user.id,
-          client_name: creditData.client_name,
-          client_phone: creditData.client_phone || null,
-          client_email: creditData.client_email || null,
-          credit_limit: creditData.credit_limit || 0,
-          cut_off_day: creditData.cut_off_day || 15,
-          grace_days: creditData.grace_days || 3,
-          notes: creditData.notes || null,
+          client_name: validated.client_name,
+          client_phone: validated.client_phone || null,
+          client_email: validated.client_email || null,
+          credit_limit: validated.credit_limit,
+          cut_off_day: validated.cut_off_day,
+          grace_days: validated.grace_days,
+          notes: validated.notes || null,
           next_due_date: creditData.next_due_date || null,
           early_payment_discount: creditData.early_payment_discount || 0,
           auto_limit_adjustment: creditData.auto_limit_adjustment ?? true,
-        })
+        }])
         .select()
         .single();
 
@@ -546,15 +559,37 @@ export function usePaymentPromises(creditId?: string) {
 
       if (error) throw error;
 
-      // Actualizar score del crédito
-      const scoreChange = status === 'CUMPLIDA' ? 3 : 1;
-      await supabase.rpc('calculate_trust_score', {
-        p_total_purchases: 1,
-        p_total_paid_on_time: status === 'CUMPLIDA' ? 1 : 0,
-        p_total_paid_late: 0,
-        p_consecutive_late: 0,
-        p_current_score: 100,
-      });
+      // Actualizar score del crédito basado en cumplimiento
+      if (promise.credit_id) {
+        const { data: credit } = await supabase
+          .from('credits')
+          .select('trust_score, total_purchases, total_paid_on_time, total_paid_late, consecutive_late_payments')
+          .eq('id', promise.credit_id)
+          .single();
+
+        if (credit) {
+          // Calcular nuevo score usando la función RPC
+          const { data: newScore } = await supabase.rpc('calculate_trust_score', {
+            p_total_purchases: (credit.total_purchases || 0) + 1,
+            p_total_paid_on_time: status === 'CUMPLIDA' ? (credit.total_paid_on_time || 0) + 1 : (credit.total_paid_on_time || 0),
+            p_total_paid_late: credit.total_paid_late || 0,
+            p_consecutive_late: 0, // Se reinicia si cumple
+            p_current_score: credit.trust_score || 100,
+          });
+
+          // Actualizar el crédito con el nuevo score
+          await supabase
+            .from('credits')
+            .update({
+              trust_score: newScore || credit.trust_score,
+              total_purchases: (credit.total_purchases || 0) + 1,
+              total_paid_on_time: status === 'CUMPLIDA' ? (credit.total_paid_on_time || 0) + 1 : credit.total_paid_on_time,
+              consecutive_late_payments: 0,
+              last_payment_date: new Date().toISOString(),
+            })
+            .eq('id', promise.credit_id);
+        }
+      }
 
       return data;
     },
