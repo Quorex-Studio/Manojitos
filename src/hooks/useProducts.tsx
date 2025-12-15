@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
+import { productSchema, validateInput } from '@/lib/validations';
 
 export interface Product {
   id: string;
@@ -41,34 +42,52 @@ export function useProducts() {
   const addProduct = async (product: Omit<Product, 'id' | 'user_id' | 'sold_count' | 'created_at' | 'updated_at'>) => {
     if (!user) return { error: new Error('No autenticado') };
 
-    const { data, error } = await supabase
-      .from('products')
-      .insert({ ...product, user_id: user.id })
-      .select()
-      .single();
+    // Validate input before database operation
+    try {
+      const validated = validateInput(productSchema, product);
+      
+      const { data, error } = await supabase
+        .from('products')
+        .insert({ ...validated, user_id: user.id })
+        .select()
+        .single();
 
-    if (error) {
-      toast({ title: 'Error', description: 'No se pudo crear el producto', variant: 'destructive' });
-    } else {
-      toast({ title: 'Éxito', description: 'Producto creado correctamente' });
+      if (error) {
+        toast({ title: 'Error', description: 'No se pudo crear el producto', variant: 'destructive' });
+      } else {
+        toast({ title: 'Éxito', description: 'Producto creado correctamente' });
+      }
+      return { data, error };
+    } catch (validationError) {
+      const errorMessage = validationError instanceof Error ? validationError.message : 'Datos inválidos';
+      toast({ title: 'Error de validación', description: errorMessage, variant: 'destructive' });
+      return { error: new Error(errorMessage) };
     }
-    return { data, error };
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>) => {
-    const { data, error } = await supabase
-      .from('products')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+    // Validate partial updates - only validate fields that are being updated
+    try {
+      const validated = productSchema.partial().parse(updates);
+      
+      const { data, error } = await supabase
+        .from('products')
+        .update(validated)
+        .eq('id', id)
+        .select()
+        .single();
 
-    if (error) {
-      toast({ title: 'Error', description: 'No se pudo actualizar el producto', variant: 'destructive' });
-    } else {
-      toast({ title: 'Éxito', description: 'Producto actualizado' });
+      if (error) {
+        toast({ title: 'Error', description: 'No se pudo actualizar el producto', variant: 'destructive' });
+      } else {
+        toast({ title: 'Éxito', description: 'Producto actualizado' });
+      }
+      return { data, error };
+    } catch (validationError) {
+      const errorMessage = validationError instanceof Error ? validationError.message : 'Datos inválidos';
+      toast({ title: 'Error de validación', description: errorMessage, variant: 'destructive' });
+      return { error: new Error(errorMessage) };
     }
-    return { data, error };
   };
 
   const deleteProduct = async (id: string) => {

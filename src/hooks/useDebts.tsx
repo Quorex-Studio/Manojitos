@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
+import { debtSchema, validateInput } from '@/lib/validations';
 
 export interface Debt {
   id: string;
@@ -41,18 +42,27 @@ export function useDebts() {
   const addDebt = async (debt: Omit<Debt, 'id' | 'user_id' | 'created_at' | 'paid_at'>) => {
     if (!user) return { error: new Error('No autenticado') };
 
-    const { data, error } = await supabase
-      .from('debts')
-      .insert({ ...debt, user_id: user.id })
-      .select()
-      .single();
+    // Validate input before database operation
+    try {
+      const validated = validateInput(debtSchema, debt);
+      
+      const { data, error } = await supabase
+        .from('debts')
+        .insert({ ...validated, user_id: user.id })
+        .select()
+        .single();
 
-    if (error) {
-      toast({ title: 'Error', description: 'No se pudo registrar la deuda', variant: 'destructive' });
-    } else {
-      toast({ title: 'Éxito', description: 'Deuda registrada correctamente' });
+      if (error) {
+        toast({ title: 'Error', description: 'No se pudo registrar la deuda', variant: 'destructive' });
+      } else {
+        toast({ title: 'Éxito', description: 'Deuda registrada correctamente' });
+      }
+      return { data, error };
+    } catch (validationError) {
+      const errorMessage = validationError instanceof Error ? validationError.message : 'Datos inválidos';
+      toast({ title: 'Error de validación', description: errorMessage, variant: 'destructive' });
+      return { error: new Error(errorMessage) };
     }
-    return { data, error };
   };
 
   const markAsPaid = async (id: string) => {
