@@ -48,7 +48,15 @@ export function useProducts() {
       
       const { data, error } = await supabase
         .from('products')
-        .insert({ ...validated, user_id: user.id })
+        .insert([{ 
+          name: validated.name,
+          price_usd: validated.price_usd,
+          stock: validated.stock,
+          description: validated.description,
+          category: validated.category,
+          image_url: validated.image_url,
+          user_id: user.id 
+        }])
         .select()
         .single();
 

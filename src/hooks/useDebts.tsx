@@ -48,7 +48,16 @@ export function useDebts() {
       
       const { data, error } = await supabase
         .from('debts')
-        .insert({ ...validated, user_id: user.id })
+        .insert([{
+          client_name: validated.client_name,
+          client_phone: validated.client_phone,
+          amount_usd: validated.amount_usd,
+          amount_bs: validated.amount_bs,
+          status: validated.status,
+          notes: validated.notes,
+          sale_id: validated.sale_id,
+          user_id: user.id
+        }])
         .select()
         .single();
 
