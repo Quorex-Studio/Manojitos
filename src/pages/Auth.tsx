@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Mail, Lock, User } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Phone } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export default function Auth() {
@@ -16,7 +16,8 @@ export default function Auth() {
   const [form, setForm] = useState({
     email: '',
     password: '',
-    fullName: ''
+    fullName: '',
+    phone: ''
   });
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function Auth() {
           });
         }
       } else {
-        const { error } = await signUp(form.email, form.password, form.fullName);
+        const { error } = await signUp(form.email, form.password, form.fullName, form.phone);
         if (error) {
           if (error.message.includes('already registered')) {
             toast({
@@ -104,20 +105,36 @@ export default function Auth() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-foreground">Nombre completo</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Tu nombre"
-                    value={form.fullName}
-                    onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                    className="pl-10 h-12 input-glass rounded-xl"
-                  />
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-foreground">Nombre completo</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Tu nombre"
+                      value={form.fullName}
+                      onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                      className="pl-10 h-12 input-glass rounded-xl"
+                    />
+                  </div>
                 </div>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-foreground">Teléfono</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="+58 412 1234567"
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      className="pl-10 h-12 input-glass rounded-xl"
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="space-y-2">

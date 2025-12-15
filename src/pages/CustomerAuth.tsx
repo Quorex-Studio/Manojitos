@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, Loader2, ArrowLeft, ShoppingBag } from 'lucide-react';
+import { Mail, Lock, User, Loader2, ArrowLeft, ShoppingBag, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +21,8 @@ export default function CustomerAuth() {
   const [form, setForm] = useState({
     email: '',
     password: '',
-    fullName: ''
+    fullName: '',
+    phone: ''
   });
 
   const redirectTo = searchParams.get('redirect') || '/';
@@ -77,7 +78,7 @@ export default function CustomerAuth() {
           return;
         }
 
-        const { error } = await signUp(form.email, form.password, form.fullName);
+        const { error } = await signUp(form.email, form.password, form.fullName, form.phone);
         if (error) {
           let message = error.message;
           if (error.message.includes('already registered')) {
@@ -154,22 +155,39 @@ export default function CustomerAuth() {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
-                <div>
-                  <Label htmlFor="fullName">Nombre Completo</Label>
-                  <div className="relative mt-1">
-                    <Input
-                      id="fullName"
-                      name="fullName"
-                      type="text"
-                      placeholder="Tu nombre"
-                      value={form.fullName}
-                      onChange={handleInputChange}
-                      className="pl-10"
-                      required={!isLogin}
-                    />
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <>
+                  <div>
+                    <Label htmlFor="fullName">Nombre Completo</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        id="fullName"
+                        name="fullName"
+                        type="text"
+                        placeholder="Tu nombre"
+                        value={form.fullName}
+                        onChange={handleInputChange}
+                        className="pl-10"
+                        required={!isLogin}
+                      />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
                   </div>
-                </div>
+                  <div>
+                    <Label htmlFor="phone">Teléfono</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        placeholder="+58 412 1234567"
+                        value={form.phone}
+                        onChange={handleInputChange}
+                        className="pl-10"
+                      />
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                </>
               )}
 
               <div>
