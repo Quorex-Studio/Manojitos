@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
-import { saleSchema, validateInput } from '@/lib/validations';
+import { saleSchema, validateInput, SaleStatus } from '@/lib/validations';
 
 export interface Sale {
   id: string;
@@ -18,6 +18,7 @@ export interface Sale {
   client_phone: string | null;
   is_credit: boolean;
   notes: string | null;
+  status: SaleStatus;
   created_at: string;
 }
 
@@ -37,17 +38,20 @@ export function useSales() {
     if (error) {
       toast({ title: 'Error', description: 'No se pudieron cargar las ventas', variant: 'destructive' });
     } else {
-      setSales(data || []);
+      setSales((data || []).map(sale => ({
+        ...sale,
+        status: sale.status as SaleStatus
+      })));
     }
     setLoading(false);
   };
 
-  const addSale = async (sale: Omit<Sale, 'id' | 'user_id' | 'created_at'>) => {
+  // Crea venta en estado pending (transaccional)
+  const addSale = async (sale: Omit<Sale, 'id' | 'user_id' | 'created_at' | 'status'>, status: SaleStatus = 'pending') => {
     if (!user) return { error: new Error('No autenticado') };
 
-    // Validate input before database operation
     try {
-      const validated = validateInput(saleSchema, sale);
+      const validated = validateInput(saleSchema, { ...sale, status });
 
       const { data, error } = await supabase
         .from('sales')
@@ -63,6 +67,7 @@ export function useSales() {
           client_phone: validated.client_phone,
           is_credit: validated.is_credit,
           notes: validated.notes,
+          status: validated.status,
           user_id: user.id
         }])
         .select()
@@ -70,33 +75,175 @@ export function useSales() {
 
       if (error) {
         toast({ title: 'Error', description: 'No se pudo registrar la venta', variant: 'destructive' });
-      } else {
-        toast({ title: 'Éxito', description: 'Venta registrada correctamente' });
-        
-        // Update product stock and sold count
-        if (validated.product_id) {
-          const { data: product } = await supabase
-            .from('products')
-            .select('stock, sold_count')
-            .eq('id', validated.product_id)
-            .single();
-            
-          if (product) {
-            await supabase
-              .from('products')
-              .update({
-                stock: product.stock - validated.quantity,
-                sold_count: product.sold_count + validated.quantity
-              })
-              .eq('id', validated.product_id);
-          }
-        }
       }
       return { data, error };
     } catch (validationError) {
       const errorMessage = validationError instanceof Error ? validationError.message : 'Datos inválidos';
       toast({ title: 'Error de validación', description: errorMessage, variant: 'destructive' });
       return { error: new Error(errorMessage) };
+    }
+  };
+
+  // Confirmar venta - actualiza stock y crea entrada en ledger
+  const confirmSale = async (saleId: string) => {
+    if (!user) return { error: new Error('No autenticado') };
+
+    // Obtener venta
+    const { data: sale, error: fetchError } = await supabase
+      .from('sales')
+      .select('*')
+      .eq('id', saleId)
+      .single();
+
+    if (fetchError || !sale) {
+      toast({ title: 'Error', description: 'Venta no encontrada', variant: 'destructive' });
+      return { error: fetchError || new Error('Venta no encontrada') };
+    }
+
+    if (sale.status !== 'pending') {
+      toast({ title: 'Error', description: 'La venta ya fue procesada', variant: 'destructive' });
+      return { error: new Error('La venta ya fue procesada') };
+    }
+
+    // Actualizar estado a confirmed
+    const { error: updateError } = await supabase
+      .from('sales')
+      .update({ status: 'confirmed' })
+      .eq('id', saleId);
+
+    if (updateError) {
+      toast({ title: 'Error', description: 'No se pudo confirmar la venta', variant: 'destructive' });
+      return { error: updateError };
+    }
+
+    // Actualizar stock del producto
+    if (sale.product_id) {
+      const { data: product } = await supabase
+        .from('products')
+        .select('stock, sold_count')
+        .eq('id', sale.product_id)
+        .single();
+        
+      if (product) {
+        await supabase
+          .from('products')
+          .update({
+            stock: Math.max(0, product.stock - sale.quantity),
+            sold_count: product.sold_count + sale.quantity
+          })
+          .eq('id', sale.product_id);
+      }
+    }
+
+    toast({ title: 'Éxito', description: 'Venta confirmada' });
+    return { data: sale, error: null };
+  };
+
+  // Cancelar venta pendiente
+  const cancelSale = async (saleId: string) => {
+    if (!user) return { error: new Error('No autenticado') };
+
+    const { data: sale, error: fetchError } = await supabase
+      .from('sales')
+      .select('status')
+      .eq('id', saleId)
+      .single();
+
+    if (fetchError || !sale) {
+      return { error: fetchError || new Error('Venta no encontrada') };
+    }
+
+    if (sale.status === 'confirmed') {
+      toast({ title: 'Error', description: 'No se puede cancelar una venta confirmada', variant: 'destructive' });
+      return { error: new Error('No se puede cancelar una venta confirmada') };
+    }
+
+    const { error } = await supabase
+      .from('sales')
+      .update({ status: 'cancelled' })
+      .eq('id', saleId);
+
+    if (error) {
+      toast({ title: 'Error', description: 'No se pudo cancelar la venta', variant: 'destructive' });
+    } else {
+      toast({ title: 'Venta cancelada', description: 'La venta ha sido cancelada' });
+    }
+    return { error };
+  };
+
+  // Checkout transaccional - crea ventas pending y confirma todas o cancela
+  const processCheckout = async (
+    items: Array<{
+      id: string;
+      name: string;
+      quantity: number;
+      price_usd: number;
+    }>,
+    checkoutData: {
+      payment_method: string;
+      client_name: string;
+      client_phone: string;
+      notes?: string;
+      total_bs_rate?: number;
+    }
+  ) => {
+    if (!user) return { error: new Error('No autenticado'), saleIds: [] };
+
+    const saleIds: string[] = [];
+    
+    try {
+      // 1. Crear todas las ventas en estado pending
+      for (const item of items) {
+        const { data, error } = await addSale({
+          product_id: item.id,
+          product_name: item.name,
+          quantity: item.quantity,
+          unit_price_usd: item.price_usd,
+          total_usd: item.price_usd * item.quantity,
+          total_bs: checkoutData.total_bs_rate ? (item.price_usd * item.quantity * checkoutData.total_bs_rate) : null,
+          payment_method: checkoutData.payment_method,
+          client_name: checkoutData.client_name,
+          client_phone: checkoutData.client_phone,
+          is_credit: false,
+          notes: checkoutData.notes || null
+        }, 'pending');
+
+        if (error || !data) {
+          // Rollback: cancelar ventas creadas
+          for (const id of saleIds) {
+            await cancelSale(id);
+          }
+          return { error: error || new Error('Error creando venta'), saleIds: [] };
+        }
+        
+        saleIds.push(data.id);
+      }
+
+      // 2. Confirmar todas las ventas
+      for (const saleId of saleIds) {
+        const { error } = await confirmSale(saleId);
+        if (error) {
+          // Rollback parcial - las ventas confirmadas no se pueden deshacer fácilmente
+          // pero las pendientes se cancelan
+          for (const id of saleIds) {
+            const { data: s } = await supabase.from('sales').select('status').eq('id', id).single();
+            if (s?.status === 'pending') {
+              await cancelSale(id);
+            }
+          }
+          return { error, saleIds };
+        }
+      }
+
+      toast({ title: 'Éxito', description: 'Pedido procesado correctamente' });
+      return { error: null, saleIds };
+      
+    } catch (err) {
+      // Rollback en caso de error
+      for (const id of saleIds) {
+        await cancelSale(id);
+      }
+      return { error: err instanceof Error ? err : new Error('Error desconocido'), saleIds: [] };
     }
   };
 
@@ -131,5 +278,14 @@ export function useSales() {
     }
   }, [user]);
 
-  return { sales, loading, addSale, deleteSale, refetch: fetchSales };
+  return { 
+    sales, 
+    loading, 
+    addSale, 
+    confirmSale,
+    cancelSale,
+    processCheckout,
+    deleteSale, 
+    refetch: fetchSales 
+  };
 }

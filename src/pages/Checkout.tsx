@@ -33,7 +33,7 @@ export default function Checkout() {
   const { user, loading: authLoading } = useAuth();
   const { items, getSubtotal, clearCart } = useCart();
   const { rate, convertToBS } = useExchangeRate();
-  const { addSale } = useSales();
+  const { processCheckout } = useSales();
   
   const [step, setStep] = useState<'auth' | 'shipping' | 'payment' | 'confirm'>('shipping');
   const [loading, setLoading] = useState(false);
@@ -81,28 +81,31 @@ export default function Checkout() {
                           shippingData.address.trim() &&
                           shippingData.city.trim();
 
-  // Procesar pedido
+  // Procesar pedido con checkout transaccional
   const handleSubmitOrder = async () => {
     if (!user) return;
     
     setLoading(true);
     
     try {
-      // Crear una venta por cada item del carrito
-      for (const item of items) {
-        await addSale({
-          product_id: item.id,
-          product_name: item.name,
+      const { error, saleIds } = await processCheckout(
+        items.map(item => ({
+          id: item.id,
+          name: item.name,
           quantity: item.quantity,
-          unit_price_usd: item.price_usd,
-          total_usd: item.price_usd * item.quantity,
-          total_bs: rate > 0 ? convertToBS(item.price_usd * item.quantity) : null,
+          price_usd: item.price_usd
+        })),
+        {
           payment_method: paymentMethod,
           client_name: shippingData.fullName,
           client_phone: shippingData.phone,
-          is_credit: false,
-          notes: `Dirección: ${shippingData.address}, ${shippingData.city}. ${shippingData.notes || ''}`
-        });
+          notes: `Dirección: ${shippingData.address}, ${shippingData.city}. ${shippingData.notes || ''}`,
+          total_bs_rate: rate > 0 ? rate : undefined
+        }
+      );
+
+      if (error) {
+        throw error;
       }
 
       clearCart();
