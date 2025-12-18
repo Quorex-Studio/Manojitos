@@ -18,6 +18,7 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import ImportProducts from "./pages/ImportProducts";
 import Credits from "./pages/Credits";
+import PriceCalculator from "./pages/PriceCalculator";
 
 // Customer Pages
 import StoreFront from "./pages/StoreFront";
@@ -91,6 +92,7 @@ function AppRoutes() {
       <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/import-products" element={<ProtectedRoute><ImportProducts /></ProtectedRoute>} />
+      <Route path="/calculadora" element={<ProtectedRoute><PriceCalculator /></ProtectedRoute>} />
       
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
