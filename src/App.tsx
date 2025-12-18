@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import ImportProducts from "./pages/ImportProducts";
 import Credits from "./pages/Credits";
 import PriceCalculator from "./pages/PriceCalculator";
+import BusinessRules from "./pages/BusinessRules";
 
 // Customer Pages
 import StoreFront from "./pages/StoreFront";
@@ -27,6 +28,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import CustomerAuth from "./pages/CustomerAuth";
+import CustomerProfile from "./pages/CustomerProfile";
 
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -80,6 +82,7 @@ function AppRoutes() {
       <Route path="/carrito" element={<Cart />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/cliente/auth" element={<CustomerAuth />} />
+      <Route path="/cliente/perfil" element={<CustomerProfile />} />
 
       {/* ===== RUTAS ADMIN ===== */}
       <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
@@ -93,6 +96,7 @@ function AppRoutes() {
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/import-products" element={<ProtectedRoute><ImportProducts /></ProtectedRoute>} />
       <Route path="/calculadora" element={<ProtectedRoute><PriceCalculator /></ProtectedRoute>} />
+      <Route path="/reglas" element={<ProtectedRoute><BusinessRules /></ProtectedRoute>} />
       
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
