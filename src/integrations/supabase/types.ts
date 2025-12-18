@@ -451,18 +451,21 @@ export type Database = {
       exchange_rates: {
         Row: {
           created_at: string
+          currency: string
           id: string
           rate: number
           source: string | null
         }
         Insert: {
           created_at?: string
+          currency?: string
           id?: string
           rate: number
           source?: string | null
         }
         Update: {
           created_at?: string
+          currency?: string
           id?: string
           rate?: number
           source?: string | null

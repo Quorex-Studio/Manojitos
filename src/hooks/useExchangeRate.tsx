@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Flag to track if auto-fetch has been attempted this session
-let autoFetchAttempted = false;
+// Flag to track if auto-fetch has been attempted this session per currency
+const autoFetchAttempted: Record<string, boolean> = {};
 
-export function useExchangeRate() {
+export type Currency = 'USD' | 'EUR';
+
+export function useExchangeRate(currency: Currency = 'USD') {
   const [rate, setRate] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -14,6 +16,7 @@ export function useExchangeRate() {
     const { data, error } = await supabase
       .from('exchange_rates')
       .select('*')
+      .eq('currency', currency)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -21,6 +24,9 @@ export function useExchangeRate() {
     if (data && !error) {
       setRate(Number(data.rate));
       setLastUpdate(new Date(data.created_at));
+    } else {
+      setRate(0);
+      setLastUpdate(null);
     }
     setLoading(false);
     return data;
@@ -28,16 +34,18 @@ export function useExchangeRate() {
 
   // Auto-fetch from BCV API if rate is missing or outdated
   const autoFetchBCV = async () => {
-    if (autoFetchAttempted) return;
-    autoFetchAttempted = true;
+    if (autoFetchAttempted[currency]) return;
+    autoFetchAttempted[currency] = true;
     
     setAutoFetching(true);
     try {
-      console.log('Auto-fetching BCV rate...');
-      const { data, error } = await supabase.functions.invoke('get-bcv-rate');
+      console.log(`Auto-fetching ${currency} rate...`);
+      const { data, error } = await supabase.functions.invoke('get-bcv-rate', {
+        body: { currency }
+      });
       
       if (!error && data?.saved) {
-        console.log('BCV rate auto-updated:', data.rate);
+        console.log(`${currency} rate auto-updated:`, data.rate);
         await fetchRate();
       }
     } catch (error) {
@@ -52,7 +60,7 @@ export function useExchangeRate() {
     console.warn('Direct rate updates are deprecated. Use the get-bcv-rate edge function.');
     const { error } = await supabase
       .from('exchange_rates')
-      .insert({ rate: newRate, source: 'manual' });
+      .insert({ rate: newRate, source: 'manual', currency });
 
     if (!error) {
       setRate(newRate);
@@ -63,6 +71,7 @@ export function useExchangeRate() {
 
   useEffect(() => {
     const initializeRate = async () => {
+      setLoading(true);
       const currentData = await fetchRate();
       
       // Auto-fetch if no rate exists or rate is older than 24 hours
@@ -83,13 +92,14 @@ export function useExchangeRate() {
 
     // Subscribe to realtime updates
     const channel = supabase
-      .channel('exchange-rates-changes')
+      .channel(`exchange-rates-changes-${currency}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'exchange_rates'
+          table: 'exchange_rates',
+          filter: `currency=eq.${currency}`
         },
         (payload) => {
           setRate(Number(payload.new.rate));
@@ -101,10 +111,10 @@ export function useExchangeRate() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [currency]);
 
-  const convertToBS = (usd: number) => rate ? usd * rate : 0;
-  const convertToUSD = (bs: number) => rate ? bs / rate : 0;
+  const convertToBS = (amount: number) => rate ? amount * rate : 0;
+  const convertFromBS = (bs: number) => rate ? bs / rate : 0;
 
   return { 
     rate, 
@@ -112,8 +122,9 @@ export function useExchangeRate() {
     lastUpdate, 
     updateRate, 
     convertToBS, 
-    convertToUSD, 
+    convertFromBS, 
     refetch: fetchRate,
-    autoFetching 
+    autoFetching,
+    currency
   };
 }
