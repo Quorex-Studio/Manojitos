@@ -62,6 +62,10 @@ export const paymentPromiseSchema = z.object({
 
 export type PaymentPromiseInput = z.infer<typeof paymentPromiseSchema>;
 
+// Sale status enum
+export const SALE_STATUSES = ['pending', 'confirmed', 'cancelled'] as const;
+export type SaleStatus = typeof SALE_STATUSES[number];
+
 // Sale validation schema
 export const saleSchema = z.object({
   product_id: z.string().uuid().optional().nullable(),
@@ -75,6 +79,7 @@ export const saleSchema = z.object({
   client_phone: z.string().max(50).optional().nullable().transform(val => val ? sanitizeText(val) : val),
   is_credit: z.boolean().default(false),
   notes: z.string().max(1000).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  status: z.enum(SALE_STATUSES).default('pending'),
 });
 
 export type SaleInput = z.infer<typeof saleSchema>;
