@@ -510,6 +510,11 @@ export default function PriceCalculator() {
                     <p className="text-xs text-muted-foreground mt-1">
                       Ganancia: ${profitBS.toFixed(2)} ({profitMarginBS.toFixed(1)}%)
                     </p>
+                    <div className="mt-2 pt-2 border-t border-blue-500/20">
+                      <p className="text-xs text-muted-foreground">
+                        Tasa final con {extraPercentage.toFixed(1)}%: <span className="font-semibold text-blue-600 dark:text-blue-400">Bs. {(rate * (1 + extraPercentage / 100)).toFixed(4)}</span>
+                      </p>
+                    </div>
                   </motion.div>
 
                   {/* Comparativa */}
@@ -588,10 +593,35 @@ export default function PriceCalculator() {
 
           {/* Batch/Múltiples */}
           <TabsContent value="batch" className="space-y-6">
+            {/* Resumen de configuración actual */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="py-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Tasa BCV</p>
+                      <p className="font-bold">Bs. {rate.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">% Extra</p>
+                      <p className="font-bold text-primary">{extraPercentage.toFixed(1)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Tasa Final</p>
+                      <p className="font-bold text-blue-600">Bs. {(rate * (1 + extraPercentage / 100)).toFixed(2)}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Agregar producto */}
             <Card>
               <CardHeader>
-                <CardTitle>Agregar Producto</CardTitle>
-                <CardDescription>Agrega múltiples productos para calcular precios en lote</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5" />
+                  Agregar Producto
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -599,25 +629,29 @@ export default function PriceCalculator() {
                     <Label htmlFor="productName">Nombre (opcional)</Label>
                     <Input
                       id="productName"
-                      placeholder="Nombre del producto"
+                      placeholder="Ej: Camisa, Pantalón..."
                       value={newProductName}
                       onChange={(e) => setNewProductName(e.target.value)}
                     />
                   </div>
-                  <div className="w-full sm:w-40">
+                  <div className="w-full sm:w-48">
                     <Label htmlFor="productCost">Costo USD</Label>
-                    <Input
-                      id="productCost"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={newProductCost}
-                      onChange={(e) => setNewProductCost(e.target.value)}
-                    />
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="productCost"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={newProductCost}
+                        onChange={(e) => setNewProductCost(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
                   </div>
                   <div className="flex items-end">
-                    <Button onClick={addToBatch}>
+                    <Button onClick={addToBatch} className="w-full sm:w-auto">
                       <Plus className="h-4 w-4 mr-2" />
                       Agregar
                     </Button>
@@ -627,14 +661,19 @@ export default function PriceCalculator() {
             </Card>
 
             {/* Lista de productos */}
-            {batchProducts.length > 0 && (
+            {batchProducts.length > 0 ? (
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
                   <div>
-                    <CardTitle>Productos ({batchProducts.length})</CardTitle>
-                    <CardDescription>Precios calculados para todos los productos</CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                      Simulación por Lotes
+                      <Badge variant="secondary">{batchProducts.length} productos</Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      Total: ${batchProducts.reduce((sum, p) => sum + p.costUSD, 0).toFixed(2)} USD en costos
+                    </CardDescription>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" onClick={exportCSV}>
                       <Download className="h-4 w-4 mr-2" />
                       CSV
@@ -652,55 +691,97 @@ export default function PriceCalculator() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-[400px]">
-                    <div className="space-y-3">
-                      {batchProducts.map((product, index) => (
-                        <motion.div
-                          key={product.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 20 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="p-4 rounded-xl border border-border bg-card hover:bg-accent/5 transition-colors"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="font-medium">{product.name}</h4>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFromBatch(product.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Costo</p>
-                              <p className="font-medium">${product.costUSD.toFixed(2)}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Efectivo</p>
-                              <p className="font-medium text-green-600">${product.priceEfectivo.toFixed(2)}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Bolívares</p>
-                              <p className="font-medium text-blue-600">Bs. {product.priceBS.toFixed(2)}</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => copyToClipboard(product.priceEfectivo.toFixed(2))}
-                              >
-                                <Clipboard className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
+                  {/* Totales */}
+                  <div className="grid grid-cols-3 gap-4 mb-6 p-4 rounded-xl bg-secondary/30">
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Total Costos</p>
+                      <p className="text-lg font-bold">${batchProducts.reduce((sum, p) => sum + p.costUSD, 0).toFixed(2)}</p>
                     </div>
-                  </ScrollArea>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Total Efectivo</p>
+                      <p className="text-lg font-bold text-green-600">${batchProducts.reduce((sum, p) => sum + p.priceEfectivo, 0).toFixed(2)}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Total Bolívares</p>
+                      <p className="text-lg font-bold text-blue-600">Bs. {batchProducts.reduce((sum, p) => sum + p.priceBS, 0).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
+
+                  {/* Tabla de productos */}
+                  <div className="rounded-lg border overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left p-3 font-medium">Producto</th>
+                          <th className="text-right p-3 font-medium">Costo USD</th>
+                          <th className="text-right p-3 font-medium text-green-600">Efectivo</th>
+                          <th className="text-right p-3 font-medium text-blue-600">Bolívares</th>
+                          <th className="text-right p-3 font-medium">Ganancia</th>
+                          <th className="p-3 w-20"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {batchProducts.map((product, index) => (
+                          <motion.tr
+                            key={product.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.03 }}
+                            className="hover:bg-muted/30 transition-colors"
+                          >
+                            <td className="p-3 font-medium">{product.name}</td>
+                            <td className="p-3 text-right">${product.costUSD.toFixed(2)}</td>
+                            <td className="p-3 text-right font-medium text-green-600">${product.priceEfectivo.toFixed(2)}</td>
+                            <td className="p-3 text-right font-medium text-blue-600">Bs. {product.priceBS.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
+                            <td className="p-3 text-right">
+                              <span className="text-green-600">${product.profitEfectivo.toFixed(2)}</span>
+                              <span className="text-muted-foreground mx-1">/</span>
+                              <span className="text-blue-600">${product.profitBS.toFixed(2)}</span>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(`${product.name}: $${product.priceEfectivo.toFixed(2)} / Bs. ${product.priceBS.toFixed(2)}`)}
+                                >
+                                  <Clipboard className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeFromBatch(product.id)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Limpiar todo */}
+                  <div className="mt-4 flex justify-end">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setBatchProducts([])}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Limpiar Todo
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <Calculator className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+                  <p className="text-muted-foreground">Agrega productos para calcular precios en lote</p>
                 </CardContent>
               </Card>
             )}
@@ -708,103 +789,52 @@ export default function PriceCalculator() {
 
           {/* Configuración */}
           <TabsContent value="config" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings2 className="h-5 w-5" />
-                    Multiplicadores
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <Label>Multiplicador Efectivo</Label>
-                      <span className="font-medium">x{efectivoMultiplier}</span>
-                    </div>
-                    <Slider
-                      value={[efectivoMultiplier]}
-                      onValueChange={([v]) => setEfectivoMultiplier(v)}
-                      min={1}
-                      max={5}
-                      step={0.1}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Fórmula: Costo × {efectivoMultiplier}
+            <Card className="max-w-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings2 className="h-5 w-5" />
+                  Porcentaje de Ganancia
+                </CardTitle>
+                <CardDescription>
+                  Ajusta el porcentaje extra que se aplica al precio en Bolívares
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-base">Porcentaje Extra BS</Label>
+                    <span className="text-2xl font-bold text-primary">{extraPercentage.toFixed(1)}%</span>
+                  </div>
+                  <Slider
+                    value={[extraPercentage]}
+                    onValueChange={([v]) => setExtraPercentage(v)}
+                    min={0}
+                    max={50}
+                    step={0.1}
+                    className="py-4"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>0%</span>
+                    <span>25%</span>
+                    <span>50%</span>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="p-4 rounded-xl bg-secondary/50">
+                  <p className="text-sm font-medium mb-2">Fórmula aplicada:</p>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    Precio BS = (Costo × {bsMultiplier} × Tasa BCV) × (1 + {extraPercentage.toFixed(1)}%)
+                  </p>
+                  {isValidRate && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Tasa final: <span className="font-semibold">Bs. {(rate * (1 + extraPercentage / 100)).toFixed(4)}</span>
                     </p>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <Label>Multiplicador BS</Label>
-                      <span className="font-medium">x{bsMultiplier}</span>
-                    </div>
-                    <Slider
-                      value={[bsMultiplier]}
-                      onValueChange={([v]) => setBsMultiplier(v)}
-                      min={1}
-                      max={10}
-                      step={0.1}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Fórmula: (Costo × {bsMultiplier} × Tasa) × (1 + {extraPercentage}%)
-                    </p>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <Label>Porcentaje Extra BS</Label>
-                      <span className="font-medium">{extraPercentage.toFixed(1)}%</span>
-                    </div>
-                    <Slider
-                      value={[extraPercentage]}
-                      onValueChange={([v]) => setExtraPercentage(v)}
-                      min={0}
-                      max={100}
-                      step={0.1}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Presets Guardados</CardTitle>
-                  <CardDescription>Configuraciones frecuentes</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {presets.map(preset => (
-                      <div
-                        key={preset.id}
-                        className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                          selectedPreset === preset.id 
-                            ? 'border-primary bg-primary/5' 
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                        onClick={() => setSelectedPreset(preset.id)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium">{preset.name}</h4>
-                          {selectedPreset === preset.id && (
-                            <Check className="h-4 w-4 text-primary" />
-                          )}
-                        </div>
-                        <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-                          <span>Efectivo: x{preset.efectivoMultiplier}</span>
-                          <span>BS: x{preset.bsMultiplier}</span>
-                          <span>Extra: {preset.extraPercentage}%</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Historial */}
