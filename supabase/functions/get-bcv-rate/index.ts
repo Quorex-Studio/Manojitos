@@ -13,13 +13,18 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request body to check for manual rate input
+    // Parse request body to check for manual rate input and currency
     let manualRate: number | null = null;
+    let currency = 'USD'; // Default to USD
+    
     if (req.method === 'POST') {
       try {
         const body = await req.json();
         if (body.rate && typeof body.rate === 'number' && body.rate > 0) {
           manualRate = body.rate;
+        }
+        if (body.currency && (body.currency === 'USD' || body.currency === 'EUR')) {
+          currency = body.currency;
         }
       } catch {
         // No body or invalid JSON, continue with BCV fetch
@@ -31,7 +36,7 @@ serve(async (req) => {
 
     // Only fetch from BCV API if no manual rate provided
     if (!manualRate) {
-      console.log('Fetching BCV rate from APIs...');
+      console.log(`Fetching ${currency} rate from APIs...`);
       
       // Try multiple API sources with timeout
       const fetchWithTimeout = async (url: string, timeoutMs = 5000) => {
@@ -49,14 +54,13 @@ serve(async (req) => {
 
       // Try exchangerate-api.com as primary (more reliable)
       try {
-        console.log('Trying exchangerate-api.com...');
-        const response = await fetchWithTimeout('https://v6.exchangerate-api.com/v6/latest/USD');
+        console.log(`Trying exchangerate-api.com for ${currency}...`);
+        const response = await fetchWithTimeout(`https://v6.exchangerate-api.com/v6/latest/${currency}`);
         if (response.ok) {
           const data = await response.json();
-          // Note: This API may not have VES, fallback to estimate
           if (data.conversion_rates?.VES) {
             rate = data.conversion_rates.VES;
-            console.log('Got rate from exchangerate-api:', rate);
+            console.log(`Got ${currency} rate from exchangerate-api:`, rate);
           }
         }
       } catch (e) {
@@ -66,13 +70,13 @@ serve(async (req) => {
       // Try alternative if first failed
       if (!rate) {
         try {
-          console.log('Trying alternative API...');
-          const response = await fetchWithTimeout('https://open.er-api.com/v6/latest/USD');
+          console.log(`Trying alternative API for ${currency}...`);
+          const response = await fetchWithTimeout(`https://open.er-api.com/v6/latest/${currency}`);
           if (response.ok) {
             const data = await response.json();
             if (data.rates?.VES) {
               rate = data.rates.VES;
-              console.log('Got rate from open.er-api:', rate);
+              console.log(`Got ${currency} rate from open.er-api:`, rate);
             }
           }
         } catch (e) {
@@ -96,7 +100,7 @@ serve(async (req) => {
       }
     }
 
-    console.log('Rate to save:', rate, 'Source:', source);
+    console.log('Rate to save:', rate, 'Currency:', currency, 'Source:', source);
 
     // Create Supabase client with service role key (bypasses RLS)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -109,7 +113,8 @@ serve(async (req) => {
       .from('exchange_rates')
       .insert({ 
         rate: Number(rate), 
-        source: source 
+        source: source,
+        currency: currency
       });
 
     if (insertError) {
@@ -122,6 +127,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         rate: Number(rate),
+        currency: currency,
         source: source,
         timestamp: new Date().toISOString(),
         saved: true

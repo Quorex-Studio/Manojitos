@@ -13,7 +13,8 @@ import {
   History,
   Check,
   AlertCircle,
-  Hash
+  Hash,
+  Euro
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { useExchangeRate, Currency } from '@/hooks/useExchangeRate';
 import { toast } from '@/hooks/use-toast';
 
 // Tipos
@@ -32,8 +33,8 @@ interface BatchProduct {
   id: string;
   name: string;
   quantity: number;
-  unitPriceUSD: number;
-  totalEfectivoUSD: number;
+  unitPrice: number;
+  totalEfectivo: number;
   totalBS: number;
 }
 
@@ -41,19 +42,25 @@ interface CalculationHistory {
   id: string;
   date: Date;
   quantity: number;
-  unitPriceUSD: number;
-  totalEfectivoUSD: number;
+  unitPrice: number;
+  totalEfectivo: number;
   totalBS: number;
   bcvRate: number;
   extraPercentage: number;
+  currency: Currency;
 }
 
 export default function PriceCalculator() {
-  const { rate, loading: rateLoading, lastUpdate, refetch: refetchRate, autoFetching } = useExchangeRate();
+  // Get preferred currency from localStorage
+  const preferredCurrency = (localStorage.getItem('preferredCurrency') as Currency) || 'USD';
+  const { rate, loading: rateLoading, lastUpdate, refetch: refetchRate, autoFetching, currency } = useExchangeRate(preferredCurrency);
+
+  const currencySymbol = currency === 'EUR' ? '€' : '$';
+  const CurrencyIcon = currency === 'EUR' ? Euro : DollarSign;
 
   // Estado principal - Cálculo Simple
   const [quantity, setQuantity] = useState<string>('1');
-  const [unitPriceUSD, setUnitPriceUSD] = useState<string>('');
+  const [unitPrice, setUnitPrice] = useState<string>('');
   const [extraPercentage, setExtraPercentage] = useState<number>(10.7);
 
   // Estado para batch
@@ -68,7 +75,7 @@ export default function PriceCalculator() {
 
   // Validaciones
   const quantityNumber = parseInt(quantity) || 0;
-  const unitPriceNumber = parseFloat(unitPriceUSD) || 0;
+  const unitPriceNumber = parseFloat(unitPrice) || 0;
   const isValidQuantity = quantityNumber >= 1;
   const isValidUnitPrice = unitPriceNumber > 0;
   const isValidRate = rate > 0;
@@ -76,9 +83,9 @@ export default function PriceCalculator() {
   const isValidInputs = isValidQuantity && isValidUnitPrice && isValidRate && isValidPercentage;
 
   // Cálculos según la fórmula especificada:
-  // PrecioTotalEfectivoUSD = Cantidad × PrecioUnitarioUSD
-  // PrecioTotalBS = (Cantidad × PrecioUnitarioUSD × TasaBCV) × (1 + PorcentajeExtra/100)
-  const totalEfectivoUSD = useMemo(() => {
+  // PrecioTotalEfectivo = Cantidad × PrecioUnitario
+  // PrecioTotalBS = (Cantidad × PrecioUnitario × Tasa) × (1 + PorcentajeExtra/100)
+  const totalEfectivo = useMemo(() => {
     if (!isValidQuantity || !isValidUnitPrice) return 0;
     return Math.round((quantityNumber * unitPriceNumber) * 100) / 100;
   }, [quantityNumber, unitPriceNumber, isValidQuantity, isValidUnitPrice]);
@@ -113,11 +120,12 @@ export default function PriceCalculator() {
       id: crypto.randomUUID(),
       date: new Date(),
       quantity: quantityNumber,
-      unitPriceUSD: unitPriceNumber,
-      totalEfectivoUSD,
+      unitPrice: unitPriceNumber,
+      totalEfectivo,
       totalBS,
       bcvRate: rate,
       extraPercentage,
+      currency,
     };
     setHistory([entry, ...history.slice(0, 49)]);
     toast({ title: 'Guardado', description: 'Cálculo agregado al historial' });
@@ -140,8 +148,8 @@ export default function PriceCalculator() {
       id: crypto.randomUUID(),
       name: newProductName || `Producto ${batchProducts.length + 1}`,
       quantity: qty,
-      unitPriceUSD: price,
-      totalEfectivoUSD: totalEffectivo,
+      unitPrice: price,
+      totalEfectivo: totalEffectivo,
       totalBS: totalBs,
     };
 
@@ -158,12 +166,12 @@ export default function PriceCalculator() {
 
   // Exportar CSV
   const exportCSV = () => {
-    const headers = ['Nombre', 'Cantidad', 'Precio Unitario USD', 'Total Efectivo USD', 'Total BS'];
+    const headers = ['Nombre', 'Cantidad', `Precio Unitario ${currency}`, `Total Efectivo ${currency}`, 'Total BS'];
     const rows = batchProducts.map(p => [
       p.name,
       p.quantity.toString(),
-      p.unitPriceUSD.toFixed(2),
-      p.totalEfectivoUSD.toFixed(2),
+      p.unitPrice.toFixed(2),
+      p.totalEfectivo.toFixed(2),
       p.totalBS.toFixed(2)
     ]);
     
@@ -203,7 +211,7 @@ export default function PriceCalculator() {
   // Totales del batch
   const batchTotals = useMemo(() => {
     return {
-      totalEfectivo: batchProducts.reduce((sum, p) => sum + p.totalEfectivoUSD, 0),
+      totalEfectivo: batchProducts.reduce((sum, p) => sum + p.totalEfectivo, 0),
       totalBS: batchProducts.reduce((sum, p) => sum + p.totalBS, 0),
       totalItems: batchProducts.reduce((sum, p) => sum + p.quantity, 0),
     };
@@ -307,23 +315,23 @@ export default function PriceCalculator() {
                     )}
                   </div>
 
-                  {/* Precio Unitario USD */}
+                  {/* Precio Unitario */}
                   <div className="space-y-2">
-                    <Label htmlFor="unitPriceUSD">Precio Unitario (USD)</Label>
+                    <Label htmlFor="unitPrice">Precio Unitario ({currency})</Label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <CurrencyIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        id="unitPriceUSD"
+                        id="unitPrice"
                         type="number"
                         min="0"
                         step="0.01"
                         placeholder="0.00"
-                        value={unitPriceUSD}
-                        onChange={(e) => setUnitPriceUSD(e.target.value)}
+                        value={unitPrice}
+                        onChange={(e) => setUnitPrice(e.target.value)}
                         className="pl-9"
                       />
                     </div>
-                    {unitPriceUSD && !isValidUnitPrice && (
+                    {unitPrice && !isValidUnitPrice && (
                       <p className="text-xs text-destructive flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" />
                         El precio debe ser mayor a 0
@@ -363,29 +371,29 @@ export default function PriceCalculator() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Precio Total Efectivo USD */}
+                  {/* Precio Total Efectivo */}
                   <motion.div
-                    key={`efectivo-${totalEfectivoUSD}`}
+                    key={`efectivo-${totalEfectivo}`}
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     className="p-4 rounded-xl bg-green-500/10 border border-green-500/20"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Precio Total Efectivo (USD)</span>
+                      <span className="text-sm text-muted-foreground">Precio Total Efectivo ({currency})</span>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copyToClipboard(totalEfectivoUSD.toFixed(2), 'efectivo')}
+                        onClick={() => copyToClipboard(totalEfectivo.toFixed(2), 'efectivo')}
                         disabled={!isValidInputs}
                       >
                         {copiedId === 'efectivo' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                       </Button>
                     </div>
                     <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                      ${totalEfectivoUSD.toFixed(2)}
+                      {currencySymbol}{totalEfectivo.toFixed(2)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {quantityNumber} × ${unitPriceNumber.toFixed(2)}
+                      {quantityNumber} × {currencySymbol}{unitPriceNumber.toFixed(2)}
                     </p>
                   </motion.div>
 
@@ -598,9 +606,9 @@ export default function PriceCalculator() {
                           >
                             <td className="py-2 px-2 font-medium">{product.name}</td>
                             <td className="py-2 px-2 text-center">{product.quantity}</td>
-                            <td className="py-2 px-2 text-right">${product.unitPriceUSD.toFixed(2)}</td>
+                            <td className="py-2 px-2 text-right">{currencySymbol}{product.unitPrice.toFixed(2)}</td>
                             <td className="py-2 px-2 text-right text-green-600 dark:text-green-400 font-medium">
-                              ${product.totalEfectivoUSD.toFixed(2)}
+                              {currencySymbol}{product.totalEfectivo.toFixed(2)}
                             </td>
                             <td className="py-2 px-2 text-right text-blue-600 dark:text-blue-400 font-medium">
                               Bs. {product.totalBS.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
@@ -610,7 +618,7 @@ export default function PriceCalculator() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => copyToClipboard(`${product.name}: $${product.totalEfectivoUSD.toFixed(2)} / Bs. ${product.totalBS.toFixed(2)}`, product.id)}
+                                  onClick={() => copyToClipboard(`${product.name}: ${currencySymbol}${product.totalEfectivo.toFixed(2)} / Bs. ${product.totalBS.toFixed(2)}`, product.id)}
                                 >
                                   {copiedId === product.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                                 </Button>
@@ -674,14 +682,14 @@ export default function PriceCalculator() {
                                 {entry.date.toLocaleString()}
                               </span>
                               <Badge variant="outline" className="text-xs">
-                                {entry.quantity} × ${entry.unitPriceUSD.toFixed(2)}
+                                {entry.quantity} × {entry.currency === 'EUR' ? '€' : '$'}{entry.unitPrice.toFixed(2)}
                               </Badge>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <p className="text-xs text-muted-foreground">Total USD</p>
+                                <p className="text-xs text-muted-foreground">Total {entry.currency}</p>
                                 <p className="font-bold text-green-600 dark:text-green-400">
-                                  ${entry.totalEfectivoUSD.toFixed(2)}
+                                  {entry.currency === 'EUR' ? '€' : '$'}{entry.totalEfectivo.toFixed(2)}
                                 </p>
                               </div>
                               <div>
