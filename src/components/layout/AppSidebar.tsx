@@ -20,8 +20,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -40,34 +41,45 @@ export function AppSidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setIsOpen(false);
+    }
+  }, [location.pathname, isMobile]);
 
   return (
     <>
       {/* Mobile menu button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-4 left-4 z-50 md:hidden"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </Button>
+      {isMobile && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="fixed top-4 left-4 z-50"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </Button>
+      )}
 
-      {/* Overlay */}
-      {isOpen && (
+      {/* Overlay - mobile only */}
+      {isMobile && isOpen && (
         <div 
-          className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <motion.aside
-        initial={{ x: -280 }}
-        animate={{ x: isOpen ? 0 : -280 }}
+      <aside
         className={cn(
-          "fixed left-0 top-0 h-full w-[280px] sidebar-glass border-r border-border z-50",
-          "md:translate-x-0 md:static"
+          "h-full w-[280px] sidebar-glass border-r border-border flex-shrink-0",
+          isMobile && "fixed left-0 top-0 z-50 transition-transform duration-300",
+          isMobile && !isOpen && "-translate-x-full",
+          isMobile && isOpen && "translate-x-0",
+          !isMobile && "sticky top-0"
         )}
       >
         <div className="flex flex-col h-full p-6">
@@ -96,7 +108,7 @@ export function AppSidebar() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => isMobile && setIsOpen(false)}
                 >
                   <motion.div
                     whileHover={{ x: 4 }}
@@ -132,7 +144,7 @@ export function AppSidebar() {
             Cerrar Sesión
           </Button>
         </div>
-      </motion.aside>
+      </aside>
     </>
   );
 }
