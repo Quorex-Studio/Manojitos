@@ -31,6 +31,23 @@ const STITCH_GREETING = "¡Hola! 🩷 Soy **Stitch Rosa**, tu asistente adorable
 
 const SUPABASE_URL = 'https://utfoempgdbhhikpvbvir.supabase.co';
 
+// Sugerencias rápidas para clientes
+const CUSTOMER_SUGGESTIONS = [
+  { label: "📦 Mis pedidos", message: "¿Cuál es el estado de mis pedidos?" },
+  { label: "💳 Mi crédito", message: "¿Cuánto crédito tengo disponible?" },
+  { label: "🛒 Productos", message: "¿Qué productos me recomiendas?" },
+  { label: "💰 Tasa BCV", message: "¿Cuál es la tasa BCV actual?" },
+];
+
+// Sugerencias rápidas para admins
+const ADMIN_SUGGESTIONS = [
+  { label: "📊 Ventas", message: "Dame un resumen de ventas de esta semana" },
+  { label: "💰 Calcular precio", message: "Calcula el precio de 5 productos a $10 con tasa BCV + 10.7%" },
+  { label: "📦 Stock bajo", message: "¿Cuáles productos tienen stock bajo?" },
+  { label: "👥 Créditos", message: "¿Cuáles clientes tienen créditos pendientes?" },
+  { label: "📈 Top productos", message: "¿Cuáles son los productos más vendidos?" },
+];
+
 export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
   const { isAdmin } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -40,8 +57,11 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const suggestions = isAdmin ? ADMIN_SUGGESTIONS : CUSTOMER_SUGGESTIONS;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -55,13 +75,15 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
     }
   }, [isOpen]);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  const sendMessage = async (messageText?: string) => {
+    const textToSend = messageText || input.trim();
+    if (!textToSend || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: input.trim() };
+    const userMessage: Message = { role: 'user', content: textToSend };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    setShowSuggestions(false);
 
     try {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant`, {
@@ -110,6 +132,10 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
     }
   };
 
+  const handleSuggestionClick = (message: string) => {
+    sendMessage(message);
+  };
+
   const formatMessage = (content: string) => {
     // Simple markdown-like formatting
     return content
@@ -120,21 +146,47 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button with bounce animation */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+            animate={{ 
+              scale: 1, 
+              opacity: 1,
+              y: [0, -8, 0],
+            }}
             exit={{ scale: 0, opacity: 0 }}
+            transition={{
+              y: {
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }
+            }}
             className={cn("fixed bottom-6 right-6 z-50", className)}
           >
-            <button
+            <motion.button
               onClick={() => setIsOpen(true)}
-              className="h-16 w-16 rounded-full shadow-lg hover:scale-110 transition-transform overflow-hidden border-2 border-pink-300"
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.95 }}
+              className="h-16 w-16 rounded-full shadow-lg overflow-hidden border-2 border-pink-300 relative"
             >
               <img src={stitchRosaMascot} alt="Stitch Rosa" className="w-full h-full object-cover" />
-            </button>
+              {/* Pulse ring effect */}
+              <motion.div
+                className="absolute inset-0 rounded-full border-2 border-pink-400"
+                animate={{
+                  scale: [1, 1.3, 1.3],
+                  opacity: [0.8, 0, 0],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeOut",
+                }}
+              />
+            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -238,6 +290,28 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
                       </div>
                     </motion.div>
                   )}
+                  {/* Quick Suggestions */}
+                  {showSuggestions && messages.length === 1 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-wrap gap-2 pt-2"
+                    >
+                      {suggestions.map((suggestion, idx) => (
+                        <motion.button
+                          key={idx}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: idx * 0.1 }}
+                          onClick={() => handleSuggestionClick(suggestion.message)}
+                          disabled={isLoading}
+                          className="px-3 py-1.5 text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full hover:bg-pink-200 dark:hover:bg-pink-800/50 transition-colors border border-pink-200 dark:border-pink-700"
+                        >
+                          {suggestion.label}
+                        </motion.button>
+                      ))}
+                    </motion.div>
+                  )}
                 </div>
               </ScrollArea>
 
@@ -254,7 +328,7 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
                     className="flex-1 rounded-full"
                   />
                   <Button
-                    onClick={sendMessage}
+                    onClick={() => sendMessage()}
                     disabled={!input.trim() || isLoading}
                     size="icon"
                     className="rounded-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
