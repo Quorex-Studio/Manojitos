@@ -11,9 +11,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/store/ProductCard';
+import { ProductLabelBadge } from '@/components/products/ProductLabelBadge';
+import { PriceValidityBadge } from '@/components/store/PriceValidityBadge';
 import { usePublicProducts, PublicProduct } from '@/hooks/usePublicProducts';
 import { useCart, CartItem } from '@/contexts/CartContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { useBrowsingHistory } from '@/hooks/useBrowsingHistory';
 import { toast } from '@/hooks/use-toast';
 
 // Página de detalle de producto
@@ -23,13 +26,14 @@ export default function ProductDetail() {
   const { products, getProductById, loading: productsLoading } = usePublicProducts();
   const { addItem, isInCart, getItemQuantity } = useCart();
   const { rate, convertToBS } = useExchangeRate();
+  const { addToHistory, getRecentlyViewed } = useBrowsingHistory();
   
   const [product, setProduct] = useState<PublicProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
 
-  // Cargar producto
+  // Cargar producto y registrar en historial
   useEffect(() => {
     const loadProduct = async () => {
       if (!id) return;
@@ -37,9 +41,22 @@ export default function ProductDetail() {
       const data = await getProductById(id);
       setProduct(data);
       setLoading(false);
+      
+      // Registrar en historial de navegación
+      if (data) {
+        addToHistory({
+          id: data.id,
+          name: data.name,
+          image_url: data.image_url,
+          price_usd: data.price_usd
+        });
+      }
     };
     loadProduct();
   }, [id]);
+
+  // Obtener productos vistos recientemente (excluyendo el actual)
+  const recentlyViewed = getRecentlyViewed(id, 4);
 
   // Calcular cantidades
   const inCart = product ? isInCart(product.id) : false;
@@ -207,13 +224,27 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Badges */}
+            {/* Etiquetas automáticas */}
             <div className="absolute top-4 left-4 flex flex-col gap-2">
-              {product.stock <= 5 && product.stock > 0 && (
-                <Badge variant="destructive">
-                  ¡Últimas {product.stock} unidades!
-                </Badge>
-              )}
+              <ProductLabelBadge 
+                product={{
+                  id: product.id,
+                  sold_count: product.sold_count || 0,
+                  stock: product.stock,
+                  created_at: product.created_at,
+                  price_usd: product.price_usd,
+                  category: product.category
+                }}
+                allProducts={products.map(p => ({
+                  id: p.id,
+                  sold_count: p.sold_count || 0,
+                  stock: p.stock,
+                  created_at: p.created_at,
+                  price_usd: p.price_usd,
+                  category: p.category
+                }))}
+                maxLabels={3}
+              />
               {product.category && (
                 <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">
                   {product.category}
@@ -259,6 +290,7 @@ export default function ProductDetail() {
                   Bs. {convertToBS(product.price_usd).toFixed(2)}
                 </p>
               )}
+              <PriceValidityBadge />
             </div>
 
             {/* Stock Status */}
@@ -380,8 +412,24 @@ export default function ProductDetail() {
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               {relatedProducts.map((p) => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard key={p.id} product={p} allProducts={products} />
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Productos vistos recientemente */}
+        {recentlyViewed.length > 0 && (
+          <section className="mt-16 md:mt-24">
+            <h2 className="text-2xl md:text-3xl font-serif font-bold text-foreground mb-6">
+              Vistos Recientemente
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {recentlyViewed.map((item) => {
+                const fullProduct = products.find(p => p.id === item.productId);
+                if (!fullProduct) return null;
+                return <ProductCard key={item.productId} product={fullProduct} allProducts={products} />;
+              })}
             </div>
           </section>
         )}

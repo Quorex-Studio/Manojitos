@@ -10,6 +10,8 @@ export interface PublicProduct {
   stock: number;
   category: string | null;
   image_url: string | null;
+  sold_count: number;
+  created_at: string;
 }
 
 // Hook para obtener productos públicos (sin autenticación)
@@ -24,7 +26,7 @@ export function usePublicProducts() {
     
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, description, price_usd, stock, category, image_url')
+      .select('id, name, description, price_usd, stock, category, image_url, sold_count, created_at')
       .gt('stock', 0) // Solo productos con stock
       .order('created_at', { ascending: false });
 
@@ -47,7 +49,7 @@ export function usePublicProducts() {
   const getProductById = async (id: string): Promise<PublicProduct | null> => {
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, description, price_usd, stock, category, image_url')
+      .select('id, name, description, price_usd, stock, category, image_url, sold_count, created_at')
       .eq('id', id)
       .maybeSingle();
 

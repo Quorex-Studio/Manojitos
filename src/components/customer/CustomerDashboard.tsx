@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PaymentReminderBanner } from '@/components/customer/PaymentReminderBanner';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
 import { useCustomerOrders } from '@/hooks/useCustomerOrders';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
@@ -91,6 +92,11 @@ export function CustomerDashboard() {
       animate="show"
       className="space-y-4"
     >
+      {/* Banner de recordatorio de pago */}
+      <motion.div variants={item}>
+        <PaymentReminderBanner />
+      </motion.div>
+
       {/* Bienvenida */}
       <motion.div variants={item} className="mb-6">
         <h2 className="text-xl font-semibold">

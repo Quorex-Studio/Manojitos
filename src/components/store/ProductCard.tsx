@@ -8,14 +8,17 @@ import { useCart, CartItem } from '@/contexts/CartContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { toast } from 'sonner';
 import { PublicProduct } from '@/hooks/usePublicProducts';
+import { ProductLabelBadge } from '@/components/products/ProductLabelBadge';
+import { PriceValidityBadge } from '@/components/store/PriceValidityBadge';
 
 interface ProductCardProps {
   product: PublicProduct;
   index?: number;
+  allProducts?: PublicProduct[];
 }
 
 // Tarjeta de producto para el catálogo con microinteracciones premium
-export function ProductCard({ product, index = 0 }: ProductCardProps) {
+export function ProductCard({ product, index = 0, allProducts }: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const { addItem, isInCart, getItemQuantity } = useCart();
@@ -103,21 +106,27 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
               </div>
             )}
 
-            {/* Badges con animación */}
+            {/* Etiquetas automáticas */}
             <div className="absolute top-3 left-3 flex flex-col gap-2">
-              <AnimatePresence>
-                {product.stock <= 5 && product.stock > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                  >
-                    <Badge variant="destructive" className="text-xs animate-pulse">
-                      ¡Últimas unidades!
-                    </Badge>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <ProductLabelBadge 
+                product={{
+                  id: product.id,
+                  sold_count: product.sold_count || 0,
+                  stock: product.stock,
+                  created_at: product.created_at,
+                  price_usd: product.price_usd,
+                  category: product.category
+                }}
+                allProducts={allProducts?.map(p => ({
+                  id: p.id,
+                  sold_count: p.sold_count || 0,
+                  stock: p.stock,
+                  created_at: p.created_at,
+                  price_usd: p.price_usd,
+                  category: p.category
+                }))}
+                maxLabels={2}
+              />
               {product.category && (
                 <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur-sm">
                   {product.category}
@@ -205,6 +214,7 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
                   Bs. {convertToBS(product.price_usd).toFixed(2)}
                 </p>
               )}
+              <PriceValidityBadge compact />
             </div>
 
             {/* Stock con indicador visual */}
