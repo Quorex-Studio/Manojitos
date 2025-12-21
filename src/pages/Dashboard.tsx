@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/ui/stat-card';
+import { AdminAlertsPanel } from '@/components/admin/AdminAlertsPanel';
 import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
 import { useDebts } from '@/hooks/useDebts';
@@ -78,6 +79,9 @@ export default function Dashboard() {
           <h1 className="page-header">Dashboard</h1>
           <p className="page-subtitle">Resumen de tu negocio</p>
         </div>
+
+        {/* Panel de Alertas Inteligentes */}
+        <AdminAlertsPanel />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
