@@ -15,7 +15,8 @@ import {
   Loader2,
   AlertTriangle,
   CheckCircle2,
-  Award
+  Award,
+  History
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -26,6 +27,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { CreditFinancialProfile } from '@/components/credits/CreditFinancialProfile';
+import { CustomerTimeline } from '@/components/credits/CustomerTimeline';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -212,11 +215,18 @@ export default function CustomerCredit() {
             </Card>
           </div>
 
+          {/* Perfil Financiero */}
+          <CreditFinancialProfile creditId={credit.id} />
+
           {/* Tabs */}
           <Tabs defaultValue="transactions" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="transactions">Movimientos</TabsTrigger>
               <TabsTrigger value="promises">Compromisos</TabsTrigger>
+              <TabsTrigger value="timeline">
+                <History className="h-4 w-4 mr-1" />
+                Historial
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="transactions">
@@ -323,6 +333,10 @@ export default function CustomerCredit() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="timeline">
+              <CustomerTimeline customerPhone={credit.client_phone || undefined} limit={20} />
             </TabsContent>
           </Tabs>
         </motion.div>

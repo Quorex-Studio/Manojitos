@@ -1,5 +1,6 @@
 // Hook para calcular el perfil financiero del cliente
 import { useMemo } from 'react';
+import { useCredits } from './useCredits';
 
 export interface FinancialProfile {
   // Nivel de confianza
@@ -43,6 +44,7 @@ interface CreditData {
   consecutive_late_payments?: number;
   last_payment_date?: string | null;
   is_blocked?: boolean;
+  client_name?: string;
 }
 
 export function calculateFinancialProfile(credit: CreditData): FinancialProfile {
@@ -141,7 +143,28 @@ export function calculateFinancialProfile(credit: CreditData): FinancialProfile 
   };
 }
 
-export function useFinancialProfile(credit: CreditData | null) {
+// Hook que acepta creditId y busca el crédito
+export function useFinancialProfile(creditId: string) {
+  const { credits, isLoading } = useCredits();
+  
+  const credit = useMemo(() => {
+    return credits.find(c => c.id === creditId) || null;
+  }, [credits, creditId]);
+  
+  const profile = useMemo(() => {
+    if (!credit) return null;
+    return calculateFinancialProfile(credit);
+  }, [credit]);
+  
+  return {
+    profile,
+    clientName: credit?.client_name || '',
+    isLoading
+  };
+}
+
+// Hook que acepta el objeto credit directamente
+export function useFinancialProfileFromCredit(credit: CreditData | null) {
   return useMemo(() => {
     if (!credit) return null;
     return calculateFinancialProfile(credit);
