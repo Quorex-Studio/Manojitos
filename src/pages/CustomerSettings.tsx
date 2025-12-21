@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -42,19 +42,30 @@ const passwordSchema = z.object({
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function CustomerSettings() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { profile, updateNotificationPreferences, hasProfile } = useCustomerProfile();
+  const { profile, updateNotificationPreferences, hasProfile, isLoading: profileLoading } = useCustomerProfile();
   
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   const [notifPrefs, setNotifPrefs] = useState({
-    email: profile?.notification_preferences?.email ?? true,
-    sms: profile?.notification_preferences?.sms ?? false,
-    internal: profile?.notification_preferences?.internal ?? true,
+    email: true,
+    sms: false,
+    internal: true,
   });
+
+  // Update notification prefs when profile loads
+  useEffect(() => {
+    if (profile?.notification_preferences) {
+      setNotifPrefs({
+        email: profile.notification_preferences.email ?? true,
+        sms: profile.notification_preferences.sms ?? false,
+        internal: profile.notification_preferences.internal ?? true,
+      });
+    }
+  }, [profile]);
 
   const passwordForm = useForm<PasswordFormData>({
     resolver: zodResolver(passwordSchema),
@@ -106,6 +117,16 @@ export default function CustomerSettings() {
       description: 'Has cerrado sesión correctamente',
     });
   };
+
+  if (authLoading) {
+    return (
+      <StoreLayout>
+        <div className="container py-12 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </StoreLayout>
+    );
+  }
 
   if (!user) {
     return (
