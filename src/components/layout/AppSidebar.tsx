@@ -24,6 +24,7 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import logoImage from '@/assets/logo.jpeg';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -86,11 +87,18 @@ export function AppSidebar() {
       >
         <div className="flex flex-col h-full p-6">
           {/* Logo */}
-          <div className="mb-8">
-            <h1 className="font-serif text-3xl font-bold text-gradient-gold">
-              Manojitos
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1">Sistema de Gestión</p>
+          <div className="mb-8 flex items-center gap-3">
+            <img 
+              src={logoImage} 
+              alt="Manojitos" 
+              className="h-12 w-12 rounded-full object-cover"
+            />
+            <div>
+              <h1 className="font-serif text-2xl font-bold text-gradient-gold">
+                Manojitos
+              </h1>
+              <p className="text-muted-foreground text-xs">Sistema de Gestión</p>
+            </div>
           </div>
 
           {/* Theme Toggle y Ver Tienda */}

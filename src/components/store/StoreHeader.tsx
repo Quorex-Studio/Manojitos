@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { UserMenu } from '@/components/ui/user-menu';
 import { useCart } from '@/contexts/CartContext';
+import logoImage from '@/assets/logo.jpeg';
 
 // Header de la tienda con animaciones premium
 export function StoreHeader() {
@@ -88,8 +89,15 @@ export function StoreHeader() {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className="flex items-center"
+              className="flex items-center gap-2"
             >
+              <img 
+                src={logoImage} 
+                alt="Manojitos" 
+                className={`rounded-full object-cover transition-all duration-300 ${
+                  isScrolled ? 'h-8 w-8 md:h-10 md:w-10' : 'h-10 w-10 md:h-12 md:w-12'
+                }`}
+              />
               <span className={`font-serif font-bold text-gradient-gold transition-all duration-300 ${
                 isScrolled ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'
               }`}>
