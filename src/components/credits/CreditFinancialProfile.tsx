@@ -3,21 +3,35 @@ import { motion } from 'framer-motion';
 import { 
   TrendingUp, TrendingDown, AlertCircle, CheckCircle, 
   CreditCard, DollarSign, Calendar, Award,
-  Shield, Target, Zap, Clock
+  Shield, Target, Zap, Clock, Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { FinancialProfile } from '@/hooks/useFinancialProfile';
+import { useFinancialProfile, FinancialProfile } from '@/hooks/useFinancialProfile';
 
 interface CreditFinancialProfileProps {
-  profile: FinancialProfile;
-  clientName: string;
+  creditId: string;
   compact?: boolean;
 }
 
-export function CreditFinancialProfile({ profile, clientName, compact = false }: CreditFinancialProfileProps) {
+export function CreditFinancialProfile({ creditId, compact = false }: CreditFinancialProfileProps) {
+  const { profile, clientName, isLoading } = useFinancialProfile(creditId);
+
+  if (isLoading) {
+    return (
+      <Card className="glass-card">
+        <CardContent className="p-4 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!profile) {
+    return null;
+  }
   const getTrustBadgeColor = () => {
     switch (profile.trustLevel) {
       case 'EXCELENTE': return 'bg-green-500 text-white';

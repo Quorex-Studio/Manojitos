@@ -15,6 +15,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PaymentReminderBanner } from '@/components/customer/PaymentReminderBanner';
+import { CreditFinancialProfile } from '@/components/credits/CreditFinancialProfile';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
 import { useCustomerOrders } from '@/hooks/useCustomerOrders';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
@@ -96,6 +97,13 @@ export function CustomerDashboard() {
       <motion.div variants={item}>
         <PaymentReminderBanner />
       </motion.div>
+
+      {/* Perfil Financiero del Cliente */}
+      {hasCredit && credit && (
+        <motion.div variants={item}>
+          <CreditFinancialProfile creditId={credit.id} compact />
+        </motion.div>
+      )}
 
       {/* Bienvenida */}
       <motion.div variants={item} className="mb-6">
