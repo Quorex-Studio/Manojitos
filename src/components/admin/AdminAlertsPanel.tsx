@@ -1,0 +1,178 @@
+// Panel de alertas inteligentes para el admin
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bell, AlertTriangle, AlertCircle, Info, CheckCircle, ChevronRight, X } from 'lucide-react';
+import { useState } from 'react';
+import { useAdminAlerts, AdminAlert, AlertType } from '@/hooks/useAdminAlerts';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Link } from 'react-router-dom';
+
+const alertIcons: Record<AlertType, typeof AlertTriangle> = {
+  critical: AlertTriangle,
+  warning: AlertCircle,
+  info: Info,
+  success: CheckCircle
+};
+
+const alertColors: Record<AlertType, { bg: string; border: string; icon: string }> = {
+  critical: {
+    bg: 'bg-red-50 dark:bg-red-900/20',
+    border: 'border-red-200 dark:border-red-800',
+    icon: 'text-red-600 dark:text-red-400'
+  },
+  warning: {
+    bg: 'bg-yellow-50 dark:bg-yellow-900/20',
+    border: 'border-yellow-200 dark:border-yellow-800',
+    icon: 'text-yellow-600 dark:text-yellow-400'
+  },
+  info: {
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    border: 'border-blue-200 dark:border-blue-800',
+    icon: 'text-blue-600 dark:text-blue-400'
+  },
+  success: {
+    bg: 'bg-green-50 dark:bg-green-900/20',
+    border: 'border-green-200 dark:border-green-800',
+    icon: 'text-green-600 dark:text-green-400'
+  }
+};
+
+function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => void }) {
+  const Icon = alertIcons[alert.type];
+  const colors = alertColors[alert.type];
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      className={`${colors.bg} ${colors.border} border rounded-lg p-3`}
+    >
+      <div className="flex items-start gap-3">
+        <span className="text-lg">{alert.icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h4 className="font-medium text-sm text-foreground">{alert.title}</h4>
+            <Badge variant="outline" className="text-[10px]">
+              {alert.category}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">{alert.message}</p>
+          {alert.action && (
+            <Button
+              asChild
+              variant="link"
+              size="sm"
+              className="h-auto p-0 mt-1 text-xs"
+            >
+              <Link to={alert.action.path} className="flex items-center gap-1">
+                {alert.action.label}
+                <ChevronRight className="h-3 w-3" />
+              </Link>
+            </Button>
+          )}
+        </div>
+        {onDismiss && (
+          <button
+            onClick={onDismiss}
+            className="p-1 hover:bg-black/5 rounded transition-colors shrink-0"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+export function AdminAlertsPanel() {
+  const { alerts, criticalCount, warningCount, hasAlerts } = useAdminAlerts();
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+
+  const visibleAlerts = alerts.filter(a => !dismissedIds.has(a.id));
+
+  const handleDismiss = (id: string) => {
+    setDismissedIds(prev => new Set([...prev, id]));
+  };
+
+  if (!hasAlerts || visibleAlerts.length === 0) {
+    return (
+      <Card className="p-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+        <div className="flex items-center gap-3">
+          <CheckCircle className="h-5 w-5 text-green-600" />
+          <div>
+            <h4 className="font-medium text-green-800 dark:text-green-200">Todo en orden</h4>
+            <p className="text-xs text-green-600 dark:text-green-400">No hay alertas pendientes</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="p-4 border-b bg-muted/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold">Alertas</h3>
+          </div>
+          <div className="flex gap-2">
+            {criticalCount > 0 && (
+              <Badge variant="destructive" className="text-xs">
+                {criticalCount} crítica{criticalCount !== 1 ? 's' : ''}
+              </Badge>
+            )}
+            {warningCount > 0 && (
+              <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
+                {warningCount} aviso{warningCount !== 1 ? 's' : ''}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+      <ScrollArea className="max-h-[300px]">
+        <div className="p-3 space-y-2">
+          <AnimatePresence mode="popLayout">
+            {visibleAlerts.map(alert => (
+              <AlertItem
+                key={alert.id}
+                alert={alert}
+                onDismiss={() => handleDismiss(alert.id)}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+      </ScrollArea>
+    </Card>
+  );
+}
+
+// Badge compacto para el sidebar
+export function AlertsBadge() {
+  const { criticalCount, warningCount } = useAdminAlerts();
+  
+  if (criticalCount === 0 && warningCount === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      className="flex items-center gap-1"
+    >
+      {criticalCount > 0 && (
+        <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-[10px]">
+          {criticalCount}
+        </Badge>
+      )}
+      {warningCount > 0 && criticalCount === 0 && (
+        <Badge className="h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-yellow-500">
+          {warningCount}
+        </Badge>
+      )}
+    </motion.div>
+  );
+}

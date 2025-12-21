@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.send-credit-notifications]
 verify_jwt = true
+
+[functions.ai-assistant]
+verify_jwt = false
