@@ -58,9 +58,9 @@ serve(async (req) => {
   try {
     const { messages, context, isAdmin } = await req.json();
     
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const HF_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
+    if (!HF_TOKEN) {
+      throw new Error('HUGGING_FACE_ACCESS_TOKEN is not configured');
     }
 
     // Crear cliente Supabase para obtener datos de contexto
@@ -87,7 +87,6 @@ serve(async (req) => {
 
     // Si es admin, obtener más contexto
     if (isAdmin) {
-      // Estadísticas rápidas
       const { data: salesData } = await supabase
         .from('sales')
         .select('total_usd, created_at')
@@ -125,56 +124,79 @@ serve(async (req) => {
       }
     }
 
-    // Contexto adicional del usuario
     if (context) {
       dynamicContext += `\nContexto adicional: ${context}\n`;
     }
 
-    // Preparar sistema prompt con contexto
+    // Preparar prompt completo para Hugging Face
     const systemPrompt = STITCH_ROSA_SYSTEM_PROMPT.replace('{context}', dynamicContext);
+    
+    // Construir el prompt combinando sistema y mensajes del usuario
+    const lastUserMessage = messages[messages.length - 1]?.content || '';
+    const conversationHistory = messages.slice(0, -1).map((m: { role: string; content: string }) => 
+      `${m.role === 'user' ? 'Usuario' : 'Stitch Rosa'}: ${m.content}`
+    ).join('\n');
+    
+    const fullPrompt = `${systemPrompt}\n\n${conversationHistory ? `Historial:\n${conversationHistory}\n\n` : ''}Usuario: ${lastUserMessage}\n\nStitch Rosa:`;
 
-    console.log('Sending request to Lovable AI with context:', dynamicContext);
+    console.log('Sending request to Hugging Face with context');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Usar modelo de Hugging Face (Mistral-7B-Instruct para mejor calidad)
+    const response = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${HF_TOKEN}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages,
-        ],
-        stream: true,
+        inputs: fullPrompt,
+        parameters: {
+          max_new_tokens: 500,
+          temperature: 0.7,
+          top_p: 0.9,
+          do_sample: true,
+          return_full_text: false,
+        },
       }),
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Payment required. Please add credits to your workspace.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
       const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
+      console.error('Hugging Face API error:', response.status, errorText);
+      
+      if (response.status === 503) {
+        return new Response(
+          JSON.stringify({ error: 'El modelo está cargando. Por favor intenta de nuevo en unos segundos.' }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
-        JSON.stringify({ error: 'AI gateway error' }),
+        JSON.stringify({ error: 'Error en la API de Hugging Face' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
-    });
+    const result = await response.json();
+    console.log('Hugging Face response:', result);
+
+    // Extraer el texto generado
+    let generatedText = '';
+    if (Array.isArray(result) && result[0]?.generated_text) {
+      generatedText = result[0].generated_text;
+    } else if (result.generated_text) {
+      generatedText = result.generated_text;
+    } else {
+      generatedText = '¡Hola! 🩷 Parece que tuve un pequeño problema procesando tu mensaje. ¿Podrías intentar de nuevo?';
+    }
+
+    // Limpiar la respuesta si contiene partes del prompt
+    generatedText = generatedText.trim();
+
+    return new Response(
+      JSON.stringify({ content: generatedText }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('AI assistant error:', error);

@@ -65,21 +65,6 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
     setInput('');
     setIsLoading(true);
 
-    let assistantContent = '';
-
-    const updateAssistantMessage = (content: string) => {
-      assistantContent = content;
-      setMessages(prev => {
-        const last = prev[prev.length - 1];
-        if (last?.role === 'assistant' && prev.length > 1 && prev[prev.length - 2].role === 'user') {
-          return prev.map((m, i) => 
-            i === prev.length - 1 ? { ...m, content: assistantContent } : m
-          );
-        }
-        return [...prev, { role: 'assistant', content: assistantContent }];
-      });
-    };
-
     try {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant`, {
         method: 'POST',
@@ -98,72 +83,22 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 503) {
+          throw new Error('El modelo está cargando. Por favor intenta de nuevo en unos segundos. 🩷');
+        }
         throw new Error(errorData.error || 'Error al contactar con Stitch Rosa');
       }
 
-      if (!response.body) {
-        throw new Error('No response body');
-      }
+      const data = await response.json();
+      const assistantContent = data.content || '¡Ups! No pude procesar eso. ¿Podrías intentar de nuevo? 🩷';
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-          let line = buffer.slice(0, newlineIndex);
-          buffer = buffer.slice(newlineIndex + 1);
-
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (line.startsWith(':') || line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              updateAssistantMessage(assistantContent);
-            }
-          } catch {
-            buffer = line + '\n' + buffer;
-            break;
-          }
-        }
-      }
-
-      // Final flush
-      if (buffer.trim()) {
-        for (let raw of buffer.split('\n')) {
-          if (!raw || raw.startsWith(':') || raw.trim() === '') continue;
-          if (!raw.startsWith('data: ')) continue;
-          const jsonStr = raw.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              updateAssistantMessage(assistantContent);
-            }
-          } catch { /* ignore */ }
-        }
-      }
+      setMessages(prev => [...prev, { role: 'assistant', content: assistantContent }]);
 
     } catch (error) {
       console.error('Chat error:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `¡Oops! 😅 Algo salió mal: ${error instanceof Error ? error.message : 'Error desconocido'}. ¿Puedes intentarlo de nuevo? 🩷`
+        content: `¡Oops! 😅 ${error instanceof Error ? error.message : 'Error desconocido'}. ¿Puedes intentarlo de nuevo? 🩷`
       }]);
     } finally {
       setIsLoading(false);
@@ -331,7 +266,7 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-2">
-                  Powered by Lovable AI 💖
+                  Powered by Hugging Face AI 💖
                 </p>
               </div>
             </Card>
