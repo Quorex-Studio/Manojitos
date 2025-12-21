@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { User, Phone, Mail, MapPin, Bell, Save, Loader2, ArrowLeft, Wallet, Package, Heart } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Save, Loader2, ArrowLeft, Camera } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -12,11 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCustomerProfile, CustomerProfileInput } from '@/hooks/useCustomerProfile';
 import { useCustomerPurchaseHistory } from '@/hooks/useCustomerProfile';
 import { useAuth } from '@/hooks/useAuth';
+import { CustomerDashboard } from '@/components/customer/CustomerDashboard';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -34,41 +35,44 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 export default function CustomerProfile() {
   const { user } = useAuth();
-  const { profile, isLoading, upsertProfile, updateNotificationPreferences, hasProfile } = useCustomerProfile();
+  const { profile, isLoading, upsertProfile, hasProfile } = useCustomerProfile();
   const { purchases, totalSpent, totalPurchases, isLoading: purchasesLoading } = useCustomerPurchaseHistory();
-  
-  const [notifPrefs, setNotifPrefs] = useState({
-    email: profile?.notification_preferences?.email ?? true,
-    sms: profile?.notification_preferences?.sms ?? false,
-    internal: profile?.notification_preferences?.internal ?? true,
-  });
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      full_name: profile?.full_name || '',
-      phone: profile?.phone || '',
-      email: profile?.email || '',
-      address: profile?.address || '',
-      city: profile?.city || '',
-      state: profile?.state || '',
-      zip_code: profile?.zip_code || '',
+      full_name: '',
+      phone: '',
+      email: '',
+      address: '',
+      city: '',
+      state: '',
+      zip_code: '',
     },
   });
 
+  // Update form when profile loads
+  useEffect(() => {
+    if (profile) {
+      form.reset({
+        full_name: profile.full_name || '',
+        phone: profile.phone || '',
+        email: profile.email || '',
+        address: profile.address || '',
+        city: profile.city || '',
+        state: profile.state || '',
+        zip_code: profile.zip_code || '',
+      });
+    }
+  }, [profile, form]);
+
   const onSubmit = (data: ProfileFormData) => {
-    upsertProfile.mutate({
-      ...data,
-      notification_preferences: notifPrefs,
-    } as CustomerProfileInput);
+    upsertProfile.mutate(data as CustomerProfileInput);
   };
 
-  const handleNotifChange = (key: 'email' | 'sms' | 'internal', value: boolean) => {
-    const newPrefs = { ...notifPrefs, [key]: value };
-    setNotifPrefs(newPrefs);
-    if (hasProfile) {
-      updateNotificationPreferences.mutate(newPrefs);
-    }
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   if (!user) {
@@ -109,54 +113,42 @@ export default function CustomerProfile() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <div>
-              <h1 className="page-header">Mi Perfil</h1>
-              <p className="text-muted-foreground">Gestiona tu información personal</p>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Avatar className="h-16 w-16 border-2 border-primary">
+                  <AvatarImage src={undefined} />
+                  <AvatarFallback className="text-lg bg-primary/10">
+                    {getInitials(profile?.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <Button 
+                  size="icon" 
+                  variant="secondary" 
+                  className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full"
+                >
+                  <Camera className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <div>
+                <h1 className="page-header">
+                  {profile?.full_name || 'Mi Cuenta'}
+                </h1>
+                <p className="text-muted-foreground">{user.email}</p>
+              </div>
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <Link to="/cliente/credito">
-              <Card className="glass-card hover:border-primary/50 transition-colors cursor-pointer">
-                <CardContent className="p-4 text-center">
-                  <Wallet className="h-6 w-6 mx-auto mb-2 text-primary" />
-                  <p className="font-medium text-sm">Mi Crédito</p>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link to="/cliente/pedidos">
-              <Card className="glass-card hover:border-primary/50 transition-colors cursor-pointer">
-                <CardContent className="p-4 text-center">
-                  <Package className="h-6 w-6 mx-auto mb-2 text-primary" />
-                  <p className="font-medium text-sm">Mis Pedidos</p>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link to="/cliente/favoritos">
-              <Card className="glass-card hover:border-primary/50 transition-colors cursor-pointer">
-                <CardContent className="p-4 text-center">
-                  <Heart className="h-6 w-6 mx-auto mb-2 text-rose-500" />
-                  <p className="font-medium text-sm">Favoritos</p>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link to="/cliente/notificaciones">
-              <Card className="glass-card hover:border-primary/50 transition-colors cursor-pointer">
-                <CardContent className="p-4 text-center">
-                  <Bell className="h-6 w-6 mx-auto mb-2 text-primary" />
-                  <p className="font-medium text-sm">Notificaciones</p>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-
-          <Tabs defaultValue="profile" className="space-y-6">
+          <Tabs defaultValue="dashboard" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="dashboard">Inicio</TabsTrigger>
               <TabsTrigger value="profile">Perfil</TabsTrigger>
               <TabsTrigger value="purchases">Compras</TabsTrigger>
-              <TabsTrigger value="notifications">Preferencias</TabsTrigger>
             </TabsList>
+
+            {/* Tab: Dashboard */}
+            <TabsContent value="dashboard">
+              <CustomerDashboard />
+            </TabsContent>
 
             {/* Tab: Perfil */}
             <TabsContent value="profile">
@@ -167,7 +159,7 @@ export default function CustomerProfile() {
                     Información Personal
                   </CardTitle>
                   <CardDescription>
-                    Actualiza tus datos de contacto y dirección
+                    Actualiza tus datos de contacto y dirección de envío
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -252,7 +244,7 @@ export default function CustomerProfile() {
                         <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Textarea
                           id="address"
-                          placeholder="Calle, número, urbanización..."
+                          placeholder="Calle, número, urbanización, punto de referencia..."
                           className="pl-10 min-h-[80px]"
                           {...form.register('address')}
                         />
@@ -320,63 +312,15 @@ export default function CustomerProfile() {
                           </div>
                         </div>
                       ))}
+                      {purchases.length > 10 && (
+                        <Link to="/cliente/pedidos">
+                          <Button variant="outline" className="w-full mt-2">
+                            Ver todas las compras
+                          </Button>
+                        </Link>
+                      )}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Tab: Notificaciones */}
-            <TabsContent value="notifications">
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-primary" />
-                    Preferencias de Notificación
-                  </CardTitle>
-                  <CardDescription>
-                    Elige cómo quieres recibir avisos sobre tus compras y créditos
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
-                    <div>
-                      <p className="font-medium">Notificaciones por Email</p>
-                      <p className="text-sm text-muted-foreground">
-                        Recibe recordatorios y actualizaciones por correo
-                      </p>
-                    </div>
-                    <Switch
-                      checked={notifPrefs.email}
-                      onCheckedChange={(v) => handleNotifChange('email', v)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
-                    <div>
-                      <p className="font-medium">Notificaciones por SMS</p>
-                      <p className="text-sm text-muted-foreground">
-                        Recibe mensajes de texto con recordatorios importantes
-                      </p>
-                    </div>
-                    <Switch
-                      checked={notifPrefs.sms}
-                      onCheckedChange={(v) => handleNotifChange('sms', v)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
-                    <div>
-                      <p className="font-medium">Notificaciones Internas</p>
-                      <p className="text-sm text-muted-foreground">
-                        Avisos dentro de la plataforma
-                      </p>
-                    </div>
-                    <Switch
-                      checked={notifPrefs.internal}
-                      onCheckedChange={(v) => handleNotifChange('internal', v)}
-                    />
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
