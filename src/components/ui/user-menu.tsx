@@ -126,8 +126,19 @@ export function UserMenu() {
                   </Link>
                 )}
 
+                {/* Mi Perfil - siempre visible para usuarios logueados */}
                 <Link
-                  to="/settings"
+                  to="/cliente/perfil"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
+                >
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span>Mi Perfil</span>
+                </Link>
+
+                {/* Configuración - va a la página correcta según el tipo de usuario */}
+                <Link
+                  to={isAdmin ? "/settings" : "/cliente/configuracion"}
                   onClick={() => setIsOpen(false)}
                   className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
                 >

@@ -42,9 +42,18 @@ const passwordSchema = z.object({
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function CustomerSettings() {
-  const { user, signOut, loading: authLoading } = useAuth();
+  const { user, signOut, loading: authLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { profile, updateNotificationPreferences, hasProfile, isLoading: profileLoading } = useCustomerProfile();
+
+  // Debug logging
+  console.log('[CustomerSettings] Rendering', { 
+    user: user?.id, 
+    authLoading, 
+    isAdmin, 
+    hasProfile,
+    profileLoading 
+  });
   
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
