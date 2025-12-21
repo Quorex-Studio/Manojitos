@@ -36,7 +36,6 @@ const menuItems = [
   { icon: Truck, label: 'Proveedores', path: '/providers' },
   { icon: FileText, label: 'Reportes', path: '/reports' },
   { icon: Calculator, label: 'Calculadora', path: '/calculadora' },
-  { icon: Scale, label: 'Reglas', path: '/reglas' },
   { icon: Settings, label: 'Configuración', path: '/settings' },
 ];
 
