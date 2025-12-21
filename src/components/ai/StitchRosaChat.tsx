@@ -2,12 +2,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  MessageCircle, 
   X, 
   Send, 
   Loader2, 
-  Sparkles,
-  Bot,
   User,
   Minimize2,
   Maximize2
@@ -18,6 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import stitchRosaMascot from '@/assets/stitch-rosa-mascot.png';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -131,13 +129,12 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
             exit={{ scale: 0, opacity: 0 }}
             className={cn("fixed bottom-6 right-6 z-50", className)}
           >
-            <Button
+            <button
               onClick={() => setIsOpen(true)}
-              size="lg"
-              className="h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white"
+              className="h-16 w-16 rounded-full shadow-lg hover:scale-110 transition-transform overflow-hidden border-2 border-pink-300"
             >
-              <Sparkles className="h-6 w-6" />
-            </Button>
+              <img src={stitchRosaMascot} alt="Stitch Rosa" className="w-full h-full object-cover" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -162,8 +159,8 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
               {/* Header */}
               <div className="flex items-center justify-between p-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-full">
-                    <Bot className="h-5 w-5" />
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/30">
+                    <img src={stitchRosaMascot} alt="Stitch Rosa" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <h3 className="font-semibold">Stitch Rosa</h3>
@@ -204,8 +201,8 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
                       )}
                     >
                       {msg.role === 'assistant' && (
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-pink-400 to-rose-400 flex items-center justify-center text-white">
-                          <Bot className="h-4 w-4" />
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden border border-pink-300">
+                          <img src={stitchRosaMascot} alt="Stitch Rosa" className="w-full h-full object-cover" />
                         </div>
                       )}
                       <div
@@ -230,8 +227,8 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
                       animate={{ opacity: 1 }}
                       className="flex gap-3"
                     >
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-pink-400 to-rose-400 flex items-center justify-center text-white">
-                        <Bot className="h-4 w-4" />
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden border border-pink-300">
+                        <img src={stitchRosaMascot} alt="Stitch Rosa" className="w-full h-full object-cover" />
                       </div>
                       <div className="bg-muted p-3 rounded-2xl rounded-bl-sm">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
