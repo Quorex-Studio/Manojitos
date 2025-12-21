@@ -29,6 +29,10 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import CustomerAuth from "./pages/CustomerAuth";
 import CustomerProfile from "./pages/CustomerProfile";
+import CustomerCredit from "./pages/CustomerCredit";
+import CustomerOrders from "./pages/CustomerOrders";
+import CustomerWishlist from "./pages/CustomerWishlist";
+import CustomerNotifications from "./pages/CustomerNotifications";
 
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -83,6 +87,10 @@ function AppRoutes() {
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/cliente/auth" element={<CustomerAuth />} />
       <Route path="/cliente/perfil" element={<CustomerProfile />} />
+      <Route path="/cliente/credito" element={<CustomerCredit />} />
+      <Route path="/cliente/pedidos" element={<CustomerOrders />} />
+      <Route path="/cliente/favoritos" element={<CustomerWishlist />} />
+      <Route path="/cliente/notificaciones" element={<CustomerNotifications />} />
 
       {/* ===== RUTAS ADMIN ===== */}
       <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
