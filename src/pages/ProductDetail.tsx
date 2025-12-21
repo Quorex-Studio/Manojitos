@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/store/ProductCard';
-import { ProductLabelBadge } from '@/components/products/ProductLabelBadge';
+import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
 import { PriceValidityBadge } from '@/components/store/PriceValidityBadge';
 import { usePublicProducts, PublicProduct } from '@/hooks/usePublicProducts';
 import { useCart, CartItem } from '@/contexts/CartContext';
@@ -226,7 +226,7 @@ export default function ProductDetail() {
 
             {/* Etiquetas automáticas */}
             <div className="absolute top-4 left-4 flex flex-col gap-2">
-              <ProductLabelBadge 
+              <AutoProductLabels 
                 product={{
                   id: product.id,
                   sold_count: product.sold_count || 0,

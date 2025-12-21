@@ -8,7 +8,7 @@ import { useCart, CartItem } from '@/contexts/CartContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { toast } from 'sonner';
 import { PublicProduct } from '@/hooks/usePublicProducts';
-import { ProductLabelBadge } from '@/components/products/ProductLabelBadge';
+import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
 import { PriceValidityBadge } from '@/components/store/PriceValidityBadge';
 
 interface ProductCardProps {
@@ -108,7 +108,7 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
 
             {/* Etiquetas automáticas */}
             <div className="absolute top-3 left-3 flex flex-col gap-2">
-              <ProductLabelBadge 
+              <AutoProductLabels 
                 product={{
                   id: product.id,
                   sold_count: product.sold_count || 0,
