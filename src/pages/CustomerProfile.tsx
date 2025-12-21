@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { User, Phone, Mail, MapPin, Bell, Save, Loader2, ArrowLeft } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Bell, Save, Loader2, ArrowLeft, Wallet, Package, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -115,11 +115,47 @@ export default function CustomerProfile() {
             </div>
           </div>
 
+          {/* Quick Links */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <Link to="/cliente/credito">
+              <Card className="glass-card hover:border-primary/50 transition-colors cursor-pointer">
+                <CardContent className="p-4 text-center">
+                  <Wallet className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <p className="font-medium text-sm">Mi Crédito</p>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link to="/cliente/pedidos">
+              <Card className="glass-card hover:border-primary/50 transition-colors cursor-pointer">
+                <CardContent className="p-4 text-center">
+                  <Package className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <p className="font-medium text-sm">Mis Pedidos</p>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link to="/cliente/favoritos">
+              <Card className="glass-card hover:border-primary/50 transition-colors cursor-pointer">
+                <CardContent className="p-4 text-center">
+                  <Heart className="h-6 w-6 mx-auto mb-2 text-rose-500" />
+                  <p className="font-medium text-sm">Favoritos</p>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link to="/cliente/notificaciones">
+              <Card className="glass-card hover:border-primary/50 transition-colors cursor-pointer">
+                <CardContent className="p-4 text-center">
+                  <Bell className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <p className="font-medium text-sm">Notificaciones</p>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+
           <Tabs defaultValue="profile" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="profile">Perfil</TabsTrigger>
               <TabsTrigger value="purchases">Compras</TabsTrigger>
-              <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
+              <TabsTrigger value="notifications">Preferencias</TabsTrigger>
             </TabsList>
 
             {/* Tab: Perfil */}

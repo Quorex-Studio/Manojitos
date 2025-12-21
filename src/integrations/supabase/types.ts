@@ -594,6 +594,78 @@ export type Database = {
           },
         ]
       }
+      orders: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          customer_user_id: string | null
+          discount: number
+          id: string
+          items: Json
+          notes: string | null
+          payment_method: string | null
+          payment_status: string
+          shipping_address: string | null
+          shipping_city: string | null
+          shipping_state: string | null
+          status: string
+          subtotal: number
+          total_bs: number | null
+          total_usd: number
+          tracking_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          discount?: number
+          id?: string
+          items?: Json
+          notes?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_state?: string | null
+          status?: string
+          subtotal?: number
+          total_bs?: number | null
+          total_usd: number
+          tracking_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          discount?: number
+          id?: string
+          items?: Json
+          notes?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_state?: string | null
+          status?: string
+          subtotal?: number
+          total_bs?: number | null
+          total_usd?: number
+          tracking_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_promises: {
         Row: {
           accepted_at: string | null
@@ -851,6 +923,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wishlist: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlist_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
