@@ -1,6 +1,6 @@
 // Componente de etiqueta de producto con animación
 import { motion } from 'framer-motion';
-import { ProductLabel } from '@/hooks/useProductLabels';
+import { ProductLabel, useProductLabels } from '@/hooks/useProductLabels';
 
 interface ProductLabelBadgeProps {
   label: ProductLabel;
@@ -55,5 +55,44 @@ export function ProductLabelsContainer({
         </motion.div>
       ))}
     </div>
+  );
+}
+
+// Nuevo componente wrapper que calcula etiquetas automáticamente
+interface ProductForLabels {
+  id: string;
+  sold_count: number;
+  stock: number;
+  created_at: string;
+  price_usd: number;
+  category?: string | null;
+}
+
+interface AutoProductLabelsProps {
+  product: ProductForLabels;
+  allProducts?: ProductForLabels[];
+  maxLabels?: number;
+  size?: 'sm' | 'md';
+  className?: string;
+}
+
+export function AutoProductLabels({ 
+  product, 
+  allProducts, 
+  maxLabels = 3,
+  size = 'sm',
+  className = ''
+}: AutoProductLabelsProps) {
+  const labels = useProductLabels(product, allProducts);
+  
+  if (labels.length === 0) return null;
+  
+  return (
+    <ProductLabelsContainer 
+      labels={labels} 
+      maxLabels={maxLabels} 
+      size={size}
+      className={className}
+    />
   );
 }
