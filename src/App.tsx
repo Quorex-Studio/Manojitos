@@ -33,6 +33,8 @@ import CustomerCredit from "./pages/CustomerCredit";
 import CustomerOrders from "./pages/CustomerOrders";
 import CustomerWishlist from "./pages/CustomerWishlist";
 import CustomerNotifications from "./pages/CustomerNotifications";
+import CustomerSettings from "./pages/CustomerSettings";
+import CustomerPaymentMethods from "./pages/CustomerPaymentMethods";
 
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -91,6 +93,8 @@ function AppRoutes() {
       <Route path="/cliente/pedidos" element={<CustomerOrders />} />
       <Route path="/cliente/favoritos" element={<CustomerWishlist />} />
       <Route path="/cliente/notificaciones" element={<CustomerNotifications />} />
+      <Route path="/cliente/configuracion" element={<CustomerSettings />} />
+      <Route path="/cliente/metodos-pago" element={<CustomerPaymentMethods />} />
 
       {/* ===== RUTAS ADMIN ===== */}
       <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
