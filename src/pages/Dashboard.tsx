@@ -12,6 +12,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/ui/stat-card';
 import { AdminAlertsPanel } from '@/components/admin/AdminAlertsPanel';
 import { CustomerOfMonthCard } from '@/components/credits/CustomerOfMonthCard';
+import { AngelaCopilotPanel } from '@/components/ai/AngelaCopilotPanel';
 import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
 import { useDebts } from '@/hooks/useDebts';
@@ -81,10 +82,13 @@ export default function Dashboard() {
           <p className="page-subtitle">Resumen de tu negocio</p>
         </div>
 
-        {/* Panel de Alertas + Cliente del Mes */}
+        {/* Panel de Alertas + Ángela Copiloto + Cliente del Mes */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <AdminAlertsPanel />
+          </div>
+          <div className="lg:col-span-1">
+            <AngelaCopilotPanel />
           </div>
           <CustomerOfMonthCard />
         </div>
