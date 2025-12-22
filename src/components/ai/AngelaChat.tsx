@@ -1,4 +1,5 @@
 // Chat component para Ángela AI Assistant
+// REGLA CRÍTICA: Usa exclusivamente Hugging Face Inference API - NO Lovable AI
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -9,7 +10,8 @@ import {
   Minimize2,
   Maximize2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Headphones
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,13 +20,25 @@ import { Card } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import stitchRosaMascot from '@/assets/stitch-rosa-mascot.png';
+
+// Declarar tipo global para Tidio
+declare global {
+  interface Window {
+    tidioChatApi?: {
+      show: () => void;
+      hide: () => void;
+      open: () => void;
+    };
+    abrirTidio?: () => void;
+  }
+}
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   action?: ActionData | null;
+  showHumanSupport?: boolean;
 }
 
 interface ActionData {
@@ -39,9 +53,41 @@ interface AngelaChatProps {
   className?: string;
 }
 
-const ANGELA_GREETING = "¡Hola! 🩷 Soy **Ángela**, tu asistente adorable de Manojitos. ¿En qué puedo ayudarte hoy? ✨";
+// Frases que activan atención humana
+const HUMAN_SUPPORT_PHRASES = [
+  'hablar con un vendedor',
+  'atención al cliente',
+  'hablar con un asesor',
+  'necesito ayuda humana',
+  'quiero hablar con alguien',
+  'contactar vendedor',
+  'hablar con persona',
+  'soporte humano',
+  'agente humano',
+  'persona real'
+];
+
+const ANGELA_GREETING = "¡Hola! 🩷 Soy **Ángela**, tu asistente inteligente de Manojitos. ¿En qué puedo ayudarte hoy? ✨";
 
 const SUPABASE_URL = 'https://utfoempgdbhhikpvbvir.supabase.co';
+
+// Detectar si el usuario quiere atención humana
+function detectHumanSupportRequest(message: string): boolean {
+  const lowerMessage = message.toLowerCase();
+  return HUMAN_SUPPORT_PHRASES.some(phrase => lowerMessage.includes(phrase));
+}
+
+// Abrir Tidio para atención humana
+function openHumanSupport() {
+  if (window.abrirTidio) {
+    window.abrirTidio();
+  } else if (window.tidioChatApi) {
+    window.tidioChatApi.show();
+    window.tidioChatApi.open();
+  } else {
+    toast.error('El chat de atención humana no está disponible en este momento');
+  }
+}
 
 // Ejecutar acción en el backend
 async function executeBackendAction(action: ActionData, userId?: string): Promise<{ success: boolean; message: string }> {
@@ -80,6 +126,7 @@ const CUSTOMER_SUGGESTIONS = [
   { label: "💳 Mi crédito", message: "¿Cuánto crédito tengo disponible?" },
   { label: "🛒 Productos", message: "¿Qué productos me recomiendas?" },
   { label: "💰 Tasa BCV", message: "¿Cuál es la tasa BCV actual?" },
+  { label: "🧑‍💼 Asesor", message: "Quiero hablar con un asesor" },
 ];
 
 // Sugerencias rápidas para admins
@@ -173,6 +220,17 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
     setInput('');
     setIsLoading(true);
     setShowSuggestions(false);
+
+    // Detectar si el usuario quiere atención humana
+    if (detectHumanSupportRequest(textToSend)) {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '¡Entendido! 🩷 Te conectaré con uno de nuestros asesores humanos. Ellos podrán ayudarte de manera personalizada. ✨',
+        showHumanSupport: true
+      }]);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant`, {
@@ -377,6 +435,24 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                           )}
                           dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
                         />
+                        
+                        {/* Human Support Button */}
+                        {msg.showHumanSupport && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="mt-2"
+                          >
+                            <Button
+                              size="sm"
+                              onClick={openHumanSupport}
+                              className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white gap-2"
+                            >
+                              <Headphones className="h-4 w-4" />
+                              Hablar con un asesor
+                            </Button>
+                          </motion.div>
+                        )}
                         
                         {/* Action Button */}
                         {msg.action && (
