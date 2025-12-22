@@ -13,6 +13,296 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
+// ================== CONTEXT BUILDER AVANZADO ==================
+
+interface BusinessContext {
+  bcvRate: number;
+  extraPercentage: number;
+  topProducts: { name: string; price_usd: number; stock: number; category: string; sold_count: number }[];
+  categories: string[];
+  lowStockProducts: { name: string; stock: number }[];
+  bestSellers: { name: string; sold_count: number }[];
+  recentSales: number;
+  pendingCredits: { client_name: string; current_balance: number }[];
+  customerHistory?: {
+    lastProducts: string[];
+    preferredPayment: string;
+    creditStatus: string;
+    creditLimit: number;
+    totalPurchases: number;
+  };
+}
+
+async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClient>, isAdmin: boolean, customerId?: string): Promise<BusinessContext> {
+  // Obtener tasa BCV actual
+  const { data: rateData } = await supabase
+    .from('exchange_rates')
+    .select('rate')
+    .order('created_at', { ascending: false })
+    .limit(1);
+  
+  const bcvRate = rateData?.[0]?.rate || 0;
+
+  // Obtener productos top (disponibles)
+  const { data: products } = await supabase
+    .from('products')
+    .select('name, price_usd, stock, category, sold_count')
+    .gt('stock', 0)
+    .order('sold_count', { ascending: false })
+    .limit(15);
+
+  // Categorías únicas
+  const categories = [...new Set((products || []).map(p => p.category).filter(Boolean))] as string[];
+
+  // Productos con stock bajo
+  const { data: lowStock } = await supabase
+    .from('products')
+    .select('name, stock, minimum_stock')
+    .lt('stock', 10)
+    .order('stock', { ascending: true })
+    .limit(5);
+
+  // Best sellers
+  const bestSellers = (products || []).slice(0, 5).map(p => ({ name: p.name, sold_count: p.sold_count }));
+
+  // Ventas recientes (7 días)
+  const { data: salesData } = await supabase
+    .from('sales')
+    .select('total_usd')
+    .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+  
+  const recentSales = (salesData || []).reduce((sum, s) => sum + Number(s.total_usd), 0);
+
+  // Créditos pendientes (solo admin)
+  let pendingCredits: { client_name: string; current_balance: number }[] = [];
+  if (isAdmin) {
+    const { data: credits } = await supabase
+      .from('credits')
+      .select('client_name, current_balance')
+      .gt('current_balance', 0)
+      .order('current_balance', { ascending: false })
+      .limit(5);
+    pendingCredits = credits || [];
+  }
+
+  // Historial del cliente (si hay customerId)
+  let customerHistory;
+  if (customerId) {
+    const { data: customerCredit } = await supabase
+      .from('credits')
+      .select('*')
+      .eq('client_user_id', customerId)
+      .single();
+
+    const { data: customerOrders } = await supabase
+      .from('orders')
+      .select('items, payment_method')
+      .eq('customer_user_id', customerId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (customerCredit || customerOrders?.length) {
+      const lastProducts: string[] = [];
+      let preferredPayment = 'efectivo';
+      const paymentCounts: Record<string, number> = {};
+
+      customerOrders?.forEach(order => {
+        if (order.payment_method) {
+          paymentCounts[order.payment_method] = (paymentCounts[order.payment_method] || 0) + 1;
+        }
+        if (Array.isArray(order.items)) {
+          order.items.forEach((item: { name?: string }) => {
+            if (item.name && !lastProducts.includes(item.name)) {
+              lastProducts.push(item.name);
+            }
+          });
+        }
+      });
+
+      const maxPayment = Object.entries(paymentCounts).sort((a, b) => b[1] - a[1])[0];
+      if (maxPayment) preferredPayment = maxPayment[0];
+
+      customerHistory = {
+        lastProducts: lastProducts.slice(0, 5),
+        preferredPayment,
+        creditStatus: customerCredit?.status || 'Sin crédito',
+        creditLimit: customerCredit?.credit_limit || 0,
+        totalPurchases: customerCredit?.total_purchases || 0,
+      };
+    }
+  }
+
+  return {
+    bcvRate,
+    extraPercentage: 10.7, // Configurable en futuro
+    topProducts: products || [],
+    categories,
+    lowStockProducts: lowStock || [],
+    bestSellers,
+    recentSales,
+    pendingCredits,
+    customerHistory,
+  };
+}
+
+// ================== GENERADOR DE SUGERENCIAS PREDICTIVAS ==================
+
+interface Suggestion {
+  label: string;
+  message: string;
+  priority: number;
+}
+
+function generatePredictiveSuggestions(
+  userMessage: string,
+  context: BusinessContext,
+  conversationHistory: { role: string; content: string }[],
+  isAdmin: boolean
+): Suggestion[] {
+  const msg = userMessage.toLowerCase();
+  const suggestions: Suggestion[] = [];
+  const conversationLength = conversationHistory.length;
+
+  // Detectar intención actual
+  const isAskingPrice = msg.includes('precio') || msg.includes('cuánto') || msg.includes('costo');
+  const isAskingStock = msg.includes('stock') || msg.includes('disponible') || msg.includes('hay');
+  const isAskingCredit = msg.includes('crédito') || msg.includes('saldo') || msg.includes('deuda');
+  const isAskingProduct = msg.includes('producto') || msg.includes('buscar') || msg.includes('recomienda');
+  const isBuying = msg.includes('comprar') || msg.includes('agregar') || msg.includes('carrito');
+  const isGreeting = msg.includes('hola') || msg.includes('buenos') || conversationLength <= 2;
+
+  // Sugerencias base según intención
+  if (isAskingPrice) {
+    suggestions.push({ label: "💰 Calcular en Bs", message: "¿Cuánto sería eso en Bs con la tasa actual?", priority: 10 });
+    suggestions.push({ label: "📊 Comparar USD vs Bs", message: "¿Me conviene pagar en USD o en Bs?", priority: 8 });
+    if (context.customerHistory?.preferredPayment) {
+      suggestions.push({ label: "💳 Pagar como siempre", message: `Quiero pagar en ${context.customerHistory.preferredPayment} como la última vez`, priority: 9 });
+    }
+  }
+
+  if (isAskingStock || isAskingProduct) {
+    suggestions.push({ label: "🔥 Más vendidos", message: "¿Cuáles son los productos más vendidos?", priority: 8 });
+    suggestions.push({ label: "🏷️ Ver categorías", message: `¿Qué hay en las categorías: ${context.categories.slice(0, 3).join(', ')}?`, priority: 7 });
+    if (context.customerHistory?.lastProducts?.length) {
+      suggestions.push({ label: "🔄 Repetir pedido", message: `Quiero volver a pedir ${context.customerHistory.lastProducts[0]}`, priority: 9 });
+    }
+  }
+
+  if (isAskingCredit) {
+    suggestions.push({ label: "💳 Mi límite", message: "¿Cuál es mi límite de crédito disponible?", priority: 9 });
+    suggestions.push({ label: "📅 Fecha de pago", message: "¿Cuándo vence mi próximo pago?", priority: 8 });
+    suggestions.push({ label: "💵 Abonar", message: "Quiero hacer un abono a mi crédito", priority: 7 });
+  }
+
+  if (isBuying) {
+    suggestions.push({ label: "🛒 Ver carrito", message: "¿Qué tengo en el carrito?", priority: 10 });
+    suggestions.push({ label: "💳 Usar crédito", message: "¿Puedo pagar esto a crédito?", priority: 9 });
+    suggestions.push({ label: "📦 Envío", message: "¿Hacen envíos a domicilio?", priority: 8 });
+  }
+
+  // Sugerencias contextuales siempre disponibles
+  if (context.bcvRate > 0) {
+    suggestions.push({ label: "💱 Tasa BCV", message: "¿Cuál es la tasa BCV de hoy?", priority: 6 });
+  }
+
+  // Sugerencia de atención humana (siempre al final)
+  suggestions.push({ label: "🧑‍💼 Hablar con asesor", message: "Quiero hablar con un asesor humano", priority: 3 });
+
+  // Sugerencias específicas para admin
+  if (isAdmin) {
+    if (context.lowStockProducts.length > 0) {
+      suggestions.push({ label: "📉 Stock bajo", message: "¿Cuáles productos tienen stock bajo?", priority: 9 });
+    }
+    if (context.pendingCredits.length > 0) {
+      suggestions.push({ label: "💳 Créditos pendientes", message: "¿Cuáles clientes tienen créditos pendientes?", priority: 8 });
+    }
+    suggestions.push({ label: "📊 Resumen ventas", message: "Dame un resumen de ventas de esta semana", priority: 7 });
+    suggestions.push({ label: "🛒 Registrar venta", message: "Quiero registrar una venta rápida", priority: 6 });
+  }
+
+  // Sugerencias basadas en historial del cliente
+  if (!isAdmin && context.customerHistory) {
+    if (context.customerHistory.creditStatus === 'ACTIVO' && context.customerHistory.creditLimit > 0) {
+      suggestions.push({ label: "💳 Crédito disponible", message: "¿Cuánto crédito tengo disponible?", priority: 8 });
+    }
+  }
+
+  // Ordenar por prioridad y tomar los top 5
+  suggestions.sort((a, b) => b.priority - a.priority);
+  return suggestions.slice(0, 5);
+}
+
+// ================== ANÁLISIS DE CONVERSACIÓN ==================
+
+interface ConversationAnalysis {
+  intent: 'purchase' | 'inquiry' | 'support' | 'frustration' | 'greeting' | 'unknown';
+  sentiment: 'positive' | 'neutral' | 'negative' | 'confused';
+  needsHumanSupport: boolean;
+  confidence: number;
+}
+
+function analyzeConversation(messages: { role: string; content: string }[]): ConversationAnalysis {
+  const lastUserMessages = messages.filter(m => m.role === 'user').slice(-3);
+  const allContent = lastUserMessages.map(m => m.content.toLowerCase()).join(' ');
+
+  // Detectar frustración
+  const frustrationWords = ['no entiendo', 'no funciona', 'error', 'problema', 'ayuda', 'molesto', 'mal', 'terrible', 'no me sirve'];
+  const hasFrustration = frustrationWords.some(word => allContent.includes(word));
+
+  // Detectar confusión
+  const confusionWords = ['cómo', 'no sé', 'no entiendo', 'explica', 'ayuda', 'perdido', 'confundido'];
+  const hasConfusion = confusionWords.some(word => allContent.includes(word));
+
+  // Detectar intención de compra
+  const purchaseWords = ['comprar', 'pedir', 'agregar', 'carrito', 'quiero', 'necesito', 'llevar'];
+  const hasPurchaseIntent = purchaseWords.some(word => allContent.includes(word));
+
+  // Detectar solicitud de soporte humano
+  const humanSupportWords = ['humano', 'persona', 'vendedor', 'asesor', 'atención', 'hablar con'];
+  const needsHumanSupport = humanSupportWords.some(word => allContent.includes(word));
+
+  // Detectar saludo
+  const greetingWords = ['hola', 'buenos', 'buenas', 'hey', 'saludos'];
+  const isGreeting = greetingWords.some(word => allContent.includes(word)) && messages.length <= 2;
+
+  let intent: ConversationAnalysis['intent'] = 'unknown';
+  let sentiment: ConversationAnalysis['sentiment'] = 'neutral';
+  let confidence = 0.5;
+
+  if (isGreeting) {
+    intent = 'greeting';
+    sentiment = 'positive';
+    confidence = 0.9;
+  } else if (needsHumanSupport) {
+    intent = 'support';
+    sentiment = hasFrustration ? 'negative' : 'neutral';
+    confidence = 0.95;
+  } else if (hasFrustration) {
+    intent = 'support';
+    sentiment = 'negative';
+    confidence = 0.8;
+  } else if (hasConfusion) {
+    intent = 'inquiry';
+    sentiment = 'confused';
+    confidence = 0.7;
+  } else if (hasPurchaseIntent) {
+    intent = 'purchase';
+    sentiment = 'positive';
+    confidence = 0.85;
+  } else {
+    intent = 'inquiry';
+    sentiment = 'neutral';
+    confidence = 0.6;
+  }
+
+  return {
+    intent,
+    sentiment,
+    needsHumanSupport: needsHumanSupport || (hasFrustration && messages.length > 4),
+    confidence,
+  };
+}
+
 // ================== HANDLERS DE ACCIONES ==================
 
 async function handleQueryProducts(data: { search?: string; category?: string }) {
@@ -42,7 +332,6 @@ async function handleRegisterSale(data: {
 }) {
   const supabase = getSupabaseClient();
   
-  // Buscar producto por nombre
   const { data: products } = await supabase
     .from('products')
     .select('id, name, price_usd, stock')
@@ -61,7 +350,6 @@ async function handleRegisterSale(data: {
   
   const totalUsd = data.quantity * (data.priceUsd || product.price_usd);
   
-  // Obtener tasa BCV
   const { data: rateData } = await supabase
     .from('exchange_rates')
     .select('rate')
@@ -71,7 +359,6 @@ async function handleRegisterSale(data: {
   const bcvRate = rateData?.[0]?.rate || 0;
   const totalBs = totalUsd * bcvRate;
   
-  // Insertar venta
   const { data: sale, error: saleError } = await supabase
     .from('sales')
     .insert({
@@ -91,7 +378,6 @@ async function handleRegisterSale(data: {
   
   if (saleError) throw saleError;
   
-  // Actualizar stock
   await supabase
     .from('products')
     .update({ 
@@ -129,7 +415,6 @@ async function handleSendReminder(data: { creditId?: string; clientName?: string
   
   const credit = credits[0];
   
-  // Crear recordatorio
   const message = `Hola ${credit.client_name}, te recordamos que tienes un saldo pendiente de $${credit.current_balance}. Fecha de vencimiento: ${credit.next_due_date || 'Por definir'}. ¡Gracias por tu preferencia! - Manojitos 🩷`;
   
   const { error: reminderError } = await supabase
@@ -246,7 +531,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, context, isAdmin, action, adminUserId } = await req.json();
+    const { messages, context, isAdmin, action, adminUserId, customerId } = await req.json();
     
     // Si es una solicitud de acción directa
     if (action) {
@@ -264,76 +549,85 @@ serve(async (req) => {
 
     const supabase = getSupabaseClient();
 
-    // Obtener tasa BCV actual
-    let bcvRate = 0;
-    const { data: rateData } = await supabase
-      .from('exchange_rates')
-      .select('rate')
-      .order('created_at', { ascending: false })
-      .limit(1);
-    
-    if (rateData?.length) {
-      bcvRate = rateData[0].rate;
+    // ================== CONTEXT BUILDER AVANZADO ==================
+    console.log('Building business context...');
+    const businessContext = await buildBusinessContext(supabase, isAdmin, customerId);
+
+    // Analizar la conversación
+    const conversationAnalysis = analyzeConversation(messages || []);
+    console.log('Conversation analysis:', conversationAnalysis);
+
+    // Generar sugerencias predictivas
+    const lastUserMessage = messages?.[messages.length - 1]?.content || '';
+    const suggestions = generatePredictiveSuggestions(lastUserMessage, businessContext, messages || [], isAdmin);
+    console.log('Generated suggestions:', suggestions.length);
+
+    // ================== CONSTRUIR PROMPT CONTEXTUALIZADO ==================
+    let contextPrompt = `Eres Ángela, asistente inteligente de Manojitos (tienda en Venezuela).
+Personalidad: cercana, clara, profesional, confiable. Usa español venezolano.
+Tono: amable, seguro, sin exagerar emojis.
+
+DATOS DEL NEGOCIO HOY:
+- Tasa BCV: ${businessContext.bcvRate} Bs/$
+- Porcentaje adicional: ${businessContext.extraPercentage}%
+- Fórmula precio: Precio_BS = cantidad × precio_USD × tasa_BCV × (1 + ${businessContext.extraPercentage}/100)
+
+PRODUCTOS DISPONIBLES (TOP):
+${businessContext.topProducts.slice(0, 8).map(p => `• ${p.name}: $${p.price_usd} (${p.stock} unidades) - ${p.category || 'Sin categoría'}`).join('\n')}
+
+CATEGORÍAS: ${businessContext.categories.join(', ')}
+
+MÁS VENDIDOS: ${businessContext.bestSellers.map(p => p.name).join(', ')}
+`;
+
+    // Agregar contexto de cliente si existe
+    if (businessContext.customerHistory) {
+      contextPrompt += `
+HISTORIAL DEL CLIENTE:
+- Productos anteriores: ${businessContext.customerHistory.lastProducts.join(', ') || 'Ninguno'}
+- Forma de pago preferida: ${businessContext.customerHistory.preferredPayment}
+- Estado de crédito: ${businessContext.customerHistory.creditStatus}
+- Límite de crédito: $${businessContext.customerHistory.creditLimit}
+- Compras totales: ${businessContext.customerHistory.totalPurchases}
+`;
     }
 
-    // Construir contexto dinámico
-    let dynamicContext = `Tasa BCV actual: ${bcvRate} Bs/$. `;
-    dynamicContext += `Rol: ${isAdmin ? 'Administrador' : 'Cliente'}. `;
-    dynamicContext += `Fecha: ${new Date().toLocaleDateString('es-VE')}. `;
-
-    // Si es admin, obtener más contexto
+    // Agregar contexto de admin si aplica
     if (isAdmin) {
-      const { data: salesData } = await supabase
-        .from('sales')
-        .select('total_usd')
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-      
-      const { data: lowStockData } = await supabase
-        .from('products')
-        .select('name, stock')
-        .lt('stock', 10)
-        .limit(5);
+      contextPrompt += `
+DATOS ADMIN:
+- Ventas últimos 7 días: $${businessContext.recentSales.toFixed(2)}
+- Stock bajo: ${businessContext.lowStockProducts.map(p => `${p.name} (${p.stock})`).join(', ') || 'Ninguno'}
+- Créditos pendientes: ${businessContext.pendingCredits.map(c => `${c.client_name}: $${c.current_balance}`).join(', ') || 'Ninguno'}
+`;
+    }
 
-      const { data: creditsData } = await supabase
-        .from('credits')
-        .select('client_name, current_balance')
-        .gt('current_balance', 0)
-        .limit(3);
-
-      if (salesData?.length) {
-        const totalWeek = salesData.reduce((sum, s) => sum + Number(s.total_usd), 0);
-        dynamicContext += `Ventas 7 días: $${totalWeek.toFixed(2)}. `;
-      }
-
-      if (lowStockData?.length) {
-        dynamicContext += `Stock bajo: ${lowStockData.map(p => p.name).join(', ')}. `;
-      }
-
-      if (creditsData?.length) {
-        dynamicContext += `Créditos pendientes: ${creditsData.map(c => `${c.client_name}: $${c.current_balance}`).join(', ')}. `;
-      }
+    // Agregar análisis de conversación
+    if (conversationAnalysis.sentiment === 'negative' || conversationAnalysis.sentiment === 'confused') {
+      contextPrompt += `
+⚠️ ALERTA: El cliente parece ${conversationAnalysis.sentiment === 'negative' ? 'frustrado' : 'confundido'}. 
+Simplifica tus respuestas y ofrece ayuda clara. Si persiste, ofrece atención humana.
+`;
     }
 
     if (context) {
-      dynamicContext += context;
+      contextPrompt += `\nCONTEXTO ADICIONAL: ${context}`;
     }
 
-    // Preparar prompt para Hugging Face
-    const lastUserMessage = messages[messages.length - 1]?.content || '';
-    
-    const prompt = `Eres Ángela, asistente de Manojitos. Contexto: ${dynamicContext}
-
-Fórmula de precio: Precio_BS = cantidad × precio_USD × tasa_BCV × (1 + %extra/100)
+    contextPrompt += `
+ROL: ${isAdmin ? 'Administrador' : 'Cliente'}
+FECHA: ${new Date().toLocaleDateString('es-VE')}
 
 Pregunta del usuario: ${lastUserMessage}
 
-Responde de forma clara, amigable y profesional en español. Si necesitas ejecutar una acción, indica: [ACCION: TIPO] con los datos necesarios.
+Responde de forma clara, amigable y profesional. Si el usuario pregunta por precios, siempre muestra USD y Bs.
+Si necesitas ejecutar una acción, indica: [ACCION: TIPO] con los datos necesarios.
 
 Respuesta de Ángela:`;
 
-    console.log('Sending request to Hugging Face Router');
+    console.log('Sending request to Hugging Face...');
 
-    // Usar Hugging Face Router API (nuevo endpoint)
+    // Usar Hugging Face Router API
     const response = await fetch('https://router.huggingface.co/hf-inference/models/google/flan-t5-base', {
       method: 'POST',
       headers: {
@@ -341,7 +635,7 @@ Respuesta de Ángela:`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: prompt,
+        inputs: contextPrompt,
         parameters: {
           max_new_tokens: 300,
           temperature: 0.7,
@@ -359,7 +653,9 @@ Respuesta de Ángela:`;
       if (response.status === 503 || response.status === 410 || response.status >= 400) {
         return new Response(
           JSON.stringify({ 
-            content: generateFallbackResponse(lastUserMessage, dynamicContext, bcvRate, isAdmin)
+            content: generateFallbackResponse(lastUserMessage, businessContext, isAdmin, conversationAnalysis),
+            suggestions: suggestions,
+            analysis: conversationAnalysis,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -382,11 +678,15 @@ Respuesta de Ángela:`;
 
     // Si no hay respuesta útil, generar respuesta contextual
     if (!generatedText || generatedText.length < 10) {
-      generatedText = generateFallbackResponse(lastUserMessage, dynamicContext, bcvRate, isAdmin);
+      generatedText = generateFallbackResponse(lastUserMessage, businessContext, isAdmin, conversationAnalysis);
     }
 
     return new Response(
-      JSON.stringify({ content: generatedText }),
+      JSON.stringify({ 
+        content: generatedText,
+        suggestions: suggestions,
+        analysis: conversationAnalysis,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -399,61 +699,89 @@ Respuesta de Ángela:`;
   }
 });
 
-// Generar respuesta inteligente cuando el modelo no está disponible
-function generateFallbackResponse(userMessage: string, context: string, bcvRate: number, isAdmin: boolean): string {
+// ================== RESPUESTA FALLBACK INTELIGENTE ==================
+
+function generateFallbackResponse(
+  userMessage: string, 
+  context: BusinessContext, 
+  isAdmin: boolean,
+  analysis: ConversationAnalysis
+): string {
   const msg = userMessage.toLowerCase();
+  const bcvRate = context.bcvRate;
   
+  // Si detectamos frustración, simplificar
+  if (analysis.sentiment === 'negative') {
+    return `🩷 Entiendo tu frustración y quiero ayudarte. ¿Qué necesitas específicamente?\n\n• 💰 Precios y cálculos\n• 📦 Productos disponibles\n• 💳 Información de crédito\n• 🧑‍💼 Hablar con un asesor\n\nEstoy aquí para ti. ✨`;
+  }
+
+  // Si está confundido, ofrecer guía
+  if (analysis.sentiment === 'confused') {
+    return `🩷 ¡No te preocupes! Te explico de forma sencilla.\n\nPuedo ayudarte con:\n• 💰 Calcular precios (tasa BCV: ${bcvRate} Bs/$)\n• 🛒 Buscar productos\n• 💳 Tu crédito\n• 📦 Tus pedidos\n\n¿Qué te gustaría hacer? ✨`;
+  }
+
   // Detectar intención y responder apropiadamente
   if (msg.includes('tasa') || msg.includes('bcv') || msg.includes('dólar')) {
-    return `🩷 ¡Hola! La tasa BCV actual es **${bcvRate} Bs/$**. ¿Necesitas calcular algún precio? Solo dime la cantidad y el precio en dólares. ✨`;
+    const extraPercent = context.extraPercentage;
+    return `🩷 **Tasa BCV actual: ${bcvRate} Bs/$**\n\nCon el ${extraPercent}% adicional, la tasa efectiva es: **${(bcvRate * (1 + extraPercent / 100)).toFixed(2)} Bs/$**\n\n¿Quieres calcular algún precio? ✨`;
   }
   
   if (msg.includes('calcul') || msg.includes('precio') || msg.includes('cuánto')) {
-    // Intentar extraer números del mensaje
     const numbers = msg.match(/\d+(\.\d+)?/g);
-    if (numbers && numbers.length >= 2 && bcvRate > 0) {
-      const qty = parseFloat(numbers[0]);
-      const price = parseFloat(numbers[1]);
-      const extra = numbers[2] ? parseFloat(numbers[2]) : 0;
-      const total = qty * price * bcvRate * (1 + extra / 100);
-      return `🩷 **Cálculo de precio:**\n• ${qty} unidades × $${price} × ${bcvRate} Bs/$ ${extra > 0 ? `× (1 + ${extra}%)` : ''}\n• **Total: ${total.toFixed(2)} Bs** ✨`;
+    if (numbers && numbers.length >= 1 && bcvRate > 0) {
+      const amount = parseFloat(numbers[0]);
+      const extraPercent = context.extraPercentage;
+      const totalBs = amount * bcvRate * (1 + extraPercent / 100);
+      const totalBsWithout = amount * bcvRate;
+      
+      return `🩷 **Cálculo de precio:**\n\n• Monto: **$${amount}**\n• Tasa BCV: ${bcvRate} Bs/$\n• En Bs puro: ${totalBsWithout.toFixed(2)} Bs\n• Con ${extraPercent}%: **${totalBs.toFixed(2)} Bs**\n\n💡 *Si pagas en USD ahorras ${(totalBs - totalBsWithout).toFixed(2)} Bs* ✨`;
     }
-    return `🩷 Para calcular un precio, necesito:\n• Cantidad de productos\n• Precio unitario en USD\n• Porcentaje extra (opcional)\n\nLa tasa BCV actual es ${bcvRate} Bs/$. ✨`;
+    return `🩷 Para calcular un precio:\n\nDime el monto en USD y te lo convierto.\nTasa BCV: ${bcvRate} Bs/$ + ${context.extraPercentage}% adicional ✨`;
   }
   
-  if (msg.includes('venta') || msg.includes('registrar')) {
+  if (msg.includes('product') || msg.includes('recomienda') || msg.includes('buscar')) {
+    const topProducts = context.topProducts.slice(0, 3);
+    if (topProducts.length > 0) {
+      const productList = topProducts.map(p => `• **${p.name}**: $${p.price_usd} (${p.stock} disponibles)`).join('\n');
+      return `🩷 ¡Te muestro nuestros **productos destacados**:\n\n${productList}\n\n¿Alguno te interesa? ✨`;
+    }
+    return `🩷 ¿Qué tipo de producto buscas? Tenemos estas categorías: ${context.categories.join(', ')}. ✨`;
+  }
+
+  if (msg.includes('crédito') || msg.includes('saldo') || msg.includes('deuda')) {
+    if (context.customerHistory) {
+      return `🩷 **Tu información de crédito:**\n\n• Estado: ${context.customerHistory.creditStatus}\n• Límite: $${context.customerHistory.creditLimit}\n• Compras totales: ${context.customerHistory.totalPurchases}\n\n¿Necesitas más detalles? ✨`;
+    }
     if (isAdmin) {
-      return `🩷 ¡Perfecto! Para registrar una venta rápida, dime:\n• Nombre del producto\n• Cantidad\n• Método de pago\n\n¡Y yo me encargo del resto! ✨`;
+      return `🩷 Puedo consultar información de créditos. ¿De qué cliente necesitas información? ✨`;
     }
-    return `🩷 Las ventas solo pueden ser registradas por administradores. ¿Puedo ayudarte con algo más? ✨`;
+    return `🩷 Puedo mostrarte tu información de crédito. ¿Quieres ver tu saldo o límite disponible? ✨`;
   }
-  
-  if (msg.includes('stock') || msg.includes('inventario')) {
-    return `🩷 Puedo verificar el stock por ti. ¿Quieres ver:\n• Productos con stock bajo\n• Stock de un producto específico\n\nSolo dime cuál prefieres. ✨`;
-  }
-  
-  if (msg.includes('crédito') || msg.includes('deuda') || msg.includes('saldo')) {
-    if (isAdmin) {
-      return `🩷 Puedo consultar información de créditos. ¿De qué cliente necesitas información? Dame el nombre y te muestro todos los detalles. ✨`;
+
+  if (msg.includes('stock') && isAdmin) {
+    if (context.lowStockProducts.length > 0) {
+      const stockList = context.lowStockProducts.map(p => `• ${p.name}: ${p.stock} unidades`).join('\n');
+      return `🩷 **Productos con stock bajo:**\n\n${stockList}\n\n¿Quieres que te ayude a hacer un pedido a proveedor? ✨`;
     }
-    return `🩷 Puedo mostrarte tu información de crédito. ¿Quieres ver tu saldo actual, límite disponible o historial de pagos? ✨`;
-  }
-  
-  if (msg.includes('pedido') || msg.includes('orden')) {
-    return `🩷 Puedo ayudarte con tus pedidos. ¿Quieres:\n• Ver el estado de un pedido\n• Consultar tu historial\n• Información de envío\n\n¡Dime qué necesitas! ✨`;
-  }
-  
-  if (msg.includes('producto') || msg.includes('buscar') || msg.includes('recomienda')) {
-    return `🩷 ¡Con gusto te ayudo a encontrar productos! Dime qué estás buscando o qué categoría te interesa y te muestro las mejores opciones. ✨`;
+    return `🩷 ¡Todo el inventario está bien abastecido! No hay productos con stock bajo. 🎉`;
   }
   
   if (msg.includes('hola') || msg.includes('buenas') || msg.includes('buenos')) {
+    if (context.customerHistory) {
+      const lastProduct = context.customerHistory.lastProducts[0];
+      const greeting = lastProduct
+        ? `🩷 ¡Hola de nuevo! 👋 La última vez te interesó **${lastProduct}**. ¿Quieres volver a verlo o buscas algo nuevo?\n\n`
+        : `🩷 ¡Hola! 👋 Qué gusto verte por aquí.\n\n`;
+      return greeting + `Puedo ayudarte con:\n• 🛒 Productos\n• 💰 Precios\n• 💳 Tu crédito\n\n¿Qué necesitas hoy? ✨`;
+    }
+    
     const greeting = isAdmin 
-      ? `🩷 ¡Hola! Soy **Ángela**, tu asistente de Manojitos. Como admin, puedo ayudarte con:\n• 📊 Resumen de ventas\n• 📦 Control de stock\n• 💳 Gestión de créditos\n• 💰 Cálculos de precios\n\n¿Qué necesitas hoy? ✨`
-      : `🩷 ¡Hola! Soy **Ángela**, tu asistente de Manojitos. Puedo ayudarte con:\n• 🛒 Buscar productos\n• 📦 Estado de pedidos\n• 💳 Tu crédito\n• 💰 Calcular precios\n\n¿En qué te puedo ayudar? ✨`;
+      ? `🩷 ¡Hola! Soy **Ángela**, tu asistente de Manojitos.\n\n📊 **Resumen rápido:**\n• Ventas 7 días: $${context.recentSales.toFixed(2)}\n• Stock bajo: ${context.lowStockProducts.length} productos\n• Créditos pendientes: ${context.pendingCredits.length}\n\n¿Qué necesitas? ✨`
+      : `🩷 ¡Hola! Soy **Ángela**, tu asistente de Manojitos. 👋\n\nPuedo ayudarte con:\n• 🛒 Productos y recomendaciones\n• 💰 Precios y cálculos\n• 💳 Tu crédito\n• 📦 Tus pedidos\n\n¿En qué te puedo ayudar? ✨`;
     return greeting;
   }
   
-  // Respuesta genérica inteligente
-  return `🩷 ¡Hola! Soy **Ángela**, tu asistente de Manojitos. ${isAdmin ? 'Como administrador, ' : ''}puedo ayudarte con:\n\n• 💰 Cálculos de precios (tasa BCV: ${bcvRate} Bs/$)\n• ${isAdmin ? '📊 Ventas y stock' : '🛒 Productos y pedidos'}\n• 💳 Créditos y pagos\n\n¿Qué necesitas? ✨`;
+  // Respuesta genérica mejorada
+  const topProduct = context.topProducts[0];
+  return `🩷 ¡Hola! Soy **Ángela**. ${isAdmin ? 'Como administrador, ' : ''}puedo ayudarte con:\n\n• 💰 Precios (tasa BCV: ${bcvRate} Bs/$)\n• ${isAdmin ? '📊 Ventas y stock' : '🛒 Productos disponibles'}\n• 💳 Créditos y pagos\n${topProduct ? `\n🔥 **Producto destacado:** ${topProduct.name} - $${topProduct.price_usd}` : ''}\n\n¿Qué necesitas? ✨`;
 }

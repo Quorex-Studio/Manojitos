@@ -1,6 +1,6 @@
 // Chat component para Ángela AI Assistant
 // REGLA CRÍTICA: Usa exclusivamente Hugging Face Inference API - NO Lovable AI
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -29,6 +29,7 @@ declare global {
       show: () => void;
       hide: () => void;
       open: () => void;
+      setVisitorData: (data: Record<string, unknown>) => void;
     };
     abrirTidio?: () => void;
   }
@@ -39,6 +40,7 @@ interface Message {
   content: string;
   action?: ActionData | null;
   showHumanSupport?: boolean;
+  suggestions?: Suggestion[];
 }
 
 interface ActionData {
@@ -46,6 +48,29 @@ interface ActionData {
   data: Record<string, unknown>;
   status?: 'pending' | 'success' | 'error';
   result?: string;
+}
+
+interface Suggestion {
+  label: string;
+  message: string;
+  priority?: number;
+}
+
+interface ConversationAnalysis {
+  intent: 'purchase' | 'inquiry' | 'support' | 'frustration' | 'greeting' | 'unknown';
+  sentiment: 'positive' | 'neutral' | 'negative' | 'confused';
+  needsHumanSupport: boolean;
+  confidence: number;
+}
+
+interface SessionMemory {
+  viewedProducts: string[];
+  askedQuestions: string[];
+  recommendations: string[];
+  preferredPayment?: string;
+  creditStatus?: string;
+  creditLimit?: number;
+  lastProducts?: string[];
 }
 
 interface AngelaChatProps {
@@ -67,7 +92,7 @@ const HUMAN_SUPPORT_PHRASES = [
   'persona real'
 ];
 
-const ANGELA_GREETING = "¡Hola! 🩷 Soy **Ángela**, tu asistente inteligente de Manojitos. ¿En qué puedo ayudarte hoy? ✨";
+const ANGELA_GREETING = "¡Hola! 🩷 Soy **Ángela**, tu asistente inteligente de Manojitos. Estoy aquí para ayudarte con productos, precios, crédito y más. ¿Qué necesitas hoy? ✨";
 
 const SUPABASE_URL = 'https://utfoempgdbhhikpvbvir.supabase.co';
 
@@ -77,13 +102,28 @@ function detectHumanSupportRequest(message: string): boolean {
   return HUMAN_SUPPORT_PHRASES.some(phrase => lowerMessage.includes(phrase));
 }
 
-// Abrir Tidio para atención humana
-function openHumanSupport() {
-  if (window.abrirTidio) {
-    window.abrirTidio();
-  } else if (window.tidioChatApi) {
+// Abrir Tidio para atención humana con contexto
+function openHumanSupport(sessionMemory: SessionMemory, lastRecommendation?: string) {
+  // Pasar contexto del cliente a Tidio
+  if (window.tidioChatApi) {
+    try {
+      window.tidioChatApi.setVisitorData({
+        name: 'Cliente Manojitos',
+        credit_status: sessionMemory.creditStatus || 'Sin información',
+        credit_limit: sessionMemory.creditLimit || 0,
+        preferred_payment: sessionMemory.preferredPayment || 'No definido',
+        last_products_viewed: sessionMemory.viewedProducts.slice(-5).join(', ') || 'Ninguno',
+        last_recommendation: lastRecommendation || 'Ninguna',
+        questions_asked: sessionMemory.askedQuestions.slice(-3).join(' | ') || 'Ninguna',
+      });
+    } catch (e) {
+      console.error('Error setting Tidio visitor data:', e);
+    }
+
     window.tidioChatApi.show();
     window.tidioChatApi.open();
+  } else if (window.abrirTidio) {
+    window.abrirTidio();
   } else {
     toast.error('El chat de atención humana no está disponible en este momento');
   }
@@ -120,21 +160,21 @@ async function executeBackendAction(action: ActionData, userId?: string): Promis
   }
 }
 
-// Sugerencias rápidas para clientes
-const CUSTOMER_SUGGESTIONS = [
-  { label: "📦 Mis pedidos", message: "¿Cuál es el estado de mis pedidos?" },
-  { label: "💳 Mi crédito", message: "¿Cuánto crédito tengo disponible?" },
-  { label: "🛒 Productos", message: "¿Qué productos me recomiendas?" },
+// Sugerencias iniciales rápidas para clientes
+const CUSTOMER_INITIAL_SUGGESTIONS: Suggestion[] = [
+  { label: "🔥 Más vendidos", message: "¿Cuáles son los productos más vendidos?" },
   { label: "💰 Tasa BCV", message: "¿Cuál es la tasa BCV actual?" },
+  { label: "💳 Mi crédito", message: "¿Cuánto crédito tengo disponible?" },
+  { label: "🛒 Ver productos", message: "¿Qué productos tienen disponibles?" },
   { label: "🧑‍💼 Asesor", message: "Quiero hablar con un asesor" },
 ];
 
-// Sugerencias rápidas para admins
-const ADMIN_SUGGESTIONS = [
-  { label: "📊 Ventas", message: "Dame un resumen de ventas de esta semana" },
-  { label: "💰 Calcular precio", message: "Calcula el precio de 5 productos a $10 con tasa BCV + 10.7%" },
-  { label: "📦 Stock bajo", message: "¿Cuáles productos tienen stock bajo?" },
-  { label: "👥 Créditos", message: "¿Cuáles clientes tienen créditos pendientes?" },
+// Sugerencias iniciales para admins
+const ADMIN_INITIAL_SUGGESTIONS: Suggestion[] = [
+  { label: "📊 Resumen ventas", message: "Dame un resumen de ventas de esta semana" },
+  { label: "💰 Calcular precio", message: "Calcula el precio de 5 productos a $10 con tasa BCV" },
+  { label: "📉 Stock bajo", message: "¿Cuáles productos tienen stock bajo?" },
+  { label: "💳 Créditos", message: "¿Cuáles clientes tienen créditos pendientes?" },
   { label: "🛒 Registrar venta", message: "Quiero registrar una venta rápida" },
 ];
 
@@ -155,20 +195,49 @@ function parseAction(content: string): { cleanContent: string; action: ActionDat
   return { cleanContent: content, action: null };
 }
 
+// Extraer productos mencionados del mensaje
+function extractProductMentions(content: string): string[] {
+  const productPatterns = [
+    /\*\*([^*]+)\*\*/g,  // **Producto**
+    /producto[s]?\s+(\w+)/gi,  // producto X
+  ];
+  
+  const products: string[] = [];
+  productPatterns.forEach(pattern => {
+    let match;
+    while ((match = pattern.exec(content)) !== null) {
+      if (match[1] && match[1].length > 2 && !['tu', 'el', 'la', 'los', 'las'].includes(match[1].toLowerCase())) {
+        products.push(match[1]);
+      }
+    }
+  });
+  
+  return products;
+}
+
 export function AngelaChat({ context, className }: AngelaChatProps) {
   const { isAdmin, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: ANGELA_GREETING }
+    { role: 'assistant', content: ANGELA_GREETING, suggestions: isAdmin ? ADMIN_INITIAL_SUGGESTIONS : CUSTOMER_INITIAL_SUGGESTIONS }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [sessionMemory, setSessionMemory] = useState<SessionMemory>({
+    viewedProducts: [],
+    askedQuestions: [],
+    recommendations: [],
+  });
+  const [lastAnalysis, setLastAnalysis] = useState<ConversationAnalysis | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const suggestions = isAdmin ? ADMIN_SUGGESTIONS : CUSTOMER_SUGGESTIONS;
+  // Obtener la última sugerencia de la conversación
+  const getLastSuggestions = useCallback((): Suggestion[] => {
+    const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
+    return lastAssistantMessage?.suggestions || (isAdmin ? ADMIN_INITIAL_SUGGESTIONS : CUSTOMER_INITIAL_SUGGESTIONS);
+  }, [messages, isAdmin]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -181,6 +250,33 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  // Actualizar memoria de sesión
+  const updateSessionMemory = useCallback((userMessage: string, assistantResponse: string) => {
+    setSessionMemory(prev => {
+      const newMemory = { ...prev };
+      
+      // Agregar pregunta del usuario
+      if (!prev.askedQuestions.includes(userMessage)) {
+        newMemory.askedQuestions = [...prev.askedQuestions, userMessage].slice(-10);
+      }
+      
+      // Extraer productos mencionados
+      const mentionedProducts = extractProductMentions(assistantResponse);
+      mentionedProducts.forEach(product => {
+        if (!prev.viewedProducts.includes(product)) {
+          newMemory.viewedProducts = [...prev.viewedProducts, product].slice(-20);
+        }
+      });
+      
+      // Guardar recomendación si parece ser una
+      if (assistantResponse.includes('recomiendo') || assistantResponse.includes('te sugiero')) {
+        newMemory.recommendations = [...prev.recommendations, assistantResponse.slice(0, 100)].slice(-5);
+      }
+      
+      return newMemory;
+    });
+  }, []);
 
   const executeAction = async (action: ActionData, messageIndex: number) => {
     try {
@@ -219,14 +315,19 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
-    setShowSuggestions(false);
 
     // Detectar si el usuario quiere atención humana
     if (detectHumanSupportRequest(textToSend)) {
+      const lastRecommendation = sessionMemory.recommendations[sessionMemory.recommendations.length - 1];
+      
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: '¡Entendido! 🩷 Te conectaré con uno de nuestros asesores humanos. Ellos podrán ayudarte de manera personalizada. ✨',
-        showHumanSupport: true
+        content: '¡Entendido! 🩷 Ya te comunico con uno de nuestros asesores humanos. Le dejé toda la información de nuestra conversación para que te atienda más rápido. ✨',
+        showHumanSupport: true,
+        suggestions: [
+          { label: "🧑‍💼 Conectar ahora", message: "Conectar con asesor" },
+          { label: "💬 Seguir con Ángela", message: "Prefiero seguir contigo" },
+        ]
       }]);
       setIsLoading(false);
       return;
@@ -245,6 +346,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
           })),
           context,
           isAdmin,
+          customerId: user?.id,
         }),
       });
 
@@ -261,25 +363,80 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
 
       const data = await response.json();
       const rawContent = data.content || '¡Ups! No pude procesar eso. ¿Podrías intentar de nuevo? 🩷';
+      const serverSuggestions = data.suggestions as Suggestion[] | undefined;
+      const analysis = data.analysis as ConversationAnalysis | undefined;
+      
+      // Guardar análisis
+      if (analysis) {
+        setLastAnalysis(analysis);
+      }
       
       // Parse for actions
       const { cleanContent, action } = parseAction(rawContent);
 
+      // Actualizar memoria de sesión
+      updateSessionMemory(textToSend, cleanContent);
+
+      // Usar sugerencias del servidor o generar locales
+      const finalSuggestions = serverSuggestions?.length 
+        ? serverSuggestions 
+        : generateLocalSuggestions(cleanContent, isAdmin);
+
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: cleanContent,
-        action 
+        action,
+        suggestions: finalSuggestions,
+        showHumanSupport: analysis?.needsHumanSupport,
       }]);
 
     } catch (error) {
       console.error('Chat error:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `¡Oops! 😅 ${error instanceof Error ? error.message : 'Error desconocido'}. ¿Puedes intentarlo de nuevo? 🩷`
+        content: `¡Oops! 😅 ${error instanceof Error ? error.message : 'Error desconocido'}. ¿Puedes intentarlo de nuevo? 🩷`,
+        suggestions: [
+          { label: "🔄 Reintentar", message: textToSend },
+          { label: "🧑‍💼 Hablar con asesor", message: "Quiero hablar con un asesor" },
+        ]
       }]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Generar sugerencias locales si el servidor no las envía
+  const generateLocalSuggestions = (response: string, admin: boolean): Suggestion[] => {
+    const suggestions: Suggestion[] = [];
+    const lowerResponse = response.toLowerCase();
+
+    if (lowerResponse.includes('precio') || lowerResponse.includes('bs')) {
+      suggestions.push({ label: "💱 Comparar USD/Bs", message: "¿Me conviene pagar en USD o en Bs?" });
+    }
+    
+    if (lowerResponse.includes('producto')) {
+      suggestions.push({ label: "🛒 Ver más productos", message: "Muéstrame más productos" });
+      suggestions.push({ label: "📦 Hay stock?", message: "¿Tienen stock de este producto?" });
+    }
+    
+    if (lowerResponse.includes('crédito')) {
+      suggestions.push({ label: "💳 Mi límite", message: "¿Cuál es mi límite de crédito?" });
+    }
+
+    // Siempre agregar opción de asesor
+    suggestions.push({ label: "🧑‍💼 Hablar con asesor", message: "Quiero hablar con un asesor humano" });
+
+    // Sugerencias específicas de admin
+    if (admin) {
+      if (lowerResponse.includes('stock')) {
+        suggestions.push({ label: "📉 Ver todos bajos", message: "Muéstrame todos los productos con stock bajo" });
+      }
+      if (lowerResponse.includes('venta')) {
+        suggestions.push({ label: "🛒 Nueva venta", message: "Quiero registrar otra venta" });
+      }
+    }
+
+    return suggestions.slice(0, 5);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -290,11 +447,15 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
   };
 
   const handleSuggestionClick = (message: string) => {
+    if (message === "Conectar con asesor") {
+      const lastRecommendation = sessionMemory.recommendations[sessionMemory.recommendations.length - 1];
+      openHumanSupport(sessionMemory, lastRecommendation);
+      return;
+    }
     sendMessage(message);
   };
 
   const formatMessage = (content: string) => {
-    // Simple markdown-like formatting
     return content
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -371,7 +532,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
               "fixed z-50 shadow-2xl",
               isExpanded 
                 ? "inset-4 md:inset-8" 
-                : "bottom-6 right-6 w-[380px] h-[500px]",
+                : "bottom-6 right-6 w-[380px] h-[550px]",
               className
             )}
           >
@@ -384,7 +545,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                   </div>
                   <div>
                     <h3 className="font-semibold">Ángela</h3>
-                    <p className="text-xs text-white/80">Tu asistente adorable 🩷</p>
+                    <p className="text-xs text-white/80">Tu asistente inteligente 🩷</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -445,7 +606,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                           >
                             <Button
                               size="sm"
-                              onClick={openHumanSupport}
+                              onClick={() => openHumanSupport(sessionMemory, sessionMemory.recommendations[sessionMemory.recommendations.length - 1])}
                               className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white gap-2"
                             >
                               <Headphones className="h-4 w-4" />
@@ -482,6 +643,30 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                             )}
                           </motion.div>
                         )}
+
+                        {/* Sugerencias dinámicas después de cada mensaje de Ángela */}
+                        {msg.role === 'assistant' && msg.suggestions && msg.suggestions.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="flex flex-wrap gap-1.5 pt-2"
+                          >
+                            {msg.suggestions.map((suggestion, sIdx) => (
+                              <motion.button
+                                key={sIdx}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: sIdx * 0.05 }}
+                                onClick={() => handleSuggestionClick(suggestion.message)}
+                                disabled={isLoading}
+                                className="px-2.5 py-1 text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full hover:bg-pink-200 dark:hover:bg-pink-800/50 transition-colors border border-pink-200 dark:border-pink-700 whitespace-nowrap"
+                              >
+                                {suggestion.label}
+                              </motion.button>
+                            ))}
+                          </motion.div>
+                        )}
                       </div>
                       {msg.role === 'user' && (
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
@@ -505,28 +690,6 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                           <span>Ángela está pensando...</span>
                         </div>
                       </div>
-                    </motion.div>
-                  )}
-                  {/* Quick Suggestions */}
-                  {showSuggestions && messages.length === 1 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-wrap gap-2 pt-2"
-                    >
-                      {suggestions.map((suggestion, idx) => (
-                        <motion.button
-                          key={idx}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: idx * 0.1 }}
-                          onClick={() => handleSuggestionClick(suggestion.message)}
-                          disabled={isLoading}
-                          className="px-3 py-1.5 text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full hover:bg-pink-200 dark:hover:bg-pink-800/50 transition-colors border border-pink-200 dark:border-pink-700"
-                        >
-                          {suggestion.label}
-                        </motion.button>
-                      ))}
                     </motion.div>
                   )}
                 </div>
@@ -554,7 +717,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-2">
-                  Ángela - Tu asistente inteligente 🩷
+                  Ángela • Tu asistente inteligente 🩷
                 </p>
               </div>
             </Card>
