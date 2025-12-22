@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      angela_alerts: {
+        Row: {
+          action_data: Json | null
+          alert_type: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_dismissed: boolean
+          is_read: boolean
+          message: string
+          reference_id: string | null
+          reference_type: string | null
+          severity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_data?: Json | null
+          alert_type: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          message: string
+          reference_id?: string | null
+          reference_type?: string | null
+          severity?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_data?: Json | null
+          alert_type?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          message?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          severity?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      angela_conversations: {
+        Row: {
+          content: string
+          context: Json | null
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          context?: Json | null
+          created_at?: string
+          id?: string
+          role: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          context?: Json | null
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       business_rules: {
         Row: {
           actions: Json
@@ -270,6 +348,45 @@ export type Database = {
           total_purchases?: number | null
           trust_level?: string | null
           trust_score?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      customer_memory: {
+        Row: {
+          created_at: string
+          customer_phone: string | null
+          customer_user_id: string | null
+          expires_at: string | null
+          id: string
+          memory_key: string
+          memory_type: string
+          memory_value: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          expires_at?: string | null
+          id?: string
+          memory_key: string
+          memory_type: string
+          memory_value?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          expires_at?: string | null
+          id?: string
+          memory_key?: string
+          memory_type?: string
+          memory_value?: Json
           updated_at?: string
           user_id?: string
         }
@@ -729,6 +846,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          minimum_stock: number | null
           name: string
           price_usd: number
           sold_count: number
@@ -742,6 +860,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          minimum_stock?: number | null
           name: string
           price_usd?: number
           sold_count?: number
@@ -755,6 +874,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          minimum_stock?: number | null
           name?: string
           price_usd?: number
           sold_count?: number
