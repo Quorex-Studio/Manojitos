@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import stitchRosaMascot from '@/assets/stitch-rosa-mascot.png';
 
 interface Message {
@@ -36,12 +37,42 @@ interface ActionData {
 interface AngelaChatProps {
   context?: string;
   className?: string;
-  onAction?: (action: ActionData) => Promise<{ success: boolean; message: string }>;
 }
 
 const ANGELA_GREETING = "¡Hola! 🩷 Soy **Ángela**, tu asistente adorable de Manojitos. ¿En qué puedo ayudarte hoy? ✨";
 
 const SUPABASE_URL = 'https://utfoempgdbhhikpvbvir.supabase.co';
+
+// Ejecutar acción en el backend
+async function executeBackendAction(action: ActionData, userId?: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: {
+          type: action.type,
+          data: action.data,
+        },
+        adminUserId: userId,
+      }),
+    });
+
+    const result = await response.json();
+    return {
+      success: result.success ?? false,
+      message: result.message || 'Acción completada',
+    };
+  } catch (error) {
+    console.error('Backend action error:', error);
+    return {
+      success: false,
+      message: 'Error al ejecutar la acción en el servidor',
+    };
+  }
+}
 
 // Sugerencias rápidas para clientes
 const CUSTOMER_SUGGESTIONS = [
@@ -77,8 +108,8 @@ function parseAction(content: string): { cleanContent: string; action: ActionDat
   return { cleanContent: content, action: null };
 }
 
-export function AngelaChat({ context, className, onAction }: AngelaChatProps) {
-  const { isAdmin } = useAuth();
+export function AngelaChat({ context, className }: AngelaChatProps) {
+  const { isAdmin, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -105,13 +136,8 @@ export function AngelaChat({ context, className, onAction }: AngelaChatProps) {
   }, [isOpen]);
 
   const executeAction = async (action: ActionData, messageIndex: number) => {
-    if (!onAction) {
-      toast.info('Las acciones no están habilitadas en este contexto');
-      return;
-    }
-
     try {
-      const result = await onAction(action);
+      const result = await executeBackendAction(action, user?.id);
       
       setMessages(prev => prev.map((msg, idx) => {
         if (idx === messageIndex && msg.action) {
