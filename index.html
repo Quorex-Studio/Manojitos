@@ -21,5 +21,23 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Tidio Chat - Solo atención humana (oculto por defecto) -->
+    <script src="//code.tidio.co/liumibylta7aqxilwi712sqybcjmatrq.js" async></script>
+    <script>
+      document.addEventListener("tidioChat-ready", function() {
+        if (window.tidioChatApi) {
+          window.tidioChatApi.hide();
+        }
+      });
+      
+      // Función global para abrir Tidio
+      window.abrirTidio = function() {
+        if (window.tidioChatApi) {
+          window.tidioChatApi.show();
+          window.tidioChatApi.open();
+        }
+      };
+    </script>
   </body>
 </html>
