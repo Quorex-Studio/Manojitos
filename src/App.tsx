@@ -38,7 +38,7 @@ import CustomerPaymentMethods from "./pages/CustomerPaymentMethods";
 
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
-import { StitchRosaChat } from "@/components/ai/StitchRosaChat";
+import { AngelaChat } from "@/components/ai/AngelaChat";
 
 const queryClient = new QueryClient();
 
@@ -127,7 +127,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <AppRoutes />
-              <StitchRosaChat />
+              <AngelaChat />
             </BrowserRouter>
           </TooltipProvider>
         </CartProvider>
