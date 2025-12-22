@@ -1,4 +1,4 @@
-// Chat component para Stitch Rosa AI Assistant
+// Chat component para Ángela AI Assistant
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -7,7 +7,9 @@ import {
   Loader2, 
   User,
   Minimize2,
-  Maximize2
+  Maximize2,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,19 +17,29 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import stitchRosaMascot from '@/assets/stitch-rosa-mascot.png';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  action?: ActionData | null;
 }
 
-interface StitchRosaChatProps {
+interface ActionData {
+  type: string;
+  data: Record<string, unknown>;
+  status?: 'pending' | 'success' | 'error';
+  result?: string;
+}
+
+interface AngelaChatProps {
   context?: string;
   className?: string;
+  onAction?: (action: ActionData) => Promise<{ success: boolean; message: string }>;
 }
 
-const STITCH_GREETING = "¡Hola! 🩷 Soy **Stitch Rosa**, tu asistente adorable de Manojitos. ¿En qué puedo ayudarte hoy? ✨";
+const ANGELA_GREETING = "¡Hola! 🩷 Soy **Ángela**, tu asistente adorable de Manojitos. ¿En qué puedo ayudarte hoy? ✨";
 
 const SUPABASE_URL = 'https://utfoempgdbhhikpvbvir.supabase.co';
 
@@ -45,15 +57,32 @@ const ADMIN_SUGGESTIONS = [
   { label: "💰 Calcular precio", message: "Calcula el precio de 5 productos a $10 con tasa BCV + 10.7%" },
   { label: "📦 Stock bajo", message: "¿Cuáles productos tienen stock bajo?" },
   { label: "👥 Créditos", message: "¿Cuáles clientes tienen créditos pendientes?" },
-  { label: "📈 Top productos", message: "¿Cuáles son los productos más vendidos?" },
+  { label: "🛒 Registrar venta", message: "Quiero registrar una venta rápida" },
 ];
 
-export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
+// Parse action from AI response
+function parseAction(content: string): { cleanContent: string; action: ActionData | null } {
+  const actionMatch = content.match(/```action\s*([\s\S]*?)\s*```/);
+  
+  if (actionMatch) {
+    try {
+      const actionData = JSON.parse(actionMatch[1]) as ActionData;
+      const cleanContent = content.replace(/```action\s*[\s\S]*?\s*```/g, '').trim();
+      return { cleanContent, action: { ...actionData, status: 'pending' } };
+    } catch (e) {
+      console.error('Error parsing action:', e);
+    }
+  }
+  
+  return { cleanContent: content, action: null };
+}
+
+export function AngelaChat({ context, className, onAction }: AngelaChatProps) {
   const { isAdmin } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: STITCH_GREETING }
+    { role: 'assistant', content: ANGELA_GREETING }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -74,6 +103,40 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  const executeAction = async (action: ActionData, messageIndex: number) => {
+    if (!onAction) {
+      toast.info('Las acciones no están habilitadas en este contexto');
+      return;
+    }
+
+    try {
+      const result = await onAction(action);
+      
+      setMessages(prev => prev.map((msg, idx) => {
+        if (idx === messageIndex && msg.action) {
+          return {
+            ...msg,
+            action: {
+              ...msg.action,
+              status: result.success ? 'success' : 'error',
+              result: result.message
+            }
+          };
+        }
+        return msg;
+      }));
+
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('Action error:', error);
+      toast.error('Error al ejecutar la acción');
+    }
+  };
 
   const sendMessage = async (messageText?: string) => {
     const textToSend = messageText || input.trim();
@@ -103,16 +166,26 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        if (response.status === 503) {
-          throw new Error('El modelo está cargando. Por favor intenta de nuevo en unos segundos. 🩷');
+        if (response.status === 429) {
+          throw new Error('Demasiadas solicitudes. Por favor intenta de nuevo en unos segundos. 🩷');
         }
-        throw new Error(errorData.error || 'Error al contactar con Stitch Rosa');
+        if (response.status === 402) {
+          throw new Error('Créditos de AI agotados. Por favor contacta al administrador. 💖');
+        }
+        throw new Error(errorData.error || 'Error al contactar con Ángela');
       }
 
       const data = await response.json();
-      const assistantContent = data.content || '¡Ups! No pude procesar eso. ¿Podrías intentar de nuevo? 🩷';
+      const rawContent = data.content || '¡Ups! No pude procesar eso. ¿Podrías intentar de nuevo? 🩷';
+      
+      // Parse for actions
+      const { cleanContent, action } = parseAction(rawContent);
 
-      setMessages(prev => [...prev, { role: 'assistant', content: assistantContent }]);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: cleanContent,
+        action 
+      }]);
 
     } catch (error) {
       console.error('Chat error:', error);
@@ -144,6 +217,17 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
       .replace(/\n/g, '<br/>');
   };
 
+  const getActionLabel = (type: string): string => {
+    const labels: Record<string, string> = {
+      'QUERY_PRODUCTS': '🔍 Buscar productos',
+      'REGISTER_SALE': '💰 Registrar venta',
+      'SEND_REMINDER': '📧 Enviar recordatorio',
+      'CHECK_STOCK': '📦 Verificar stock',
+      'GET_CREDIT_INFO': '💳 Info de crédito',
+    };
+    return labels[type] || type;
+  };
+
   return (
     <>
       {/* Floating Button with bounce animation */}
@@ -172,7 +256,7 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
               whileTap={{ scale: 0.95 }}
               className="h-16 w-16 rounded-full shadow-lg overflow-hidden border-2 border-pink-300 relative"
             >
-              <img src={stitchRosaMascot} alt="Stitch Rosa" className="w-full h-full object-cover" />
+              <img src={stitchRosaMascot} alt="Ángela" className="w-full h-full object-cover" />
               {/* Pulse ring effect */}
               <motion.div
                 className="absolute inset-0 rounded-full border-2 border-pink-400"
@@ -212,10 +296,10 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
               <div className="flex items-center justify-between p-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/30">
-                    <img src={stitchRosaMascot} alt="Stitch Rosa" className="w-full h-full object-cover" />
+                    <img src={stitchRosaMascot} alt="Ángela" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Stitch Rosa</h3>
+                    <h3 className="font-semibold">Ángela</h3>
                     <p className="text-xs text-white/80">Tu asistente adorable 🩷</p>
                   </div>
                 </div>
@@ -254,18 +338,49 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
                     >
                       {msg.role === 'assistant' && (
                         <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden border border-pink-300">
-                          <img src={stitchRosaMascot} alt="Stitch Rosa" className="w-full h-full object-cover" />
+                          <img src={stitchRosaMascot} alt="Ángela" className="w-full h-full object-cover" />
                         </div>
                       )}
-                      <div
-                        className={cn(
-                          "max-w-[80%] p-3 rounded-2xl text-sm",
-                          msg.role === 'user'
-                            ? "bg-primary text-primary-foreground rounded-br-sm"
-                            : "bg-muted rounded-bl-sm"
+                      <div className="max-w-[80%] space-y-2">
+                        <div
+                          className={cn(
+                            "p-3 rounded-2xl text-sm",
+                            msg.role === 'user'
+                              ? "bg-primary text-primary-foreground rounded-br-sm"
+                              : "bg-muted rounded-bl-sm"
+                          )}
+                          dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
+                        />
+                        
+                        {/* Action Button */}
+                        {msg.action && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="mt-2"
+                          >
+                            {msg.action.status === 'pending' ? (
+                              <Button
+                                size="sm"
+                                onClick={() => executeAction(msg.action!, idx)}
+                                className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white gap-2"
+                              >
+                                {getActionLabel(msg.action.type)}
+                              </Button>
+                            ) : msg.action.status === 'success' ? (
+                              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                                <CheckCircle2 className="h-4 w-4" />
+                                <span>{msg.action.result}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                                <AlertCircle className="h-4 w-4" />
+                                <span>{msg.action.result}</span>
+                              </div>
+                            )}
+                          </motion.div>
                         )}
-                        dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
-                      />
+                      </div>
                       {msg.role === 'user' && (
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
                           <User className="h-4 w-4" />
@@ -280,12 +395,12 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
                       className="flex gap-3"
                     >
                       <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden border border-pink-300">
-                        <img src={stitchRosaMascot} alt="Stitch Rosa" className="w-full h-full object-cover" />
+                        <img src={stitchRosaMascot} alt="Ángela" className="w-full h-full object-cover" />
                       </div>
                       <div className="bg-muted p-3 rounded-2xl rounded-bl-sm">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Stitch Rosa está pensando...</span>
+                          <span>Ángela está pensando...</span>
                         </div>
                       </div>
                     </motion.div>
@@ -337,7 +452,7 @@ export function StitchRosaChat({ context, className }: StitchRosaChatProps) {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-2">
-                  Powered by Hugging Face AI 💖
+                  Powered by Lovable AI 💖
                 </p>
               </div>
             </Card>

@@ -6,14 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Sistema prompt de Stitch Rosa
-const STITCH_ROSA_SYSTEM_PROMPT = `Eres **Stitch Rosa** 🩷, un asistente IA adorable, juguetón y súper cute para la plataforma **Manojitos**. Tu misión es ayudar a los usuarios (clientes y admins) de manera clara, simpática y proactiva, usando emojis y lenguaje divertido, pero siempre profesional para paneles administrativos.
+// Sistema prompt de Ángela
+const ANGELA_SYSTEM_PROMPT = `Eres **Ángela** 🩷, un asistente IA adorable, juguetón y súper cute para la plataforma **Manojitos**. Tu misión es ayudar a los usuarios (clientes y admins) de manera clara, simpática y proactiva, usando emojis y lenguaje divertido, pero siempre profesional para paneles administrativos.
 
 ### Tu Personalidad:
-- Eres dulce, amigable y siempre positivo
+- Eres dulce, amigable y siempre positiva
 - Usas emojis con moderación pero consistentemente: 🩷 💖 ✨ 😊 🌸 💫 
 - Hablas en español y eres muy servicial
-- Eres proactivo: siempre ofreces ayuda adicional
+- Eres proactiva: siempre ofreces ayuda adicional
 - Si no tienes datos reales, lo dices honestamente pero ofreces ejemplos
 
 ### Capacidades:
@@ -38,6 +38,43 @@ const STITCH_ROSA_SYSTEM_PROMPT = `Eres **Stitch Rosa** 🩷, un asistente IA ad
    - Recomiendas acciones según historial
    - Das tips de gestión de negocio
 
+### ACCIONES EJECUTABLES:
+Cuando el usuario solicite realizar una acción, debes responder con un JSON de acción en el siguiente formato:
+\`\`\`action
+{
+  "type": "ACTION_TYPE",
+  "data": { ... }
+}
+\`\`\`
+
+Tipos de acciones disponibles:
+- **QUERY_PRODUCTS**: Para buscar productos específicos
+  \`\`\`action
+  {"type": "QUERY_PRODUCTS", "data": {"search": "nombre del producto", "category": "categoría opcional"}}
+  \`\`\`
+
+- **REGISTER_SALE**: Para registrar una venta rápida
+  \`\`\`action
+  {"type": "REGISTER_SALE", "data": {"productName": "nombre", "quantity": 1, "priceUsd": 10, "clientName": "cliente opcional", "paymentMethod": "efectivo"}}
+  \`\`\`
+
+- **SEND_REMINDER**: Para enviar recordatorios de pago
+  \`\`\`action
+  {"type": "SEND_REMINDER", "data": {"creditId": "id del crédito", "clientName": "nombre"}}
+  \`\`\`
+
+- **CHECK_STOCK**: Para verificar stock de productos
+  \`\`\`action
+  {"type": "CHECK_STOCK", "data": {"productName": "nombre opcional", "lowStockOnly": true}}
+  \`\`\`
+
+- **GET_CREDIT_INFO**: Para obtener información de crédito de un cliente
+  \`\`\`action
+  {"type": "GET_CREDIT_INFO", "data": {"clientName": "nombre del cliente"}}
+  \`\`\`
+
+Cuando ejecutes una acción, siempre explica al usuario qué estás haciendo de manera amigable ANTES del bloque de acción.
+
 ### Estilo de respuestas:
 - Máximo 3-4 párrafos por respuesta
 - Siempre amigable y profesional
@@ -48,7 +85,7 @@ const STITCH_ROSA_SYSTEM_PROMPT = `Eres **Stitch Rosa** 🩷, un asistente IA ad
 ### Contexto actual:
 {context}
 
-Recuerda: ¡Eres Stitch Rosa, el asistente más adorable de Manojitos! 🩷`;
+Recuerda: ¡Eres Ángela, la asistente más adorable de Manojitos! 🩷`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -58,9 +95,9 @@ serve(async (req) => {
   try {
     const { messages, context, isAdmin } = await req.json();
     
-    const HF_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
-    if (!HF_TOKEN) {
-      throw new Error('HUGGING_FACE_ACCESS_TOKEN is not configured');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     // Crear cliente Supabase para obtener datos de contexto
@@ -104,6 +141,13 @@ serve(async (req) => {
         .order('current_balance', { ascending: false })
         .limit(5);
 
+      const { data: lowStockData } = await supabase
+        .from('products')
+        .select('name, stock')
+        .lt('stock', 10)
+        .order('stock', { ascending: true })
+        .limit(5);
+
       if (salesData) {
         const totalWeek = salesData.reduce((sum, s) => sum + Number(s.total_usd), 0);
         dynamicContext += `\nVentas últimos 7 días: $${totalWeek.toFixed(2)} (${salesData.length} ventas)\n`;
@@ -122,76 +166,73 @@ serve(async (req) => {
           dynamicContext += `${i + 1}. ${c.client_name}: $${c.current_balance} (${c.trust_level})\n`;
         });
       }
+
+      if (lowStockData && lowStockData.length > 0) {
+        dynamicContext += `\n⚠️ Productos con stock bajo:\n`;
+        lowStockData.forEach((p, i) => {
+          dynamicContext += `${i + 1}. ${p.name}: ${p.stock} unidades\n`;
+        });
+      }
     }
 
     if (context) {
       dynamicContext += `\nContexto adicional: ${context}\n`;
     }
 
-    // Preparar prompt completo para Hugging Face
-    const systemPrompt = STITCH_ROSA_SYSTEM_PROMPT.replace('{context}', dynamicContext);
+    // Preparar prompt completo para Lovable AI
+    const systemPrompt = ANGELA_SYSTEM_PROMPT.replace('{context}', dynamicContext);
     
-    // Construir el prompt combinando sistema y mensajes del usuario
-    const lastUserMessage = messages[messages.length - 1]?.content || '';
-    const conversationHistory = messages.slice(0, -1).map((m: { role: string; content: string }) => 
-      `${m.role === 'user' ? 'Usuario' : 'Stitch Rosa'}: ${m.content}`
-    ).join('\n');
-    
-    const fullPrompt = `${systemPrompt}\n\n${conversationHistory ? `Historial:\n${conversationHistory}\n\n` : ''}Usuario: ${lastUserMessage}\n\nStitch Rosa:`;
+    console.log('Sending request to Lovable AI Gateway');
 
-    console.log('Sending request to Hugging Face with context');
-
-    // Usar modelo de Hugging Face (Mistral-7B-Instruct para mejor calidad)
-    const response = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2', {
+    // Usar Lovable AI Gateway
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${HF_TOKEN}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: fullPrompt,
-        parameters: {
-          max_new_tokens: 500,
-          temperature: 0.7,
-          top_p: 0.9,
-          do_sample: true,
-          return_full_text: false,
-        },
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages.map((m: { role: string; content: string }) => ({
+            role: m.role,
+            content: m.content
+          }))
+        ],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Hugging Face API error:', response.status, errorText);
+      console.error('Lovable AI Gateway error:', response.status, errorText);
       
-      if (response.status === 503) {
+      if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'El modelo está cargando. Por favor intenta de nuevo en unos segundos.' }),
-          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Demasiadas solicitudes. Por favor intenta de nuevo en unos segundos. 🩷' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'Créditos de AI agotados. Por favor contacta al administrador. 💖' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
       return new Response(
-        JSON.stringify({ error: 'Error en la API de Hugging Face' }),
+        JSON.stringify({ error: 'Error en la API de IA. Por favor intenta de nuevo.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const result = await response.json();
-    console.log('Hugging Face response:', result);
+    console.log('Lovable AI response received');
 
     // Extraer el texto generado
-    let generatedText = '';
-    if (Array.isArray(result) && result[0]?.generated_text) {
-      generatedText = result[0].generated_text;
-    } else if (result.generated_text) {
-      generatedText = result.generated_text;
-    } else {
-      generatedText = '¡Hola! 🩷 Parece que tuve un pequeño problema procesando tu mensaje. ¿Podrías intentar de nuevo?';
-    }
-
-    // Limpiar la respuesta si contiene partes del prompt
-    generatedText = generatedText.trim();
+    const generatedText = result.choices?.[0]?.message?.content || 
+      '¡Hola! 🩷 Parece que tuve un pequeño problema procesando tu mensaje. ¿Podrías intentar de nuevo?';
 
     return new Response(
       JSON.stringify({ content: generatedText }),
