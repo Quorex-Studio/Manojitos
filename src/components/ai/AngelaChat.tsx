@@ -478,7 +478,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-2">
-                  Powered by Lovable AI 💖
+                  Ángela - Tu asistente inteligente 🩷
                 </p>
               </div>
             </Card>

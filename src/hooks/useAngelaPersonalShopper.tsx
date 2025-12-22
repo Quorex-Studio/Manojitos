@@ -126,7 +126,7 @@ export function useAngelaPersonalShopper() {
         .order('sold_count', { ascending: false })
         .limit(50);
 
-      if (!products) return;
+      if (!products || products.length === 0) return;
 
       const recs: ProductRecommendation[] = [];
 
@@ -136,15 +136,15 @@ export function useAngelaPersonalShopper() {
         categoryProducts.slice(0, 2).forEach(p => {
           recs.push({
             product: p,
-            reason: `Te gusta la categoría "${behaviorData.favoriteCategory}" 💕`,
+            reason: `Te gusta "${behaviorData.favoriteCategory}" 💕`,
             score: 90
           });
         });
       }
 
-      // 2. Productos populares
-      const popularProducts = products.filter(p => p.sold_count > 5);
-      popularProducts.slice(0, 2).forEach(p => {
+      // 2. Productos populares (más vendidos)
+      const popularProducts = products.filter(p => p.sold_count > 0);
+      popularProducts.slice(0, 3).forEach(p => {
         if (!recs.find(r => r.product.id === p.id)) {
           recs.push({
             product: p,
@@ -165,7 +165,7 @@ export function useAngelaPersonalShopper() {
           if (!recs.find(r => r.product.id === p.id)) {
             recs.push({
               product: p,
-              reason: 'En tu rango de precio habitual 💰',
+              reason: 'En tu rango de precio 💰',
               score: 75
             });
           }
@@ -182,10 +182,32 @@ export function useAngelaPersonalShopper() {
           if (!recs.find(r => r.product.id === p.id)) {
             recs.push({
               product: p,
-              reason: `¡Tienes $${behaviorData.creditAvailable!.toFixed(0)} de crédito disponible! 💳`,
+              reason: `¡Tienes crédito! 💳`,
               score: 85
             });
           }
+        });
+      }
+
+      // 5. SIEMPRE añadir productos aleatorios si no hay suficientes recomendaciones
+      if (recs.length < 6) {
+        const remainingProducts = products.filter(p => !recs.find(r => r.product.id === p.id));
+        const shuffled = remainingProducts.sort(() => Math.random() - 0.5);
+        
+        const suggestions = [
+          'Recomendado para ti ✨',
+          'Te puede interesar 🌸',
+          'Podría gustarte 💖',
+          'Descubre esto 🎀',
+          'Sugerencia especial 💕'
+        ];
+        
+        shuffled.slice(0, 6 - recs.length).forEach((p, i) => {
+          recs.push({
+            product: p,
+            reason: suggestions[i % suggestions.length],
+            score: 60 - i
+          });
         });
       }
 
