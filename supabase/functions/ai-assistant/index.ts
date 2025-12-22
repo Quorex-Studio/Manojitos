@@ -331,10 +331,10 @@ Responde de forma clara, amigable y profesional en español. Si necesitas ejecut
 
 Respuesta de Ángela:`;
 
-    console.log('Sending request to Hugging Face');
+    console.log('Sending request to Hugging Face Router');
 
-    // Usar Hugging Face Inference API
-    const response = await fetch('https://api-inference.huggingface.co/models/google/flan-t5-base', {
+    // Usar Hugging Face Router API (nuevo endpoint)
+    const response = await fetch('https://router.huggingface.co/hf-inference/models/google/flan-t5-base', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
@@ -355,8 +355,8 @@ Respuesta de Ángela:`;
       const errorText = await response.text();
       console.error('Hugging Face API error:', response.status, errorText);
       
-      if (response.status === 503) {
-        // Modelo cargando - dar respuesta inteligente basada en contexto
+      // Si hay cualquier error, usar respuesta inteligente de fallback
+      if (response.status === 503 || response.status === 410 || response.status >= 400) {
         return new Response(
           JSON.stringify({ 
             content: generateFallbackResponse(lastUserMessage, dynamicContext, bcvRate, isAdmin)
