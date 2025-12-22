@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/store/ProductCard';
 import { usePublicProducts } from '@/hooks/usePublicProducts';
+import { AngelaPersonalShopper } from '@/components/ai/AngelaPersonalShopper';
 
 // Página del catálogo de productos
 export default function StoreCatalog() {
@@ -290,15 +291,25 @@ export default function StoreCatalog() {
           </div>
         )}
 
+        {/* Ángela Personal Shopper - Mobile */}
+        <div className="md:hidden mb-6">
+          <AngelaPersonalShopper />
+        </div>
+
         <div className="flex gap-8">
           {/* Sidebar Filters - Desktop */}
           <aside className="hidden md:block w-64 flex-shrink-0">
-            <div className="sticky top-24 glass-card rounded-2xl p-6">
-              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                Filtros
-              </h3>
-              <FiltersContent />
+            <div className="sticky top-24 space-y-6">
+              <div className="glass-card rounded-2xl p-6">
+                <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filtros
+                </h3>
+                <FiltersContent />
+              </div>
+              
+              {/* Ángela Personal Shopper - Desktop */}
+              <AngelaPersonalShopper />
             </div>
           </aside>
 

@@ -15,6 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { AngelaSmartCalculator } from '@/components/ai/AngelaSmartCalculator';
 
 const paymentMethods = [
   { value: 'efectivo_usd', label: 'Efectivo USD' },
@@ -109,11 +110,18 @@ export default function Sales() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="page-header">Ventas</h1>
-            <p className="page-subtitle">{sales.length} ventas registradas</p>
-          </div>
+        {/* Ángela Smart Calculator */}
+        <div className="lg:hidden">
+          <AngelaSmartCalculator />
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex-1 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="page-header">Ventas</h1>
+                <p className="page-subtitle">{sales.length} ventas registradas</p>
+              </div>
 
           <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
@@ -302,12 +310,21 @@ export default function Sales() {
           ))}
         </div>
 
-        {filteredSales.length === 0 && (
-          <div className="text-center py-16">
-            <ShoppingCart className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground">No hay ventas registradas</p>
+            {filteredSales.length === 0 && (
+              <div className="text-center py-16">
+                <ShoppingCart className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-muted-foreground">No hay ventas registradas</p>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Ángela Smart Calculator - Desktop Sidebar */}
+          <aside className="hidden lg:block w-80 flex-shrink-0">
+            <div className="sticky top-24">
+              <AngelaSmartCalculator />
+            </div>
+          </aside>
+        </div>
       </div>
     </AppLayout>
   );
