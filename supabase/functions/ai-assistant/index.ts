@@ -13,6 +13,164 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
+// ================== MEMORIA PERSISTENTE ==================
+
+interface CustomerMemory {
+  viewedProducts: string[];
+  askedQuestions: string[];
+  recommendations: string[];
+  preferredPayment?: string;
+  purchaseFrequency?: string;
+  lastInteraction?: string;
+  interests?: string[];
+}
+
+async function loadCustomerMemory(supabase: ReturnType<typeof getSupabaseClient>, customerId: string): Promise<CustomerMemory> {
+  try {
+    const { data: memories } = await supabase
+      .from('customer_memory')
+      .select('memory_key, memory_value')
+      .eq('customer_user_id', customerId)
+      .is('expires_at', null)
+      .or('expires_at.gt.now()');
+
+    const memory: CustomerMemory = {
+      viewedProducts: [],
+      askedQuestions: [],
+      recommendations: [],
+    };
+
+    if (memories) {
+      for (const m of memories) {
+        switch (m.memory_key) {
+          case 'viewed_products':
+            memory.viewedProducts = (m.memory_value as { products?: string[] }).products || [];
+            break;
+          case 'asked_questions':
+            memory.askedQuestions = (m.memory_value as { questions?: string[] }).questions || [];
+            break;
+          case 'recommendations':
+            memory.recommendations = (m.memory_value as { recommendations?: string[] }).recommendations || [];
+            break;
+          case 'preferences':
+            const prefs = m.memory_value as { preferredPayment?: string; interests?: string[] };
+            memory.preferredPayment = prefs.preferredPayment;
+            memory.interests = prefs.interests;
+            break;
+          case 'behavior':
+            const behavior = m.memory_value as { frequency?: string; lastInteraction?: string };
+            memory.purchaseFrequency = behavior.frequency;
+            memory.lastInteraction = behavior.lastInteraction;
+            break;
+        }
+      }
+    }
+
+    return memory;
+  } catch (error) {
+    console.error('Error loading customer memory:', error);
+    return { viewedProducts: [], askedQuestions: [], recommendations: [] };
+  }
+}
+
+async function saveCustomerMemory(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  customerId: string,
+  adminUserId: string,
+  memoryKey: string,
+  memoryType: string,
+  memoryValue: Record<string, unknown>
+): Promise<void> {
+  try {
+    await supabase
+      .from('customer_memory')
+      .upsert({
+        customer_user_id: customerId,
+        user_id: adminUserId,
+        memory_key: memoryKey,
+        memory_type: memoryType,
+        memory_value: memoryValue,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'customer_user_id,memory_key'
+      });
+  } catch (error) {
+    console.error('Error saving customer memory:', error);
+  }
+}
+
+async function updateCustomerMemoryFromConversation(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  customerId: string,
+  userMessage: string,
+  assistantResponse: string,
+  viewedProducts: string[],
+  adminUserId: string
+): Promise<void> {
+  try {
+    // Cargar memoria actual
+    const currentMemory = await loadCustomerMemory(supabase, customerId);
+
+    // Actualizar productos vistos
+    const newProducts = [...new Set([...currentMemory.viewedProducts, ...viewedProducts])].slice(-20);
+    await saveCustomerMemory(supabase, customerId, adminUserId, 'viewed_products', 'interaction', { products: newProducts });
+
+    // Actualizar preguntas
+    const newQuestions = [...currentMemory.askedQuestions, userMessage].slice(-10);
+    await saveCustomerMemory(supabase, customerId, adminUserId, 'asked_questions', 'interaction', { questions: newQuestions });
+
+    // Actualizar recomendaciones si aplica
+    if (assistantResponse.toLowerCase().includes('recomiendo') || assistantResponse.toLowerCase().includes('sugiero')) {
+      const newRecs = [...currentMemory.recommendations, assistantResponse.slice(0, 150)].slice(-5);
+      await saveCustomerMemory(supabase, customerId, adminUserId, 'recommendations', 'interaction', { recommendations: newRecs });
+    }
+
+    // Actualizar comportamiento
+    await saveCustomerMemory(supabase, customerId, adminUserId, 'behavior', 'analytics', {
+      frequency: currentMemory.purchaseFrequency || 'regular',
+      lastInteraction: new Date().toISOString(),
+    });
+
+    // Detectar intereses del mensaje
+    const interests = detectInterests(userMessage);
+    if (interests.length > 0) {
+      const newInterests = [...new Set([...(currentMemory.interests || []), ...interests])].slice(-10);
+      await saveCustomerMemory(supabase, customerId, adminUserId, 'preferences', 'analytics', {
+        preferredPayment: currentMemory.preferredPayment,
+        interests: newInterests,
+      });
+    }
+
+  } catch (error) {
+    console.error('Error updating customer memory:', error);
+  }
+}
+
+function detectInterests(message: string): string[] {
+  const msg = message.toLowerCase();
+  const interests: string[] = [];
+  
+  if (msg.includes('crédito') || msg.includes('credito') || msg.includes('fiado')) interests.push('credit');
+  if (msg.includes('oferta') || msg.includes('descuento') || msg.includes('promoción')) interests.push('discounts');
+  if (msg.includes('envío') || msg.includes('delivery') || msg.includes('domicilio')) interests.push('delivery');
+  if (msg.includes('mayoreo') || msg.includes('cantidad')) interests.push('wholesale');
+  
+  return interests;
+}
+
+function extractProductsFromResponse(response: string): string[] {
+  const products: string[] = [];
+  const boldPattern = /\*\*([^*]+)\*\*/g;
+  let match;
+  while ((match = boldPattern.exec(response)) !== null) {
+    const word = match[1];
+    if (word.length > 2 && !['tu', 'el', 'la', 'los', 'las', 'un', 'una'].includes(word.toLowerCase())) {
+      products.push(word);
+    }
+  }
+  return products.slice(0, 5);
+}
+
 // ================== CONTEXT BUILDER AVANZADO ==================
 
 interface BusinessContext {
@@ -31,6 +189,7 @@ interface BusinessContext {
     creditLimit: number;
     totalPurchases: number;
   };
+  customerMemory?: CustomerMemory;
 }
 
 async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClient>, isAdmin: boolean, customerId?: string): Promise<BusinessContext> {
@@ -85,9 +244,13 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
     pendingCredits = credits || [];
   }
 
-  // Historial del cliente (si hay customerId)
+  // Historial del cliente + Memoria persistente (si hay customerId)
   let customerHistory;
+  let customerMemory;
   if (customerId) {
+    // Cargar memoria persistente
+    customerMemory = await loadCustomerMemory(supabase, customerId);
+
     const { data: customerCredit } = await supabase
       .from('credits')
       .select('*')
@@ -103,7 +266,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
 
     if (customerCredit || customerOrders?.length) {
       const lastProducts: string[] = [];
-      let preferredPayment = 'efectivo';
+      let preferredPayment = customerMemory.preferredPayment || 'efectivo';
       const paymentCounts: Record<string, number> = {};
 
       customerOrders?.forEach(order => {
@@ -123,7 +286,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
       if (maxPayment) preferredPayment = maxPayment[0];
 
       customerHistory = {
-        lastProducts: lastProducts.slice(0, 5),
+        lastProducts: [...new Set([...lastProducts, ...customerMemory.viewedProducts])].slice(0, 10),
         preferredPayment,
         creditStatus: customerCredit?.status || 'Sin crédito',
         creditLimit: customerCredit?.credit_limit || 0,
@@ -142,6 +305,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
     recentSales,
     pendingCredits,
     customerHistory,
+    customerMemory,
   };
 }
 
@@ -170,6 +334,16 @@ function generatePredictiveSuggestions(
   const isAskingProduct = msg.includes('producto') || msg.includes('buscar') || msg.includes('recomienda');
   const isBuying = msg.includes('comprar') || msg.includes('agregar') || msg.includes('carrito');
   const isGreeting = msg.includes('hola') || msg.includes('buenos') || conversationLength <= 2;
+
+  // Sugerencias basadas en memoria del cliente
+  if (context.customerMemory?.viewedProducts?.length) {
+    const lastViewed = context.customerMemory.viewedProducts.slice(-1)[0];
+    suggestions.push({ label: `🔄 Ver ${lastViewed}`, message: `Quiero ver más sobre ${lastViewed}`, priority: 9 });
+  }
+
+  if (context.customerMemory?.interests?.includes('discounts')) {
+    suggestions.push({ label: "🏷️ Ver ofertas", message: "¿Tienen ofertas o descuentos disponibles?", priority: 8 });
+  }
 
   // Sugerencias base según intención
   if (isAskingPrice) {
@@ -565,7 +739,7 @@ serve(async (req) => {
     // ================== CONSTRUIR PROMPT CONTEXTUALIZADO ==================
     let contextPrompt = `Eres Ángela, asistente inteligente de Manojitos (tienda en Venezuela).
 Personalidad: cercana, clara, profesional, confiable. Usa español venezolano.
-Tono: amable, seguro, sin exagerar emojis.
+Tono: amable, seguro, sin exagerar emojis (máximo 2-3 por respuesta).
 
 DATOS DEL NEGOCIO HOY:
 - Tasa BCV: ${businessContext.bcvRate} Bs/$
@@ -579,6 +753,19 @@ CATEGORÍAS: ${businessContext.categories.join(', ')}
 
 MÁS VENDIDOS: ${businessContext.bestSellers.map(p => p.name).join(', ')}
 `;
+
+    // Agregar memoria del cliente si existe
+    if (businessContext.customerMemory && (businessContext.customerMemory.viewedProducts.length > 0 || businessContext.customerMemory.askedQuestions.length > 0)) {
+      contextPrompt += `
+MEMORIA DEL CLIENTE:
+- Productos que ha visto antes: ${businessContext.customerMemory.viewedProducts.slice(-5).join(', ') || 'Ninguno'}
+- Últimas preguntas: ${businessContext.customerMemory.askedQuestions.slice(-3).join(' | ') || 'Ninguna'}
+- Intereses detectados: ${businessContext.customerMemory.interests?.join(', ') || 'No definidos'}
+- Última interacción: ${businessContext.customerMemory.lastInteraction || 'Primera vez'}
+
+💡 USA esta memoria para personalizar tu respuesta. Referencia cosas que el cliente ha visto o preguntado.
+`;
+    }
 
     // Agregar contexto de cliente si existe
     if (businessContext.customerHistory) {
@@ -627,8 +814,8 @@ Respuesta de Ángela:`;
 
     console.log('Sending request to Hugging Face...');
 
-    // Usar Hugging Face Router API
-    const response = await fetch('https://router.huggingface.co/hf-inference/models/google/flan-t5-base', {
+    // Usar modelo Mistral más potente
+    const response = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
@@ -637,48 +824,62 @@ Respuesta de Ángela:`;
       body: JSON.stringify({
         inputs: contextPrompt,
         parameters: {
-          max_new_tokens: 300,
+          max_new_tokens: 400,
           temperature: 0.7,
           do_sample: true,
           return_full_text: false,
+          top_p: 0.9,
         },
       }),
     });
+
+    let generatedText = '';
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Hugging Face API error:', response.status, errorText);
       
       // Si hay cualquier error, usar respuesta inteligente de fallback
-      if (response.status === 503 || response.status === 410 || response.status >= 400) {
-        return new Response(
-          JSON.stringify({ 
-            content: generateFallbackResponse(lastUserMessage, businessContext, isAdmin, conversationAnalysis),
-            suggestions: suggestions,
-            analysis: conversationAnalysis,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      generatedText = generateFallbackResponse(lastUserMessage, businessContext, isAdmin, conversationAnalysis);
+    } else {
+      const result = await response.json();
+      console.log('Hugging Face response received');
+
+      if (Array.isArray(result) && result[0]?.generated_text) {
+        generatedText = result[0].generated_text;
+      } else if (result.generated_text) {
+        generatedText = result.generated_text;
+      } else if (Array.isArray(result) && result[0]) {
+        generatedText = result[0];
       }
-      
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log('Hugging Face response:', result);
-
-    let generatedText = '';
-    if (Array.isArray(result) && result[0]?.generated_text) {
-      generatedText = result[0].generated_text;
-    } else if (result.generated_text) {
-      generatedText = result.generated_text;
-    } else if (Array.isArray(result) && result[0]) {
-      generatedText = result[0];
     }
 
     // Si no hay respuesta útil, generar respuesta contextual
     if (!generatedText || generatedText.length < 10) {
       generatedText = generateFallbackResponse(lastUserMessage, businessContext, isAdmin, conversationAnalysis);
+    }
+
+    // Limpiar respuesta de posibles artefactos
+    generatedText = generatedText
+      .replace(/^Respuesta de Ángela:\s*/i, '')
+      .replace(/\[INST\].*?\[\/INST\]/gs, '')
+      .trim();
+
+    // Guardar en memoria persistente si hay customerId
+    if (customerId) {
+      const viewedProducts = extractProductsFromResponse(generatedText);
+      // Get first admin user for memory storage
+      const { data: adminData } = await supabase.from('profiles').select('user_id').limit(1);
+      const memoryAdminId = adminUserId || adminData?.[0]?.user_id || customerId;
+      
+      await updateCustomerMemoryFromConversation(
+        supabase,
+        customerId,
+        lastUserMessage,
+        generatedText,
+        viewedProducts,
+        memoryAdminId
+      );
     }
 
     return new Response(
@@ -718,6 +919,12 @@ function generateFallbackResponse(
   // Si está confundido, ofrecer guía
   if (analysis.sentiment === 'confused') {
     return `🩷 ¡No te preocupes! Te explico de forma sencilla.\n\nPuedo ayudarte con:\n• 💰 Calcular precios (tasa BCV: ${bcvRate} Bs/$)\n• 🛒 Buscar productos\n• 💳 Tu crédito\n• 📦 Tus pedidos\n\n¿Qué te gustaría hacer? ✨`;
+  }
+
+  // Usar memoria del cliente para personalizar saludo
+  if (context.customerMemory?.viewedProducts?.length && (msg.includes('hola') || msg.includes('buenos'))) {
+    const lastProduct = context.customerMemory.viewedProducts.slice(-1)[0];
+    return `🩷 ¡Hola de nuevo! 👋 Me alegra verte.\n\nLa última vez te interesó **${lastProduct}**. ¿Quieres saber más sobre eso o buscas algo nuevo?\n\nTasa BCV: ${bcvRate} Bs/$ ✨`;
   }
 
   // Detectar intención y responder apropiadamente

@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.angela-proactive]
 verify_jwt = false
+
+[functions.angela-cron-alerts]
+verify_jwt = false
