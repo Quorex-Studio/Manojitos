@@ -865,14 +865,15 @@ Respuesta de Ángela:`;
       .replace(/\[INST\].*?\[\/INST\]/gs, '')
       .trim();
 
-    // Guardar en memoria persistente si hay customerId
+    // Guardar en memoria persistente si hay customerId (background task para no bloquear respuesta)
     if (customerId) {
       const viewedProducts = extractProductsFromResponse(generatedText);
       // Get first admin user for memory storage
       const { data: adminData } = await supabase.from('profiles').select('user_id').limit(1);
       const memoryAdminId = adminUserId || adminData?.[0]?.user_id || customerId;
       
-      await updateCustomerMemoryFromConversation(
+      // Ejecutar en background sin bloquear la respuesta
+      const memoryTask = updateCustomerMemoryFromConversation(
         supabase,
         customerId,
         lastUserMessage,
@@ -880,6 +881,9 @@ Respuesta de Ángela:`;
         viewedProducts,
         memoryAdminId
       );
+      
+      // No esperamos - se ejecuta en paralelo
+      memoryTask.catch(err => console.error('Memory save error:', err));
     }
 
     return new Response(
