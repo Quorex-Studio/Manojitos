@@ -255,7 +255,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
       .from('credits')
       .select('*')
       .eq('client_user_id', customerId)
-      .single();
+      .maybeSingle();
 
     const { data: customerOrders } = await supabase
       .from('orders')
