@@ -705,11 +705,51 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, context, isAdmin, action, adminUserId, customerId } = await req.json();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     
-    // Si es una solicitud de acción directa
+    const body = await req.json();
+    const { messages, context, action, adminUserId, customerId: requestCustomerId } = body;
+    
+    // ================== AUTHENTICATION CHECK ==================
+    const authHeader = req.headers.get('Authorization');
+    let authenticatedUserId: string | null = null;
+    let isAdminVerified = false;
+    let customerId = requestCustomerId;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      // Create auth client with the user's token
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+
+      const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
+      
+      if (!userError && userData?.user) {
+        authenticatedUserId = userData.user.id;
+        isAdminVerified = userData.user.app_metadata?.is_super_admin === true;
+        
+        // Use authenticated user's ID if no customerId provided
+        if (!customerId) {
+          customerId = authenticatedUserId;
+        }
+        
+        console.log('Authenticated user:', authenticatedUserId, 'isAdmin:', isAdminVerified);
+      }
+    }
+    
+    // Use verified admin status instead of trusting request body
+    const isAdmin = isAdminVerified;
+    
+    // Si es una solicitud de acción directa, require authentication
     if (action) {
-      const result = await processAction(action.type, action.data, adminUserId);
+      if (!authenticatedUserId) {
+        return new Response(
+          JSON.stringify({ error: 'Authentication required for actions' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const result = await processAction(action.type, action.data, authenticatedUserId);
       return new Response(
         JSON.stringify(result),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -724,7 +764,9 @@ serve(async (req) => {
     const supabase = getSupabaseClient();
 
     // ================== CONTEXT BUILDER AVANZADO ==================
-    console.log('Building business context...');
+    console.log('Building business context... isAdmin:', isAdmin, 'customerId:', customerId);
+    
+    // Only build sensitive context for authenticated admin users
     const businessContext = await buildBusinessContext(supabase, isAdmin, customerId);
 
     // Analizar la conversación
@@ -866,24 +908,31 @@ Respuesta de Ángela:`;
       .trim();
 
     // Guardar en memoria persistente si hay customerId (background task para no bloquear respuesta)
-    if (customerId) {
+    if (customerId && authenticatedUserId) {
       const viewedProducts = extractProductsFromResponse(generatedText);
-      // Get first admin user for memory storage
-      const { data: adminData } = await supabase.from('profiles').select('user_id').limit(1);
-      const memoryAdminId = adminUserId || adminData?.[0]?.user_id || customerId;
+      // Use authenticated admin or get first admin for memory storage
+      let memoryAdminId: string = isAdmin ? authenticatedUserId : '';
       
-      // Ejecutar en background sin bloquear la respuesta
-      const memoryTask = updateCustomerMemoryFromConversation(
-        supabase,
-        customerId,
-        lastUserMessage,
-        generatedText,
-        viewedProducts,
-        memoryAdminId
-      );
+      if (!memoryAdminId) {
+        const { data: adminData } = await supabase.from('profiles').select('user_id').limit(1);
+        memoryAdminId = adminData?.[0]?.user_id || customerId;
+      }
       
-      // No esperamos - se ejecuta en paralelo
-      memoryTask.catch(err => console.error('Memory save error:', err));
+      // Only proceed if we have a valid memoryAdminId
+      if (memoryAdminId) {
+        // Ejecutar en background sin bloquear la respuesta
+        const memoryTask = updateCustomerMemoryFromConversation(
+          supabase,
+          customerId,
+          lastUserMessage,
+          generatedText,
+          viewedProducts,
+          memoryAdminId
+        );
+        
+        // No esperamos - se ejecuta en paralelo
+        memoryTask.catch(err => console.error('Memory save error:', err));
+      }
     }
 
     return new Response(

@@ -79,11 +79,22 @@ export function useAngelaAlerts() {
 
   const generateAlerts = async () => {
     try {
+      // Get current session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        console.error('No session available for generating alerts');
+        return false;
+      }
+
       const response = await fetch(
         `https://utfoempgdbhhikpvbvir.supabase.co/functions/v1/angela-proactive`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
         }
       );
       
@@ -91,6 +102,11 @@ export function useAngelaAlerts() {
         await fetchAlerts();
         return true;
       }
+      
+      if (response.status === 401 || response.status === 403) {
+        console.error('Unauthorized to generate alerts');
+      }
+      
       return false;
     } catch (error) {
       console.error('Error generating alerts:', error);
