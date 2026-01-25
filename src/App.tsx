@@ -37,6 +37,12 @@ import CustomerNotifications from "./pages/CustomerNotifications";
 import CustomerSettings from "./pages/CustomerSettings";
 import CustomerPaymentMethods from "./pages/CustomerPaymentMethods";
 
+// Info Pages
+import AboutUs from "./pages/AboutUs";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import ShippingPolicy from "./pages/ShippingPolicy";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { AngelaChat } from "@/components/ai/AngelaChat";
@@ -97,6 +103,12 @@ function AppRoutes() {
       <Route path="/cliente/notificaciones" element={<CustomerNotifications />} />
       <Route path="/cliente/configuracion" element={<CustomerSettings />} />
       <Route path="/cliente/metodos-pago" element={<CustomerPaymentMethods />} />
+      
+      {/* ===== RUTAS INFORMATIVAS ===== */}
+      <Route path="/nosotros" element={<AboutUs />} />
+      <Route path="/terminos" element={<TermsAndConditions />} />
+      <Route path="/envios" element={<ShippingPolicy />} />
+      <Route path="/privacidad" element={<PrivacyPolicy />} />
 
       {/* ===== RUTAS ADMIN ===== */}
       <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />

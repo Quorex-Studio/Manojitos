@@ -61,14 +61,25 @@ export function StoreFooter() {
           <div className="space-y-4">
             <h4 className="font-semibold text-foreground">Atención al Cliente</h4>
             <ul className="space-y-2">
-              <li className="text-muted-foreground text-sm">
-                Preguntas Frecuentes
+              <li>
+                <Link to="/nosotros" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                  Sobre Nosotros
+                </Link>
               </li>
-              <li className="text-muted-foreground text-sm">
-                Políticas de Envío
+              <li>
+                <Link to="/envios" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                  Política de Envíos
+                </Link>
               </li>
-              <li className="text-muted-foreground text-sm">
-                Términos y Condiciones
+              <li>
+                <Link to="/terminos" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                  Términos y Condiciones
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacidad" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                  Política de Privacidad
+                </Link>
               </li>
             </ul>
           </div>
