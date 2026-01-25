@@ -2,6 +2,7 @@
 // REGLA CRÍTICA: Usa exclusivamente Hugging Face Inference API - NO Lovable AI
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DOMPurify from 'dompurify';
 import { 
   X, 
   Send, 
@@ -20,6 +21,7 @@ import { Card } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import stitchRosaMascot from '@/assets/stitch-rosa-mascot.png';
 
 // Declarar tipo global para Tidio
@@ -129,14 +131,24 @@ function openHumanSupport(sessionMemory: SessionMemory, lastRecommendation?: str
   }
 }
 
-// Ejecutar acción en el backend
+// Ejecutar acción en el backend con autenticación
 async function executeBackendAction(action: ActionData, userId?: string): Promise<{ success: boolean; message: string }> {
   try {
+    // Get current session for authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Add auth header if session exists
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+    
     const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         action: {
           type: action.type,
@@ -334,18 +346,27 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
     }
 
     try {
+      // Get current session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add auth header if session exists
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+      
       const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           messages: [...messages.filter(m => m.role !== 'assistant' || messages.indexOf(m) > 0), userMessage].map(m => ({
             role: m.role,
             content: m.content
           })),
           context,
-          isAdmin,
           customerId: user?.id,
         }),
       });
@@ -455,11 +476,20 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
     sendMessage(message);
   };
 
+  // Format message with markdown and sanitize HTML to prevent XSS
   const formatMessage = (content: string) => {
-    return content
+    // First apply markdown formatting
+    const formatted = content
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/\n/g, '<br/>');
+    
+    // Sanitize HTML to prevent XSS attacks
+    // Only allow safe formatting tags
+    return DOMPurify.sanitize(formatted, {
+      ALLOWED_TAGS: ['strong', 'em', 'br', 'p', 'span'],
+      ALLOWED_ATTR: [],
+    });
   };
 
   const getActionLabel = (type: string): string => {

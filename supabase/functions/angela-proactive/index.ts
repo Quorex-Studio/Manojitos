@@ -13,8 +13,50 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // ================== AUTHENTICATION CHECK ==================
+    // Verify the request has a valid admin user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('Missing or invalid authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create auth client with the user's token
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify the token and get user info
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
+    
+    if (userError || !userData?.user) {
+      console.error('Invalid token or error getting user:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user is admin from app_metadata
+    const isAdmin = userData.user.app_metadata?.is_super_admin === true;
+    if (!isAdmin) {
+      console.error('User is not admin:', userData.user.id);
+      return new Response(
+        JSON.stringify({ error: 'Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Admin user verified:', userData.user.id);
+
+    // ================== MAIN LOGIC (with service role client) ==================
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const alerts: Array<{
       alert_type: string;
@@ -30,13 +72,12 @@ serve(async (req) => {
     const { data: lowStockProducts } = await supabase
       .from('products')
       .select('id, name, stock, minimum_stock, sold_count, price_usd, user_id')
-      .lt('stock', 10); // Usar 10 como default si minimum_stock no está configurado
+      .lt('stock', 10);
 
     if (lowStockProducts) {
       for (const product of lowStockProducts) {
         const minStock = product.minimum_stock || 5;
         if (product.stock < minStock) {
-          // Calcular cantidad sugerida basada en ventas
           const suggestedQty = Math.max(minStock * 2, product.sold_count || 10);
           
           alerts.push({
@@ -124,7 +165,6 @@ serve(async (req) => {
       .eq('status', 'confirmed');
 
     if (recentSales && previousSales) {
-      // Agrupar ventas por producto
       const recentByProduct: Record<string, { qty: number; name: string; total: number }> = {};
       const previousByProduct: Record<string, number> = {};
 
@@ -144,7 +184,6 @@ serve(async (req) => {
         }
       }
 
-      // Detectar productos con aumento > 30%
       for (const [productId, data] of Object.entries(recentByProduct)) {
         const previousQty = previousByProduct[productId] || 0;
         if (previousQty > 0) {
@@ -164,16 +203,10 @@ serve(async (req) => {
       }
     }
 
-    // Obtener todos los admin users para asignar alertas
-    const { data: adminUsers } = await supabase
-      .from('profiles')
-      .select('user_id');
-
-    // Insertar alertas para cada admin (evitar duplicados del mismo día)
+    // Insert alerts for the admin user (avoid duplicates from today)
     const today = new Date().toISOString().split('T')[0];
     
     for (const alert of alerts) {
-      // Verificar si ya existe una alerta similar hoy
       const { data: existing } = await supabase
         .from('angela_alerts')
         .select('id')
@@ -183,17 +216,14 @@ serve(async (req) => {
         .limit(1);
 
       if (!existing || existing.length === 0) {
-        // Insertar para el primer admin encontrado (simplificación)
-        if (adminUsers && adminUsers.length > 0) {
-          await supabase.from('angela_alerts').insert({
-            user_id: adminUsers[0].user_id,
-            ...alert
-          });
-        }
+        await supabase.from('angela_alerts').insert({
+          user_id: userData.user.id, // Use the authenticated admin's ID
+          ...alert
+        });
       }
     }
 
-    console.log(`Generated ${alerts.length} alerts`);
+    console.log(`Generated ${alerts.length} alerts for admin ${userData.user.id}`);
 
     return new Response(
       JSON.stringify({ 
