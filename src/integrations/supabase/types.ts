@@ -1177,12 +1177,28 @@ export type Database = {
         }
         Returns: string
       }
+      process_checkout: {
+        Args: {
+          client_name: string
+          client_phone: string
+          items: Database["public"]["CompositeTypes"]["order_item_input"][]
+          notes?: string
+          payment_method: string
+          total_bs_rate?: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
     }
     CompositeTypes: {
-      [_ in never]: never
+      order_item_input: {
+        id: string | null
+        name: string | null
+        quantity: number | null
+        price_usd: number | null
+      }
     }
   }
 }
