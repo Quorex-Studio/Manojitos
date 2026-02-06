@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
-import { saleSchema, validateInput, SaleStatus } from '@/lib/validations';
+import { saleSchema, validateInput, SaleStatus, SaleInput } from '@/lib/validations';
 
 export interface Sale {
   id: string;
@@ -29,7 +29,7 @@ export function useSales() {
 
   const fetchSales = async () => {
     if (!user) return;
-    
+
     const { data, error } = await supabase
       .from('sales')
       .select('*')
@@ -51,7 +51,7 @@ export function useSales() {
     if (!user) return { error: new Error('No autenticado') };
 
     try {
-      const validated = validateInput(saleSchema, { ...sale, status });
+      const validated = validateInput<SaleInput>(saleSchema, { ...sale, status });
 
       const { data, error } = await supabase
         .from('sales')
@@ -123,7 +123,7 @@ export function useSales() {
         .select('stock, sold_count')
         .eq('id', sale.product_id)
         .single();
-        
+
       if (product) {
         await supabase
           .from('products')
@@ -171,7 +171,7 @@ export function useSales() {
     return { error };
   };
 
-  // Checkout transaccional - crea ventas pending y confirma todas o cancela
+  // Checkout transaccional - usa la función segura del servidor
   const processCheckout = async (
     items: Array<{
       id: string;
@@ -189,61 +189,42 @@ export function useSales() {
   ) => {
     if (!user) return { error: new Error('No autenticado'), saleIds: [] };
 
-    const saleIds: string[] = [];
-    
     try {
-      // 1. Crear todas las ventas en estado pending
-      for (const item of items) {
-        const { data, error } = await addSale({
-          product_id: item.id,
-          product_name: item.name,
-          quantity: item.quantity,
-          unit_price_usd: item.price_usd,
-          total_usd: item.price_usd * item.quantity,
-          total_bs: checkoutData.total_bs_rate ? (item.price_usd * item.quantity * checkoutData.total_bs_rate) : null,
-          payment_method: checkoutData.payment_method,
-          client_name: checkoutData.client_name,
-          client_phone: checkoutData.client_phone,
-          is_credit: false,
-          notes: checkoutData.notes || null
-        }, 'pending');
+      // Usamos 'as any' porque los tipos de Supabase no se han regenerado aun con la nueva funcion
+      const { data, error } = await (supabase.rpc as any)('process_checkout', {
+        items: items,
+        payment_method: checkoutData.payment_method,
+        client_name: checkoutData.client_name,
+        client_phone: checkoutData.client_phone,
+        notes: checkoutData.notes || null,
+        total_bs_rate: checkoutData.total_bs_rate || null
+      });
 
-        if (error || !data) {
-          // Rollback: cancelar ventas creadas
-          for (const id of saleIds) {
-            await cancelSale(id);
-          }
-          return { error: error || new Error('Error creando venta'), saleIds: [] };
-        }
-        
-        saleIds.push(data.id);
+      if (error) {
+        console.error('Error processing checkout:', error);
+        throw error;
       }
 
-      // 2. Confirmar todas las ventas
-      for (const saleId of saleIds) {
-        const { error } = await confirmSale(saleId);
-        if (error) {
-          // Rollback parcial - las ventas confirmadas no se pueden deshacer fácilmente
-          // pero las pendientes se cancelan
-          for (const id of saleIds) {
-            const { data: s } = await supabase.from('sales').select('status').eq('id', id).single();
-            if (s?.status === 'pending') {
-              await cancelSale(id);
-            }
-          }
-          return { error, saleIds };
-        }
+      // El RPC devuelve { success: true, sale_ids: [...], ... }
+      const response = data as { success: boolean, sale_ids: string[] };
+
+      if (response.success) {
+        toast({ title: 'Éxito', description: 'Pedido procesado correctamente' });
+        // Refrescar lista de ventas
+        fetchSales();
+        return { error: null, saleIds: response.sale_ids };
+      } else {
+        throw new Error('La transacción no se pudo completar');
       }
 
-      toast({ title: 'Éxito', description: 'Pedido procesado correctamente' });
-      return { error: null, saleIds };
-      
     } catch (err) {
-      // Rollback en caso de error
-      for (const id of saleIds) {
-        await cancelSale(id);
-      }
-      return { error: err instanceof Error ? err : new Error('Error desconocido'), saleIds: [] };
+      const error = err instanceof Error ? err : new Error('Error desconocido procesando la compra');
+      toast({
+        title: 'Error',
+        description: error.message || 'No se pudo procesar el pedido. Verifica el stock.',
+        variant: 'destructive'
+      });
+      return { error, saleIds: [] };
     }
   };
 
@@ -278,14 +259,14 @@ export function useSales() {
     }
   }, [user]);
 
-  return { 
-    sales, 
-    loading, 
-    addSale, 
+  return {
+    sales,
+    loading,
+    addSale,
     confirmSale,
     cancelSale,
     processCheckout,
-    deleteSale, 
-    refetch: fetchSales 
+    deleteSale,
+    refetch: fetchSales
   };
 }
