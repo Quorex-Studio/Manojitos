@@ -6,108 +6,118 @@
 
 @layer base {
   :root {
-    /* Manojitos - Feminine Premium Theme */
-    --background: 340 25% 98%;
-    --foreground: 340 30% 15%;
+    /* Manojitos - Palette: White, Gold, Pink */
+    --background: 0 0% 100%;
+    /* BLANCO PURO */
+    --foreground: 340 20% 10%;
+    /* Negro cálido (tinte rosado muy sutil) */
 
     --card: 0 0% 100%;
-    --card-foreground: 340 30% 15%;
+    --card-foreground: 340 20% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 340 30% 15%;
+    --popover-foreground: 340 20% 10%;
 
-    /* Rosa principal */
-    --primary: 350 100% 85%;
-    --primary-foreground: 340 30% 15%;
+    /* Rosa Principal (Manojitos Pink) */
+    --primary: 345 70% 90%;
+    /* Rosa suave y elegante */
+    --primary-foreground: 340 40% 20%;
 
-    /* Rosa secundario más claro */
-    --secondary: 340 40% 95%;
-    --secondary-foreground: 340 30% 25%;
+    /* Rosa Secundario (Fondos sutiles) */
+    --secondary: 345 30% 98%;
+    --secondary-foreground: 340 30% 30%;
 
-    --muted: 340 20% 94%;
-    --muted-foreground: 340 15% 45%;
+    --muted: 340 10% 96%;
+    --muted-foreground: 340 10% 45%;
 
-    /* Dorado accent */
-    --accent: 43 74% 49%;
+    /* DORADO (Gold) - Premium & Legible */
+    --accent: 38 45% 50%;
+    /* Oro sólido */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 340 30% 90%;
-    --input: 340 30% 90%;
-    --ring: 350 100% 85%;
+    --border: 340 15% 92%;
+    --input: 340 15% 92%;
+    --ring: 345 70% 90%;
 
     --radius: 1rem;
 
-    /* Custom colors for Manojitos */
-    --gold: 43 74% 49%;
-    --gold-light: 43 74% 65%;
-    --rose: 350 100% 85%;
-    --rose-light: 350 100% 92%;
-    --rose-dark: 350 60% 45%;
+    /* Custom Color Tokens */
+    --gold: 38 50% 50%;
+    --gold-light: 38 60% 70%;
+    --rose: 345 70% 90%;
+    --rose-light: 345 80% 96%;
+    --rose-dark: 345 50% 60%;
 
-    /* Sidebar */
+    /* Sidebar - White */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 340 30% 25%;
-    --sidebar-primary: 350 100% 85%;
-    --sidebar-primary-foreground: 340 30% 15%;
-    --sidebar-accent: 340 40% 95%;
-    --sidebar-accent-foreground: 340 30% 25%;
-    --sidebar-border: 340 30% 90%;
-    --sidebar-ring: 350 100% 85%;
+    --sidebar-foreground: 340 20% 30%;
+    --sidebar-primary: 345 70% 90%;
+    --sidebar-primary-foreground: 340 40% 20%;
+    --sidebar-accent: 345 30% 98%;
+    --sidebar-accent-foreground: 340 20% 30%;
+    --sidebar-border: 340 15% 92%;
+    --sidebar-ring: 345 70% 90%;
 
-    /* Glass effect */
-    --glass-bg: 0 0% 100% / 0.7;
-    --glass-border: 0 0% 100% / 0.3;
+    /* Glass - Crystal Clear */
+    --glass-bg: 0 0% 100% / 0.8;
+    --glass-border: 0 0% 100% / 0.5;
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
   }
 
   .dark {
-    --background: 340 25% 8%;
-    --foreground: 340 20% 95%;
+    /* LUXURY DARK MODE - Deep Rose/Black */
+    --background: 340 25% 6%;
+    /* Negro con tinte rosado profundo (Vino oscuro) */
+    --foreground: 340 10% 97%;
 
-    --card: 340 25% 12%;
-    --card-foreground: 340 20% 95%;
+    --card: 340 25% 8%;
+    --card-foreground: 340 10% 97%;
 
-    --popover: 340 25% 12%;
-    --popover-foreground: 340 20% 95%;
+    --popover: 340 25% 8%;
+    --popover-foreground: 340 10% 97%;
 
-    --primary: 350 80% 70%;
+    --primary: 345 40% 65%;
+    /* Rosa más saturado para contraste en dark */
     --primary-foreground: 340 30% 10%;
 
-    --secondary: 340 30% 18%;
-    --secondary-foreground: 340 20% 90%;
+    --secondary: 340 20% 12%;
+    --secondary-foreground: 340 10% 90%;
 
-    --muted: 340 25% 18%;
-    --muted-foreground: 340 15% 60%;
+    --muted: 340 20% 12%;
+    --muted-foreground: 340 10% 60%;
 
-    --accent: 43 80% 55%;
-    --accent-foreground: 340 30% 10%;
+    /* Dorado Vibrante para Dark Mode */
+    --accent: 38 60% 60%;
+    --accent-foreground: 340 30% 5%;
 
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 340 25% 20%;
-    --input: 340 25% 20%;
-    --ring: 350 80% 70%;
+    --border: 340 20% 15%;
+    --input: 340 20% 15%;
+    --ring: 345 40% 65%;
 
-    --gold: 43 80% 55%;
-    --gold-light: 43 80% 70%;
-    --rose: 350 80% 70%;
-    --rose-light: 350 60% 40%;
-    --rose-dark: 350 80% 55%;
+    --gold: 38 60% 60%;
+    --gold-light: 38 50% 75%;
+    --rose: 345 40% 65%;
+    --rose-light: 345 30% 25%;
+    --rose-dark: 345 50% 50%;
 
-    --sidebar-background: 340 25% 10%;
-    --sidebar-foreground: 340 20% 90%;
-    --sidebar-primary: 350 80% 70%;
+    --sidebar-background: 340 25% 5%;
+    --sidebar-foreground: 340 10% 90%;
+    --sidebar-primary: 345 40% 65%;
     --sidebar-primary-foreground: 340 30% 10%;
-    --sidebar-accent: 340 30% 18%;
-    --sidebar-accent-foreground: 340 20% 90%;
-    --sidebar-border: 340 25% 20%;
-    --sidebar-ring: 350 80% 70%;
+    --sidebar-accent: 340 20% 12%;
+    --sidebar-accent-foreground: 340 10% 90%;
+    --sidebar-border: 340 20% 15%;
+    --sidebar-ring: 345 40% 65%;
 
-    --glass-bg: 340 25% 12% / 0.8;
-    --glass-border: 340 25% 25% / 0.5;
+    --glass-bg: 340 25% 8% / 0.7;
+    --glass-border: 255 255% 255% / 0.05;
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -130,7 +140,12 @@
     font-family: 'Quicksand', sans-serif;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: 'Cormorant Garamond', serif;
     @apply font-semibold tracking-tight;
   }
@@ -225,6 +240,7 @@
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
@@ -235,6 +251,7 @@
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -246,15 +263,30 @@
       opacity: 0;
       transform: scale(0.95);
     }
+
     to {
       opacity: 1;
       transform: scale(1);
     }
   }
 
-  .delay-100 { animation-delay: 100ms; }
-  .delay-200 { animation-delay: 200ms; }
-  .delay-300 { animation-delay: 300ms; }
-  .delay-400 { animation-delay: 400ms; }
-  .delay-500 { animation-delay: 500ms; }
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .delay-500 {
+    animation-delay: 500ms;
+  }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 // Interfaz del producto público
@@ -14,39 +14,40 @@ export interface PublicProduct {
   created_at: string;
 }
 
-// Hook para obtener productos públicos (sin autenticación)
+// Hook para obtener productos públicos
 export function usePublicProducts() {
-  const [products, setProducts] = useState<PublicProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<string[]>([]);
+  
+  const { data: products = [], isLoading, refetch } = useQuery({
+    queryKey: ['public-products'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, description, price_usd, stock, category, image_url, sold_count, created_at')
+        .gt('stock', 0) // Solo productos con stock
+        .order('created_at', { ascending: false });
 
-  // Obtener todos los productos disponibles públicamente
-  const fetchProducts = async () => {
-    setLoading(true);
-    
-    const { data, error } = await supabase
-      .from('products')
-      .select('id, name, description, price_usd, stock, category, image_url, sold_count, created_at')
-      .gt('stock', 0) // Solo productos con stock
-      .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as PublicProduct[];
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutos de caché (evita lecturas innecesarias)
+    gcTime: 1000 * 60 * 30, // Mantener en memoria 30 min
+    refetchOnWindowFocus: false, // No recargar al cambiar de tab
+  });
 
-    if (!error && data) {
-      setProducts(data);
-      
-      // Extraer categorías únicas
-      const uniqueCategories = [...new Set(
-        data
-          .map(p => p.category)
-          .filter((c): c is string => c !== null && c.trim() !== '')
-      )];
-      setCategories(uniqueCategories);
-    }
-    
-    setLoading(false);
-  };
+  // Derivar categorías de los datos en caché
+  const categories = [...new Set(
+    products
+      .map(p => p.category)
+      .filter((c): c is string => c !== null && c.trim() !== '')
+  )];
 
-  // Obtener un producto por ID
+  // Función helper para obtener un producto específico (usa caché si existe)
   const getProductById = async (id: string): Promise<PublicProduct | null> => {
+    // Primero buscar en el caché de React Query
+    const cachedProduct = products.find(p => p.id === id);
+    if (cachedProduct) return cachedProduct;
+
+    // Si no está en caché (ej. navegación directa), buscar en DB
     const { data, error } = await supabase
       .from('products')
       .select('id, name, description, price_usd, stock, category, image_url, sold_count, created_at')
@@ -54,33 +55,14 @@ export function usePublicProducts() {
       .maybeSingle();
 
     if (error || !data) return null;
-    return data;
+    return data as PublicProduct;
   };
-
-  // Cargar productos al montar y suscribirse a cambios
-  useEffect(() => {
-    fetchProducts();
-
-    // Suscripción realtime para actualizaciones de stock
-    const channel = supabase
-      .channel('public-products-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'products' },
-        () => { fetchProducts(); }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   return { 
     products, 
-    loading, 
+    loading: isLoading, 
     categories, 
-    refetch: fetchProducts,
+    refetch,
     getProductById 
   };
 }
