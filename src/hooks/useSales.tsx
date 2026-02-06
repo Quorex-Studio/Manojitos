@@ -171,60 +171,81 @@ export function useSales() {
     return { error };
   };
 
-  // Checkout transaccional - usa la función segura del servidor
+  // Tipos para el checkout transaccional
+  interface CheckoutItem {
+    id: string;
+    name: string;
+    quantity: number;
+    price_usd: number;
+  }
+
+  interface CheckoutData {
+    payment_method: string;
+    client_name: string;
+    client_phone: string;
+    notes?: string;
+    total_bs_rate?: number;
+  }
+
+  interface CheckoutResponse {
+    success: boolean;
+    sale_ids: string[];
+    total_usd: number;
+    exchange_rate_used: number;
+  }
+
+  // Checkout transaccional - usa la función atómica del servidor
+  // Nota: process_checkout usa un tipo compuesto (order_item_input[]) que Supabase
+  // no expone en los tipos autogenerados del cliente. El cast es necesario.
   const processCheckout = async (
-    items: Array<{
-      id: string;
-      name: string;
-      quantity: number;
-      price_usd: number;
-    }>,
-    checkoutData: {
-      payment_method: string;
-      client_name: string;
-      client_phone: string;
-      notes?: string;
-      total_bs_rate?: number;
-    }
+    items: CheckoutItem[],
+    checkoutData: CheckoutData
   ) => {
-    if (!user) return { error: new Error('No autenticado'), saleIds: [] };
+    if (!user) return { error: new Error('No autenticado'), saleIds: [] as string[] };
 
     try {
-      // Usamos 'as any' porque los tipos de Supabase no se han regenerado aun con la nueva funcion
-      const { data, error } = await (supabase.rpc as any)('process_checkout', {
-        items: items,
-        payment_method: checkoutData.payment_method,
-        client_name: checkoutData.client_name,
-        client_phone: checkoutData.client_phone,
-        notes: checkoutData.notes || null,
-        total_bs_rate: checkoutData.total_bs_rate || null
-      });
+      const { data, error } = await (supabase.rpc as unknown as (
+        fn: 'process_checkout',
+        args: {
+          items: CheckoutItem[];
+          payment_method: string;
+          client_name: string;
+          client_phone: string;
+          notes: string | null;
+          total_bs_rate: number | null;
+        }
+      ) => Promise<{ data: CheckoutResponse | null; error: Error | null }>)(
+        'process_checkout',
+        {
+          items,
+          payment_method: checkoutData.payment_method,
+          client_name: checkoutData.client_name,
+          client_phone: checkoutData.client_phone,
+          notes: checkoutData.notes || null,
+          total_bs_rate: checkoutData.total_bs_rate || null,
+        }
+      );
 
       if (error) {
         console.error('Error processing checkout:', error);
         throw error;
       }
 
-      // El RPC devuelve { success: true, sale_ids: [...], ... }
-      const response = data as { success: boolean, sale_ids: string[] };
-
-      if (response.success) {
+      if (data?.success) {
         toast({ title: 'Éxito', description: 'Pedido procesado correctamente' });
-        // Refrescar lista de ventas
         fetchSales();
-        return { error: null, saleIds: response.sale_ids };
+        return { error: null, saleIds: data.sale_ids };
       } else {
         throw new Error('La transacción no se pudo completar');
       }
-
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Error desconocido procesando la compra');
       toast({
         title: 'Error',
         description: error.message || 'No se pudo procesar el pedido. Verifica el stock.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
-      return { error, saleIds: [] };
+      return { error, saleIds: [] as string[] };
     }
   };
 
