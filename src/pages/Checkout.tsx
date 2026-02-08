@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Check, CreditCard, Truck, Package,
-  User, Mail, Phone, MapPin, Loader2, ShoppingBag
+  User, Mail, Phone, MapPin, Loader2, ShoppingBag, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

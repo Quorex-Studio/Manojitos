@@ -20,7 +20,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 50 } }
+  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 50 } }
 };
 
 // Página principal de la tienda (Home)
@@ -65,12 +65,12 @@ export default function StoreFront() {
         {/* Decorative elements - Orbes animados */}
         <motion.div
           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 8, repeat: Infinity, active: "linear" }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
           className="absolute top-20 right-10 w-96 h-96 bg-primary/10 rounded-full blur-[100px]"
         />
         <motion.div
           animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 12, repeat: Infinity, active: "linear" }}
+          transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
           className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[120px]"
         />
 
