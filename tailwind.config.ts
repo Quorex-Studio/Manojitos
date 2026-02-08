@@ -15,7 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Quicksand', 'sans-serif'],
-        serif: ['Cormorant Garamond', 'serif'],
+        serif: ['Playfair Display', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",

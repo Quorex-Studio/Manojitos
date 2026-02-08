@@ -91,7 +91,7 @@ export default function StoreFront() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-5xl md:text-7xl lg:text-8xl font-serif font-medium text-foreground leading-[0.9]"
+              className="text-5xl md:text-7xl lg:text-8xl font-serif font-semibold text-foreground leading-[0.95] tracking-tight"
             >
               Elegancia que <br />
               <span className="italic text-primary">Inspira</span>
