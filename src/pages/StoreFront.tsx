@@ -59,19 +59,19 @@ export default function StoreFront() {
     <StoreLayout>
       {/* Hero Section */}
       <section className="relative overflow-hidden min-h-[80vh] flex items-center justify-center">
-        {/* Background gradient sofisticado */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background" />
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-light via-background to-background" />
 
-        {/* Decorative elements - Orbes animados */}
+        {/* Decorative orbs */}
         <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.35, 0.2] }}
           transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-          className="absolute top-20 right-10 w-96 h-96 bg-primary/10 rounded-full blur-[100px]"
+          className="absolute top-20 right-10 w-96 h-96 bg-primary/15 rounded-full blur-[100px]"
         />
         <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
+          animate={{ scale: [1, 1.3, 1], opacity: [0.15, 0.3, 0.15] }}
           transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[120px]"
+          className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-gold/10 rounded-full blur-[120px]"
         />
 
         <div className="container mx-auto px-4 relative z-10">
@@ -81,8 +81,8 @@ export default function StoreFront() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <span className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white/50 backdrop-blur-md border border-white/20 text-foreground/80 text-sm font-medium tracking-wide shadow-sm mb-6">
-                <Sparkles className="h-4 w-4 text-primary" />
+              <span className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-card/60 backdrop-blur-md border border-border text-muted-foreground text-sm font-medium tracking-wide shadow-sm mb-6">
+                <Sparkles className="h-4 w-4 text-gold" />
                 Nueva Colección Disponible
               </span>
             </motion.div>
@@ -91,17 +91,17 @@ export default function StoreFront() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-5xl md:text-7xl lg:text-8xl font-serif font-medium text-foreground leading-[0.9] tracking-tight"
+              className="text-5xl md:text-7xl lg:text-8xl font-serif font-medium text-foreground leading-[0.9]"
             >
               Elegancia que <br />
-              <span className="italic text-primary/90">Inspira</span>
+              <span className="italic text-primary">Inspira</span>
             </motion.h1>
 
             <motion.p
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed"
+              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed"
             >
               Descubre una selección exclusiva diseñada para resaltar tu esencia única. Calidad, estilo y distinción en cada detalle.
             </motion.p>
@@ -110,16 +110,16 @@ export default function StoreFront() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8"
+              className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-8"
             >
               <Link to="/tienda">
-                <Button size="lg" className="h-14 px-10 rounded-full text-lg shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all duration-300">
+                <Button size="lg" className="h-14 px-10 rounded-full text-lg font-medium shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all duration-300">
                   Explorar Tienda
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link to="/tienda?category=destacados">
-                <Button size="lg" variant="outline" className="h-14 px-10 rounded-full text-lg bg-white/50 backdrop-blur-sm border-white/40 hover:bg-white/80 transition-all">
+                <Button size="lg" variant="outline" className="h-14 px-10 rounded-full text-lg border-border hover:bg-secondary transition-all">
                   Ver Destacados
                 </Button>
               </Link>
@@ -235,8 +235,7 @@ export default function StoreFront() {
       </section>
 
       {/* Benefits Section - Glassmorphism UI */}
-      <section className="py-24 bg-gradient-to-t from-secondary/40 to-background relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay"></div>
+      <section className="py-24 bg-gradient-to-t from-secondary/50 to-background relative overflow-hidden">
         <div className="container mx-auto px-4 relative">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {benefits.map((benefit, index) => (
@@ -246,15 +245,15 @@ export default function StoreFront() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="group p-8 rounded-3xl bg-white/40 backdrop-blur-md border border-white/40 flex flex-col items-center text-center hover:bg-white/60 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
+                className="group p-8 rounded-2xl bg-card/60 backdrop-blur-md border border-border flex flex-col items-center text-center hover:bg-card hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
               >
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-white to-secondary flex items-center justify-center shadow-inner mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <benefit.icon className="h-8 w-8 text-primary/80" />
+                <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+                  <benefit.icon className="h-7 w-7 text-gold" />
                 </div>
-                <h3 className="font-serif font-semibold text-xl text-foreground mb-3">
+                <h3 className="font-serif font-semibold text-xl text-foreground mb-2">
                   {benefit.title}
                 </h3>
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-muted-foreground text-sm leading-relaxed">
                   {benefit.description}
                 </p>
               </motion.div>
@@ -265,17 +264,17 @@ export default function StoreFront() {
 
       {/* CTA Final */}
       <section className="py-24 container mx-auto px-4">
-        <div className="relative rounded-[2.5rem] overflow-hidden bg-foreground text-background text-center py-24 px-6">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-screen" />
-          <div className="relative z-10 max-w-2xl mx-auto space-y-8">
+        <div className="relative rounded-3xl overflow-hidden bg-foreground text-background text-center py-24 px-6">
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-15 mix-blend-screen" />
+          <div className="relative z-10 max-w-2xl mx-auto space-y-6">
             <h2 className="text-4xl md:text-5xl font-serif">
               Tu estilo, redefinido.
             </h2>
-            <p className="text-white/70 text-lg md:text-xl font-light">
+            <p className="text-background/60 text-lg md:text-xl font-light">
               Únete a miles de clientes satisfechos que han encontrado su esencia con nosotros.
             </p>
             <Link to="/tienda">
-              <Button size="lg" className="bg-white text-foreground hover:bg-white/90 rounded-full h-14 px-12 text-lg font-medium shadow-2xl">
+              <Button size="lg" className="bg-background text-foreground hover:bg-background/90 rounded-full h-14 px-12 text-lg font-medium shadow-2xl mt-4">
                 Comenzar a Comprar
               </Button>
             </Link>

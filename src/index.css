@@ -6,118 +6,113 @@
 
 @layer base {
   :root {
-    /* Manojitos - Palette: White, Gold, Pink */
-    --background: 0 0% 100%;
-    /* BLANCO PURO */
-    --foreground: 340 20% 10%;
-    /* Negro cálido (tinte rosado muy sutil) */
+    /* Manojitos — Elegant: Blanco, Dorado, Rosa */
+    --background: 30 20% 99%;
+    --foreground: 340 25% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 340 20% 10%;
+    --card-foreground: 340 25% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 340 20% 10%;
+    --popover-foreground: 340 25% 12%;
 
-    /* Rosa Principal (Manojitos Pink) */
-    --primary: 345 70% 90%;
-    /* Rosa suave y elegante */
-    --primary-foreground: 340 40% 20%;
+    /* Rosa Principal — más saturado y con carácter */
+    --primary: 345 58% 65%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Rosa Secundario (Fondos sutiles) */
-    --secondary: 345 30% 98%;
-    --secondary-foreground: 340 30% 30%;
+    /* Fondos sutiles rosados */
+    --secondary: 340 25% 96%;
+    --secondary-foreground: 340 30% 25%;
 
-    --muted: 340 10% 96%;
-    --muted-foreground: 340 10% 45%;
+    --muted: 30 12% 95%;
+    --muted-foreground: 340 12% 42%;
 
-    /* DORADO (Gold) - Premium & Legible */
-    --accent: 38 45% 50%;
-    /* Oro sólido */
+    /* DORADO — cálido, rico, legible */
+    --accent: 38 72% 48%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 340 15% 92%;
-    --input: 340 15% 92%;
-    --ring: 345 70% 90%;
+    --border: 30 15% 90%;
+    --input: 30 15% 90%;
+    --ring: 345 58% 65%;
 
-    --radius: 1rem;
+    --radius: 0.875rem;
 
     /* Custom Color Tokens */
-    --gold: 38 50% 50%;
-    --gold-light: 38 60% 70%;
-    --rose: 345 70% 90%;
-    --rose-light: 345 80% 96%;
-    --rose-dark: 345 50% 60%;
+    --gold: 38 72% 48%;
+    --gold-light: 38 55% 65%;
+    --rose: 345 58% 65%;
+    --rose-light: 345 60% 93%;
+    --rose-dark: 345 45% 50%;
 
-    /* Sidebar - White */
+    /* Sidebar */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 340 20% 30%;
-    --sidebar-primary: 345 70% 90%;
-    --sidebar-primary-foreground: 340 40% 20%;
-    --sidebar-accent: 345 30% 98%;
-    --sidebar-accent-foreground: 340 20% 30%;
-    --sidebar-border: 340 15% 92%;
-    --sidebar-ring: 345 70% 90%;
+    --sidebar-foreground: 340 20% 25%;
+    --sidebar-primary: 345 58% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 340 25% 96%;
+    --sidebar-accent-foreground: 340 20% 25%;
+    --sidebar-border: 30 15% 90%;
+    --sidebar-ring: 345 58% 65%;
 
-    /* Glass - Crystal Clear */
-    --glass-bg: 0 0% 100% / 0.8;
-    --glass-border: 0 0% 100% / 0.5;
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+    /* Glass */
+    --glass-bg: 0 0% 100% / 0.85;
+    --glass-border: 0 0% 100% / 0.6;
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
   }
 
   .dark {
-    /* LUXURY DARK MODE - Deep Rose/Black */
-    --background: 340 25% 6%;
-    /* Negro con tinte rosado profundo (Vino oscuro) */
-    --foreground: 340 10% 97%;
+    /* LUXURY DARK — Deep warm black with rose undertone */
+    --background: 340 20% 7%;
+    --foreground: 30 15% 95%;
 
-    --card: 340 25% 8%;
-    --card-foreground: 340 10% 97%;
+    --card: 340 18% 10%;
+    --card-foreground: 30 15% 95%;
 
-    --popover: 340 25% 8%;
-    --popover-foreground: 340 10% 97%;
+    --popover: 340 18% 10%;
+    --popover-foreground: 30 15% 95%;
 
-    --primary: 345 40% 65%;
-    /* Rosa más saturado para contraste en dark */
-    --primary-foreground: 340 30% 10%;
+    /* Rosa luminoso para contraste */
+    --primary: 345 55% 68%;
+    --primary-foreground: 340 30% 8%;
 
-    --secondary: 340 20% 12%;
-    --secondary-foreground: 340 10% 90%;
+    --secondary: 340 18% 14%;
+    --secondary-foreground: 340 10% 88%;
 
-    --muted: 340 20% 12%;
-    --muted-foreground: 340 10% 60%;
+    --muted: 340 15% 14%;
+    --muted-foreground: 340 10% 55%;
 
-    /* Dorado Vibrante para Dark Mode */
-    --accent: 38 60% 60%;
-    --accent-foreground: 340 30% 5%;
+    /* Dorado cálido brillante */
+    --accent: 38 65% 58%;
+    --accent-foreground: 38 30% 8%;
 
-    --destructive: 0 62% 45%;
+    --destructive: 0 60% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 340 20% 15%;
-    --input: 340 20% 15%;
-    --ring: 345 40% 65%;
+    --border: 340 15% 17%;
+    --input: 340 15% 17%;
+    --ring: 345 55% 68%;
 
-    --gold: 38 60% 60%;
-    --gold-light: 38 50% 75%;
-    --rose: 345 40% 65%;
-    --rose-light: 345 30% 25%;
-    --rose-dark: 345 50% 50%;
+    --gold: 38 65% 58%;
+    --gold-light: 38 50% 72%;
+    --rose: 345 55% 68%;
+    --rose-light: 345 25% 22%;
+    --rose-dark: 345 45% 52%;
 
-    --sidebar-background: 340 25% 5%;
-    --sidebar-foreground: 340 10% 90%;
-    --sidebar-primary: 345 40% 65%;
-    --sidebar-primary-foreground: 340 30% 10%;
-    --sidebar-accent: 340 20% 12%;
-    --sidebar-accent-foreground: 340 10% 90%;
-    --sidebar-border: 340 20% 15%;
-    --sidebar-ring: 345 40% 65%;
+    --sidebar-background: 340 20% 6%;
+    --sidebar-foreground: 30 10% 88%;
+    --sidebar-primary: 345 55% 68%;
+    --sidebar-primary-foreground: 340 30% 8%;
+    --sidebar-accent: 340 18% 14%;
+    --sidebar-accent-foreground: 30 10% 88%;
+    --sidebar-border: 340 15% 17%;
+    --sidebar-ring: 345 55% 68%;
 
-    --glass-bg: 340 25% 8% / 0.7;
-    --glass-border: 255 255% 255% / 0.05;
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    --glass-bg: 340 18% 10% / 0.75;
+    --glass-border: 0 0% 100% / 0.06;
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
   }
 }
 
@@ -138,6 +133,7 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Quicksand', sans-serif;
+    letter-spacing: 0.01em;
   }
 
   h1,
@@ -147,7 +143,8 @@
   h5,
   h6 {
     font-family: 'Cormorant Garamond', serif;
-    @apply font-semibold tracking-tight;
+    @apply font-semibold;
+    letter-spacing: -0.02em;
   }
 }
 

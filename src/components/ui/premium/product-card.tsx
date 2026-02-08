@@ -11,7 +11,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
     return (
-        <div className="group relative rounded-2xl bg-card border border-border/50 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/20">
+        <div className="group relative rounded-2xl bg-card border border-border/60 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-gold/30">
 
             {/* Imagen + Quick Actions Overlay */}
             <div className="relative aspect-[4/5] overflow-hidden">
@@ -51,12 +51,12 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="p-4 space-y-2">
                 <div className="flex justify-between items-start gap-2">
                     <Link to={`/producto/${product.id}`} className="flex-1">
-                        <h3 className="font-serif font-semibold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                        <h3 className="font-serif font-semibold text-lg leading-tight group-hover:text-gold transition-colors line-clamp-2">
                             {product.name}
                         </h3>
                     </Link>
                     <div className="text-right">
-                        <span className="block font-bold text-lg text-primary">
+                        <span className="block font-bold text-lg text-gold">
                             ${product.price_usd}
                         </span>
                     </div>
