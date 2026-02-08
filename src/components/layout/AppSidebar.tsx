@@ -93,10 +93,10 @@ export function AppSidebar() {
               className="h-12 w-12 rounded-full object-cover"
             />
             <div>
-              <h1 className="font-serif text-2xl font-bold text-gradient-gold">
+            <h1 className="font-serif text-2xl font-bold text-gradient-gold tracking-normal">
                 Manojitos
               </h1>
-              <p className="text-muted-foreground text-xs">Sistema de Gestión</p>
+              <p className="text-muted-foreground text-xs font-sans tracking-wide">Sistema de Gestión</p>
             </div>
           </div>
 

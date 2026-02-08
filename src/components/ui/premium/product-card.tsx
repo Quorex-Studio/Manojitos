@@ -26,22 +26,22 @@ export function ProductCard({ product }: ProductCardProps) {
 
                 {/* Badges (puedes agregar lógica para 'Nuevo', 'Oferta', etc.) */}
                 {product.stock <= 5 && product.stock > 0 && (
-                    <div className="absolute top-3 left-3 bg-red-500/90 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm backdrop-blur-md">
+                    <div className="absolute top-3 left-3 bg-destructive/90 text-destructive-foreground text-[10px] font-bold px-2 py-1 rounded-full shadow-sm backdrop-blur-md">
                         ¡Últimas unidades!
                     </div>
                 )}
 
                 {/* Hover Overlay Actions */}
                 <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 flex justify-center gap-2 bg-gradient-to-t from-black/60 to-transparent pb-6">
-                    <Button size="icon" variant="secondary" className="rounded-full w-10 h-10 bg-white/90 hover:bg-white text-foreground hover:scale-110 transition-transform shadow-lg">
+                    <Button size="icon" variant="secondary" className="rounded-full w-10 h-10 bg-card/90 hover:bg-card text-foreground hover:scale-110 transition-transform shadow-lg">
                         <ShoppingCart className="h-4 w-4" />
                     </Button>
                     <Link to={`/producto/${product.id}`}>
-                        <Button size="icon" variant="secondary" className="rounded-full w-10 h-10 bg-white/90 hover:bg-white text-foreground hover:scale-110 transition-transform shadow-lg">
+                        <Button size="icon" variant="secondary" className="rounded-full w-10 h-10 bg-card/90 hover:bg-card text-foreground hover:scale-110 transition-transform shadow-lg">
                             <Eye className="h-4 w-4" />
                         </Button>
                     </Link>
-                    <Button size="icon" variant="ghost" className="rounded-full w-10 h-10 bg-white/90 hover:bg-white hover:text-red-500 hover:scale-110 transition-transform shadow-lg">
+                    <Button size="icon" variant="ghost" className="rounded-full w-10 h-10 bg-card/90 hover:bg-card hover:text-destructive hover:scale-110 transition-transform shadow-lg">
                         <Heart className="h-4 w-4" />
                     </Button>
                 </div>
@@ -51,7 +51,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="p-4 space-y-2">
                 <div className="flex justify-between items-start gap-2">
                     <Link to={`/producto/${product.id}`} className="flex-1">
-                        <h3 className="font-serif font-semibold text-lg leading-tight group-hover:text-gold transition-colors line-clamp-2">
+                        <h3 className="font-serif font-semibold text-base md:text-lg leading-tight group-hover:text-gold transition-colors line-clamp-2">
                             {product.name}
                         </h3>
                     </Link>
