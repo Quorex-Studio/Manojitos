@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 // Interfaz del item en el carrito
 export interface CartItem {
@@ -23,27 +24,55 @@ interface CartContextType {
   getItemQuantity: (productId: string) => number;
 }
 
-// Clave para localStorage
-const CART_STORAGE_KEY = 'manojitos_cart';
+// Helper para obtener la clave de almacenamiento por usuario
+const getCartKey = (userId: string | null) =>
+  userId ? `manojitos_cart_${userId}` : 'manojitos_cart_guest';
+
+// Helper para cargar el carrito
+const loadCart = (userId: string | null): CartItem[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(getCartKey(userId));
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+// Helper para guardar el carrito
+const saveCart = (userId: string | null, items: CartItem[]) => {
+  localStorage.setItem(getCartKey(userId), JSON.stringify(items));
+};
 
 // Crear el contexto
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 // Provider del carrito
 export function CartProvider({ children }: { children: ReactNode }) {
-  // Estado inicial cargado desde localStorage
-  const [items, setItems] = useState<CartItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(CART_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    }
-    return [];
-  });
+  const [userId, setUserId] = useState<string | null>(null);
+  const [items, setItems] = useState<CartItem[]>([]);
 
-  // Persistir cambios en localStorage
+  // Suscribirse a cambios de autenticación para cargar el carrito correcto
   useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const id = session?.user?.id ?? null;
+      setUserId(id);
+      setItems(loadCart(id));
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const id = session?.user?.id ?? null;
+      setUserId(id);
+      setItems(loadCart(id));
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Persistir cambios en localStorage cada vez que items o userId cambien
+  useEffect(() => {
+    saveCart(userId, items);
+  }, [items, userId]);
 
   // Agregar producto al carrito
   const addItem = (product: CartItem) => {
