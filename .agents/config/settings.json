@@ -1,0 +1,37 @@
+{
+    "version": "1.0.0",
+    "project": "topgpt42",
+    "stack": {
+        "framework": "React 18 + Vite + TypeScript",
+        "ui": "Tailwind CSS + shadcn/ui + Lucide React",
+        "state": "TanStack Query v5 + Zustand",
+        "backend": "Supabase (PostgreSQL + Edge Functions)",
+        "deployment": "Vercel (frontend) + Supabase (backend)"
+    },
+    "skills_dir": ".agents/skills",
+    "workflows_dir": ".agents/workflows",
+    "active_skills": [
+        "find",
+        "creator",
+        "coordinator",
+        "maintainer",
+        "scanner",
+        "web-quality-audit",
+        "performance",
+        "core-web-vitals",
+        "accessibility",
+        "seo",
+        "best-practices",
+        "react-doctor"
+    ],
+    "rules": {
+        "pre_response": "Before responding, verify if an installed Skill in .agents/skills/ is adequate for the task.",
+        "pre_commit": "Run Maintainer skill checks before every important commit.",
+        "complex_task": "Use Coordinator skill to decompose complex tasks before execution.",
+        "db_convention": "Database uses snake_case. Frontend interfaces MUST match.",
+        "no_placeholders": "Never output placeholder or incomplete logic.",
+        "git_push": "Always git push after each implementation."
+    },
+    "superadmin_email": "copiamich@gmail.com",
+    "supabase_project_ref": "lcmmvsvgpvzxkmhrfsxt"
+}

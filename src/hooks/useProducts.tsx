@@ -3,20 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { productSchema, validateInput } from '@/lib/validations';
+import { Product } from '@/types';
 
-export interface Product {
-  id: string;
-  user_id: string;
-  name: string;
-  description: string | null;
-  price_usd: number;
-  stock: number;
-  category: string | null;
-  image_url: string | null;
-  sold_count: number;
-  created_at: string;
-  updated_at: string;
-}
 
 export function useProducts() {
   const { user } = useAuth();

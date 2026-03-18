@@ -1,18 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { PublicProduct } from '@/types';
 
-// Interfaz del producto público
-export interface PublicProduct {
-  id: string;
-  name: string;
-  description: string | null;
-  price_usd: number;
-  stock: number;
-  category: string | null;
-  image_url: string | null;
-  sold_count: number;
-  created_at: string;
-}
 
 // Hook para obtener productos públicos
 export function usePublicProducts() {

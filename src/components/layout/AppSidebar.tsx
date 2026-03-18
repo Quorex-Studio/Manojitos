@@ -100,14 +100,14 @@ export function AppSidebar() {
             </div>
           </div>
 
-          {/* Theme Toggle y Ver Tienda */}
+          {/* Ver Tienda */}
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/50">
             <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <Store className="h-4 w-4" />
               <span>Ver tienda</span>
             </Link>
-            <ThemeToggle />
           </div>
+
 
           {/* Navigation */}
           <nav className="flex-1 space-y-2">
