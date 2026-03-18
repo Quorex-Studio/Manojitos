@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calculator, 
@@ -56,10 +56,10 @@ export default function PriceCalculator() {
   const preferredCurrency = (localStorage.getItem('preferredCurrency') as Currency) || 'USD';
   const { rate, loading: rateLoading, lastUpdate, refetch: refetchRate, autoFetching, currency } = useExchangeRate(preferredCurrency);
 
-  const currencySymbol = currency === 'EUR' ? '€' : '$';
+  const currencySymbol = currency === 'EUR' ? 'Ôé¼' : '$';
   const CurrencyIcon = currency === 'EUR' ? Euro : DollarSign;
 
-  // Estado principal - Cálculo Simple
+  // Estado principal - C├ílculo Simple
   const [quantity, setQuantity] = useState<string>('1');
   const [unitPrice, setUnitPrice] = useState<string>('');
   const [extraPercentage, setExtraPercentage] = useState<number>(10.7);
@@ -72,22 +72,6 @@ export default function PriceCalculator() {
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Historial de cálculos con persistencia
-  const [history, setHistory] = useState<CalculationHistory[]>(() => {
-    try {
-      const saved = localStorage.getItem('priceHistory');
-      return saved ? JSON.parse(saved).map((h: any) => ({ ...h, date: new Date(h.date) })) : [];
-    } catch (e) {
-      console.error('Error loading history:', e);
-      return [];
-    }
-  });
-
-  // Persistir historial
-  useEffect(() => {
-    localStorage.setItem('priceHistory', JSON.stringify(history));
-  }, [history]);
-
   // --- DERIVED / EFFECTS ---
 
   // Validaciones
@@ -99,9 +83,9 @@ export default function PriceCalculator() {
   const isValidPercentage = extraPercentage >= 0 && extraPercentage <= 100;
   const isValidInputs = isValidQuantity && isValidUnitPrice && isValidRate && isValidPercentage;
 
-  // Cálculos según la fórmula especificada:
-  // PrecioTotalEfectivo = Cantidad × PrecioUnitario
-  // PrecioTotalBS = (Cantidad × PrecioUnitario × Tasa) × (1 + PorcentajeExtra/100)
+  // C├ílculos seg├║n la f├│rmula especificada:
+  // PrecioTotalEfectivo = Cantidad ├ù PrecioUnitario
+  // PrecioTotalBS = (Cantidad ├ù PrecioUnitario ├ù Tasa) ├ù (1 + PorcentajeExtra/100)
   const totalEfectivo = useMemo(() => {
     if (!isValidQuantity || !isValidUnitPrice) return 0;
     return Math.round((quantityNumber * unitPriceNumber) * 100) / 100;
@@ -147,7 +131,7 @@ export default function PriceCalculator() {
       currency,
     };
     setHistory([entry, ...history.slice(0, 49)]);
-    toast({ title: 'Guardado', description: 'Cálculo agregado al historial' });
+    toast({ title: 'Guardado', description: 'C├ílculo agregado al historial' });
   };
 
   // Agregar producto al batch
@@ -156,7 +140,7 @@ export default function PriceCalculator() {
     const price = parseFloat(newProductUnitPrice) || 0;
     
     if (qty < 1 || price <= 0) {
-      toast({ title: 'Error', description: 'Cantidad ≥ 1 y precio > 0', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Cantidad ÔëÑ 1 y precio > 0', variant: 'destructive' });
       return;
     }
 
@@ -227,13 +211,7 @@ export default function PriceCalculator() {
     toast({ title: 'Exportado', description: 'Archivo JSON descargado' });
   };
 
-  // Totales del batch
-  const batchTotals = useMemo(() => {
-    return batchProducts.reduce((acc, p) => ({
-      totalItems: acc.totalItems + p.quantity,
-      totalEfectivo: acc.totalEfectivo + p.totalEfectivo,
-      totalBS: acc.totalBS + p.totalBS,
-    }), { totalItems: 0, totalEfectivo: 0, totalBS: 0 });
+    };
   }, [batchProducts]);
 
   // --- RENDER ---
@@ -248,7 +226,7 @@ export default function PriceCalculator() {
               Calculadora de Precios
             </h1>
             <p className="text-muted-foreground mt-1">
-              Calcula precios totales en USD y Bolívares
+              Calcula precios totales en USD y Bol├¡vares
             </p>
           </div>
           
@@ -294,12 +272,12 @@ export default function PriceCalculator() {
 
         <Tabs defaultValue="single" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="single">Cálculo Simple</TabsTrigger>
-            <TabsTrigger value="batch">Múltiples</TabsTrigger>
+            <TabsTrigger value="single">C├ílculo Simple</TabsTrigger>
+            <TabsTrigger value="batch">M├║ltiples</TabsTrigger>
             <TabsTrigger value="history">Historial</TabsTrigger>
           </TabsList>
 
-          {/* Cálculo Simple */}
+          {/* C├ílculo Simple */}
           <TabsContent value="single" className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               {/* Input Panel */}
@@ -330,7 +308,7 @@ export default function PriceCalculator() {
                     {quantity && !isValidQuantity && (
                       <p className="text-xs text-destructive flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" />
-                        La cantidad debe ser ≥ 1
+                        La cantidad debe ser ÔëÑ 1
                       </p>
                     )}
                   </div>
@@ -413,7 +391,7 @@ export default function PriceCalculator() {
                       {currencySymbol}{totalEfectivo.toFixed(2)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {quantityNumber} × {currencySymbol}{unitPriceNumber.toFixed(2)}
+                      {quantityNumber} ├ù {currencySymbol}{unitPriceNumber.toFixed(2)}
                     </p>
                   </motion.div>
 
@@ -425,7 +403,7 @@ export default function PriceCalculator() {
                     className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Precio Total Bolívares</span>
+                      <span className="text-sm text-muted-foreground">Precio Total Bol├¡vares</span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -440,7 +418,7 @@ export default function PriceCalculator() {
                     </p>
                     <div className="mt-2 pt-2 border-t border-blue-500/20 space-y-1">
                       <p className="text-xs text-muted-foreground">
-                        Fórmula: ({quantityNumber} × ${unitPriceNumber.toFixed(2)} × {rate.toFixed(2)}) × (1 + {extraPercentage.toFixed(1)}%)
+                        F├│rmula: ({quantityNumber} ├ù ${unitPriceNumber.toFixed(2)} ├ù {rate.toFixed(2)}) ├ù (1 + {extraPercentage.toFixed(1)}%)
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Tasa final con {extraPercentage.toFixed(1)}%: <span className="font-semibold text-blue-600 dark:text-blue-400">Bs. {finalRate.toFixed(4)}</span>
@@ -462,9 +440,9 @@ export default function PriceCalculator() {
             </div>
           </TabsContent>
 
-          {/* Batch/Múltiples */}
+          {/* Batch/M├║ltiples */}
           <TabsContent value="batch" className="space-y-6">
-            {/* Resumen de configuración actual */}
+            {/* Resumen de configuraci├│n actual */}
             <Card className="border-primary/20 bg-primary/5">
               <CardContent className="py-4">
                 <div className="flex flex-wrap items-center justify-between gap-4">
@@ -514,7 +492,7 @@ export default function PriceCalculator() {
                     <Label htmlFor="batchProductName">Nombre (opcional)</Label>
                     <Input
                       id="batchProductName"
-                      placeholder="Ej: Camisa, Pantalón..."
+                      placeholder="Ej: Camisa, Pantal├│n..."
                       value={newProductName}
                       onChange={(e) => setNewProductName(e.target.value)}
                     />
@@ -664,7 +642,7 @@ export default function PriceCalculator() {
                 <CardContent className="py-12 text-center">
                   <Calculator className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">
-                    Agrega productos para ver el cálculo por lotes
+                    Agrega productos para ver el c├ílculo por lotes
                   </p>
                 </CardContent>
               </Card>
@@ -677,10 +655,10 @@ export default function PriceCalculator() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <History className="h-5 w-5" />
-                  Historial de Cálculos
+                  Historial de C├ílculos
                 </CardTitle>
                 <CardDescription>
-                  Últimos 50 cálculos realizados
+                  ├Ültimos 50 c├ílculos realizados
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -702,14 +680,14 @@ export default function PriceCalculator() {
                                 {entry.date.toLocaleString()}
                               </span>
                               <Badge variant="outline" className="text-xs">
-                                {entry.quantity} × {entry.currency === 'EUR' ? '€' : '$'}{entry.unitPrice.toFixed(2)}
+                                {entry.quantity} ├ù {entry.currency === 'EUR' ? 'Ôé¼' : '$'}{entry.unitPrice.toFixed(2)}
                               </Badge>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <p className="text-xs text-muted-foreground">Total {entry.currency}</p>
                                 <p className="font-bold text-green-600 dark:text-green-400">
-                                  {entry.currency === 'EUR' ? '€' : '$'}{entry.totalEfectivo.toFixed(2)}
+                                  {entry.currency === 'EUR' ? 'Ôé¼' : '$'}{entry.totalEfectivo.toFixed(2)}
                                 </p>
                               </div>
                               <div>
@@ -731,7 +709,7 @@ export default function PriceCalculator() {
                   <div className="py-12 text-center">
                     <History className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">
-                      No hay cálculos en el historial
+                      No hay c├ílculos en el historial
                     </p>
                   </div>
                 )}
