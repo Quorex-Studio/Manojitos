@@ -1,3 +1,9 @@
+/**
+ * useCustomerOfMonth — Hook to automatically calculate "Customer of the Month".
+ * Computes: score based on payment rate, average days, and purchase volume.
+ * Analyzes: `useCredits` data.
+ * Returns: { customerOfMonth, topCustomers }
+ */
 // Hook para sistema de Cliente del Mes automático
 import { useMemo } from 'react';
 import { useCredits } from './useCredits';

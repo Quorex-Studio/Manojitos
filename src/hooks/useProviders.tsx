@@ -1,3 +1,9 @@
+/**
+ * useProviders — Hook to manage product suppliers and wholesale purchases.
+ * Tables: `providers`, `purchases`
+ * Validations: `providerSchema`, `purchaseSchema` via Zod.
+ * Returns: { providers, purchases, loading, addProvider, deleteProvider, addPurchase, markPurchaseAsPaid }
+ */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';

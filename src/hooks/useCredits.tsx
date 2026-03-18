@@ -1,3 +1,10 @@
+/**
+ * useCredits — Comprehensive hook for professional credit management.
+ * Includes: trust score calculation, payment promises, and progressive restrictions.
+ * Tables: `credits`, `credit_transactions`, `credit_reminders`, `payment_promises`
+ * RPC: `calculate_trust_score`
+ * Returns: { credits, isLoading, error, refetch, stats, createCredit, updateCredit, adjustCreditLimit, toggleBlock, registerPayment, createReminder }
+ */
 // Hook actualizado para gestión profesional de créditos
 // Incluye trust score, promesas de pago y restricciones progresivas
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -674,6 +681,11 @@ export function usePaymentPromises(creditId?: string) {
   };
 }
 
+/**
+ * useCustomerCredit — Hook for customers to view their own credit status.
+ * Tables: `credits`, `credit_transactions`, `payment_promises`
+ * Returns: { credit, transactions, promises, hasCredit, isLoading }
+ */
 // Hook para transacciones de un crédito
 export function useCreditTransactions(creditId: string) {
   return useQuery({
@@ -692,6 +704,11 @@ export function useCreditTransactions(creditId: string) {
   });
 }
 
+/**
+ * useCustomerOrders — Hook to manage and track customer orders.
+ * Tables: `orders`
+ * Returns: { orders, isLoading, refetch, stats }
+ */
 // Hook para recordatorios de un crédito
 export function useCreditReminders(creditId: string) {
   return useQuery({

@@ -73,6 +73,7 @@ const REMINDER_TEMPLATES = {
 };
 
 export default function Credits() {
+  // --- STATE ---
   const { isAdmin } = useAuth();
   const { credits, isLoading, createCredit, updateCredit, toggleBlock, registerPayment, createReminder, stats } = useCredits();
   const { sendManualNotification } = useNotifications();
@@ -102,6 +103,8 @@ export default function Credits() {
     notes: '',
   });
 
+  // --- DERIVED ---
+
   // Filtrar créditos
   const filteredCredits = useMemo(() => {
     return credits.filter(credit => {
@@ -115,6 +118,8 @@ export default function Credits() {
       return matchesSearch && matchesStatus;
     });
   }, [credits, searchTerm, statusFilter]);
+
+  // --- HANDLERS ---
 
 
   // Manejar creación de crédito
@@ -214,6 +219,7 @@ export default function Credits() {
     );
   }
 
+  // --- RENDER ---
   return (
     <AppLayout>
       <motion.div

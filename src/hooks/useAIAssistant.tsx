@@ -1,3 +1,10 @@
+/**
+ * useAIAssistant — Hook to interact with the AI Assistant (Ángela).
+ * Mode: 'customer' | 'admin' | 'price_suggestion'
+ * Reads: `products`, `sales`, `credits` (via hooks)
+ * Invokes: `ai-assistant` edge function
+ * Returns: { messages, isLoading, error, sendMessage, clearMessages }
+ */
 // Hook para usar el asistente IA
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';

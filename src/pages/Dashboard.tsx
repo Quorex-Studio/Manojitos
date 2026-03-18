@@ -21,11 +21,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 export default function Dashboard() {
+  // --- STATE ---
   const { sales } = useSales();
   const { products } = useProducts();
   const { pendingDebts } = useDebts();
   const { rate, convertToBS } = useExchangeRate();
 
+  // --- DERIVED ---
   const stats = useMemo(() => {
     const today = new Date().toDateString();
     const todaySales = sales.filter(s => new Date(s.created_at).toDateString() === today);
@@ -73,6 +75,7 @@ export default function Dashboard() {
       }));
   }, [products]);
 
+  // --- RENDER ---
   return (
     <AppLayout>
       <div className="space-y-8">

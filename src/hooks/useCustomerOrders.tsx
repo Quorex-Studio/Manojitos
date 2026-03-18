@@ -1,3 +1,8 @@
+/**
+ * useCustomerOrders — Hook to manage and track customer orders.
+ * Tables: `orders`
+ * Returns: { orders, isLoading, refetch, stats }
+ */
 // Hook para gestionar los pedidos del cliente
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

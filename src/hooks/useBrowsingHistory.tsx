@@ -1,3 +1,8 @@
+/**
+ * useBrowsingHistory — Hook to track recently viewed products in LocalStorage.
+ * Capacity: 20 items.
+ * Returns: { history, addToHistory, getRecentlyViewed, clearHistory }
+ */
 // Hook para historial de navegación del cliente
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';

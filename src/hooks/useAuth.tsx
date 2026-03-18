@@ -1,3 +1,7 @@
+/**
+ * useAuth — Hook and Provider to manage Supabase Authentication state.
+ * Returns: { user, session, loading, isAdmin, signIn, signUp, signOut }
+ */
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';

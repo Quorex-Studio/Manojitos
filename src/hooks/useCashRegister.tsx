@@ -1,3 +1,9 @@
+/**
+ * useCashRegister — Hook to manage daily cash register sessions and summaries.
+ * Persistence: LocalStorage
+ * Analyzes: `sales` (via hook)
+ * Returns: { session, isOpen, openRegister, closeRegister, dailySummary, getHistory }
+ */
 // Hook para Modo Caja del Día
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './useAuth';

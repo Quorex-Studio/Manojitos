@@ -1,3 +1,8 @@
+/**
+ * useCustomerProfile — Hook to manage customer's personal profile and preferences.
+ * Tables: `customer_profiles`, `sales` (for history)
+ * Returns: { profile, isLoading, upsertProfile, updateNotificationPreferences, hasProfile }
+ */
 // Hook para perfil completo de cliente
 // Incluye datos personales, historial, estado crediticio y preferencias
 

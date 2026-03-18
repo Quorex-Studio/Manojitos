@@ -1,3 +1,7 @@
+/**
+ * useToast — Hook to manage and display toast notifications.
+ * Returns: { toasts, toast, dismiss }
+ */
 import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";

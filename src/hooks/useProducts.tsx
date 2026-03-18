@@ -1,3 +1,10 @@
+/**
+ * useProducts — Core hook for product catalog management.
+ * Handles: CRUD operations, inventory tracking, and real-time updates.
+ * Tables: `products`
+ * Validations: `productSchema` via Zod.
+ * Returns: { products, loading, addProduct, updateProduct, deleteProduct, refetch }
+ */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';

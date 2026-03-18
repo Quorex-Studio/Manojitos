@@ -12,10 +12,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 export default function CustomerWishlist() {
+  // --- DERIVED ---
   const { user } = useAuth();
   const { wishlist, isLoading, removeFromWishlist } = useWishlist();
   const { addItem } = useCart();
 
+  // --- RENDER ---
   if (!user) {
     return (
       <StoreLayout>

@@ -1,3 +1,10 @@
+/**
+ * useLedger — Financial auditing hook for real-time transaction tracking.
+ * STRICT RULE: No deletions allowed, only reversals for audit integrity.
+ * Tables: `ledger_entries`
+ * RPCs: `create_ledger_entry`
+ * Returns: { entries, isLoading, createEntry, reverseEntry, currentBalance, stats }
+ */
 // Hook para el Ledger Financiero - Auditoría real
 // No permite eliminación, solo reversos
 

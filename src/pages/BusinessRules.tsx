@@ -57,6 +57,7 @@ const RULE_TYPES: { value: RuleType; label: string; description: string }[] = [
 ];
 
 export default function BusinessRules() {
+  // --- STATE ---
   const { rules, isLoading, createRule, updateRule, toggleRule, deleteRule, initializeDefaultRules, stats } = useBusinessRules();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -74,6 +75,10 @@ export default function BusinessRules() {
     conditions: {},
     actions: {},
   });
+
+  // --- DERIVED / EFFECTS ---
+
+  // --- HANDLERS ---
 
   const handleCreate = () => {
     setSelectedRule(null);
@@ -141,10 +146,10 @@ export default function BusinessRules() {
     setExpandedRules(newExpanded);
   };
 
-  const getRuleTypeInfo = (type: string) => {
     return RULE_TYPES.find(t => t.value === type) || RULE_TYPES[2];
   };
 
+  // --- RENDER ---
   return (
     <AppLayout>
       <div className="space-y-6">

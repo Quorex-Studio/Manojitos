@@ -48,8 +48,11 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 export default function CustomerCredit() {
+  // --- DERIVED ---
   const { user } = useAuth();
   const { credit, transactions, promises, hasCredit, isLoading } = useCustomerCredit();
+
+  // --- RENDER ---
 
   if (!user) {
     return (

@@ -1,3 +1,35 @@
+/**
+ * useAngelaAlerts — Hook to manage AI-generated alerts from Ángela.
+ * Tables: `angela_alerts`
+ * Functions: `angela-proactive` (Edge function)
+ * Returns: { alerts, loading, unreadCount, markAsRead, dismissAlert, generateAlerts, refetch }
+ */
+/**
+ * useAngelaPersonalShopper — Hook for personalized product recommendations.
+ * Analyzes: customer purchase history and credit status.
+ * Tables: `orders`, `credits`, `products`
+ * Returns: { recommendations, behavior, loading, refresh }
+ */
+// Hook para recomendaciones personalizadas de productos (Personal Shopper)
+/**
+ * useAuth — Hook and Provider to manage Supabase Authentication state.
+ * Returns: { user, session, loading, isAdmin, signIn, signUp, signOut }
+ */
+/**
+ * useBrowsingHistory — Hook to manage user browsing history.
+ * Tables: `browsing_history`
+ * Returns: { history, addEntry, clearHistory }
+ */
+/**
+ * useBusinessRules — Hook to manage business rules.
+ * Tables: `business_rules`
+ * Returns: { rules, loading, updateRule }
+ */
+/**
+ * useCashRegister — Hook to manage cash register operations.
+ * Tables: `cash_registers`, `transactions`
+ * Returns: { registerState, openRegister, closeRegister, makeTransaction }
+ */
 // Hook para gestionar alertas de Ángela
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';

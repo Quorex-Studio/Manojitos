@@ -69,7 +69,7 @@ const COLUMN_MAPPINGS: Record<string, string> = {
   'code': 'sku',
 };
 
-export default function ImportProducts() {
+  // --- STATE ---
   const { user, isAdmin } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -80,12 +80,17 @@ export default function ImportProducts() {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'complete'>('upload');
 
+  // --- DERIVED / EFFECTS ---
   // Estadísticas de productos parseados
   const stats = useMemo(() => {
     const valid = parsedProducts.filter(p => p.isValid).length;
     const invalid = parsedProducts.filter(p => !p.isValid).length;
     return { valid, invalid, total: parsedProducts.length };
   }, [parsedProducts]);
+
+  }, [parsedProducts]);
+
+  // --- HANDLERS ---
 
   // Normalizar nombre de columna
   const normalizeColumnName = (name: string): string => {
@@ -327,16 +332,10 @@ export default function ImportProducts() {
     XLSX.writeFile(workbook, 'errores_importacion.xlsx');
   };
 
-  // Reiniciar proceso
-  const handleReset = () => {
-    setFile(null);
-    setParsedProducts([]);
-    setImportProgress(0);
-    setImportResult(null);
     setStep('upload');
   };
 
-  // Si no es admin, no mostrar nada
+  // --- RENDER ---
   if (!isAdmin) {
     return (
       <AppLayout>
@@ -355,6 +354,7 @@ export default function ImportProducts() {
     );
   }
 
+  // --- RENDER ---
   return (
     <AppLayout>
       <motion.div

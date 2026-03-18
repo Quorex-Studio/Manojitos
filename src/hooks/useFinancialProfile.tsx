@@ -1,3 +1,9 @@
+/**
+ * useFinancialProfile — Analytical hook to assess a customer's financial health.
+ * Calculates: trust level, payment rate, credit utilization, and adjustment suggestions.
+ * Analyzes: `useCredits` data.
+ * Returns: { profile, clientName, isLoading }
+ */
 // Hook para calcular el perfil financiero del cliente
 import { useMemo } from 'react';
 import { useCredits } from './useCredits';

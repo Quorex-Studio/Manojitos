@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { StoreLayout } from '@/components/store/StoreLayout';
 
 export default function AboutUs() {
+  // --- RENDER ---
   return (
     <StoreLayout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">

@@ -9,11 +9,14 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 
 // Página del carrito de compras
 export default function Cart() {
+  // --- DERIVED ---
   const { items, removeItem, updateQuantity, getSubtotal, clearCart } = useCart();
   const { rate, convertToBS } = useExchangeRate();
   
   const subtotal = getSubtotal();
   const isEmpty = items.length === 0;
+
+  // --- RENDER ---
 
   return (
     <StoreLayout>

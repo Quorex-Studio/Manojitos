@@ -1,3 +1,9 @@
+/**
+ * useBusinessRules — Hook to manage and evaluate dynamic business rules.
+ * Tables: `business_rules`
+ * RPC: `evaluate_business_rules`
+ * Returns: { rules, isLoading, initializeDefaultRules, createRule, updateRule, toggleRule, deleteRule, evaluateRules, stats }
+ */
 // Hook para reglas de negocio configurables
 // Permite a los admins configurar reglas sin modificar código
 

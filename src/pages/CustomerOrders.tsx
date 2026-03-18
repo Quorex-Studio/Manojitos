@@ -33,8 +33,11 @@ const STATUS_ICONS: Record<string, typeof Package> = {
 };
 
 export default function CustomerOrders() {
+  // --- DERIVED ---
   const { user } = useAuth();
   const { orders, isLoading, stats } = useCustomerOrders();
+
+  // --- RENDER ---
 
   if (!user) {
     return (

@@ -1,3 +1,10 @@
+/**
+ * useNotifications — Hook to manage system-wide notifications and credit reminders.
+ * Supports internal, email, SMS, and WhatsApp channels via Edge Functions.
+ * Tables: `notifications`, `credit_reminders`
+ * Edge Function: `send-credit-notifications`
+ * Returns: { notifications, unreadCount, markAsRead, markAllAsRead, sendManualNotification, processAutomaticNotifications, checkCreditsStatus }
+ */
 // Hook para gestionar notificaciones del sistema
 // Proporciona acceso a notificaciones internas, envío y marcado como leídas
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

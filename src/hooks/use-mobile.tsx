@@ -1,3 +1,8 @@
+/**
+ * useIsMobile — Hook to detect if the user is on a mobile device.
+ * Breakpoint: 768px
+ * Returns: boolean
+ */
 import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;

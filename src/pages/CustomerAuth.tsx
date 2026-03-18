@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 
 // Página de autenticación para clientes (separada del admin)
 export default function CustomerAuth() {
+  // --- STATE ---
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, signIn, signUp, loading: authLoading } = useAuth();
@@ -34,6 +35,7 @@ export default function CustomerAuth() {
     }
   }, [user, navigate, redirectTo]);
 
+  // --- HANDLERS ---
   // Manejar cambios en el formulario
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({
@@ -107,6 +109,7 @@ export default function CustomerAuth() {
     }
   };
 
+  // --- RENDER ---
   if (authLoading) {
     return (
       <StoreLayout>

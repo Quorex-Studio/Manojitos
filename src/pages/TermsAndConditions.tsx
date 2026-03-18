@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { StoreLayout } from '@/components/store/StoreLayout';
 
 export default function TermsAndConditions() {
+  // --- DERIVED ---
   const sections = [
     {
       title: "1. Aceptación de los Términos",
@@ -71,6 +72,7 @@ export default function TermsAndConditions() {
     }
   ];
 
+  // --- RENDER ---
   return (
     <StoreLayout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">

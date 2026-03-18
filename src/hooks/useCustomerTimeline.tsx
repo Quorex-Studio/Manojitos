@@ -1,3 +1,9 @@
+/**
+ * useCustomerTimeline — Hook to manage chronological event history for a customer.
+ * Events: sales, payments, credit adjustments, blocks, and trust score changes.
+ * Tables: `customer_timeline`
+ * Returns: { events, groupedEvents, isLoading, addEvent, stats }
+ */
 // Hook para timeline cronológico de eventos por cliente
 // Muestra ventas, créditos, pagos, promesas, recordatorios, bloqueos
 

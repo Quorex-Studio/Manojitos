@@ -26,6 +26,7 @@ const paymentMethods = [
 ];
 
 export default function Sales() {
+  // --- STATE ---
   const { sales, addSale, deleteSale } = useSales();
   const { products } = useProducts();
   const { addDebt } = useDebts();
@@ -42,6 +43,8 @@ export default function Sales() {
     notes: ''
   });
 
+  // --- DERIVED ---
+
   const selectedProduct = products.find(p => p.id === form.product_id);
   const totalUSD = selectedProduct ? Number(selectedProduct.price_usd) * Number(form.quantity) : 0;
   const totalBS = convertToBS(totalUSD);
@@ -51,6 +54,7 @@ export default function Sales() {
     s.client_name?.toLowerCase().includes(search.toLowerCase())
   );
 
+  // --- HANDLERS ---
   const resetForm = () => {
     setForm({
       product_id: '',
@@ -107,6 +111,7 @@ export default function Sales() {
     }
   };
 
+  // --- RENDER ---
   return (
     <AppLayout>
       <div className="space-y-6">

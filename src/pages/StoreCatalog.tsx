@@ -18,6 +18,7 @@ import { AngelaPersonalShopper } from '@/components/ai/AngelaPersonalShopper';
 
 // Página del catálogo de productos
 export default function StoreCatalog() {
+  // --- STATE ---
   const [searchParams, setSearchParams] = useSearchParams();
   const { products, loading, categories } = usePublicProducts();
   
@@ -31,6 +32,8 @@ export default function StoreCatalog() {
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+
+  // --- DERIVED / EFFECTS ---
 
   // Calcular rango de precios máximo
   const maxPrice = useMemo(() => {
@@ -89,6 +92,7 @@ export default function StoreCatalog() {
     return result;
   }, [products, searchQuery, selectedCategories, priceRange, sortBy]);
 
+  // --- HANDLERS ---
   // Manejar cambio de categoría
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev => 
@@ -167,6 +171,7 @@ export default function StoreCatalog() {
     </div>
   );
 
+  // --- RENDER ---
   return (
     <StoreLayout>
       <div className="container mx-auto px-4 py-6 md:py-10">

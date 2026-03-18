@@ -1,3 +1,9 @@
+/**
+ * useAngelaPersonalShopper — Hook for personalized product recommendations.
+ * Analyzes: customer purchase history and credit status.
+ * Tables: `orders`, `credits`, `products`
+ * Returns: { recommendations, behavior, loading, refresh }
+ */
 // Hook para recomendaciones personalizadas de productos (Personal Shopper)
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';

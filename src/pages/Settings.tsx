@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function Settings() {
+  // --- STATE ---
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(() => {
     return (localStorage.getItem('preferredCurrency') as Currency) || 'USD';
   });
@@ -23,10 +24,11 @@ export default function Settings() {
   const [fetchingRate, setFetchingRate] = useState(false);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
-  // Save currency preference
-  useEffect(() => {
-    localStorage.setItem('preferredCurrency', selectedCurrency);
+  // --- DERIVED / EFFECTS ---
+
   }, [selectedCurrency]);
+
+  // --- HANDLERS ---
 
   // Updates rate via edge function (uses service role key to bypass RLS)
   const handleUpdateRate = async (e: React.FormEvent) => {
@@ -78,13 +80,10 @@ export default function Settings() {
     }
   };
 
-  const toggleDarkMode = () => {
-    const newMode = !isDark;
-    setIsDark(newMode);
-    document.documentElement.classList.toggle('dark', newMode);
     localStorage.setItem('theme', newMode ? 'dark' : 'light');
   };
 
+  // --- RENDER ---
   return (
     <AppLayout>
       <div className="space-y-6 max-w-2xl">

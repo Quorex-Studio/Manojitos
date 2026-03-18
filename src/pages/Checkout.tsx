@@ -29,6 +29,7 @@ const paymentMethods = [
 
 // Página de checkout
 export default function Checkout() {
+  // --- STATE ---
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { items, getSubtotal, clearCart } = useCart();
@@ -49,6 +50,8 @@ export default function Checkout() {
     notes: ''
   });
   const [paymentMethod, setPaymentMethod] = useState('pago_movil');
+
+  // --- DERIVED / EFFECTS ---
 
   const subtotal = getSubtotal();
   const isEmpty = items.length === 0;
@@ -123,6 +126,7 @@ export default function Checkout() {
     }
   };
 
+  // --- RENDER ---
   if (authLoading) {
     return (
       <StoreLayout>

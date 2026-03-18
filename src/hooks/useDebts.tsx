@@ -1,3 +1,8 @@
+/**
+ * useDebts — Simple hook for managing general customer debts.
+ * Tables: `debts`
+ * Returns: { debts, pendingDebts, paidDebts, loading, addDebt, markAsPaid, deleteDebt }
+ */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';

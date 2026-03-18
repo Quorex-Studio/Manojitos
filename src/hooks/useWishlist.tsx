@@ -1,3 +1,8 @@
+/**
+ * useWishlist — Hook to manage customer favorites.
+ * Tables: `wishlist`, `products`
+ * Returns: { wishlist, isLoading, isInWishlist, addToWishlist, removeFromWishlist, toggleWishlist, count }
+ */
 // Hook para gestionar la lista de deseos del cliente
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

@@ -9,6 +9,7 @@ import { Loader2, Mail, Lock, User, Phone } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export default function Auth() {
+  // --- STATE ---
   const navigate = useNavigate();
   const { user, signIn, signUp, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
@@ -26,6 +27,7 @@ export default function Auth() {
     }
   }, [user, authLoading, navigate]);
 
+  // --- HANDLERS ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -70,6 +72,7 @@ export default function Auth() {
     }
   };
 
+  // --- RENDER ---
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

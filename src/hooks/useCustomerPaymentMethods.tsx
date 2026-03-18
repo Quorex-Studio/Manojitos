@@ -1,3 +1,8 @@
+/**
+ * useCustomerPaymentMethods — Hook to manage customer's saved payment methods.
+ * Tables: `customer_payment_methods`
+ * Returns: { methods, isLoading, addMethod, updateMethod, setPreferred, deleteMethod, preferredMethod, hasPaymentMethods }
+ */
 // Hook para métodos de pago guardados del cliente
 // Permite guardar métodos preferidos sin datos sensibles
 

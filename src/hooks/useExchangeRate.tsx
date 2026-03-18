@@ -1,3 +1,10 @@
+/**
+ * useExchangeRate — Hook to manage currency exchange rates (USD/BS).
+ * Includes auto-fetch from BCV API via Edge Function.
+ * Tables: `exchange_rates`
+ * Edge Function: `get-bcv-rate`
+ * Returns: { rate, loading, lastUpdate, updateRate, convertToBS, convertFromBS, autoFetching }
+ */
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 

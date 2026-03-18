@@ -42,19 +42,11 @@ const passwordSchema = z.object({
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function CustomerSettings() {
+  // --- STATE ---
   const { user, signOut, loading: authLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { profile, updateNotificationPreferences, hasProfile, isLoading: profileLoading } = useCustomerProfile();
 
-  // Debug logging
-  console.log('[CustomerSettings] Rendering', { 
-    user: user?.id, 
-    authLoading, 
-    isAdmin, 
-    hasProfile,
-    profileLoading 
-  });
-  
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -64,6 +56,8 @@ export default function CustomerSettings() {
     sms: false,
     internal: true,
   });
+
+  // --- DERIVED / EFFECTS ---
 
   // Update notification prefs when profile loads
   useEffect(() => {
@@ -127,6 +121,7 @@ export default function CustomerSettings() {
     });
   };
 
+  // --- RENDER ---
   if (authLoading) {
     return (
       <StoreLayout>

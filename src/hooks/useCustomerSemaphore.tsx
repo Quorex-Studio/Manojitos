@@ -1,3 +1,8 @@
+/**
+ * useCustomerSemaphore — Pure logic hook to calculate customer trust levels (green/yellow/red).
+ * Analyzes: trust_score, consecutive_late_payments, and blocked status.
+ * Returns: { level, label, icon, color, bgColor, description, canBuyOnCredit }
+ */
 // Hook para calcular semáforo de clientes (confianza)
 import { useMemo } from 'react';
 

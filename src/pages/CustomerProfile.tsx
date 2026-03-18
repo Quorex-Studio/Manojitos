@@ -34,6 +34,7 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 export default function CustomerProfile() {
+  // --- STATE ---
   const { user } = useAuth();
   const { profile, isLoading, upsertProfile, hasProfile } = useCustomerProfile();
   const { purchases, totalSpent, totalPurchases, isLoading: purchasesLoading } = useCustomerPurchaseHistory();
@@ -50,6 +51,8 @@ export default function CustomerProfile() {
       zip_code: '',
     },
   });
+
+  // --- DERIVED / EFFECTS ---
 
   // Update form when profile loads
   useEffect(() => {
@@ -75,6 +78,7 @@ export default function CustomerProfile() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  // --- RENDER ---
   if (!user) {
     return (
       <StoreLayout>

@@ -25,6 +25,7 @@ const itemVariants = {
 
 // Página principal de la tienda (Home)
 export default function StoreFront() {
+  // --- DERIVED ---
   const { products, loading, categories } = usePublicProducts();
 
   // Obtener productos destacados (los primeros 8 con stock)
@@ -55,6 +56,7 @@ export default function StoreFront() {
     }
   ];
 
+  // --- RENDER ---
   return (
     <StoreLayout>
       {/* Hero Section */}

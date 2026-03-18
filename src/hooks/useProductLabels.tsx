@@ -1,3 +1,8 @@
+/**
+ * useProductLabels — Pure logic hook to calculate automatic badges for products.
+ * Labels: New (7 days), Bestseller (top 20% sales), Low Stock (<=3), Premium (top 25% price).
+ * Returns: ProductLabel[]
+ */
 // Hook para calcular etiquetas automáticas de productos
 import { useMemo } from 'react';
 

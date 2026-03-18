@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function Providers() {
+  // --- STATE ---
   const { providers, purchases, addProvider, deleteProvider, addPurchase, markPurchaseAsPaid } = useProviders();
   const { rate, convertToBS } = useExchangeRate();
   const [isProviderOpen, setIsProviderOpen] = useState(false);
@@ -24,10 +25,13 @@ export default function Providers() {
   const [providerForm, setProviderForm] = useState({ name: '', phone: '', email: '', notes: '' });
   const [purchaseForm, setPurchaseForm] = useState({ provider_id: '', amount_usd: '', notes: '', purchase_date: new Date().toISOString().split('T')[0] });
 
+  // --- DERIVED ---
+
   const pendingPurchases = purchases.filter(p => p.status === 'pending');
   const paidPurchases = purchases.filter(p => p.status === 'paid');
   const totalPending = pendingPurchases.reduce((acc, p) => acc + Number(p.amount_usd), 0);
 
+  // --- HANDLERS ---
   const handleAddProvider = async (e: React.FormEvent) => {
     e.preventDefault();
     const { error } = await addProvider({
@@ -62,6 +66,7 @@ export default function Providers() {
     }
   };
 
+  // --- RENDER ---
   return (
     <AppLayout>
       <div className="space-y-6">

@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 
 export default function Reports() {
+  // --- STATE ---
   const { sales } = useSales();
   const { convertToBS } = useExchangeRate();
   const [startDate, setStartDate] = useState(() => {
@@ -21,6 +22,8 @@ export default function Reports() {
     return d.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+  // --- DERIVED ---
 
   const filteredSales = useMemo(() => {
     return sales.filter(s => {
@@ -44,6 +47,7 @@ export default function Reports() {
     return { totalUSD, totalQuantity, creditTotal, salesCount: filteredSales.length, byPaymentMethod };
   }, [filteredSales]);
 
+  // --- HANDLERS ---
   const exportToCSV = () => {
     const headers = ['Fecha', 'Producto', 'Cantidad', 'Precio Unit.', 'Total USD', 'Método Pago', 'Cliente'];
     const rows = filteredSales.map(s => [
@@ -82,6 +86,7 @@ export default function Reports() {
     link.click();
   };
 
+  // --- RENDER ---
   return (
     <AppLayout>
       <div className="space-y-6">

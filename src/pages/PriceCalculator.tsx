@@ -51,6 +51,7 @@ interface CalculationHistory {
 }
 
 export default function PriceCalculator() {
+  // --- STATE ---
   // Get preferred currency from localStorage
   const preferredCurrency = (localStorage.getItem('preferredCurrency') as Currency) || 'USD';
   const { rate, loading: rateLoading, lastUpdate, refetch: refetchRate, autoFetching, currency } = useExchangeRate(preferredCurrency);
@@ -69,9 +70,9 @@ export default function PriceCalculator() {
   const [newProductQuantity, setNewProductQuantity] = useState('1');
   const [newProductUnitPrice, setNewProductUnitPrice] = useState('');
 
-  // Historial
-  const [history, setHistory] = useState<CalculationHistory[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // --- DERIVED / EFFECTS ---
 
   // Validaciones
   const quantityNumber = parseInt(quantity) || 0;
@@ -101,6 +102,8 @@ export default function PriceCalculator() {
     if (!isValidRate) return 0;
     return Math.round((rate * (1 + extraPercentage / 100)) * 10000) / 10000;
   }, [rate, extraPercentage, isValidRate]);
+
+  // --- HANDLERS ---
 
   // Copiar al portapapeles
   const copyToClipboard = async (text: string, id?: string) => {
@@ -208,15 +211,10 @@ export default function PriceCalculator() {
     toast({ title: 'Exportado', description: 'Archivo JSON descargado' });
   };
 
-  // Totales del batch
-  const batchTotals = useMemo(() => {
-    return {
-      totalEfectivo: batchProducts.reduce((sum, p) => sum + p.totalEfectivo, 0),
-      totalBS: batchProducts.reduce((sum, p) => sum + p.totalBS, 0),
-      totalItems: batchProducts.reduce((sum, p) => sum + p.quantity, 0),
     };
   }, [batchProducts]);
 
+  // --- RENDER ---
   return (
     <AppLayout>
       <div className="space-y-6">

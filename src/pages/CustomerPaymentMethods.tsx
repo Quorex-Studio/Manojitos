@@ -49,6 +49,7 @@ const methodIcons: Record<PaymentMethodType, React.ReactNode> = {
 };
 
 export default function CustomerPaymentMethods() {
+  // --- STATE ---
   const { user } = useAuth();
   const { methods, isLoading, addMethod, setPreferred, deleteMethod, preferredMethod } = useCustomerPaymentMethods();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -65,6 +66,8 @@ export default function CustomerPaymentMethods() {
       last_four: '',
     },
   });
+
+  // --- HANDLERS ---
 
   const onSubmit = (data: PaymentMethodFormData) => {
     const input: PaymentMethodInput = {
@@ -98,6 +101,7 @@ export default function CustomerPaymentMethods() {
     setPreferred.mutate(id);
   };
 
+  // --- RENDER ---
   if (!user) {
     return (
       <StoreLayout>

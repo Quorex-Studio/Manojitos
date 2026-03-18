@@ -13,6 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 export default function Products() {
+  // --- STATE ---
   const { products, loading, addProduct, updateProduct, deleteProduct } = useProducts();
   const { rate, convertToBS } = useExchangeRate();
   const [search, setSearch] = useState('');
@@ -27,11 +28,14 @@ export default function Products() {
     image_url: ''
   });
 
+  // --- DERIVED ---
+
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.category?.toLowerCase().includes(search.toLowerCase())
   );
 
+  // --- HANDLERS ---
   const resetForm = () => {
     setForm({ name: '', description: '', price_usd: '', stock: '', category: '', image_url: '' });
     setEditingProduct(null);
@@ -82,6 +86,7 @@ export default function Products() {
     }
   };
 
+  // --- RENDER ---
   return (
     <AppLayout>
       <div className="space-y-6">

@@ -1,3 +1,10 @@
+/**
+ * useSales — Core hook to manage sales processing and checkout.
+ * Handles: CRUD, transactional checkouts, stock management on confirmation.
+ * Tables: `sales`, `products`
+ * RPCs: `process_checkout`
+ * Returns: { sales, loading, addSale, confirmSale, cancelSale, processCheckout, deleteSale, refetch }
+ */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';

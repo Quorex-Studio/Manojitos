@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { StoreLayout } from '@/components/store/StoreLayout';
 
 export default function PrivacyPolicy() {
+  // --- DERIVED ---
   const sections = [
     {
       icon: Database,
@@ -70,6 +71,7 @@ Puedes gestionar tus preferencias de notificación desde tu perfil de usuario en
     }
   ];
 
+  // --- RENDER ---
   return (
     <StoreLayout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">

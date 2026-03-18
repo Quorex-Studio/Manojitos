@@ -1,3 +1,8 @@
+/**
+ * useCustomerNotifications — Hook to manage customer notifications.
+ * Tables: `notifications`
+ * Returns: { notifications, isLoading, unreadCount, markAsRead, markAllAsRead }
+ */
 // Hook para notificaciones del cliente
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

@@ -28,11 +28,13 @@ export default function ProductDetail() {
   const { rate, convertToBS } = useExchangeRate();
   const { addToHistory, getRecentlyViewed } = useBrowsingHistory();
   
+  // --- STATE ---
   const [product, setProduct] = useState<PublicProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
 
+  // --- DERIVED / EFFECTS ---
   // Cargar producto y registrar en historial
   useEffect(() => {
     const loadProduct = async () => {
@@ -71,6 +73,7 @@ export default function ProductDetail() {
         .slice(0, 4)
     : [];
 
+  // --- HANDLERS ---
   // Manejar cantidad
   const decrementQuantity = () => {
     if (quantity > 1) setQuantity(q => q - 1);
@@ -127,6 +130,7 @@ export default function ProductDetail() {
     }
   };
 
+  // --- RENDER ---
   if (loading) {
     return (
       <StoreLayout>

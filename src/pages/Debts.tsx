@@ -11,14 +11,19 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function Debts() {
+  // --- STATE ---
   const { pendingDebts, paidDebts, markAsPaid, deleteDebt } = useDebts();
   const { convertToBS } = useExchangeRate();
   const [search, setSearch] = useState('');
+
+  // --- DERIVED ---
 
   const filterDebts = (debts: typeof pendingDebts) =>
     debts.filter(d => d.client_name.toLowerCase().includes(search.toLowerCase()));
 
   const totalPending = pendingDebts.reduce((acc, d) => acc + Number(d.amount_usd), 0);
+
+  // --- HANDLERS ---
 
   const handleMarkPaid = async (id: string) => {
     if (confirm('¿Marcar esta deuda como pagada?')) {
@@ -98,6 +103,7 @@ export default function Debts() {
     </motion.div>
   );
 
+  // --- RENDER ---
   return (
     <AppLayout>
       <div className="space-y-6">

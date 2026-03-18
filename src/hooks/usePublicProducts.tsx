@@ -1,3 +1,10 @@
+/**
+ * usePublicProducts — Hook to fetch public product catalog for customers.
+ * Filters: Only products with stock > 0.
+ * Tables: `products`
+ * Cache: 5min stale, 30min garbage collection.
+ * Returns: { products, loading, categories, refetch, getProductById }
+ */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PublicProduct } from '@/types';

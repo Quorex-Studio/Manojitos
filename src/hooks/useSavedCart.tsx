@@ -1,3 +1,9 @@
+/**
+ * useSavedCart — Hook to persist multiple carts in LocalStorage.
+ * Capacity: Up to 5 most recent carts.
+ * Persistence: LocalStorage (namespaced by user ID if authenticated).
+ * Returns: { savedCarts, saveCart, deleteSavedCart, getSavedCart, hasSavedCarts }
+ */
 // Hook para guardar carritos para después
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';

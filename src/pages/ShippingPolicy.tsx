@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { StoreLayout } from '@/components/store/StoreLayout';
 
 export default function ShippingPolicy() {
+  // --- DERIVED ---
   const deliveryZones = [
     {
       zone: "Zona Local",
@@ -27,6 +28,7 @@ export default function ShippingPolicy() {
     }
   ];
 
+  // --- RENDER ---
   return (
     <StoreLayout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">

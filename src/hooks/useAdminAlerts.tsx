@@ -1,3 +1,8 @@
+/**
+ * useAdminAlerts — Hook to generate intelligent alerts based on business data.
+ * Computes: stock status, overdue credits, pending debts, and daily sales.
+ * Returns: { alerts, criticalCount, warningCount, hasAlerts, hasCritical }
+ */
 // Hook para alertas inteligentes del admin
 import { useMemo } from 'react';
 import { useProducts } from './useProducts';

@@ -1,3 +1,8 @@
+/**
+ * usePriceValidity — UI helper hook to determine price validity based on BCV rate age.
+ * Standard validity: 30 minutes.
+ * Returns: { rate, loading, lastUpdated, validity: { isValid, minutesRemaining, message, urgency } }
+ */
 // Hook para mostrar validez del precio según tasa BCV
 import { useState, useEffect, useMemo } from 'react';
 import { useExchangeRate } from './useExchangeRate';

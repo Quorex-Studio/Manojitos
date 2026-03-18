@@ -1,3 +1,8 @@
+/**
+ * useCustomerCredit — Hook for customers to view their own credit status.
+ * Tables: `credits`, `credit_transactions`, `payment_promises`
+ * Returns: { credit, transactions, promises, hasCredit, isLoading }
+ */
 // Hook para que los clientes vean su estado de crédito
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';

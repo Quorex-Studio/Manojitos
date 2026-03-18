@@ -32,8 +32,11 @@ const TYPE_CONFIG: Record<string, { icon: typeof Info; color: string; bg: string
 };
 
 export default function CustomerNotifications() {
+  // --- DERIVED ---
   const { user } = useAuth();
   const { notifications, isLoading, unreadCount, markAsRead, markAllAsRead } = useCustomerNotifications();
+
+  // --- RENDER ---
 
   if (!user) {
     return (
