@@ -1,5 +1,5 @@
 // Panel de recomendaciones de Ángela para el Dashboard
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, 
@@ -44,19 +44,19 @@ const alertTypeLabels: Record<string, string> = {
 
 const severityColors: Record<string, { bg: string; text: string; border: string }> = {
   info: { 
-    bg: 'bg-blue-100 dark:bg-blue-900/30', 
-    text: 'text-blue-700 dark:text-blue-300',
-    border: 'border-blue-200 dark:border-blue-800'
+    bg: 'bg-primary/10', 
+    text: 'text-primary',
+    border: 'border-primary/25'
   },
   warning: { 
-    bg: 'bg-amber-100 dark:bg-amber-900/30', 
-    text: 'text-amber-700 dark:text-amber-300',
-    border: 'border-amber-200 dark:border-amber-800'
+    bg: 'bg-gold/10', 
+    text: 'text-gold',
+    border: 'border-gold/30'
   },
   critical: { 
-    bg: 'bg-red-100 dark:bg-red-900/30', 
-    text: 'text-red-700 dark:text-red-300',
-    border: 'border-red-200 dark:border-red-800'
+    bg: 'bg-destructive/10', 
+    text: 'text-destructive',
+    border: 'border-destructive/30'
   },
 };
 
@@ -109,7 +109,7 @@ function AlertCard({ alert, onDismiss, onMarkRead }: AlertCardProps) {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
               >
-                <Badge className="text-[10px] bg-pink-500 text-white px-1.5">
+                <Badge className="text-[10px] bg-primary text-primary-foreground px-1.5">
                   Nuevo
                 </Badge>
               </motion.div>
@@ -237,9 +237,9 @@ export function AngelaCopilotPanel() {
   }), [alerts]);
 
   return (
-    <Card className="border-pink-200 dark:border-pink-800 overflow-hidden shadow-lg">
+    <Card className="border-primary/20 overflow-hidden shadow-lg">
       {/* Header con gradiente */}
-      <CardHeader className="bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white pb-3">
+      <CardHeader className="bg-gradient-to-r from-primary/90 to-rose-dark text-primary-foreground pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <motion.div 
@@ -291,17 +291,17 @@ export function AngelaCopilotPanel() {
         {alerts.length > 0 && (
           <div className="flex gap-2 mt-3">
             {stats.critical > 0 && (
-              <Badge className="bg-red-500/80 text-white text-xs">
+              <Badge className="bg-destructive text-destructive-foreground text-xs">
                 🚨 {stats.critical} crítica{stats.critical !== 1 ? 's' : ''}
               </Badge>
             )}
             {stats.warning > 0 && (
-              <Badge className="bg-amber-500/80 text-white text-xs">
+              <Badge className="bg-gold/90 text-accent-foreground text-xs">
                 ⚠️ {stats.warning} aviso{stats.warning !== 1 ? 's' : ''}
               </Badge>
             )}
             {stats.info > 0 && (
-              <Badge className="bg-blue-500/80 text-white text-xs">
+              <Badge className="bg-primary/80 text-primary-foreground text-xs">
                 💡 {stats.info} sugerencia{stats.info !== 1 ? 's' : ''}
               </Badge>
             )}
@@ -322,7 +322,7 @@ export function AngelaCopilotPanel() {
                 <TabsTrigger value="unread" className="text-xs px-2">
                   Nuevas
                   {stats.unread > 0 && (
-                    <Badge className="ml-1 h-4 w-4 p-0 text-[10px] bg-pink-500">
+                    <Badge className="ml-1 h-4 w-4 p-0 text-[10px] bg-primary">
                       {stats.unread}
                     </Badge>
                   )}
@@ -347,19 +347,19 @@ export function AngelaCopilotPanel() {
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             >
-              <RefreshCw className="h-6 w-6 mx-auto text-pink-500" />
+              <RefreshCw className="h-6 w-6 mx-auto text-primary" />
             </motion.div>
             <p className="text-sm text-muted-foreground mt-2">Analizando datos...</p>
           </div>
         ) : alerts.length === 0 ? (
           <div className="p-8 text-center">
             <motion.div 
-              className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 flex items-center justify-center"
+              className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring" }}
             >
-              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <CheckCircle2 className="h-8 w-8 text-primary" />
             </motion.div>
             <p className="font-medium text-green-700 dark:text-green-300">¡Todo está excelente! 🩷</p>
             <p className="text-xs text-muted-foreground mt-1 mb-4">
@@ -370,7 +370,7 @@ export function AngelaCopilotPanel() {
               size="sm"
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="border-pink-300 text-pink-600 hover:bg-pink-50"
+              className="border-primary/40 text-primary hover:bg-primary/10"
             >
               <RefreshCw className={cn("h-3 w-3 mr-2", isGenerating && "animate-spin")} />
               Analizar ahora

@@ -77,10 +77,10 @@ export function useProviders() {
       const { data, error } = await supabase
         .from('providers')
         .insert([{
-          name: validated.name,
-          phone: validated.phone,
-          email: validated.email || null,
-          notes: validated.notes,
+          name: (validated as any).name,
+          phone: (validated as any).phone,
+          email: (validated as any).email || null,
+          notes: (validated as any).notes,
           user_id: user.id
         }])
         .select()
@@ -123,13 +123,13 @@ export function useProviders() {
       const { data, error } = await supabase
         .from('purchases')
         .insert([{
-          provider_id: validated.provider_id,
-          provider_name: validated.provider_name,
-          amount_usd: validated.amount_usd,
-          amount_bs: validated.amount_bs,
-          purchase_date: validated.purchase_date,
-          status: validated.status,
-          notes: validated.notes,
+          provider_id: (validated as any).provider_id,
+          provider_name: (validated as any).provider_name,
+          amount_usd: (validated as any).amount_usd,
+          amount_bs: (validated as any).amount_bs,
+          purchase_date: (validated as any).purchase_date,
+          status: (validated as any).status,
+          notes: (validated as any).notes,
           user_id: user.id
         }])
         .select()

@@ -146,6 +146,7 @@ export default function BusinessRules() {
     setExpandedRules(newExpanded);
   };
 
+  const getRuleTypeInfo = (type: string) => {
     return RULE_TYPES.find(t => t.value === type) || RULE_TYPES[2];
   };
 

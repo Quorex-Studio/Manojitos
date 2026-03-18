@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Settings as SettingsIcon, RefreshCw, DollarSign, Moon, Sun, Loader2, Euro } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -23,10 +23,6 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
   const [fetchingRate, setFetchingRate] = useState(false);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
-
-  // --- DERIVED / EFFECTS ---
-
-  }, [selectedCurrency]);
 
   // --- HANDLERS ---
 
@@ -80,6 +76,9 @@ export default function Settings() {
     }
   };
 
+  const handleToggleTheme = (newMode: boolean) => {
+    setIsDark(newMode);
+    document.documentElement.classList.toggle('dark', newMode);
     localStorage.setItem('theme', newMode ? 'dark' : 'light');
   };
 
@@ -196,7 +195,7 @@ export default function Settings() {
                   <p className="font-medium">Modo Oscuro</p>
                   <p className="text-sm text-muted-foreground">Cambia entre tema claro y oscuro</p>
                 </div>
-                <Switch checked={isDark} onCheckedChange={toggleDarkMode} />
+                <Switch checked={isDark} onCheckedChange={handleToggleTheme} />
               </div>
             </CardContent>
           </Card>

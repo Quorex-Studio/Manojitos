@@ -40,6 +40,9 @@ export const PriceValidityBadge = forwardRef<HTMLDivElement, PriceValidityBadgeP
         : Zap;
 
     if (compact) {
+      if (validity.urgency === 'normal' || validity.minutesRemaining === 0) {
+        return null;
+      }
       return (
         <div ref={ref} className={className}>
           <motion.div

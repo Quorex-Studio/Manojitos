@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { 
@@ -69,6 +69,7 @@ const COLUMN_MAPPINGS: Record<string, string> = {
   'code': 'sku',
 };
 
+export default function ImportProducts() {
   // --- STATE ---
   const { user, isAdmin } = useAuth();
   const [file, setFile] = useState<File | null>(null);
@@ -86,8 +87,6 @@ const COLUMN_MAPPINGS: Record<string, string> = {
     const valid = parsedProducts.filter(p => p.isValid).length;
     const invalid = parsedProducts.filter(p => !p.isValid).length;
     return { valid, invalid, total: parsedProducts.length };
-  }, [parsedProducts]);
-
   }, [parsedProducts]);
 
   // --- HANDLERS ---
@@ -322,6 +321,15 @@ const COLUMN_MAPPINGS: Record<string, string> = {
     }
   };
 
+  // Reiniciar estado
+  const handleReset = () => {
+    setFile(null);
+    setParsedProducts([]);
+    setImportProgress(0);
+    setImportResult(null);
+    setStep('upload');
+  };
+
   // Descargar reporte de errores
   const downloadErrorReport = () => {
     if (!importResult || importResult.errors.length === 0) return;
@@ -330,9 +338,6 @@ const COLUMN_MAPPINGS: Record<string, string> = {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Errores');
     XLSX.writeFile(workbook, 'errores_importacion.xlsx');
-  };
-
-    setStep('upload');
   };
 
   // --- RENDER ---
@@ -354,7 +359,6 @@ const COLUMN_MAPPINGS: Record<string, string> = {
     );
   }
 
-  // --- RENDER ---
   return (
     <AppLayout>
       <motion.div

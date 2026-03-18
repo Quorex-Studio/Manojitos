@@ -18,24 +18,24 @@ const alertIcons: Record<AlertType, typeof AlertTriangle> = {
 
 const alertColors: Record<AlertType, { bg: string; border: string; icon: string }> = {
   critical: {
-    bg: 'bg-red-50 dark:bg-red-900/20',
-    border: 'border-red-200 dark:border-red-800',
-    icon: 'text-red-600 dark:text-red-400'
+    bg: 'bg-destructive/10',
+    border: 'border-destructive/30',
+    icon: 'text-destructive'
   },
   warning: {
-    bg: 'bg-yellow-50 dark:bg-yellow-900/20',
-    border: 'border-yellow-200 dark:border-yellow-800',
-    icon: 'text-yellow-600 dark:text-yellow-400'
+    bg: 'bg-gold/10',
+    border: 'border-gold/30',
+    icon: 'text-gold'
   },
   info: {
-    bg: 'bg-blue-50 dark:bg-blue-900/20',
-    border: 'border-blue-200 dark:border-blue-800',
-    icon: 'text-blue-600 dark:text-blue-400'
+    bg: 'bg-primary/10',
+    border: 'border-primary/25',
+    icon: 'text-primary'
   },
   success: {
-    bg: 'bg-green-50 dark:bg-green-900/20',
-    border: 'border-green-200 dark:border-green-800',
-    icon: 'text-green-600 dark:text-green-400'
+    bg: 'bg-secondary',
+    border: 'border-border',
+    icon: 'text-primary'
   }
 };
 
@@ -100,12 +100,12 @@ export function AdminAlertsPanel() {
 
   if (!hasAlerts || visibleAlerts.length === 0) {
     return (
-      <Card className="p-4 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+      <Card className="p-4 bg-secondary border-border">
         <div className="flex items-center gap-3">
-          <CheckCircle className="h-5 w-5 text-green-600" />
+          <CheckCircle className="h-5 w-5 text-primary" />
           <div>
-            <h4 className="font-medium text-green-800 dark:text-green-200">Todo en orden</h4>
-            <p className="text-xs text-green-600 dark:text-green-400">No hay alertas pendientes</p>
+            <h4 className="font-medium text-foreground">Todo en orden</h4>
+            <p className="text-xs text-muted-foreground">No hay alertas pendientes</p>
           </div>
         </div>
       </Card>
@@ -127,7 +127,7 @@ export function AdminAlertsPanel() {
               </Badge>
             )}
             {warningCount > 0 && (
-              <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
+              <Badge variant="outline" className="text-xs bg-gold/10 text-gold border-gold/30">
                 {warningCount} aviso{warningCount !== 1 ? 's' : ''}
               </Badge>
             )}
@@ -169,7 +169,7 @@ export function AlertsBadge() {
         </Badge>
       )}
       {warningCount > 0 && criticalCount === 0 && (
-        <Badge className="h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-yellow-500">
+        <Badge className="h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-gold">
           {warningCount}
         </Badge>
       )}
