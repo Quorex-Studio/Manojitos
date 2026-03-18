@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { useEffect } from 'react';
 
 // Tipo para notificación
-export interface Notification {
+export interface AdminNotification {
   id: string;
   user_id: string;
   credit_id: string | null;
@@ -62,7 +62,7 @@ export function useNotifications() {
         .limit(50);
 
       if (error) throw error;
-      return data as Notification[];
+      return data as AdminNotification[];
     },
     enabled: !!user,
   });
@@ -194,7 +194,7 @@ export function useNotifications() {
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
           
           // Mostrar toast para nueva notificación
-          const newNotif = payload.new as Notification;
+          const newNotif = payload.new as AdminNotification;
           toast.info(newNotif.title, {
             description: newNotif.message.substring(0, 100) + '...',
           });

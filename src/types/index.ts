@@ -41,6 +41,7 @@ export interface Product {
   description: string | null;
   price_usd: number;
   stock: number;
+  minimum_stock: number | null;
   category: string | null;
   image_url: string | null;
   sold_count: number;

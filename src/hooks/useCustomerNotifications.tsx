@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-export interface Notification {
+export interface CustomerNotification {
   id: string;
   user_id: string;
   title: string;
@@ -40,7 +40,7 @@ export function useCustomerNotifications() {
         .limit(100);
 
       if (error) throw error;
-      return data as Notification[];
+      return data as CustomerNotification[];
     },
     enabled: !!user,
   });

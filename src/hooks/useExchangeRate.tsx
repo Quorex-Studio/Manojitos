@@ -8,16 +8,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Flag to track if auto-fetch has been attempted this session per currency
-const autoFetchAttempted: Record<string, boolean> = {};
-
-export type Currency = 'USD' | 'EUR';
-
 export function useExchangeRate(currency: Currency = 'USD') {
   const [rate, setRate] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [autoFetching, setAutoFetching] = useState(false);
+  const autoFetchAttempted = useRef<Record<string, boolean>>({});
 
   const fetchRate = async () => {
     const { data, error } = await supabase
@@ -41,8 +37,8 @@ export function useExchangeRate(currency: Currency = 'USD') {
 
   // Auto-fetch from BCV API if rate is missing or outdated
   const autoFetchBCV = async () => {
-    if (autoFetchAttempted[currency]) return;
-    autoFetchAttempted[currency] = true;
+    if (autoFetchAttempted.current[currency]) return;
+    autoFetchAttempted.current[currency] = true;
     
     setAutoFetching(true);
     try {

@@ -147,8 +147,8 @@ export default function Checkout() {
             animate={{ opacity: 1, scale: 1 }}
             className="max-w-lg mx-auto text-center"
           >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
-              <Check className="h-10 w-10 text-green-600" />
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <Check className="h-10 w-10 text-primary" />
             </div>
 
             <h1 className="text-3xl font-serif font-bold text-foreground mb-4">
@@ -213,7 +213,7 @@ export default function Checkout() {
             <div>
               <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground flex items-center gap-3">
                 Finalizar Compra
-                <span className="flex items-center gap-1 text-xs font-sans font-normal bg-green-100 text-green-700 px-3 py-1 rounded-full border border-green-200">
+                <span className="flex items-center gap-1 text-xs font-sans font-normal bg-secondary text-foreground px-3 py-1 rounded-full border border-border">
                   <Shield className="h-3 w-3" />
                   Encriptado SSL
                 </span>
@@ -442,8 +442,8 @@ export default function Checkout() {
               </Button>
 
               {!isShippingValid && (
-                <div className="mt-4 p-3 bg-red-50 text-red-600 text-xs rounded-lg text-center flex items-center justify-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <div className="mt-4 p-3 bg-destructive/10 text-destructive text-xs rounded-lg text-center flex items-center justify-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
                   Por favor completa los campos de envío requeridos
                 </div>
               )}

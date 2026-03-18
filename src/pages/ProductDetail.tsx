@@ -37,10 +37,13 @@ export default function ProductDetail() {
   // --- DERIVED / EFFECTS ---
   // Cargar producto y registrar en historial
   useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+
     const loadProduct = async () => {
-      if (!id) return;
       setLoading(true);
       const data = await getProductById(id);
+      if (cancelled) return;
       setProduct(data);
       setLoading(false);
       
@@ -54,7 +57,10 @@ export default function ProductDetail() {
         });
       }
     };
+
     loadProduct();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Obtener productos vistos recientemente (excluyendo el actual)

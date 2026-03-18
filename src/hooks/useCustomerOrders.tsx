@@ -42,19 +42,19 @@ export interface Order {
 }
 
 export const ORDER_STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pendiente', color: 'bg-yellow-500' },
-  confirmed: { label: 'Confirmado', color: 'bg-blue-500' },
-  processing: { label: 'En preparación', color: 'bg-purple-500' },
-  shipped: { label: 'Enviado', color: 'bg-indigo-500' },
-  delivered: { label: 'Entregado', color: 'bg-green-500' },
-  cancelled: { label: 'Cancelado', color: 'bg-red-500' },
+  pending:    { label: 'Pendiente',       color: 'bg-gold/80' },
+  confirmed:  { label: 'Confirmado',      color: 'bg-primary/80' },
+  processing: { label: 'En preparación',  color: 'bg-primary/60' },
+  shipped:    { label: 'Enviado',         color: 'bg-primary' },
+  delivered:  { label: 'Entregado',       color: 'bg-rose-dark' },
+  cancelled:  { label: 'Cancelado',       color: 'bg-destructive/80' },
 };
 
 export const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pendiente', color: 'bg-yellow-500' },
-  paid: { label: 'Pagado', color: 'bg-green-500' },
-  failed: { label: 'Fallido', color: 'bg-red-500' },
-  refunded: { label: 'Reembolsado', color: 'bg-gray-500' },
+  pending:  { label: 'Pendiente',    color: 'bg-gold/80' },
+  paid:     { label: 'Pagado',       color: 'bg-rose-dark' },
+  failed:   { label: 'Fallido',      color: 'bg-destructive/80' },
+  refunded: { label: 'Reembolsado',  color: 'bg-muted-foreground/60' },
 };
 
 export function useCustomerOrders() {
@@ -63,19 +63,62 @@ export function useCustomerOrders() {
   const { data: orders = [], isLoading, refetch } = useQuery({
     queryKey: ['customer-orders', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch from orders table (future/new system)
+      const { data: ordersData } = await supabase
         .from('orders')
         .select('*')
         .eq('customer_user_id', user!.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      // Parse items JSON
-      return (data || []).map(order => ({
+      // Fetch from sales table (current checkout system)
+      const { data: salesData } = await supabase
+        .from('sales')
+        .select('*')
+        .eq('customer_user_id', user!.id)
+        .order('created_at', { ascending: false });
+
+      const fromOrders: Order[] = (ordersData || []).map(order => ({
         ...order,
         items: (order.items as unknown) as OrderItem[],
       })) as Order[];
+
+      // Map sales records to Order shape for unified display
+      const fromSales: Order[] = (salesData || []).map(sale => ({
+        id: sale.id,
+        user_id: sale.user_id,
+        customer_user_id: sale.customer_user_id ?? null,
+        customer_name: sale.client_name ?? 'Cliente',
+        customer_phone: sale.client_phone ?? null,
+        customer_email: null,
+        items: [{
+          product_id: sale.product_id ?? '',
+          product_name: sale.product_name,
+          quantity: sale.quantity,
+          unit_price: sale.unit_price_usd,
+          total: sale.total_usd,
+        }] as OrderItem[],
+        subtotal: sale.total_usd,
+        discount: 0,
+        total_usd: sale.total_usd,
+        total_bs: sale.total_bs ?? null,
+        status: (sale.status as Order['status']) ?? 'pending',
+        payment_method: sale.payment_method ?? null,
+        payment_status: sale.is_credit ? 'pending' : 'paid',
+        shipping_address: null,
+        shipping_city: null,
+        shipping_state: null,
+        tracking_number: null,
+        notes: sale.notes ?? null,
+        created_at: sale.created_at,
+        updated_at: sale.created_at,
+      }));
+
+      // Merge and sort by date, deduplicate by id
+      const all = [...fromOrders, ...fromSales];
+      const seen = new Set<string>();
+      return all
+        .filter(o => { if (seen.has(o.id)) return false; seen.add(o.id); return true; })
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
     enabled: !!user,
   });

@@ -210,40 +210,37 @@ export function useCustomerPurchaseHistory(customerId?: string) {
   const { data: purchases = [], isLoading } = useQuery({
     queryKey: ['customer-purchases', targetUserId],
     queryFn: async () => {
-      // Cliente puede ver sus propias compras, admin puede ver todas
+      // Try by user_id first (direct match)
       let query = supabase
         .from('sales')
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Si es cliente buscando por su teléfono en client_phone
-      if (!isAdmin && user) {
-        // Buscar el perfil del cliente para obtener su teléfono
-        const { data: profile } = await supabase
-          .from('customer_profiles')
-          .select('phone')
-          .eq('user_id', user.id)
-          .single();
+      const { data: profile } = await supabase
+        .from('customer_profiles')
+        .select('phone')
+        .eq('user_id', user!.id)
+        .maybeSingle();
 
-        if (profile?.phone) {
-          query = query.eq('client_phone', profile.phone);
-        }
-      } else if (customerId && isAdmin) {
-        // Admin buscando compras de un cliente específico
-        const { data: profile } = await supabase
-          .from('customer_profiles')
-          .select('phone')
-          .eq('user_id', customerId)
-          .single();
-
-        if (profile?.phone) {
-          query = query.eq('client_phone', profile.phone);
-        }
+      if (profile?.phone) {
+        // Search by phone (linked to old sales records)
+        const { data } = await supabase
+          .from('sales')
+          .select('*')
+          .or(`client_phone.eq.${profile.phone},customer_user_id.eq.${user!.id}`)
+          .order('created_at', { ascending: false })
+          .limit(100);
+        return data || [];
+      } else {
+        // Fallback: search by customer_user_id only
+        const { data } = await supabase
+          .from('sales')
+          .select('*')
+          .eq('customer_user_id', user!.id)
+          .order('created_at', { ascending: false })
+          .limit(100);
+        return data || [];
       }
-
-      const { data, error } = await query.limit(100);
-      if (error) throw error;
-      return data;
     },
     enabled: !!targetUserId,
   });
