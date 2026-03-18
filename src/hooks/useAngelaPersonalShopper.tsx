@@ -41,11 +41,26 @@ export function useAngelaPersonalShopper() {
     if (!user) return;
 
     try {
-      // Obtener historial de compras del cliente (desde orders)
-      const { data: orders } = await supabase
-        .from('orders')
-        .select('items, total_usd, payment_method, created_at')
-        .eq('customer_user_id', user.id)
+      // Helper to get customer phone
+      const getCustomerPhone = async (userId: string): Promise<string> => {
+        const { data } = await supabase
+          .from('customer_profiles')
+          .select('phone')
+          .eq('user_id', userId)
+          .maybeSingle();
+        return data?.phone ?? '';
+      };
+
+      // Replace orders query with sales query (using phone fallback)
+      const customerPhone = await getCustomerPhone(user.id);
+      const orFilter = customerPhone
+        ? `customer_user_id.eq.${user.id},client_phone.eq.${customerPhone}`
+        : `customer_user_id.eq.${user.id}`;
+
+      const { data: salesHistory } = await supabase
+        .from('sales')
+        .select('product_name, product_id, total_usd, payment_method, created_at')
+        .or(orFilter)
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -59,16 +74,16 @@ export function useAngelaPersonalShopper() {
       // Analizar comportamiento
       const behaviorData: CustomerBehavior = {};
 
-      if (orders && orders.length > 0) {
+      if (salesHistory && salesHistory.length > 0) {
         // Calcular valor promedio de orden
-        const totalValue = orders.reduce((sum, o) => sum + Number(o.total_usd), 0);
-        behaviorData.avgOrderValue = totalValue / orders.length;
+        const totalValue = salesHistory.reduce((sum, s) => sum + Number(s.total_usd), 0);
+        behaviorData.avgOrderValue = totalValue / salesHistory.length;
 
         // Método de pago preferido
         const paymentMethods: Record<string, number> = {};
-        orders.forEach(o => {
-          if (o.payment_method) {
-            paymentMethods[o.payment_method] = (paymentMethods[o.payment_method] || 0) + 1;
+        salesHistory.forEach(s => {
+          if (s.payment_method) {
+            paymentMethods[s.payment_method] = (paymentMethods[s.payment_method] || 0) + 1;
           }
         });
         const sortedMethods = Object.entries(paymentMethods).sort((a, b) => b[1] - a[1]);
@@ -77,31 +92,39 @@ export function useAngelaPersonalShopper() {
         }
 
         // Última compra
-        behaviorData.lastPurchaseDate = orders[0].created_at;
+        behaviorData.lastPurchaseDate = salesHistory[0].created_at;
 
         // Frecuencia de compra
-        if (orders.length >= 5) {
-          const firstDate = new Date(orders[orders.length - 1].created_at);
-          const lastDate = new Date(orders[0].created_at);
+        if (salesHistory.length >= 5) {
+          const firstDate = new Date(salesHistory[salesHistory.length - 1].created_at);
+          const lastDate = new Date(salesHistory[0].created_at);
           const daysBetween = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
-          const avgDays = daysBetween / (orders.length - 1);
+          const avgDays = daysBetween / (salesHistory.length - 1);
           
           if (avgDays < 7) behaviorData.purchaseFrequency = 'frecuente';
           else if (avgDays < 30) behaviorData.purchaseFrequency = 'regular';
           else behaviorData.purchaseFrequency = 'ocasional';
         }
 
-        // Categoría favorita (analizar items)
+        // Categoría favorita (analizar productos cruzados)
         const categories: Record<string, number> = {};
-        orders.forEach(o => {
-          if (Array.isArray(o.items)) {
-            o.items.forEach((item: { category?: string }) => {
-              if (item.category) {
-                categories[item.category] = (categories[item.category] || 0) + 1;
-              }
-            });
-          }
-        });
+        const productIds = salesHistory
+          .map(s => s.product_id)
+          .filter((id): id is string => !!id);
+        
+        if (productIds.length > 0) {
+          const { data: purchasedProducts } = await supabase
+            .from('products')
+            .select('id, category')
+            .in('id', productIds);
+          
+          salesHistory.forEach(sale => {
+            const product = purchasedProducts?.find(p => p.id === sale.product_id);
+            if (product?.category) {
+              categories[product.category] = (categories[product.category] || 0) + 1;
+            }
+          });
+        }
         const sortedCategories = Object.entries(categories).sort((a, b) => b[1] - a[1]);
         if (sortedCategories.length > 0) {
           behaviorData.favoriteCategory = sortedCategories[0][0];

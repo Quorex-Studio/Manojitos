@@ -72,23 +72,23 @@ export function calculateFinancialProfile(credit: CreditData): FinancialProfile 
   if (trustScore >= 90) {
     trustLevel = 'EXCELENTE';
     trustEmoji = '⭐';
-    trustColor = 'text-green-500';
+    trustColor = 'text-primary';
   } else if (trustScore >= 75) {
     trustLevel = 'BUENO';
     trustEmoji = '✅';
-    trustColor = 'text-blue-500';
+    trustColor = 'text-gold';
   } else if (trustScore >= 50) {
     trustLevel = 'REGULAR';
     trustEmoji = '⚠️';
-    trustColor = 'text-yellow-500';
+    trustColor = 'text-gold';
   } else if (trustScore >= 25) {
     trustLevel = 'RIESGO';
     trustEmoji = '🔶';
-    trustColor = 'text-orange-500';
+    trustColor = 'text-gold';
   } else {
     trustLevel = 'CRITICO';
     trustEmoji = '🔴';
-    trustColor = 'text-red-500';
+    trustColor = 'text-destructive';
   }
   
   // Generar recomendaciones

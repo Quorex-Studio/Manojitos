@@ -48,7 +48,7 @@ export function useAdminAlerts() {
         category: 'stock',
         title: 'Productos agotados',
         message: `${outOfStockProducts.length} producto(s) sin stock`,
-        icon: '🚨',
+        icon: 'AlertTriangle',
         action: { label: 'Ver productos', path: '/products' },
         timestamp: now
       });
@@ -61,7 +61,7 @@ export function useAdminAlerts() {
         category: 'stock',
         title: 'Stock bajo',
         message: `${lowStockProducts.length} producto(s) con menos de 4 unidades`,
-        icon: '⚠️',
+        icon: 'AlertCircle',
         action: { label: 'Reponer', path: '/products' },
         timestamp: now
       });
@@ -79,7 +79,7 @@ export function useAdminAlerts() {
         category: 'credit',
         title: 'Créditos vencidos',
         message: `${overdueCredits.length} cliente(s) en mora - $${totalOverdue.toFixed(2)} pendiente`,
-        icon: '💸',
+        icon: 'DollarSign',
         action: { label: 'Gestionar cobros', path: '/credits' },
         timestamp: now
       });
@@ -92,7 +92,7 @@ export function useAdminAlerts() {
         category: 'credit',
         title: 'Créditos en gracia',
         message: `${atRiskCredits.length} cliente(s) en período de gracia`,
-        icon: '⏰',
+        icon: 'Clock',
         action: { label: 'Ver créditos', path: '/credits' },
         timestamp: now
       });
@@ -107,7 +107,7 @@ export function useAdminAlerts() {
         category: 'debt',
         title: 'Deudas por cobrar',
         message: `${pendingDebts.length} deuda(s) pendiente(s) - $${totalDebt.toFixed(2)}`,
-        icon: '📋',
+        icon: 'FileText',
         action: { label: 'Ver deudas', path: '/debts' },
         timestamp: now
       });
@@ -125,7 +125,7 @@ export function useAdminAlerts() {
         category: 'sales',
         title: 'Sin ventas hoy',
         message: 'No se han registrado ventas hoy',
-        icon: '📉',
+        icon: 'TrendingDown',
         action: { label: 'Registrar venta', path: '/sales' },
         timestamp: now
       });
@@ -140,7 +140,7 @@ export function useAdminAlerts() {
         category: 'performance',
         title: '¡Cartera saludable!',
         message: `${goodPayersCount} cliente(s) con excelente historial`,
-        icon: '🎉',
+        icon: 'CheckCircle',
         timestamp: now
       });
     }

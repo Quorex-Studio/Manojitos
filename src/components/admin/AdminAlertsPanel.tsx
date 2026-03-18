@@ -1,6 +1,6 @@
 // Panel de alertas inteligentes para el admin
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, AlertTriangle, AlertCircle, Info, CheckCircle, ChevronRight, X } from 'lucide-react';
+import { Bell, AlertTriangle, AlertCircle, Info, CheckCircle, ChevronRight, X, DollarSign, Clock, FileText, TrendingDown } from 'lucide-react';
 import { useState } from 'react';
 import { useAdminAlerts, AdminAlert, AlertType } from '@/hooks/useAdminAlerts';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,16 @@ const alertIcons: Record<AlertType, typeof AlertTriangle> = {
   warning: AlertCircle,
   info: Info,
   success: CheckCircle
+};
+
+const lucideIcons: Record<string, typeof AlertTriangle> = {
+  AlertTriangle,
+  AlertCircle,
+  DollarSign,
+  Clock,
+  FileText,
+  TrendingDown,
+  CheckCircle
 };
 
 const alertColors: Record<AlertType, { bg: string; border: string; icon: string }> = {
@@ -40,7 +50,7 @@ const alertColors: Record<AlertType, { bg: string; border: string; icon: string 
 };
 
 function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => void }) {
-  const Icon = alertIcons[alert.type];
+  const Icon = lucideIcons[alert.icon] || alertIcons[alert.type] || Info;
   const colors = alertColors[alert.type];
 
   return (
@@ -52,7 +62,7 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
       className={`${colors.bg} ${colors.border} border rounded-lg p-3`}
     >
       <div className="flex items-start gap-3">
-        <span className="text-lg">{alert.icon}</span>
+        <Icon className={`h-5 w-5 mt-0.5 ${colors.icon}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h4 className="font-medium text-sm text-foreground">{alert.title}</h4>

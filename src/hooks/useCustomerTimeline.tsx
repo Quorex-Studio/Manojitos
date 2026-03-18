@@ -105,7 +105,7 @@ export function useCustomerTimeline(customerIdentifier?: string, identifierType:
 
   // Agrupar eventos por fecha
   const groupedEvents = events.reduce((groups, event) => {
-    const date = new Date(event.created_at).toLocaleDateString('es-VE');
+    const date = new Date(event.created_at).toISOString().split('T')[0];
     if (!groups[date]) {
       groups[date] = [];
     }

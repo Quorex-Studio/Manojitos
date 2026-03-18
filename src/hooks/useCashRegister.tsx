@@ -35,27 +35,43 @@ export interface DailySummary {
   topProducts: Array<{ name: string; quantity: number; total: number }>;
 }
 
+const getCashKey = (userId: string | null) =>
+  userId ? `${CASH_REGISTER_KEY}_${userId}` : `${CASH_REGISTER_KEY}_guest`;
+
 export function useCashRegister() {
-  const { user } = useAuth();
+  const [userId, setUserId] = useState<string | null>(null);
   const { sales } = useSales();
-  const storageKey = user ? `${CASH_REGISTER_KEY}_${user.id}` : CASH_REGISTER_KEY;
+  const [session, setSession] = useState<CashRegisterSession | null>(null);
 
-  const [session, setSession] = useState<CashRegisterSession | null>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(storageKey);
-      return stored ? JSON.parse(stored) : null;
-    }
-    return null;
-  });
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session: authSession } }) => {
+      const id = authSession?.user?.id ?? null;
+      setUserId(id);
+      try {
+        const stored = localStorage.getItem(getCashKey(id));
+        setSession(stored ? JSON.parse(stored) : null);
+      } catch { setSession(null); }
+    });
 
-  // Persistir cambios
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, authSession) => {
+      const id = authSession?.user?.id ?? null;
+      setUserId(id);
+      try {
+        const stored = localStorage.getItem(getCashKey(id));
+        setSession(stored ? JSON.parse(stored) : null);
+      } catch { setSession(null); }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
     if (session) {
-      localStorage.setItem(storageKey, JSON.stringify(session));
+      localStorage.setItem(getCashKey(userId), JSON.stringify(session));
     } else {
-      localStorage.removeItem(storageKey);
+      localStorage.removeItem(getCashKey(userId));
     }
-  }, [session, storageKey]);
+  }, [session, userId]);
 
   // Abrir caja
   const openRegister = useCallback((openingBalance: number, notes = '') => {
@@ -97,7 +113,7 @@ export function useCashRegister() {
 
     const totalSales = todaySales.reduce((sum, s) => sum + s.total_usd, 0);
     const totalCash = todaySales
-      .filter(s => s.payment_method === 'efectivo')
+      .filter(s => s.payment_method === 'efectivo_usd' || s.payment_method === 'efectivo_bs')
       .reduce((sum, s) => sum + s.total_usd, 0);
     const totalCredit = todaySales
       .filter(s => s.is_credit)
@@ -148,20 +164,20 @@ export function useCashRegister() {
     };
     
     // Guardar en historial
-    const historyKey = `${storageKey}_history`;
+    const historyKey = `${getCashKey(userId)}_history`;
     const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
     history.unshift({ ...closedSession, summary: dailySummary });
     localStorage.setItem(historyKey, JSON.stringify(history.slice(0, 30))); // Últimos 30 días
     
     setSession(null);
     return { session: closedSession, summary: dailySummary };
-  }, [session, dailySummary, storageKey]);
+  }, [session, dailySummary, userId]);
 
   // Obtener historial
   const getHistory = useCallback(() => {
-    const historyKey = `${storageKey}_history`;
+    const historyKey = `${getCashKey(userId)}_history`;
     return JSON.parse(localStorage.getItem(historyKey) || '[]');
-  }, [storageKey]);
+  }, [userId]);
 
   return {
     session,

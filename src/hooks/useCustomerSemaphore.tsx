@@ -8,6 +8,10 @@ import { useMemo } from 'react';
 
 export type SemaphoreLevel = 'green' | 'yellow' | 'red';
 
+// NOTE: icon field contains semantic indicator strings used as data labels,
+// not rendered directly as UI icons. Components consuming this should
+// render them only in non-visual contexts (aria-labels, tooltips, exports).
+// For visual display, use the color/bgColor fields with Lucide icons instead.
 export interface CustomerSemaphore {
   level: SemaphoreLevel;
   label: string;
@@ -35,8 +39,8 @@ export function calculateSemaphore(customer: CustomerData): CustomerSemaphore {
       level: 'red',
       label: 'Bloqueado',
       icon: '🔴',
-      color: 'text-red-600',
-      bgColor: 'bg-red-100 dark:bg-red-900/30',
+      color: 'text-destructive',
+      bgColor: 'bg-destructive/10',
       description: 'Cliente con acceso restringido',
       canBuyOnCredit: false
     };
@@ -51,8 +55,8 @@ export function calculateSemaphore(customer: CustomerData): CustomerSemaphore {
       level: 'red',
       label: 'Alto riesgo',
       icon: '🔴',
-      color: 'text-red-600',
-      bgColor: 'bg-red-100 dark:bg-red-900/30',
+      color: 'text-destructive',
+      bgColor: 'bg-destructive/10',
       description: 'Historial de pagos preocupante',
       canBuyOnCredit: false
     };
@@ -64,8 +68,8 @@ export function calculateSemaphore(customer: CustomerData): CustomerSemaphore {
       level: 'yellow',
       label: 'Riesgo medio',
       icon: '🟡',
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+      color: 'text-gold',
+      bgColor: 'bg-gold/10',
       description: 'Algunos pagos tardíos',
       canBuyOnCredit: true
     };
@@ -76,8 +80,8 @@ export function calculateSemaphore(customer: CustomerData): CustomerSemaphore {
     level: 'green',
     label: 'Excelente',
     icon: '🟢',
-    color: 'text-green-600',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
     description: 'Cliente confiable',
     canBuyOnCredit: true
   };
@@ -90,8 +94,8 @@ export function useCustomerSemaphore(customer: CustomerData | null | undefined) 
         level: 'green' as SemaphoreLevel,
         label: 'Nuevo',
         icon: '⚪',
-        color: 'text-gray-600',
-        bgColor: 'bg-gray-100 dark:bg-gray-900/30',
+        color: 'text-muted-foreground',
+        bgColor: 'bg-secondary',
         description: 'Sin historial',
         canBuyOnCredit: true
       };

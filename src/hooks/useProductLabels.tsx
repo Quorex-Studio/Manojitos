@@ -34,7 +34,7 @@ export function calculateProductLabels(product: ProductForLabels, allProducts?: 
       type: 'new',
       text: 'Nuevo',
       icon: '🆕',
-      color: 'bg-blue-500 text-white'
+      color: 'bg-primary text-primary-foreground'
     });
   }
 
@@ -49,7 +49,7 @@ export function calculateProductLabels(product: ProductForLabels, allProducts?: 
         type: 'bestseller',
         text: 'Más vendido',
         icon: '🔥',
-        color: 'bg-orange-500 text-white'
+        color: 'bg-gold text-white'
       });
     }
   } else if (product.sold_count >= 10) {
@@ -67,7 +67,7 @@ export function calculateProductLabels(product: ProductForLabels, allProducts?: 
       type: 'low_stock',
       text: `¡Solo ${product.stock}!`,
       icon: '⏳',
-      color: 'bg-red-500 text-white'
+      color: 'bg-destructive text-destructive-foreground'
     });
   }
 
@@ -82,7 +82,7 @@ export function calculateProductLabels(product: ProductForLabels, allProducts?: 
         type: 'best_margin',
         text: 'Premium',
         icon: '💎',
-        color: 'bg-purple-500 text-white'
+        color: 'bg-rose-dark text-white'
       });
     }
   }

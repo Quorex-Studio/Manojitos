@@ -25,6 +25,9 @@ export function useAIAssistant(mode: AIAssistantMode = 'customer') {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // NOTE: This hook fetches all context data (products, sales, credits) regardless of the mode.
+  // This can impact performance if the assistant is used in simple contexts.
+  // Consider refactoring to lazy-loading or providing context externally.
   const { products } = useProducts();
   const { sales } = useSales();
   const { credits, stats: creditStats } = useCredits();

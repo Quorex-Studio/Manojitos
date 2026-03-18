@@ -7,33 +7,38 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
 
-const HISTORY_STORAGE_KEY = 'manojitos_browsing_history';
-const MAX_HISTORY_ITEMS = 20;
-
-export interface BrowsingHistoryItem {
-  productId: string;
-  productName: string;
-  imageUrl: string | null;
-  priceUsd: number;
-  viewedAt: string;
-}
+const getHistoryKey = (userId: string | null) =>
+  userId ? `${HISTORY_STORAGE_KEY}_${userId}` : `${HISTORY_STORAGE_KEY}_guest`;
 
 export function useBrowsingHistory() {
-  const { user } = useAuth();
-  const storageKey = user ? `${HISTORY_STORAGE_KEY}_${user.id}` : HISTORY_STORAGE_KEY;
+  const [userId, setUserId] = useState<string | null>(null);
+  const [history, setHistory] = useState<BrowsingHistoryItem[]>([]);
 
-  const [history, setHistory] = useState<BrowsingHistoryItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(storageKey);
-      return stored ? JSON.parse(stored) : [];
-    }
-    return [];
-  });
-
-  // Persistir cambios
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(history));
-  }, [history, storageKey]);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const id = session?.user?.id ?? null;
+      setUserId(id);
+      try {
+        const stored = localStorage.getItem(getHistoryKey(id));
+        setHistory(stored ? JSON.parse(stored) : []);
+      } catch { setHistory([]); }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const id = session?.user?.id ?? null;
+      setUserId(id);
+      try {
+        const stored = localStorage.getItem(getHistoryKey(id));
+        setHistory(stored ? JSON.parse(stored) : []);
+      } catch { setHistory([]); }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(getHistoryKey(userId), JSON.stringify(history));
+  }, [history, userId]);
 
   // Agregar producto visto
   const addToHistory = useCallback((product: {

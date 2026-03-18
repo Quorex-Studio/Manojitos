@@ -8,7 +8,7 @@
 // Hook para el Ledger Financiero - Auditoría real
 // No permite eliminación, solo reversos
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
