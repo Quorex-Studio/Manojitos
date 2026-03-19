@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -194,10 +195,10 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={cn(paymentConfig.color, "text-white")}>
+                    <Badge {...({ className: cn(paymentConfig.color, "text-white") } as any)}>
                       {paymentConfig.label}
                     </Badge>
-                    <Badge className={cn(statusConfig.color, "text-white")}>
+                    <Badge {...({ className: cn(statusConfig.color, "text-white") } as any)}>
                       {statusConfig.label}
                     </Badge>
                   </div>

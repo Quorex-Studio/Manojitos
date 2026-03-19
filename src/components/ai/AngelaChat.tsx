@@ -1,5 +1,6 @@
 // Chat component para Ángela AI Assistant
 // REGLA CRÍTICA: Usa exclusivamente Hugging Face Inference API - NO Lovable AI
+import * as React from 'react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';

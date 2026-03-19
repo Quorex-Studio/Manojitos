@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
@@ -461,7 +462,7 @@ export default function ImportProducts() {
                     <div className="flex flex-wrap gap-2">
                       {['nombre_producto*', 'precio*', 'stock*', 'descripcion', 'categoria', 'proveedor', 'sku'].map(col => (
                         <div key={col}>
-                          <Badge variant={col.includes('*') ? 'default' : 'secondary'}>
+                          <Badge variant={(col.includes('*') ? 'default' : 'secondary') as any}>
                             {col}
                           </Badge>
                         </div>

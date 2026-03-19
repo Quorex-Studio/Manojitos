@@ -7,6 +7,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { BrowsingHistoryItem } from '@/types';
+
+const HISTORY_STORAGE_KEY = 'manojitos_browsing_history';
+const MAX_HISTORY_ITEMS = 20;
 
 const getHistoryKey = (userId: string | null) =>
   userId ? `${HISTORY_STORAGE_KEY}_${userId}` : `${HISTORY_STORAGE_KEY}_guest`;

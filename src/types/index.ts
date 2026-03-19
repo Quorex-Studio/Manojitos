@@ -61,6 +61,14 @@ export interface PublicProduct {
   created_at: string;
 }
 
+export interface BrowsingHistoryItem {
+  productId: string;
+  productName: string;
+  imageUrl: string | null;
+  priceUsd: number;
+  viewedAt: string;
+}
+
 // ─── TRANSACTIONS & INVESTMENTS ─────────────────────────────
 
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'processing';

@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -257,9 +258,11 @@ export default function BusinessRules() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <CardTitle className="text-lg">{rule.rule_name}</CardTitle>
-                              <Badge variant={rule.is_active ? 'default' : 'secondary'}>
-                                {rule.is_active ? 'Activa' : 'Inactiva'}
-                              </Badge>
+                              {rule.is_active ? (
+                                <Badge variant={'default' as any}>Activo</Badge>
+                              ) : (
+                                <Badge variant={'secondary' as any}>Inactivo</Badge>
+                              )}
                               <Badge variant="outline">{typeInfo.label}</Badge>
                             </div>
                             <CardDescription>{rule.description || typeInfo.description}</CardDescription>

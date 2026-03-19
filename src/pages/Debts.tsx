@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, Search, Check, Trash2, Phone, User } from 'lucide-react';
@@ -11,6 +12,86 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
+interface DebtCardProps {
+  debt: any;
+  showActions?: boolean;
+  onMarkPaid: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  convertToBS: (amount: number) => number;
+}
+
+const DebtCard = ({ debt, showActions = true, onMarkPaid, onDelete, convertToBS }: DebtCardProps) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+  >
+    <Card className="glass-card border-border/50">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "p-2 rounded-lg",
+              debt.status === 'paid' ? 'bg-primary/20' : 'bg-gold/20'
+            )}>
+              <CreditCard className={cn(
+                "h-5 w-5",
+                debt.status === 'paid' ? 'text-primary' : 'text-gold'
+              )} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <p className="font-medium">{debt.client_name}</p>
+              </div>
+              {debt.client_phone && (
+                <div className="flex items-center gap-2 mt-1">
+                  <Phone className="h-3 w-3 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">{debt.client_phone}</p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                {new Date(debt.created_at).toLocaleDateString('es', {
+                  day: 'numeric', month: 'short', year: 'numeric'
+                })}
+              </p>
+              {debt.notes && <p className="text-xs text-muted-foreground italic mt-1">{debt.notes}</p>}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="font-bold text-gradient-gold">${Number(debt.amount_usd).toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">Bs. {convertToBS(Number(debt.amount_usd)).toFixed(2)}</p>
+              <Badge variant={(debt.status === 'paid' ? 'default' : 'destructive') as any} className="mt-1">
+                {debt.status === 'paid' ? 'Pagado' : 'Pendiente'}
+              </Badge>
+            </div>
+            {showActions && debt.status === 'pending' && (
+              <div className="flex flex-col gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => onMarkPaid(debt.id)}
+                  className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => onDelete(debt.id)}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  </motion.div>
+);
+
 export default function Debts() {
   // --- STATE ---
   const { pendingDebts, paidDebts, markAsPaid, deleteDebt } = useDebts();
@@ -19,7 +100,7 @@ export default function Debts() {
 
   // --- DERIVED ---
 
-  const filterDebts = (debts: typeof pendingDebts) =>
+  const filterDebts = (debts: any[]) =>
     debts.filter(d => d.client_name.toLowerCase().includes(search.toLowerCase()));
 
   const totalPending = pendingDebts.reduce((acc, d) => acc + Number(d.amount_usd), 0);
@@ -37,78 +118,6 @@ export default function Debts() {
       await deleteDebt(id);
     }
   };
-
-  const DebtCard = ({ debt, showActions = true }: { debt: typeof pendingDebts[0]; showActions?: boolean }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      <Card className="glass-card border-border/50">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className={cn(
-                "p-2 rounded-lg",
-                debt.status === 'paid' ? 'bg-primary/20' : 'bg-gold/20'
-              )}>
-                <CreditCard className={cn(
-                  "h-5 w-5",
-                  debt.status === 'paid' ? 'text-primary' : 'text-gold'
-                )} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <p className="font-medium">{debt.client_name}</p>
-                </div>
-                {debt.client_phone && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Phone className="h-3 w-3 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">{debt.client_phone}</p>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {new Date(debt.created_at).toLocaleDateString('es', {
-                    day: 'numeric', month: 'short', year: 'numeric'
-                  })}
-                </p>
-                {debt.notes && <p className="text-xs text-muted-foreground italic mt-1">{debt.notes}</p>}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="font-bold text-gradient-gold">${Number(debt.amount_usd).toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground">Bs. {convertToBS(Number(debt.amount_usd)).toFixed(2)}</p>
-                <Badge variant={debt.status === 'paid' ? 'default' : 'destructive'} className="mt-1">
-                  {debt.status === 'paid' ? 'Pagado' : 'Pendiente'}
-                </Badge>
-              </div>
-              {showActions && debt.status === 'pending' && (
-                <div className="flex flex-col gap-1">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleMarkPaid(debt.id)}
-                    className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleDelete(debt.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
 
   // --- RENDER ---
   return (
@@ -143,7 +152,13 @@ export default function Debts() {
 
           <TabsContent value="pending" className="space-y-3">
             {filterDebts(pendingDebts).map((debt) => (
-              <DebtCard key={debt.id} debt={debt} />
+              <DebtCard 
+                key={debt.id} 
+                debt={debt} 
+                onMarkPaid={handleMarkPaid}
+                onDelete={handleDelete}
+                convertToBS={convertToBS}
+              />
             ))}
             {filterDebts(pendingDebts).length === 0 && (
               <div className="text-center py-16">
@@ -155,7 +170,14 @@ export default function Debts() {
 
           <TabsContent value="paid" className="space-y-3">
             {filterDebts(paidDebts).map((debt) => (
-              <DebtCard key={debt.id} debt={debt} showActions={false} />
+              <DebtCard 
+                key={debt.id} 
+                debt={debt} 
+                showActions={false}
+                onMarkPaid={handleMarkPaid}
+                onDelete={handleDelete}
+                convertToBS={convertToBS}
+              />
             ))}
             {filterDebts(paidDebts).length === 0 && (
               <div className="text-center py-16">
