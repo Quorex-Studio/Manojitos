@@ -42,21 +42,21 @@ const alertTypeLabels: Record<string, string> = {
   recommendation: 'Sugerencia',
 };
 
-const severityColors: Record<string, { bg: string; text: string; border: string }> = {
-  info: { 
-    bg: 'bg-primary/10', 
-    text: 'text-primary',
-    border: 'border-primary/25'
+const severityColors = {
+  info: {
+    bg: "bg-primary/10",
+    text: "text-primary",
+    border: "border-primary/25",
   },
-  warning: { 
-    bg: 'bg-gold/10', 
-    text: 'text-gold',
-    border: 'border-gold/30'
+  warning: {
+    bg: "bg-gold/10",
+    text: "text-gold",
+    border: "border-gold/30",
   },
-  critical: { 
-    bg: 'bg-destructive/10', 
-    text: 'text-destructive',
-    border: 'border-destructive/30'
+  critical: {
+    bg: "bg-destructive/10",
+    text: "text-destructive",
+    border: "border-destructive/30",
   },
 };
 
@@ -361,7 +361,7 @@ export function AngelaCopilotPanel() {
             >
               <CheckCircle2 className="h-8 w-8 text-primary" />
             </motion.div>
-            <p className="font-medium text-green-700 dark:text-green-300">¡Todo está excelente! 🩷</p>
+            <p className="font-medium text-primary">¡Todo está excelente! 🩷</p>
             <p className="text-xs text-muted-foreground mt-1 mb-4">
               No hay alertas pendientes en este momento
             </p>

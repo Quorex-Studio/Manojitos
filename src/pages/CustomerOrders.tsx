@@ -19,9 +19,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCustomerOrders, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/hooks/useCustomerOrders';
+import { useCustomerOrders } from '@/hooks/useCustomerOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+
+const ORDER_STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  pending: { label: 'Pendiente', color: 'bg-gold/20 text-gold border-gold/30' },
+  processing: { label: 'En proceso', color: 'bg-primary/10 text-primary border-primary/20' },
+  shipped: { label: 'Enviado', color: 'bg-primary/20 text-primary border-primary/30' },
+  delivered: { label: 'Entregado', color: 'bg-primary text-primary-foreground' },
+  cancelled: { label: 'Cancelado', color: 'bg-destructive/10 text-destructive border-destructive/20' },
+};
+
+const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  paid: { label: 'Pagado', color: 'bg-primary text-primary-foreground' },
+  pending: { label: 'Pendiente', color: 'bg-gold/20 text-gold border-gold/30' },
+  failed: { label: 'Fallido', color: 'bg-destructive text-destructive-foreground' },
+};
 
 const STATUS_ICONS: Record<string, typeof Package> = {
   pending: Clock,

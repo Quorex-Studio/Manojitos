@@ -26,11 +26,11 @@ export function CustomerSemaphoreBadge({
     lg: 'h-3 w-3'
   };
 
-  const dotColors: Record<SemaphoreLevel, string> = {
-    green: 'bg-green-500',
-    yellow: 'bg-yellow-500',
-    red: 'bg-red-500'
-  };
+  const dotColors = {
+  green: "bg-primary shadow-[0_0_8px_rgba(20,184,166,0.4)]",
+  yellow: "bg-gold shadow-[0_0_8px_rgba(234,179,8,0.4)]",
+  red: "bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.4)]",
+};
 
   return (
     <Tooltip>
@@ -54,7 +54,7 @@ export function CustomerSemaphoreBadge({
         <p className="font-medium">{semaphore.icon} {semaphore.label}</p>
         <p className="text-xs text-muted-foreground">{semaphore.description}</p>
         {!semaphore.canBuyOnCredit && (
-          <p className="text-xs text-red-500 mt-1">No puede comprar a crédito</p>
+          <p className="text-xs text-destructive mt-1">No puede comprar a crédito</p>
         )}
       </TooltipContent>
     </Tooltip>

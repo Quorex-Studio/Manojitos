@@ -15,6 +15,12 @@ import {
   Headphones
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
@@ -568,35 +574,45 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
           >
             <Card className="flex flex-col h-full overflow-hidden border-pink-200 dark:border-pink-800">
               {/* Header */}
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/30">
-                    <img src={stitchRosaMascot} alt="Ángela" className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Ángela</h3>
-                    <p className="text-xs text-white/80">Tu asistente inteligente 🩷</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-white hover:bg-white/20"
-                  >
-                    {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsOpen(false)}
-                    className="text-white hover:bg-white/20"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+               <div className="p-4 bg-primary flex items-center justify-between border-b border-primary/20">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-full bg-primary-foreground/10 flex items-center justify-center p-1 border border-primary-foreground/20 overflow-hidden">
+              <img src="/stitch-rosa-mascot.png" alt="Angela" className="w-full h-full object-contain" />
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-primary shadow-sm" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-primary-foreground">Angela AI</h3>
+            <p className="text-[10px] text-primary-foreground/70 font-medium">Asistente Virtual</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                >
+                  {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Minimizar</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => setIsOpen(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
               {/* Messages */}
               <ScrollArea className="flex-1 p-4" ref={scrollRef}>

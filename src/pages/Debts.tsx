@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
 export default function Debts() {
   // --- STATE ---
@@ -46,8 +47,14 @@ export default function Debts() {
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className={`p-2 rounded-lg ${debt.status === 'paid' ? 'bg-green-500/20' : 'gradient-gold'}`}>
-                <CreditCard className={`h-5 w-5 ${debt.status === 'paid' ? 'text-green-500' : 'text-accent-foreground'}`} />
+              <div className={cn(
+                "p-2 rounded-lg",
+                debt.status === 'paid' ? 'bg-primary/20' : 'bg-gold/20'
+              )}>
+                <CreditCard className={cn(
+                  "h-5 w-5",
+                  debt.status === 'paid' ? 'text-primary' : 'text-gold'
+                )} />
               </div>
               <div>
                 <div className="flex items-center gap-2">

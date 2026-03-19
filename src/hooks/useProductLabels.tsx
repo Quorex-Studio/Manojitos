@@ -57,7 +57,7 @@ export function calculateProductLabels(product: ProductForLabels, allProducts?: 
       type: 'bestseller',
       text: 'Más vendido',
       icon: '🔥',
-      color: 'bg-orange-500 text-white'
+      color: 'bg-gold/10 text-gold'
     });
   }
 
@@ -67,7 +67,7 @@ export function calculateProductLabels(product: ProductForLabels, allProducts?: 
       type: 'low_stock',
       text: `¡Solo ${product.stock}!`,
       icon: '⏳',
-      color: 'bg-destructive text-destructive-foreground'
+      color: 'bg-gold/10 text-gold'
     });
   }
 

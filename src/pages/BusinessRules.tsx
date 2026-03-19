@@ -13,6 +13,7 @@ import {
   ChevronUp,
   Settings2
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -264,6 +265,15 @@ export default function BusinessRules() {
                             <CardDescription>{rule.description || typeInfo.description}</CardDescription>
                           </div>
                           
+                          <div className="flex items-center gap-2">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full",
+                          rule.is_active ? "bg-primary" : "bg-muted-foreground"
+                        )} />
+                        <span className="text-xs text-muted-foreground">
+                          {rule.is_active ? 'Activa' : 'Inactiva'}
+                        </span>
+                      </div>
                           <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"

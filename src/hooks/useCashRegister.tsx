@@ -6,6 +6,7 @@
  */
 // Hook para Modo Caja del Día
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useSales } from './useSales';
 import { useCredits } from './useCredits';

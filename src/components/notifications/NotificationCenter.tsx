@@ -42,10 +42,10 @@ const CHANNEL_ICONS = {
 
 // Configuración de colores por tipo
 const TYPE_COLORS = {
-  info: 'bg-blue-500',
-  warning: 'bg-yellow-500',
-  error: 'bg-red-500',
-  success: 'bg-green-500',
+  info: "bg-primary/10 text-primary border-primary/20",
+  warning: "bg-gold/10 text-gold border-gold/20",
+  error: "bg-destructive/10 text-destructive border-destructive/20",
+  success: "bg-primary/10 text-primary border-primary/20",
 };
 
 // Props del componente
@@ -231,9 +231,9 @@ export function CreditReminderHistoryPanel({ creditId, clientName }: CreditRemin
   const [isOpen, setIsOpen] = useState(false);
 
   const statusIcon = (delivered: boolean, status: string) => {
-    if (status === 'pending') return <Clock className="h-4 w-4 text-yellow-500" />;
-    if (delivered) return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-    return <XCircle className="h-4 w-4 text-red-500" />;
+    if (status === 'pending') return <Clock className="h-4 w-4 text-gold" />;
+    if (delivered) return <CheckCircle2 className="h-4 w-4 text-primary" />;
+    return <XCircle className="h-4 w-4 text-destructive" />;
   };
 
   const channelLabel = (channel: string) => {

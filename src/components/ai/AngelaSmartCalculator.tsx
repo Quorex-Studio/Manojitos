@@ -88,8 +88,8 @@ export function AngelaSmartCalculator({ costUsd = 0, className }: AngelaSmartCal
   }, [quantity, unitPriceUsd, rate, extraPercent, productCost]);
 
   const getMarginColor = (percent: number) => {
-    if (percent < 20) return 'text-red-500';
-    if (percent < 40) return 'text-green-500';
+    if (percent < 20) return 'text-destructive';
+    if (percent < 40) return 'text-primary';
     if (percent < 60) return 'text-emerald-500';
     return 'text-amber-500';
   };
@@ -170,32 +170,34 @@ export function AngelaSmartCalculator({ costUsd = 0, className }: AngelaSmartCal
         {/* Resultados */}
         <div className="grid grid-cols-2 gap-3 pt-2">
           <motion.div 
-            className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+            className="p-3 rounded-lg bg-primary/8 border border-primary/20"
             initial={{ scale: 0.95 }}
             animate={{ scale: 1 }}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-4 w-4 text-green-600" />
-              <span className="text-xs text-green-700 dark:text-green-300">Precio USD</span>
-            </div>
-            <p className="text-xl font-bold text-green-700 dark:text-green-300">
+            <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 bg-primary/10 rounded-lg">
+          <Calculator className="w-5 h-5 text-primary" />
+        </div>
+        <h3 className="font-semibold text-foreground">Calculadora Inteligente</h3>
+      </div>
+            <p className="text-xl font-bold text-primary">
               ${analysis.priceUsd.toFixed(2)}
             </p>
           </motion.div>
 
           <motion.div 
-            className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+            className="p-3 rounded-lg bg-gold/8 border border-gold/20"
             initial={{ scale: 0.95 }}
             animate={{ scale: 1 }}
           >
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold text-blue-600">Bs</span>
-              <span className="text-xs text-blue-700 dark:text-blue-300">Precio Bs</span>
+              <span className="text-xs font-bold text-gold">Bs</span>
+              <span className="text-xs text-muted-foreground">Precio Bs</span>
             </div>
-            <p className="text-xl font-bold text-blue-700 dark:text-blue-300">
+            <p className="text-xl font-bold text-gold">
               {rateLoading ? '...' : analysis.priceBs.toFixed(2)}
             </p>
-            <p className="text-[10px] text-blue-600/70">
+            <p className="text-[10px] text-muted-foreground">
               Tasa: {rate.toFixed(2)} Bs/$
             </p>
           </motion.div>
@@ -210,7 +212,7 @@ export function AngelaSmartCalculator({ costUsd = 0, className }: AngelaSmartCal
                 {analysis.marginPercent > 0 ? (
                   <TrendingUp className={cn("h-4 w-4", getMarginColor(analysis.marginPercent))} />
                 ) : (
-                  <TrendingDown className="h-4 w-4 text-red-500" />
+                  <TrendingDown className="h-4 w-4 text-destructive" />
                 )}
                 <span className={cn("font-bold", getMarginColor(analysis.marginPercent))}>
                   {analysis.marginPercent.toFixed(0)}%

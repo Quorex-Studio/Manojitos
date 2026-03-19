@@ -71,7 +71,7 @@ export function AngelaPersonalShopper() {
               </Badge>
             )}
             {behavior.creditAvailable && behavior.creditAvailable > 0 && (
-              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary">
                 <CreditCard className="h-3 w-3 mr-1" />
                 ${behavior.creditAvailable.toFixed(0)} disponible
               </Badge>
@@ -91,7 +91,12 @@ export function AngelaPersonalShopper() {
           </div>
         ) : recommendations.length === 0 ? (
           <div className="text-center py-6">
-            <Heart className="h-8 w-8 mx-auto mb-2 text-pink-300" />
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <ShoppingBag className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-foreground">Personal Shopper</h3>
+            </div>
             <p className="text-sm text-muted-foreground">
               ¡Explora nuestros productos para recibir recomendaciones personalizadas!
             </p>

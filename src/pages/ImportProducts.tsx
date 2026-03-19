@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { 
@@ -421,15 +421,16 @@ export default function ImportProducts() {
                 </CardHeader>
                 <CardContent>
                   <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
                     className={cn(
                       "border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer",
                       isDragging 
-                        ? "border-primary bg-primary/5" 
-                        : "border-border hover:border-primary/50 hover:bg-muted/50"
+                        ? "border-primary bg-primary/10" 
+                        : "border-border hover:border-primary/50 hover:bg-secondary"
                     )}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById('file-upload')?.click()}
                   >
                     <input
                       type="file"
@@ -459,9 +460,11 @@ export default function ImportProducts() {
                     <h4 className="font-medium mb-2">Columnas esperadas:</h4>
                     <div className="flex flex-wrap gap-2">
                       {['nombre_producto*', 'precio*', 'stock*', 'descripcion', 'categoria', 'proveedor', 'sku'].map(col => (
-                        <Badge key={col} variant={col.includes('*') ? 'default' : 'secondary'}>
-                          {col}
-                        </Badge>
+                        <div key={col}>
+                          <Badge variant={col.includes('*') ? 'default' : 'secondary'}>
+                            {col}
+                          </Badge>
+                        </div>
                       ))}
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">* Campos obligatorios</p>

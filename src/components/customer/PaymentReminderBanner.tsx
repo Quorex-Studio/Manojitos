@@ -1,6 +1,6 @@
 // Banner de fechas de pago cercanas para clientes
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, AlertCircle, X } from 'lucide-react';
+import { Calendar, AlertCircle, AlertTriangle, X } from 'lucide-react';
 import { useState } from 'react';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { Button } from '@/components/ui/button';
@@ -24,20 +24,24 @@ export function PaymentReminderBanner() {
   if (!shouldShow) return null;
 
   let message = '';
-  let bgClass = '';
   let icon = Calendar;
+
+  const bgClass =
+    calculatedStatus === 'POR_VENCER' ? 'bg-gold/10 border-gold/25 text-foreground dark:bg-gold/10 dark:border-gold/25' :
+    calculatedStatus === 'EN_GRACIA' ? 'bg-gold/20 border-gold/30 text-foreground dark:bg-gold/20 dark:border-gold/30' :
+    calculatedStatus === 'VENCIDO' ? 'bg-destructive/10 border-destructive/30 text-foreground dark:bg-destructive/10 dark:border-destructive/30' :
+    'bg-primary/8 border-primary/25 text-foreground dark:bg-primary/10 dark:border-primary/25';
 
   if (calculatedStatus === 'POR_VENCER') {
     message = `Tu pago vence en ${daysUntilDue} día${daysUntilDue !== 1 ? 's' : ''}. ¡No lo olvides!`;
-    bgClass = 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-200';
   } else if (calculatedStatus === 'EN_GRACIA') {
-    message = `Estás en período de gracia. Paga pronto para mantener tu buen historial 👀`;
-    bgClass = 'bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/30 dark:border-yellow-800 dark:text-yellow-200';
-    icon = AlertCircle;
+    message = '¡Atención! Tu pago está en periodo de gracia. Evita recargos.';
+    icon = AlertTriangle;
   } else if (calculatedStatus === 'VENCIDO') {
-    message = `Tienes ${daysOverdue} día${daysOverdue !== 1 ? 's' : ''} de mora. Regulariza tu pago para seguir comprando 💪`;
-    bgClass = 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/30 dark:border-red-800 dark:text-red-200';
+    message = 'Tu crédito está vencido. Por favor, regulariza tu situación lo antes posible.';
     icon = AlertCircle;
+  } else {
+    message = 'Recuerda mantener tus pagos al día para disfrutar de todos tus beneficios.';
   }
 
   const Icon = icon;

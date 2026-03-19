@@ -5,6 +5,7 @@
  */
 // Hook para historial de navegación del cliente
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 const getHistoryKey = (userId: string | null) =>

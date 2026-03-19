@@ -150,14 +150,14 @@ export function calculateCreditStatus(
 }
 
 // Obtener color del semáforo de confianza
-export function getTrustLevelColor(trustLevel: string): string {
-  switch (trustLevel) {
-    case 'CONFIABLE': return 'text-green-500';
-    case 'RIESGO': return 'text-yellow-500';
-    case 'CRITICO': return 'text-red-500';
-    default: return 'text-muted-foreground';
-  }
-}
+export const getTrustLevelColor = (level: string) => {
+    switch (level) {
+      case 'CONFIABLE': return 'text-primary';
+      case 'RIESGO': return 'text-gold';
+      case 'CRITICO': return 'text-destructive';
+      default: return 'text-muted-foreground';
+    }
+  };
 
 // Obtener etiqueta de restricción
 export function getRestrictionLabel(level: number): string {
