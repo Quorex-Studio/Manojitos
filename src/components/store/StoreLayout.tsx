@@ -9,7 +9,7 @@ interface StoreLayoutProps {
 // Layout principal de la tienda para clientes
 export function StoreLayout({ children }: StoreLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background" style={{ isolation: "isolate" }}>
       {/* Header fijo */}
       <StoreHeader />
       

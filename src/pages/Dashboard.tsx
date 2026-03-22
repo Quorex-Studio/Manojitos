@@ -116,7 +116,7 @@ export default function Dashboard() {
             value={`$${stats.monthTotal.toFixed(2)}`}
             subtitle={`Bs. ${convertToBS(stats.monthTotal).toFixed(2)}`}
             icon={<TrendingUp className="h-6 w-6" />}
-            variant="rose"
+            variant="default"
             delay={0.1}
           />
           <StatCard

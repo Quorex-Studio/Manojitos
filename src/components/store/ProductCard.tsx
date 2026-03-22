@@ -79,7 +79,7 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
         className="block group"
       >
         <motion.div 
-          className="rounded-2xl overflow-hidden relative bg-card/40 backdrop-blur-sm border border-border/10"
+          className="rounded-2xl overflow-hidden relative bg-card backdrop-blur-sm border border-border/10"
           whileHover={{ y: -8 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
           style={{
@@ -89,7 +89,7 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
           }}
         >
           {/* Image Container — Portrait 3:4 */}
-          <div className="relative aspect-[3/4] bg-secondary/20 overflow-hidden">
+          <div className="relative aspect-[3/4] bg-secondary overflow-hidden">
             {product.image_url ? (
               <motion.img
                 src={product.image_url}

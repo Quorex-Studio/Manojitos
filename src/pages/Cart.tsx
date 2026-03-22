@@ -24,7 +24,7 @@ export default function Cart() {
               animate={{ opacity: 1, scale: 1 }}
               className="space-y-5"
             >
-              <div className="w-20 h-20 rounded-full bg-card/40 border border-border/10 flex items-center justify-center mx-auto">
+              <div className="w-20 h-20 rounded-full bg-card border border-border/20 flex items-center justify-center mx-auto">
                 <ShoppingBag className="h-10 w-10 text-muted-foreground/20" />
               </div>
               <h1 className="text-3xl font-serif font-medium text-foreground tracking-tight">
@@ -84,7 +84,7 @@ export default function Cart() {
                 >
                   {/* Thumbnail */}
                   <Link to={`/producto/${item.id}`}>
-                    <div className="w-20 h-24 md:w-24 md:h-28 rounded-xl overflow-hidden bg-secondary/10 flex-shrink-0 group-hover:shadow-lg transition-shadow duration-300">
+                    <div className="w-20 h-24 md:w-24 md:h-28 rounded-xl overflow-hidden bg-secondary flex-shrink-0 group-hover:shadow-lg transition-shadow duration-300">
                       {item.image_url ? (
                         <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                       ) : (

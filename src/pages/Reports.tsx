@@ -145,7 +145,7 @@ export default function Reports() {
             value={stats.totalQuantity}
             subtitle={`${stats.salesCount} transacciones`}
             icon={<ShoppingCart className="h-6 w-6" />}
-            variant="rose"
+            variant="default"
           />
           <StatCard
             title="Ventas a Crédito"

@@ -210,7 +210,7 @@ export default function Products() {
               >
                 <Card className="glass-card border-border/50 overflow-hidden hover-lift group">
                   {/* Image */}
-                  <div className="aspect-square bg-secondary/30 relative overflow-hidden">
+                  <div className="aspect-square bg-secondary relative overflow-hidden">
                     {product.image_url ? (
                       <img 
                         src={product.image_url} 

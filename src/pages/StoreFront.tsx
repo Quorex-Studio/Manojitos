@@ -67,7 +67,7 @@ export default function StoreFront() {
       {/* ========================
           HERO SECTION — Full viewport, editorial
           ======================== */}
-      <section className="relative overflow-hidden min-h-screen flex items-center justify-center grain-overlay">
+      <section className="relative overflow-hidden min-h-screen flex items-center justify-center grain-overlay isolate">
         {/* Deep warm black background */}
         <div className="absolute inset-0 bg-[#120A0C]" />
         

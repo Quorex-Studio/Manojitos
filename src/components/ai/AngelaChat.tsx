@@ -574,17 +574,17 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
           >
             <Card className="flex flex-col h-full overflow-hidden border-primary/15 bg-background/95 backdrop-blur-2xl shadow-[0_16px_64px_hsl(var(--rose)/0.15)]">
               {/* Header */}
-               <div className="p-4 bg-[#120A0C] flex items-center justify-between border-b border-[#F5EDE8]/5">
+               <div className="p-4 bg-background flex items-center justify-between border-b border-border/20">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-[#F5EDE8]/10 flex items-center justify-center p-1 border border-[#F5EDE8]/15 overflow-hidden animate-breathing">
+            <div className="w-10 h-10 rounded-full bg-foreground/10 flex items-center justify-center p-1 border border-border/30 overflow-hidden animate-breathing">
               <img src="/stitch-rosa-mascot.png" alt="Angela" className="w-full h-full object-contain" />
             </div>
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#120A0C] shadow-sm" />
           </div>
           <div>
-            <h3 className="font-serif font-medium text-[#F5EDE8]">Angela AI</h3>
-            <p className="text-[10px] text-[#F5EDE8]/40 font-medium tracking-[0.1em] uppercase">Asistente Virtual</p>
+            <h3 className="font-serif font-medium text-foreground">Angela AI</h3>
+            <p className="text-[10px] text-foreground/40 font-medium tracking-[0.1em] uppercase">Asistente Virtual</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -594,7 +594,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-8 w-8 text-[#F5EDE8]/50 hover:text-[#F5EDE8] hover:bg-[#F5EDE8]/5"
+                  className="h-8 w-8 text-foreground/50 hover:text-foreground hover:bg-foreground/5"
                   onClick={() => setIsExpanded(!isExpanded)}
                 >
                   {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -606,7 +606,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 text-[#F5EDE8]/50 hover:text-[#F5EDE8] hover:bg-[#F5EDE8]/5"
+            className="h-8 w-8 text-foreground/50 hover:text-foreground hover:bg-foreground/5"
             onClick={() => setIsOpen(false)}
           >
             <X className="h-4 w-4" />

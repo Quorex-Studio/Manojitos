@@ -215,7 +215,7 @@ export default function ProductDetail() {
             className="relative"
           >
             <div 
-              className="aspect-[3/4] rounded-2xl overflow-hidden bg-secondary/10 cursor-zoom-in group"
+              className="aspect-[3/4] rounded-2xl overflow-hidden bg-secondary cursor-zoom-in group"
               onMouseEnter={() => setImageZoomed(true)}
               onMouseLeave={() => setImageZoomed(false)}
             >

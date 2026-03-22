@@ -45,10 +45,10 @@ export function ProductCard({ product }: ProductCardProps) {
     };
 
     return (
-        <div className="group relative rounded-2xl bg-card/40 backdrop-blur-sm border border-border/10 overflow-hidden transition-all duration-500 hover:shadow-[0_24px_60px_-12px_hsl(var(--rose)/0.2)] hover:-translate-y-2 hover:border-primary/15">
+        <div className="group relative rounded-2xl bg-card backdrop-blur-sm border border-border/10 overflow-hidden transition-all duration-500 hover:shadow-[0_24px_60px_-12px_hsl(var(--rose)/0.2)] hover:-translate-y-2 hover:border-primary/15">
 
             {/* Imagen + Quick Actions Overlay — Portrait 3:4 */}
-            <div className="relative aspect-[3/4] overflow-hidden bg-secondary/20">
+            <div className="relative aspect-[3/4] overflow-hidden bg-secondary">
                 <Link to={`/producto/${product.id}`}>
                     <ImagePremium
                         src={product.image_url || '/placeholder.png'}

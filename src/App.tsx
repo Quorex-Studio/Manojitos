@@ -47,6 +47,39 @@ import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { AngelaChat } from "@/components/ai/AngelaChat";
 
+// ErrorBoundary — captura crashes de React y muestra mensaje en vez de pantalla negra
+import React from "react";
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background p-8 text-center">
+          <p className="text-foreground font-serif text-2xl mb-2">Algo salió mal</p>
+          <p className="text-muted-foreground text-sm mb-4">{this.state.error?.message}</p>
+          <button
+            className="px-6 py-2 rounded-full bg-primary text-primary-foreground text-sm"
+            onClick={() => window.location.href = '/'}
+          >
+            Volver al inicio
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+
 const queryClient = new QueryClient();
 
 // Ruta protegida para el panel administrativo (solo admins)
@@ -131,6 +164,7 @@ function AppRoutes() {
 }
 
 const App = () => (
+  <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <BrowserRouter>
@@ -147,6 +181,7 @@ const App = () => (
       </BrowserRouter>
     </ThemeProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 
