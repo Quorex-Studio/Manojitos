@@ -20,6 +20,7 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
+// Dashboard admin — Premium editorial
 export default function Dashboard() {
   // --- STATE ---
   const { sales } = useSales();
@@ -79,10 +80,14 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        {/* Header */}
+        {/* Header — editorial serif */}
         <div>
-          <h1 className="page-header">Dashboard</h1>
-          <p className="page-subtitle">Resumen de tu negocio</p>
+          <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground/40 mt-1 text-sm tracking-wide">
+            Resumen de tu negocio
+          </p>
         </div>
 
         {/* Panel de Alertas + Ángela Copiloto + Cliente del Mes */}
@@ -137,21 +142,25 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <Card className="glass-card border-border/50">
+            <Card className="bg-card/40 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.04)]">
               <CardHeader>
-                <CardTitle className="font-serif text-xl">Ventas de los últimos 7 días</CardTitle>
+                <CardTitle className="font-serif text-lg tracking-tight text-foreground/80">
+                  Ventas de los últimos 7 días
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={salesChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground) / 0.4)" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground) / 0.4)" fontSize={12} />
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '12px'
+                        border: '1px solid hsl(var(--border) / 0.15)',
+                        borderRadius: '16px',
+                        boxShadow: '0 8px 32px hsl(var(--rose) / 0.1)',
+                        fontSize: '13px'
                       }} 
                     />
                     <Line 
@@ -159,7 +168,8 @@ export default function Dashboard() {
                       dataKey="ventas" 
                       stroke="hsl(var(--gold))" 
                       strokeWidth={3}
-                      dot={{ fill: 'hsl(var(--gold))', strokeWidth: 2 }}
+                      dot={{ fill: 'hsl(var(--gold))', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: 'hsl(var(--gold))', strokeWidth: 2, fill: 'hsl(var(--gold))' }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -172,21 +182,25 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <Card className="glass-card border-border/50">
+            <Card className="bg-card/40 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.04)]">
               <CardHeader>
-                <CardTitle className="font-serif text-xl">Productos más vendidos</CardTitle>
+                <CardTitle className="font-serif text-lg tracking-tight text-foreground/80">
+                  Productos más vendidos
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={topProductsData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" width={100} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
+                    <XAxis type="number" stroke="hsl(var(--muted-foreground) / 0.4)" fontSize={12} />
+                    <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground) / 0.4)" width={100} fontSize={12} />
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '12px'
+                        border: '1px solid hsl(var(--border) / 0.15)',
+                        borderRadius: '16px',
+                        boxShadow: '0 8px 32px hsl(var(--rose) / 0.1)',
+                        fontSize: '13px'
                       }} 
                     />
                     <Bar dataKey="vendidos" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} />
@@ -203,21 +217,23 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
         >
-          <Card className="glass-card border-border/50">
+          <Card className="bg-card/40 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.04)]">
             <CardHeader>
-              <CardTitle className="font-serif text-xl">Últimas ventas</CardTitle>
+              <CardTitle className="font-serif text-lg tracking-tight text-foreground/80">
+                Últimas ventas
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {sales.slice(0, 5).map((sale) => (
-                  <div key={sale.id} className="flex items-center justify-between p-4 rounded-xl bg-secondary/30">
+                  <div key={sale.id} className="flex items-center justify-between p-4 rounded-xl bg-card/30 hover:bg-card/50 transition-colors duration-300">
                     <div className="flex items-center gap-4">
-                      <div className="p-2 rounded-lg gradient-primary">
-                        <ShoppingBag className="h-5 w-5 text-primary-foreground" />
+                      <div className="p-2.5 rounded-xl bg-primary/10">
+                        <ShoppingBag className="h-4 w-4 text-primary/70" />
                       </div>
                       <div>
-                        <p className="font-medium">{sale.product_name}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="font-medium text-sm text-foreground/80">{sale.product_name}</p>
+                        <p className="text-xs text-muted-foreground/40 tracking-wide">
                           {new Date(sale.created_at).toLocaleDateString('es', { 
                             day: 'numeric', 
                             month: 'short',
@@ -228,13 +244,13 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gradient-gold">${Number(sale.total_usd).toFixed(2)}</p>
-                      <p className="text-sm text-muted-foreground">{sale.payment_method}</p>
+                      <p className="font-semibold text-sm text-gradient-gold">${Number(sale.total_usd).toFixed(2)}</p>
+                      <p className="text-[10px] text-muted-foreground/30 tracking-wide">{sale.payment_method}</p>
                     </div>
                   </div>
                 ))}
                 {sales.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">No hay ventas registradas</p>
+                  <p className="text-center text-muted-foreground/30 py-12 text-sm tracking-wide">No hay ventas registradas</p>
                 )}
               </div>
             </CardContent>

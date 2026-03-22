@@ -111,6 +111,26 @@ export default {
           "0%, 100%": { boxShadow: "0 0 20px hsl(var(--gold) / 0.3)" },
           "50%": { boxShadow: "0 0 40px hsl(var(--gold) / 0.5)" },
         },
+        breathing: {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.05)" },
+        },
+        "glow-pulse-rosa": {
+          "0%, 100%": { boxShadow: "0 0 20px rgba(196, 96, 122, 0.3), 0 0 40px rgba(196, 96, 122, 0.1)" },
+          "50%": { boxShadow: "0 0 30px rgba(196, 96, 122, 0.5), 0 0 60px rgba(196, 96, 122, 0.2)" },
+        },
+        "glow-pulse-gold": {
+          "0%, 100%": { boxShadow: "0 0 20px rgba(201, 149, 42, 0.3), 0 0 40px rgba(201, 149, 42, 0.1)" },
+          "50%": { boxShadow: "0 0 30px rgba(201, 149, 42, 0.5), 0 0 60px rgba(201, 149, 42, 0.2)" },
+        },
+        "skeleton-shimmer": {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "shimmer-sweep": {
+          "0%": { left: "-100%" },
+          "100%": { left: "100%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -122,12 +142,18 @@ export default {
         "slide-up": "slide-up 0.3s ease-out",
         "float": "float 3s ease-in-out infinite",
         "glow": "glow 2s ease-in-out infinite",
+        breathing: "breathing 3s ease-in-out infinite",
+        "glow-pulse-rosa": "glow-pulse-rosa 2.5s ease-in-out infinite",
+        "glow-pulse-gold": "glow-pulse-gold 2s ease-in-out infinite",
+        "skeleton-shimmer": "skeleton-shimmer 1.8s linear infinite",
       },
       boxShadow: {
         glass: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
         "glass-hover": "0 12px 40px 0 rgba(31, 38, 135, 0.12)",
-        gold: "0 4px 20px 0 rgba(212, 175, 55, 0.3)",
-        rose: "0 4px 20px 0 rgba(255, 181, 197, 0.3)",
+        gold: "0 4px 20px 0 rgba(201, 149, 42, 0.3)",
+        rose: "0 4px 20px 0 rgba(196, 96, 122, 0.3)",
+        "glow-rosa": "0 0 30px rgba(196, 96, 122, 0.3), 0 0 60px rgba(196, 96, 122, 0.1)",
+        "glow-gold": "0 0 30px rgba(201, 149, 42, 0.3), 0 0 60px rgba(201, 149, 42, 0.1)",
       },
     },
   },

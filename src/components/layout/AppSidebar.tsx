@@ -69,7 +69,7 @@ export function AppSidebar() {
       {/* Overlay - mobile only */}
       {isMobile && isOpen && (
         <div 
-          className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -77,7 +77,7 @@ export function AppSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "h-full w-[280px] sidebar-glass border-r border-border flex-shrink-0",
+          "h-full w-[280px] bg-[#120A0C] border-r border-[#F5EDE8]/5 flex-shrink-0",
           isMobile && "fixed left-0 top-0 z-50 transition-transform duration-300",
           isMobile && !isOpen && "-translate-x-full",
           isMobile && isOpen && "translate-x-0",
@@ -90,27 +90,26 @@ export function AppSidebar() {
             <img 
               src={logoImage} 
               alt="Manojitos" 
-              className="h-12 w-12 rounded-full object-cover"
+              className="h-11 w-11 rounded-full object-cover ring-1 ring-gold/20"
             />
             <div>
-            <h1 className="font-serif text-2xl font-bold text-gradient-gold tracking-normal">
+              <h1 className="font-serif text-xl font-bold text-gradient-gold tracking-normal">
                 Manojitos
               </h1>
-              <p className="text-muted-foreground text-xs font-sans tracking-wide">Sistema de Gestión</p>
+              <p className="text-[#F5EDE8]/30 text-[10px] font-sans tracking-[0.15em] uppercase">Sistema de Gestión</p>
             </div>
           </div>
 
           {/* Ver Tienda */}
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/50">
-            <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <Store className="h-4 w-4" />
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#F5EDE8]/5">
+            <Link to="/" className="flex items-center gap-2 text-xs text-[#F5EDE8]/40 hover:text-gold transition-colors duration-300 tracking-wide">
+              <Store className="h-3.5 w-3.5" />
               <span>Ver tienda</span>
             </Link>
           </div>
 
-
           {/* Navigation */}
-          <nav className="flex-1 space-y-2">
+          <nav className="flex-1 space-y-1">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -123,14 +122,14 @@ export function AppSidebar() {
                     whileHover={{ x: 4 }}
                     whileTap={{ scale: 0.98 }}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+                      "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300",
                       isActive 
-                        ? "gradient-primary text-primary-foreground shadow-rose" 
-                        : "hover:bg-secondary text-foreground"
+                        ? "bg-primary/15 text-primary shadow-[0_0_20px_rgba(196,96,122,0.15)]" 
+                        : "hover:bg-[#F5EDE8]/5 text-[#F5EDE8]/50 hover:text-[#F5EDE8]/80"
                     )}
                   >
-                    <item.icon className="h-5 w-5" />
-                    <span className="font-medium">{item.label}</span>
+                    <item.icon className={cn("h-4.5 w-4.5", isActive && "text-primary")} />
+                    <span className="text-sm font-medium tracking-wide">{item.label}</span>
                   </motion.div>
                 </Link>
               );
@@ -147,9 +146,9 @@ export function AppSidebar() {
           <Button
             variant="ghost"
             onClick={() => signOut()}
-            className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            className="w-full justify-start gap-3 text-[#F5EDE8]/30 hover:text-destructive hover:bg-destructive/10 text-sm"
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="h-4 w-4" />
             Cerrar Sesión
           </Button>
         </div>

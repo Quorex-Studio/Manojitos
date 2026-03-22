@@ -55,25 +55,25 @@ interface CreditProfileProps {
 const TRUST_LEVEL_CONFIG = {
   CONFIABLE: {
     icon: Shield,
-    color: 'text-green-500',
-    bgColor: 'bg-green-500/10',
-    borderColor: 'border-green-500/30',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary/30',
     label: 'Confiable',
     description: 'Cliente con excelente historial de pagos',
   },
   RIESGO: {
     icon: ShieldAlert,
-    color: 'text-yellow-500',
-    bgColor: 'bg-yellow-500/10',
-    borderColor: 'border-yellow-500/30',
+    color: 'text-gold',
+    bgColor: 'bg-gold/10',
+    borderColor: 'border-gold/30',
     label: 'En Riesgo',
     description: 'Cliente con algunos atrasos en pagos',
   },
   CRITICO: {
     icon: ShieldX,
-    color: 'text-red-500',
-    bgColor: 'bg-red-500/10',
-    borderColor: 'border-red-500/30',
+    color: 'text-destructive',
+    bgColor: 'bg-destructive/10',
+    borderColor: 'border-destructive/30',
     label: 'Crítico',
     description: 'Cliente con historial de morosidad',
   },
@@ -143,16 +143,16 @@ function MoraCounter({ daysUntilDue, daysOverdue, graceDays }: {
     <div className="grid grid-cols-3 gap-2 text-center">
       <div className={cn(
         "p-3 rounded-lg",
-        daysUntilDue > 0 ? "bg-green-500/10" : "bg-muted/30"
+        daysUntilDue > 0 ? "bg-primary/10" : "bg-muted/30"
       )}>
-        <p className="text-2xl font-bold text-green-600">{daysUntilDue}</p>
+        <p className="text-2xl font-bold text-primary">{daysUntilDue}</p>
         <p className="text-xs text-muted-foreground">Días para pagar</p>
       </div>
       <div className={cn(
         "p-3 rounded-lg",
-        inGrace ? "bg-yellow-500/10" : "bg-muted/30"
+        inGrace ? "bg-gold/10" : "bg-muted/30"
       )}>
-        <p className={cn("text-2xl font-bold", inGrace && "text-yellow-600")}>
+        <p className={cn("text-2xl font-bold", inGrace && "text-gold")}>
           {inGrace ? daysOverdue : graceDays}
         </p>
         <p className="text-xs text-muted-foreground">
@@ -161,9 +161,9 @@ function MoraCounter({ daysUntilDue, daysOverdue, graceDays }: {
       </div>
       <div className={cn(
         "p-3 rounded-lg",
-        isOverdue ? "bg-red-500/10" : "bg-muted/30"
+        isOverdue ? "bg-destructive/10" : "bg-muted/30"
       )}>
-        <p className={cn("text-2xl font-bold", isOverdue && "text-red-600")}>
+        <p className={cn("text-2xl font-bold", isOverdue && "text-destructive")}>
           {isOverdue ? daysOverdue - graceDays : 0}
         </p>
         <p className="text-xs text-muted-foreground">Días vencido</p>
@@ -265,10 +265,10 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
 
               {/* Incentivos para buen pagador */}
               {credit.trust_level === 'CONFIABLE' && credit.early_payment_discount > 0 && (
-                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
                   <div className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-green-600" />
-                    <span className="text-green-600">
+                    <Award className="h-5 w-5 text-primary" />
+                    <span className="text-primary">
                       Descuento por pago puntual: {credit.early_payment_discount}%
                     </span>
                   </div>
@@ -356,13 +356,13 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-green-600">{credit.total_paid_on_time}</p>
+                <p className="text-3xl font-bold text-primary">{credit.total_paid_on_time}</p>
                 <p className="text-xs text-muted-foreground">Pagos puntuales</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-red-600">{credit.total_paid_late}</p>
+                <p className="text-3xl font-bold text-destructive">{credit.total_paid_late}</p>
                 <p className="text-xs text-muted-foreground">Pagos tardíos</p>
               </CardContent>
             </Card>
@@ -407,9 +407,9 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
                       >
                         <div className="flex items-center gap-3">
                           {tx.type === 'ABONO' ? (
-                            <TrendingDown className="h-5 w-5 text-green-500" />
+                            <TrendingDown className="h-5 w-5 text-primary" />
                           ) : (
-                            <TrendingUp className="h-5 w-5 text-red-500" />
+                            <TrendingUp className="h-5 w-5 text-destructive" />
                           )}
                           <div>
                             <p className="font-medium">{tx.description || tx.type}</p>
@@ -421,7 +421,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
                         <div className="text-right">
                           <p className={cn(
                             "font-bold",
-                            tx.type === 'ABONO' ? "text-green-600" : "text-red-600"
+                            tx.type === 'ABONO' ? "text-primary" : "text-destructive"
                           )}>
                             {tx.type === 'ABONO' ? '-' : '+'}${tx.amount.toFixed(2)}
                           </p>
@@ -462,10 +462,10 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
                       key={promise.id}
                       className={cn(
                         "p-4 rounded-lg border",
-                        promise.status === 'CUMPLIDA' && "border-green-500/30 bg-green-500/5",
-                        promise.status === 'INCUMPLIDA' && "border-red-500/30 bg-red-500/5",
-                        promise.status === 'PENDIENTE' && "border-yellow-500/30 bg-yellow-500/5",
-                        promise.status === 'PARCIAL' && "border-blue-500/30 bg-blue-500/5"
+                        promise.status === 'CUMPLIDA' && "border-primary/30 bg-primary/10",
+                        promise.status === 'INCUMPLIDA' && "border-destructive/30 bg-destructive/10",
+                        promise.status === 'PENDIENTE' && "border-gold/30 bg-gold/10",
+                        promise.status === 'PARCIAL' && "border-primary/20 bg-primary/10"
                       )}
                     >
                       <div className="flex items-center justify-between">
@@ -480,7 +480,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
                               {promise.status}
                             </Badge>
                             {promise.client_accepted && (
-                              <Badge variant="outline" className="text-green-600">
+                              <Badge variant="outline" className="text-primary">
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
                                 Aceptado
                               </Badge>
@@ -528,7 +528,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
               <div className="space-y-4">
                 {credit.last_payment_date && (
                   <div className="flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
                     <div>
                       <p className="font-medium">Último pago</p>
                       <p className="text-sm text-muted-foreground">
@@ -544,7 +544,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
                 )}
                 {credit.last_late_date && (
                   <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-5 w-5 text-red-500" />
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
                     <div>
                       <p className="font-medium">Último atraso</p>
                       <p className="text-sm text-muted-foreground">

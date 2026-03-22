@@ -26,9 +26,9 @@ export function ImagePremium({
     }[aspectRatio];
 
     return (
-        <div className={cn("relative overflow-hidden bg-secondary/20", aspectRatioClass, wrapperClassName)}>
+        <div className={cn("relative overflow-hidden bg-secondary", aspectRatioClass, wrapperClassName)}>
             {!isLoaded && !hasError && (
-                <Skeleton className="absolute inset-0 w-full h-full animate-pulse z-10" />
+                <Skeleton className="absolute inset-0 w-full h-full z-10 rounded-none" />
             )}
 
             <img
@@ -38,8 +38,8 @@ export function ImagePremium({
                 onLoad={() => setIsLoaded(true)}
                 onError={() => setHasError(true)}
                 className={cn(
-                    "w-full h-full object-cover transition-all duration-700 ease-in-out",
-                    !isLoaded ? "scale-110 blur-xl opacity-0" : "scale-100 blur-0 opacity-100",
+                    "w-full h-full object-cover transition-opacity duration-500 ease-in-out",
+                    !isLoaded ? "opacity-0" : "opacity-100",
                     className
                 )}
                 {...props}

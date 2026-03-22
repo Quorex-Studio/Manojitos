@@ -16,27 +16,27 @@ export function StatCard({ title, value, subtitle, icon, variant = 'default', de
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay }}
-      whileHover={{ y: -4 }}
+      transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
+      whileHover={{ y: -6, transition: { duration: 0.3 } }}
       className={cn(
-        "rounded-2xl transition-all duration-300 p-4 md:p-5",
-        variant === 'gold' && "glass-card-gold",
-        variant === 'rose' && "glass-card border-primary/30",
-        variant === 'default' && "glass-card"
+        "rounded-2xl transition-all duration-300 p-4 md:p-5 backdrop-blur-sm",
+        variant === 'gold' && "bg-card/60 border border-gold/15 shadow-[0_8px_32px_hsl(var(--gold)/0.08)] hover:shadow-[0_16px_48px_hsl(var(--gold)/0.15)] hover:border-gold/25",
+        variant === 'rose' && "bg-card/60 border border-primary/15 shadow-[0_8px_32px_hsl(var(--rose)/0.08)] hover:shadow-[0_16px_48px_hsl(var(--rose)/0.15)] hover:border-primary/25",
+        variant === 'default' && "bg-card/60 border border-border/15 shadow-[0_8px_32px_hsl(var(--rose)/0.04)] hover:shadow-[0_16px_48px_hsl(var(--rose)/0.1)] hover:border-border/25"
       )}
     >
       {/* Mobile Layout (Horizontal) */}
       <div className="flex md:hidden items-center gap-4">
         <div className={cn(
           "p-2.5 rounded-xl shrink-0",
-          variant === 'gold' && "gradient-gold text-accent-foreground",
-          variant === 'rose' && "gradient-primary text-primary-foreground",
-          variant === 'default' && "bg-secondary text-secondary-foreground"
+          variant === 'gold' && "bg-gold/10 text-gold",
+          variant === 'rose' && "bg-primary/10 text-primary",
+          variant === 'default' && "bg-secondary/50 text-secondary-foreground"
         )}>
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-muted-foreground text-xs font-medium truncate">{title}</p>
+          <p className="text-muted-foreground/60 text-[10px] font-medium truncate tracking-[0.1em] uppercase">{title}</p>
           <p className={cn(
             "text-xl font-bold font-serif truncate",
             variant === 'gold' && "text-gradient-gold",
@@ -51,7 +51,7 @@ export function StatCard({ title, value, subtitle, icon, variant = 'default', de
       <div className="hidden md:block">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-muted-foreground text-sm font-medium">{title}</p>
+            <p className="text-muted-foreground/60 text-xs font-medium tracking-[0.1em] uppercase">{title}</p>
             <p className={cn(
               "text-3xl font-bold mt-2 font-serif",
               variant === 'gold' && "text-gradient-gold",
@@ -60,14 +60,14 @@ export function StatCard({ title, value, subtitle, icon, variant = 'default', de
               {value}
             </p>
             {subtitle && (
-              <p className="text-muted-foreground text-sm mt-1">{subtitle}</p>
+              <p className="text-muted-foreground/50 text-sm mt-1">{subtitle}</p>
             )}
           </div>
           <div className={cn(
             "p-3 rounded-xl",
-            variant === 'gold' && "gradient-gold text-accent-foreground",
-            variant === 'rose' && "gradient-primary text-primary-foreground",
-            variant === 'default' && "bg-secondary text-secondary-foreground"
+            variant === 'gold' && "bg-gold/10 text-gold",
+            variant === 'rose' && "bg-primary/10 text-primary",
+            variant === 'default' && "bg-secondary/50 text-secondary-foreground"
           )}>
             {icon}
           </div>

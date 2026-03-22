@@ -216,8 +216,8 @@ export default function Providers() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-lg ${purchase.status === 'paid' ? 'bg-green-500/20' : 'gradient-gold'}`}>
-                          <Truck className={`h-5 w-5 ${purchase.status === 'paid' ? 'text-green-500' : 'text-accent-foreground'}`} />
+                        <div className={`p-2 rounded-lg ${purchase.status === 'paid' ? 'bg-primary/20' : 'gradient-gold'}`}>
+                          <Truck className={`h-5 w-5 ${purchase.status === 'paid' ? 'text-primary' : 'text-accent-foreground'}`} />
                         </div>
                         <div>
                           <p className="font-medium">{purchase.provider_name}</p>
@@ -239,7 +239,7 @@ export default function Providers() {
                             size="icon"
                             variant="ghost"
                             onClick={() => markPurchaseAsPaid(purchase.id)}
-                            className="text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                            className="text-primary hover:text-primary/80 hover:bg-primary/10"
                           >
                             <Check className="h-4 w-4" />
                           </Button>

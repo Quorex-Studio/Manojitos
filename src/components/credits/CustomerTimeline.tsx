@@ -25,26 +25,26 @@ const EVENT_CONFIG: Record<string, {
 }> = {
   'PURCHASE': {
     icon: <ShoppingBag className="h-4 w-4" />,
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+    color: 'text-primary/80',
+    bgColor: 'bg-primary/10',
     label: 'Compra'
   },
   'CREDIT_CHARGE': {
     icon: <CreditCard className="h-4 w-4" />,
-    color: 'text-purple-500',
-    bgColor: 'bg-purple-100 dark:bg-purple-900/30',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
     label: 'Cargo a crédito'
   },
   'PAYMENT': {
     icon: <DollarSign className="h-4 w-4" />,
-    color: 'text-green-500',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
     label: 'Pago'
   },
   'LATE_PAYMENT': {
     icon: <Clock className="h-4 w-4" />,
-    color: 'text-orange-500',
-    bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+    color: 'text-gold',
+    bgColor: 'bg-gold/10',
     label: 'Pago tardío'
   },
   'PROMISE_CREATED': {
@@ -55,50 +55,50 @@ const EVENT_CONFIG: Record<string, {
   },
   'PROMISE_FULFILLED': {
     icon: <CheckCircle className="h-4 w-4" />,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
     label: 'Promesa cumplida'
   },
   'PROMISE_BROKEN': {
     icon: <AlertCircle className="h-4 w-4" />,
-    color: 'text-red-500',
-    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    color: 'text-destructive',
+    bgColor: 'bg-destructive/10',
     label: 'Promesa incumplida'
   },
   'CREDIT_BLOCKED': {
     icon: <Ban className="h-4 w-4" />,
-    color: 'text-red-600',
-    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    color: 'text-destructive',
+    bgColor: 'bg-destructive/10',
     label: 'Crédito bloqueado'
   },
   'CREDIT_UNBLOCKED': {
     icon: <Unlock className="h-4 w-4" />,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
     label: 'Crédito desbloqueado'
   },
   'REMINDER_SENT': {
     icon: <Bell className="h-4 w-4" />,
-    color: 'text-yellow-500',
-    bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+    color: 'text-gold',
+    bgColor: 'bg-gold/10',
     label: 'Recordatorio enviado'
   },
   'NOTIFICATION_SENT': {
     icon: <MessageSquare className="h-4 w-4" />,
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+    color: 'text-primary/80',
+    bgColor: 'bg-primary/10',
     label: 'Notificación'
   },
   'LIMIT_INCREASED': {
     icon: <TrendingUp className="h-4 w-4" />,
-    color: 'text-green-500',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
     label: 'Límite aumentado'
   },
   'ORDER_PLACED': {
     icon: <FileText className="h-4 w-4" />,
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+    color: 'text-primary/80',
+    bgColor: 'bg-primary/10',
     label: 'Pedido realizado'
   },
   'DEFAULT': {

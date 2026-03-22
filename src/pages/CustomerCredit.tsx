@@ -34,16 +34,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 const TRUST_CONFIG = {
-  CONFIABLE: { icon: Shield, color: 'text-green-500', bg: 'bg-green-500/10', label: 'Confiable' },
-  RIESGO: { icon: ShieldAlert, color: 'text-yellow-500', bg: 'bg-yellow-500/10', label: 'En Riesgo' },
-  CRITICO: { icon: ShieldX, color: 'text-red-500', bg: 'bg-red-500/10', label: 'Crítico' },
+  CONFIABLE: { icon: Shield, color: 'text-primary', bg: 'bg-primary/10', label: 'Confiable' },
+  RIESGO: { icon: ShieldAlert, color: 'text-gold', bg: 'bg-gold/10', label: 'En Riesgo' },
+  CRITICO: { icon: ShieldX, color: 'text-destructive', bg: 'bg-destructive/10', label: 'Crítico' },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  ACTIVO: { label: 'Activo', color: 'bg-green-500' },
-  POR_VENCER: { label: 'Por Vencer', color: 'bg-yellow-500' },
-  EN_GRACIA: { label: 'En Período de Gracia', color: 'bg-orange-500' },
-  VENCIDO: { label: 'Vencido', color: 'bg-red-500' },
+  ACTIVO: { label: 'Activo', color: 'bg-primary' },
+  POR_VENCER: { label: 'Por Vencer', color: 'bg-gold/80' },
+  EN_GRACIA: { label: 'En Período de Gracia', color: 'bg-gold/60' },
+  VENCIDO: { label: 'Vencido', color: 'bg-destructive/80' },
   BLOQUEADO: { label: 'Bloqueado', color: 'bg-gray-500' },
 };
 
@@ -180,11 +180,11 @@ export default function CustomerCredit() {
           )}
 
           {credit.early_payment_discount > 0 && credit.trust_level === 'CONFIABLE' && (
-            <Card className="mb-6 border-green-500/30 bg-green-500/10">
+            <Card className="mb-6 border-primary/30 bg-primary/10">
               <CardContent className="p-4 flex items-center gap-3">
-                <Award className="h-6 w-6 text-green-600" />
+                <Award className="h-6 w-6 text-primary" />
                 <div>
-                  <p className="font-semibold text-green-600">Descuento por Pago Puntual</p>
+                  <p className="font-semibold text-primary">Descuento por Pago Puntual</p>
                   <p className="text-sm text-muted-foreground">
                     Obtén un {credit.early_payment_discount}% de descuento al pagar antes del vencimiento
                   </p>
@@ -197,8 +197,8 @@ export default function CustomerCredit() {
           <div className="grid grid-cols-3 gap-4 mb-6">
             <Card className={cn(credit.daysUntilDue && credit.daysUntilDue > 0 ? "border-green-500/30" : "")}>
               <CardContent className="p-4 text-center">
-                <Clock className="h-5 w-5 mx-auto text-green-500 mb-2" />
-                <p className="text-2xl font-bold text-green-600">{credit.daysUntilDue || 0}</p>
+                <Clock className="h-5 w-5 mx-auto text-primary mb-2" />
+                <p className="text-2xl font-bold text-primary">{credit.daysUntilDue || 0}</p>
                 <p className="text-xs text-muted-foreground">Días para pagar</p>
               </CardContent>
             </Card>
@@ -211,8 +211,8 @@ export default function CustomerCredit() {
             </Card>
             <Card className={cn(credit.daysOverdue && credit.daysOverdue > 0 ? "border-red-500/30" : "")}>
               <CardContent className="p-4 text-center">
-                <AlertTriangle className="h-5 w-5 mx-auto text-red-500 mb-2" />
-                <p className="text-2xl font-bold text-red-600">{credit.daysOverdue || 0}</p>
+                <AlertTriangle className="h-5 w-5 mx-auto text-destructive mb-2" />
+                <p className="text-2xl font-bold text-destructive">{credit.daysOverdue || 0}</p>
                 <p className="text-xs text-muted-foreground">Días vencido</p>
               </CardContent>
             </Card>
@@ -255,9 +255,9 @@ export default function CustomerCredit() {
                           >
                             <div className="flex items-center gap-3">
                               {tx.type === 'ABONO' ? (
-                                <TrendingDown className="h-5 w-5 text-green-500" />
+                                <TrendingDown className="h-5 w-5 text-primary" />
                               ) : (
-                                <TrendingUp className="h-5 w-5 text-red-500" />
+                                <TrendingUp className="h-5 w-5 text-destructive" />
                               )}
                               <div>
                                 <p className="font-medium">{tx.description || tx.type}</p>
@@ -269,7 +269,7 @@ export default function CustomerCredit() {
                             <div className="text-right">
                               <p className={cn(
                                 "font-bold",
-                                tx.type === 'ABONO' ? "text-green-600" : "text-red-600"
+                                tx.type === 'ABONO' ? "text-primary" : "text-destructive"
                               )}>
                                 {tx.type === 'ABONO' ? '-' : '+'}${tx.amount.toFixed(2)}
                               </p>
@@ -306,17 +306,17 @@ export default function CustomerCredit() {
                           key={promise.id}
                           className={cn(
                             "p-4 rounded-lg border",
-                            promise.status === 'CUMPLIDA' && "border-green-500/30 bg-green-500/5",
-                            promise.status === 'INCUMPLIDA' && "border-red-500/30 bg-red-500/5",
-                            promise.status === 'PENDIENTE' && "border-yellow-500/30 bg-yellow-500/5"
+                            promise.status === 'CUMPLIDA' && "border-primary/30 bg-primary/5",
+                            promise.status === 'INCUMPLIDA' && "border-destructive/30 bg-destructive/5",
+                            promise.status === 'PENDIENTE' && "border-gold/30 bg-gold/5"
                           )}
                         >
                           <div className="flex items-center justify-between">
                             <div>
                               <div className="flex items-center gap-2">
-                                {promise.status === 'CUMPLIDA' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
-                                {promise.status === 'INCUMPLIDA' && <AlertTriangle className="h-4 w-4 text-red-500" />}
-                                {promise.status === 'PENDIENTE' && <Clock className="h-4 w-4 text-yellow-500" />}
+                                {promise.status === 'CUMPLIDA' && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                                {promise.status === 'INCUMPLIDA' && <AlertTriangle className="h-4 w-4 text-destructive" />}
+                                {promise.status === 'PENDIENTE' && <Clock className="h-4 w-4 text-gold" />}
                                 <span className="font-medium">${promise.promised_amount.toFixed(2)}</span>
                               </div>
                               <p className="text-sm text-muted-foreground">

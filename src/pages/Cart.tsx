@@ -1,233 +1,212 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Trash2, Minus, Plus, ArrowRight, ArrowLeft, Package } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Package, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { useCart } from '@/contexts/CartContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 
-// Página del carrito de compras
+// Carrito de compras — Luxury receipt layout
 export default function Cart() {
-  // --- DERIVED ---
-  const { items, removeItem, updateQuantity, getSubtotal, clearCart } = useCart();
+  const { items, removeItem, updateQuantity, getTotal, getItemCount, clearCart } = useCart();
   const { rate, convertToBS } = useExchangeRate();
-  
-  const subtotal = getSubtotal();
-  const isEmpty = items.length === 0;
 
-  // --- RENDER ---
+  const total = getTotal();
+  const itemCount = getItemCount();
+
+  if (items.length === 0) {
+    return (
+      <StoreLayout>
+        <div className="container mx-auto px-4 py-24">
+          <div className="max-w-md mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="space-y-5"
+            >
+              <div className="w-20 h-20 rounded-full bg-card/40 border border-border/10 flex items-center justify-center mx-auto">
+                <ShoppingBag className="h-10 w-10 text-muted-foreground/20" />
+              </div>
+              <h1 className="text-3xl font-serif font-medium text-foreground tracking-tight">
+                Tu carrito está vacío
+              </h1>
+              <p className="text-muted-foreground/40 text-sm tracking-wide">
+                Descubre nuestra colección exclusiva y encuentra algo especial.
+              </p>
+              <Link to="/tienda">
+                <Button size="lg" className="btn-gold rounded-full h-13 px-10 text-sm mt-4">
+                  Explorar Tienda
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </motion.div>
+          </div>
+        </div>
+      </StoreLayout>
+    );
+  }
 
   return (
     <StoreLayout>
-      <div className="container mx-auto px-4 py-6 md:py-10">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-          <Link to="/" className="hover:text-foreground transition-colors">Inicio</Link>
-          <span>/</span>
-          <span className="text-foreground">Mi Carrito</span>
-        </nav>
-
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground">
-              Mi Carrito
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {isEmpty ? 'Tu carrito está vacío' : `${items.length} producto${items.length > 1 ? 's' : ''}`}
-            </p>
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        {/* Header */}
+        <div className="mb-10">
+          <nav className="flex items-center gap-2 text-xs text-muted-foreground/40 mb-5 tracking-wide">
+            <Link to="/" className="hover:text-foreground transition-colors">Inicio</Link>
+            <span>/</span>
+            <span className="text-foreground/70">Carrito</span>
+          </nav>
+          <div className="flex items-end justify-between">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
+                Tu Carrito
+              </h1>
+              <p className="text-muted-foreground/40 mt-2 text-sm tracking-wide">
+                {itemCount} {itemCount === 1 ? 'producto' : 'productos'}
+              </p>
+            </div>
           </div>
-          {!isEmpty && (
-            <Button
-              variant="ghost"
-              className="text-destructive hover:text-destructive/80"
-              onClick={clearCart}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Vaciar
-            </Button>
-          )}
         </div>
 
-        {isEmpty ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-20 text-center"
-          >
-            <div className="w-24 h-24 rounded-full bg-secondary/50 flex items-center justify-center mb-6">
-              <ShoppingBag className="h-12 w-12 text-muted-foreground/50" />
-            </div>
-            <h2 className="text-2xl font-semibold text-foreground mb-2">
-              Tu carrito está vacío
-            </h2>
-            <p className="text-muted-foreground mb-8 max-w-md">
-              ¡Explora nuestra tienda y encuentra productos increíbles!
-            </p>
-            <Link to="/tienda">
-              <Button className="btn-gold">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Ir a la Tienda
-              </Button>
-            </Link>
-          </motion.div>
-        ) : (
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
-            <div className="lg:col-span-2 space-y-4">
-              <AnimatePresence mode="popLayout">
-                {items.map((item) => (
-                  <motion.div
-                    key={item.id}
-                    layout
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="glass-card rounded-2xl p-4 md:p-6"
-                  >
-                    <div className="flex gap-4">
-                      {/* Image */}
-                      <Link to={`/producto/${item.id}`} className="flex-shrink-0">
-                        <div className="w-20 h-20 md:w-28 md:h-28 rounded-xl overflow-hidden bg-secondary/30">
-                          {item.image_url ? (
-                            <img
-                              src={item.image_url}
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="w-8 h-8 text-muted-foreground/30" />
-                            </div>
-                          )}
+        <div className="grid lg:grid-cols-[1fr_380px] gap-10">
+          {/* Items */}
+          <div className="space-y-0">
+            <AnimatePresence mode="popLayout">
+              {items.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -100, transition: { duration: 0.3 } }}
+                  transition={{ delay: index * 0.05 }}
+                  className="flex items-center gap-5 py-6 border-b border-border/10 group"
+                >
+                  {/* Thumbnail */}
+                  <Link to={`/producto/${item.id}`}>
+                    <div className="w-20 h-24 md:w-24 md:h-28 rounded-xl overflow-hidden bg-secondary/10 flex-shrink-0 group-hover:shadow-lg transition-shadow duration-300">
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="w-8 h-8 text-muted-foreground/20" />
                         </div>
-                      </Link>
-
-                      {/* Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between gap-2">
-                          <Link to={`/producto/${item.id}`}>
-                            <h3 className="font-medium text-foreground hover:text-accent transition-colors line-clamp-2">
-                              {item.name}
-                            </h3>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="flex-shrink-0 text-muted-foreground hover:text-destructive"
-                            onClick={() => removeItem(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        <div className="mt-2 space-y-1">
-                          <p className="text-accent font-semibold">
-                            ${item.price_usd.toFixed(2)}
-                          </p>
-                          {rate > 0 && (
-                            <p className="text-sm text-muted-foreground">
-                              Bs. {convertToBS(item.price_usd).toFixed(2)}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Quantity & Subtotal */}
-                        <div className="flex items-center justify-between mt-4">
-                          <div className="flex items-center border border-border rounded-lg overflow-hidden">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-none"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-10 text-center text-sm font-medium">
-                              {item.quantity}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-none"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              disabled={item.quantity >= item.stock}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <p className="font-semibold text-foreground">
-                            ${(item.price_usd * item.quantity).toFixed(2)}
-                          </p>
-                        </div>
-
-                        {/* Stock warning */}
-                        {item.quantity >= item.stock && (
-                          <p className="text-xs text-orange-500 mt-2">
-                            Máximo disponible: {item.stock}
-                          </p>
-                        )}
-                      </div>
+                      )}
                     </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                  </Link>
 
-              {/* Continue Shopping */}
-              <Link to="/tienda">
-                <Button variant="ghost" className="w-full mt-4">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Seguir Comprando
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <Link to={`/producto/${item.id}`}>
+                      <h3 className="font-serif text-foreground/90 text-sm md:text-base font-medium truncate hover:text-primary transition-colors">
+                        {item.name}
+                      </h3>
+                    </Link>
+                    <p className="text-gold text-sm font-semibold mt-1">${item.price_usd.toFixed(2)}</p>
+                    
+                    {/* Quantity controls — pill */}
+                    <div className="flex items-center gap-3 mt-3">
+                      <div className="flex items-center border border-border/15 rounded-full bg-card/20 backdrop-blur-sm overflow-hidden">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-none hover:text-primary"
+                          onClick={() => item.quantity <= 1 ? removeItem(item.id) : updateQuantity(item.id, item.quantity - 1)}
+                        >
+                          {item.quantity <= 1 ? <Trash2 className="h-3 w-3 text-destructive/60" /> : <Minus className="h-3 w-3" />}
+                        </Button>
+                        <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-none"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          disabled={item.quantity >= item.stock}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground/30 hover:text-destructive text-xs h-8"
+                        onClick={() => removeItem(item.id)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Eliminar
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Line total */}
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-serif text-lg md:text-xl font-semibold text-gradient-gold">
+                      ${(item.price_usd * item.quantity).toFixed(2)}
+                    </p>
+                    {rate > 0 && (
+                      <p className="text-xs text-muted-foreground/30 mt-0.5">
+                        Bs. {convertToBS(item.price_usd * item.quantity).toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {/* Summary Card — Glassmorphism with gold border */}
+          <div className="lg:sticky lg:top-24">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="rounded-2xl p-6 bg-card/50 backdrop-blur-xl border border-gold/15 shadow-[0_16px_48px_hsl(var(--gold)/0.08)]"
+            >
+              <h3 className="font-serif text-foreground/80 text-sm tracking-wide mb-6">Resumen del pedido</h3>
+
+              <div className="space-y-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground/50">Subtotal ({itemCount} productos)</span>
+                  <span className="text-foreground/80">${total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground/50">Envío</span>
+                  <span className="text-gold/80 text-xs tracking-wide">Calculado al pagar</span>
+                </div>
+
+                <div className="h-px bg-border/10 my-2" />
+
+                <div className="flex justify-between items-baseline">
+                  <span className="text-sm text-muted-foreground/60">Total</span>
+                  <div className="text-right">
+                    <span className="text-3xl font-bold font-serif text-gradient-gold">
+                      ${total.toFixed(2)}
+                    </span>
+                    {rate > 0 && (
+                      <p className="text-xs text-muted-foreground/30 mt-1">
+                        Bs. {convertToBS(total).toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <Link to="/checkout" className="block mt-8">
+                <Button size="lg" className="w-full btn-gold btn-shimmer rounded-full h-13 text-base">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Proceder al Pago
                 </Button>
               </Link>
-            </div>
 
-            {/* Order Summary */}
-            <div className="lg:col-span-1">
-              <div className="glass-card rounded-2xl p-6 sticky top-24">
-                <h2 className="text-xl font-semibold text-foreground mb-4">
-                  Resumen del Pedido
-                </h2>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="text-foreground">${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Envío</span>
-                    <span className="text-muted-foreground">Calculado al pagar</span>
-                  </div>
-                </div>
-
-                <Separator className="my-4" />
-
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-lg font-semibold text-foreground">Total</span>
-                  <span className="text-2xl font-bold text-accent">
-                    ${subtotal.toFixed(2)}
-                  </span>
-                </div>
-                {rate > 0 && (
-                  <p className="text-right text-muted-foreground text-sm mb-6">
-                    Bs. {convertToBS(subtotal).toFixed(2)}
-                  </p>
-                )}
-
-                <Link to="/checkout">
-                  <Button size="lg" className="w-full btn-gold">
-                    Proceder al Pago
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </Link>
-
-                <p className="text-xs text-muted-foreground text-center mt-4">
-                  Los precios están en USD. Se requerirá registro al momento de pagar.
-                </p>
-              </div>
-            </div>
+              <Link to="/tienda" className="block mt-3">
+                <Button variant="ghost" className="w-full text-muted-foreground/40 hover:text-foreground rounded-full text-sm h-10">
+                  <ArrowLeft className="h-3.5 w-3.5 mr-2" />
+                  Seguir comprando
+                </Button>
+              </Link>
+            </motion.div>
           </div>
-        )}
+        </div>
       </div>
     </StoreLayout>
   );

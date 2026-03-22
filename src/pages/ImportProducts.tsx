@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
@@ -462,7 +461,7 @@ export default function ImportProducts() {
                     <div className="flex flex-wrap gap-2">
                       {['nombre_producto*', 'precio*', 'stock*', 'descripcion', 'categoria', 'proveedor', 'sku'].map(col => (
                         <div key={col}>
-                          <Badge variant={(col.includes('*') ? 'default' : 'secondary') as any}>
+                          <Badge variant={col.includes('*') ? 'default' : 'secondary'}>
                             {col}
                           </Badge>
                         </div>
@@ -514,7 +513,7 @@ export default function ImportProducts() {
                 </Card>
                 <Card>
                   <CardContent className="pt-6 text-center">
-                    <p className="text-3xl font-bold text-green-600">{stats.valid}</p>
+                    <p className="text-3xl font-bold text-primary">{stats.valid}</p>
                     <p className="text-sm text-muted-foreground">Válidos</p>
                   </CardContent>
                 </Card>
@@ -560,7 +559,7 @@ export default function ImportProducts() {
                             <td className="p-2">{product.rowIndex}</td>
                             <td className="p-2">
                               {product.isValid ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                <CheckCircle2 className="h-4 w-4 text-primary" />
                               ) : (
                                 <AlertTriangle className="h-4 w-4 text-destructive" />
                               )}
@@ -637,14 +636,14 @@ export default function ImportProducts() {
               <Card>
                 <CardContent className="pt-12 pb-12 text-center">
                   {importResult.success > 0 ? (
-                    <CheckCircle2 className="h-16 w-16 mx-auto text-green-600 mb-6" />
+                    <CheckCircle2 className="h-16 w-16 mx-auto text-primary mb-6" />
                   ) : (
                     <XCircle className="h-16 w-16 mx-auto text-destructive mb-6" />
                   )}
                   <h3 className="text-xl font-semibold mb-2">Importación completada</h3>
                   <div className="flex justify-center gap-8 mt-6">
                     <div className="text-center">
-                      <p className="text-3xl font-bold text-green-600">{importResult.success}</p>
+                      <p className="text-3xl font-bold text-primary">{importResult.success}</p>
                       <p className="text-sm text-muted-foreground">Importados</p>
                     </div>
                     <div className="text-center">

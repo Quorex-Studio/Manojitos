@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -105,19 +104,19 @@ export default function CustomerOrders() {
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-yellow-500">{stats.pending}</p>
+                <p className="text-3xl font-bold text-gold">{stats.pending}</p>
                 <p className="text-xs text-muted-foreground">Pendientes</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-blue-500">{stats.inProgress}</p>
+                <p className="text-3xl font-bold text-primary">{stats.inProgress}</p>
                 <p className="text-xs text-muted-foreground">En Progreso</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-green-500">{stats.completed}</p>
+                <p className="text-3xl font-bold text-primary">{stats.completed}</p>
                 <p className="text-xs text-muted-foreground">Entregados</p>
               </CardContent>
             </Card>
@@ -195,10 +194,10 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge {...({ className: cn(paymentConfig.color, "text-white") } as any)}>
+                    <Badge className={cn(paymentConfig.color, "text-white")}>
                       {paymentConfig.label}
                     </Badge>
-                    <Badge {...({ className: cn(statusConfig.color, "text-white") } as any)}>
+                    <Badge className={cn(statusConfig.color, "text-white")}>
                       {statusConfig.label}
                     </Badge>
                   </div>
@@ -239,8 +238,8 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
 
                 {/* Tracking */}
                 {order.tracking_number && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 mb-4">
-                    <Truck className="h-4 w-4 text-blue-500" />
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 mb-4">
+                    <Truck className="h-4 w-4 text-primary" />
                     <span className="text-sm">
                       Número de seguimiento: <strong>{order.tracking_number}</strong>
                     </span>

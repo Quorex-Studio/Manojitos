@@ -94,10 +94,10 @@ export function NotificationBell() {
                   <div className="flex items-start gap-2">
                     <div className={cn(
                       "w-2 h-2 rounded-full mt-1.5 flex-shrink-0",
-                      notif.type === 'warning' ? 'bg-yellow-500' :
-                      notif.type === 'error' ? 'bg-red-500' :
-                      notif.type === 'success' ? 'bg-green-500' :
-                      'bg-blue-500'
+                      notif.type === 'warning' ? 'bg-gold' :
+                      notif.type === 'error' ? 'bg-destructive' :
+                      notif.type === 'success' ? 'bg-primary' :
+                      'bg-primary/70'
                     )} />
                     <div className="flex-1 min-w-0">
                       <p className={cn(

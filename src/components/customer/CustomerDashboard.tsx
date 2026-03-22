@@ -54,30 +54,30 @@ function QuickLink({ to, icon, label, description, badge, badgeVariant = 'second
   return (
     <motion.div variants={item}>
       <Link to={to}>
-        <Card className={cn(
-          "glass-card hover:border-primary/50 transition-all hover:shadow-lg group overflow-hidden",
-          accent && "border-primary/20 bg-primary/5"
+        <div className={cn(
+          "flex items-center gap-4 p-4 rounded-xl transition-all duration-300 group",
+          "bg-card/30 hover:bg-card/50 border border-transparent hover:border-primary/10",
+          "hover:shadow-[0_0_20px_hsl(var(--rose)/0.08)]",
+          accent && "border-primary/10 bg-primary/5"
         )}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-secondary text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-              {icon}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-medium truncate">{label}</p>
-                {badge !== undefined && badge !== 0 && (
-                  <Badge variant={badgeVariant} className="text-[10px] h-4 px-1.5 leading-none">
-                    {badge}
-                  </Badge>
-                )}
-              </div>
-              {description && (
-                <p className="text-xs text-muted-foreground truncate">{description}</p>
+          <div className="p-2.5 rounded-xl bg-primary/5 text-primary/60 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
+            {icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-sm text-foreground/80 truncate tracking-wide">{label}</p>
+              {badge !== undefined && badge !== 0 && (
+                <Badge variant={badgeVariant} className="text-[9px] h-4 px-1.5 leading-none rounded-full">
+                  {badge}
+                </Badge>
               )}
             </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all group-hover:translate-x-0.5" />
-          </CardContent>
-        </Card>
+            {description && (
+              <p className="text-xs text-muted-foreground/40 truncate tracking-wide">{description}</p>
+            )}
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground/20 group-hover:text-primary/50 transition-all group-hover:translate-x-0.5" />
+        </div>
       </Link>
     </motion.div>
   );
@@ -98,7 +98,7 @@ export function CustomerDashboard() {
       variants={container}
       initial="hidden"
       animate="show"
-      className="space-y-4"
+      className="space-y-5"
     >
       {/* Banner de recordatorio de pago */}
       <motion.div variants={item}>
@@ -112,57 +112,56 @@ export function CustomerDashboard() {
         </motion.div>
       )}
 
-      {/* Bienvenida Hero */}
+      {/* Bienvenida Hero — editorial con gradient sutil */}
       <motion.div 
         variants={item} 
-        className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border border-primary/10"
+        className="relative overflow-hidden rounded-2xl p-7 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/8"
       >
         <div className="relative z-10">
-          <div className="flex items-center gap-2 text-primary mb-2">
-            <Sparkles className="h-4 w-4 fill-primary/20" />
-            <span className="text-xs font-bold tracking-wider uppercase">Área Exclusiva</span>
+          <div className="flex items-center gap-2 text-primary/60 mb-2.5">
+            <Sparkles className="h-3.5 w-3.5 fill-primary/20" />
+            <span className="text-[10px] font-bold tracking-[0.15em] uppercase">Área Exclusiva</span>
           </div>
-          <h2 className="text-2xl font-bold font-serif mb-1">
+          <h2 className="text-2xl md:text-3xl font-serif font-medium text-foreground tracking-tight">
             {hasProfile && profile?.full_name 
               ? `Hola, ${profile.full_name.split(' ')[0]}` 
               : 'Bienvenido'}
           </h2>
-          <p className="text-sm text-muted-foreground max-w-[200px]">
+          <p className="text-sm text-muted-foreground/40 max-w-[250px] tracking-wide mt-1">
             Gestiona tu cuenta y revisa tus compras en Manojitos.
           </p>
         </div>
-        {/* Decoración geométrica sutil */}
-        <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
       </motion.div>
 
-      {/* Grid de estadísticas rápidas */}
+      {/* Grid de estadísticas — Gold numbers */}
       <motion.div variants={item} className="grid grid-cols-3 gap-3">
-        <Card className="glass-card-gold text-center p-3 border-gold/20">
-          <p className="text-xl font-bold text-gold">{orders.length}</p>
-          <p className="text-[10px] uppercase tracking-tighter text-muted-foreground">Pedidos</p>
-        </Card>
-        <Card className="glass-card text-center p-3">
-          <p className="text-xl font-bold text-gold">{wishlistCount}</p>
-          <p className="text-[10px] uppercase tracking-tighter text-muted-foreground">Favoritos</p>
-        </Card>
-        <Card className="glass-card text-center p-3">
-          <p className="text-xl font-bold text-gold">{unreadCount}</p>
-          <p className="text-[10px] uppercase tracking-tighter text-muted-foreground">Avisos</p>
-        </Card>
+        <div className="text-center p-3.5 rounded-xl bg-card/40 backdrop-blur-sm border border-gold/10">
+          <p className="text-xl font-bold font-serif text-gradient-gold">{orders.length}</p>
+          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/30 mt-0.5">Pedidos</p>
+        </div>
+        <div className="text-center p-3.5 rounded-xl bg-card/40 backdrop-blur-sm border border-border/10">
+          <p className="text-xl font-bold font-serif text-gradient-gold">{wishlistCount}</p>
+          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/30 mt-0.5">Favoritos</p>
+        </div>
+        <div className="text-center p-3.5 rounded-xl bg-card/40 backdrop-blur-sm border border-border/10">
+          <p className="text-xl font-bold font-serif text-gradient-gold">{unreadCount}</p>
+          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/30 mt-0.5">Avisos</p>
+        </div>
       </motion.div>
 
-      {/* Grid de accesos rápidos */}
-      <div className="grid gap-3">
+      {/* Grid de accesos rápidos — no rigid borders, glow on hover */}
+      <div className="space-y-1">
         <QuickLink
           to="/cliente/perfil"
-          icon={<User className="h-5 w-5" />}
+          icon={<User className="h-4.5 w-4.5" />}
           label="Mi Perfil"
           description="Datos personales y dirección"
         />
 
         <QuickLink
           to="/cliente/pedidos"
-          icon={<Package className="h-5 w-5" />}
+          icon={<Package className="h-4.5 w-4.5" />}
           label="Mis Pedidos"
           description={pendingOrders > 0 ? `${pendingOrders} en proceso` : 'Historial de compras'}
           badge={pendingOrders > 0 ? pendingOrders : undefined}
@@ -172,7 +171,7 @@ export function CustomerDashboard() {
 
         <QuickLink
           to="/cliente/credito"
-          icon={<Wallet className="h-5 w-5" />}
+          icon={<Wallet className="h-4.5 w-4.5" />}
           label="Mi Crédito"
           description={hasCredit ? `Saldo: $${credit?.current_balance?.toFixed(2)}` : 'Ver estado crediticio'}
           badge={hasCredit ? credit?.status : undefined}
@@ -181,7 +180,7 @@ export function CustomerDashboard() {
 
         <QuickLink
           to="/cliente/favoritos"
-          icon={<Heart className="h-5 w-5" />}
+          icon={<Heart className="h-4.5 w-4.5" />}
           label="Lista de Deseos"
           description={wishlistCount > 0 ? `${wishlistCount} productos guardados` : 'Productos que te gustan'}
           badge={wishlistCount > 0 ? wishlistCount : undefined}
@@ -189,7 +188,7 @@ export function CustomerDashboard() {
 
         <QuickLink
           to="/cliente/notificaciones"
-          icon={<Bell className="h-5 w-5" />}
+          icon={<Bell className="h-4.5 w-4.5" />}
           label="Notificaciones"
           description="Avisos y recordatorios"
           badge={unreadCount > 0 ? unreadCount : undefined}
@@ -199,41 +198,37 @@ export function CustomerDashboard() {
 
         <QuickLink
           to="/cliente/metodos-pago"
-          icon={<CreditCard className="h-5 w-5" />}
+          icon={<CreditCard className="h-4.5 w-4.5" />}
           label="Métodos de Pago"
           description="Gestiona tus métodos guardados"
         />
 
         <QuickLink
           to="/cliente/configuracion"
-          icon={<Settings className="h-5 w-5" />}
+          icon={<Settings className="h-4.5 w-4.5" />}
           label="Configuración"
           description="Seguridad y preferencias"
         />
       </div>
 
-      {/* Acciones rápidas mejoradas */}
+      {/* Acciones rápidas — styled pills */}
       <motion.div variants={item} className="pt-2">
         <div className="grid grid-cols-2 gap-3">
           <Link to="/tienda">
-            <Card className="glass-card hover:border-primary/50 transition-all cursor-pointer group">
-              <CardContent className="p-4 text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                  <ShoppingBag className="h-6 w-6 text-primary" />
-                </div>
-                <p className="font-bold text-xs uppercase tracking-wider">Ir a la Tienda</p>
-              </CardContent>
-            </Card>
+            <div className="p-5 rounded-xl bg-card/30 border border-border/10 hover:border-primary/15 hover:bg-card/50 transition-all duration-300 cursor-pointer group text-center">
+              <div className="w-12 h-12 bg-primary/5 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-300">
+                <ShoppingBag className="h-5 w-5 text-primary/60" />
+              </div>
+              <p className="font-medium text-xs tracking-[0.1em] uppercase text-foreground/60">Ir a la Tienda</p>
+            </div>
           </Link>
           <Link to="/cliente/pedidos">
-            <Card className="glass-card hover:border-primary/50 transition-all cursor-pointer group">
-              <CardContent className="p-4 text-center">
-                <div className="w-12 h-12 bg-gold/10 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                  <Clock className="h-6 w-6 text-gold" />
-                </div>
-                <p className="font-bold text-xs uppercase tracking-wider">Rastrear Pedido</p>
-              </CardContent>
-            </Card>
+            <div className="p-5 rounded-xl bg-card/30 border border-border/10 hover:border-gold/15 hover:bg-card/50 transition-all duration-300 cursor-pointer group text-center">
+              <div className="w-12 h-12 bg-gold/5 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 group-hover:bg-gold/10 transition-all duration-300">
+                <Clock className="h-5 w-5 text-gold/60" />
+              </div>
+              <p className="font-medium text-xs tracking-[0.1em] uppercase text-foreground/60">Rastrear Pedido</p>
+            </div>
           </Link>
         </div>
       </motion.div>

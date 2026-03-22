@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -202,7 +201,7 @@ export default function BusinessRules() {
           </Card>
           <Card className="glass-card">
             <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-green-500">{stats.active}</div>
+              <div className="text-2xl font-bold text-primary">{stats.active}</div>
               <p className="text-sm text-muted-foreground">Activas</p>
             </CardContent>
           </Card>
@@ -258,11 +257,9 @@ export default function BusinessRules() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <CardTitle className="text-lg">{rule.rule_name}</CardTitle>
-                              {rule.is_active ? (
-                                <Badge variant={'default' as any}>Activo</Badge>
-                              ) : (
-                                <Badge variant={'secondary' as any}>Inactivo</Badge>
-                              )}
+                              <Badge variant={rule.is_active ? 'default' : 'secondary'}>
+                                {rule.is_active ? 'Activa' : 'Inactiva'}
+                              </Badge>
                               <Badge variant="outline">{typeInfo.label}</Badge>
                             </div>
                             <CardDescription>{rule.description || typeInfo.description}</CardDescription>
@@ -284,7 +281,7 @@ export default function BusinessRules() {
                               onClick={() => handleToggle(rule.id)}
                             >
                               {rule.is_active ? (
-                                <ToggleRight className="h-5 w-5 text-green-500" />
+                                <ToggleRight className="h-5 w-5 text-primary" />
                               ) : (
                                 <ToggleLeft className="h-5 w-5 text-muted-foreground" />
                               )}

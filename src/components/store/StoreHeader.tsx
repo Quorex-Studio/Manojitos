@@ -11,7 +11,7 @@ import { UserMenu } from '@/components/ui/user-menu';
 import { useCart } from '@/contexts/CartContext';
 import logoImage from '@/assets/logo.jpeg';
 
-// Header de la tienda con animaciones premium
+// Header de la tienda — Editorial luxury frosted glass
 export function StoreHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -56,24 +56,24 @@ export function StoreHeader() {
 
   return (
     <motion.header 
-      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+      className={`sticky top-0 z-50 w-full transition-all duration-500 ${
         isScrolled 
-          ? 'bg-background/98 backdrop-blur-xl shadow-lg border-b border-border/30' 
-          : 'bg-background/95 backdrop-blur-md border-b border-border/50'
+          ? 'bg-background/80 backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.06)] border-b border-border/20' 
+          : 'bg-background/60 backdrop-blur-xl border-b border-border/10'
       }`}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
+      transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       <div className="container mx-auto px-4">
         {/* Top bar - Solo en desktop */}
         <AnimatePresence>
           {!isScrolled && (
             <motion.div 
-              className="hidden md:flex items-center justify-end py-2 text-sm text-muted-foreground border-b border-border/30"
+              className="hidden md:flex items-center justify-end py-1.5 text-xs text-muted-foreground/70 tracking-[0.15em] uppercase"
               initial={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.3 }}
             >
               <span>Envíos a toda Venezuela 🇻🇪</span>
             </motion.div>
@@ -81,25 +81,25 @@ export function StoreHeader() {
         </AnimatePresence>
 
         {/* Main header */}
-        <div className={`flex items-center justify-between transition-all duration-300 ${
+        <div className={`flex items-center justify-between transition-all duration-500 ${
           isScrolled ? 'h-14 md:h-16' : 'h-16 md:h-20'
         }`}>
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2.5">
             <motion.div
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2.5"
             >
               <img 
                 src={logoImage} 
                 alt="Manojitos" 
-                className={`rounded-full object-cover transition-all duration-300 ${
-                  isScrolled ? 'h-8 w-8 md:h-10 md:w-10' : 'h-10 w-10 md:h-12 md:w-12'
+                className={`rounded-full object-cover transition-all duration-500 ring-1 ring-gold/20 ${
+                  isScrolled ? 'h-8 w-8 md:h-9 md:w-9' : 'h-10 w-10 md:h-11 md:w-11'
                 }`}
               />
-              <span className={`font-serif font-bold text-gradient-gold transition-all duration-300 ${
+              <span className={`font-serif font-bold text-gradient-gold transition-all duration-500 ${
                 isScrolled ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'
               }`}>
                 Manojitos
@@ -108,26 +108,26 @@ export function StoreHeader() {
           </Link>
 
           {/* Navigation - Desktop */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-10">
             {navLinks.map((link) => (
               <Link 
                 key={link.to}
                 to={link.to} 
-                className="relative text-foreground/80 hover:text-foreground transition-colors font-medium group"
+                className="relative text-foreground/60 hover:text-foreground transition-colors duration-300 text-sm font-medium tracking-wide group"
               >
                 {link.label}
                 <motion.span 
-                  className="absolute -bottom-1 left-0 w-full h-0.5 bg-gold origin-left"
+                  className="absolute -bottom-1 left-0 w-full h-px bg-gold origin-left"
                   initial={{ scaleX: 0 }}
                   whileHover={{ scaleX: 1 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
                 />
               </Link>
             ))}
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center gap-1 md:gap-3">
+          <div className="flex items-center gap-1 md:gap-2">
             {/* Search - Desktop */}
             <motion.div 
               className="hidden md:block relative"
@@ -138,12 +138,12 @@ export function StoreHeader() {
               <form onSubmit={handleSearch} className="relative">
                 <Input
                   type="text"
-                  placeholder="Buscar productos..."
+                  placeholder="Buscar..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-48 lg:w-64 pl-10 pr-4 h-10 bg-secondary/50 border-border/50 rounded-full focus:w-72 transition-all duration-300"
+                  className="w-44 lg:w-56 pl-9 pr-4 h-9 bg-card/40 backdrop-blur-sm border-border/30 rounded-full text-sm focus:w-64 focus:border-primary/30 transition-all duration-400"
                 />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
               </form>
             </motion.div>
 
@@ -151,14 +151,14 @@ export function StoreHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="md:hidden h-9 w-9"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
             >
               <motion.div
                 animate={{ rotate: isSearchOpen ? 90 : 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <Search className="h-5 w-5" />
+                <Search className="h-4.5 w-4.5" />
               </motion.div>
             </Button>
 
@@ -174,8 +174,8 @@ export function StoreHeader() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Button variant="ghost" size="icon" className="relative">
-                  <ShoppingBag className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="relative h-9 w-9">
+                  <ShoppingBag className="h-4.5 w-4.5" />
                   <AnimatePresence mode="wait">
                     {itemCount > 0 && (
                       <motion.div
@@ -188,11 +188,11 @@ export function StoreHeader() {
                           stiffness: 500, 
                           damping: 25 
                         }}
-                        className="absolute -top-1 -right-1"
+                        className="absolute -top-0.5 -right-0.5"
                       >
                         <Badge 
                           variant="default" 
-                          className="h-5 min-w-5 p-0 px-1 flex items-center justify-center text-xs bg-gold text-white font-bold shadow-gold"
+                          className="h-4.5 min-w-4.5 p-0 px-1 flex items-center justify-center text-[10px] bg-gold text-white font-bold shadow-gold rounded-full"
                         >
                           {itemCount > 99 ? '99+' : itemCount}
                         </Badge>
@@ -207,14 +207,14 @@ export function StoreHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="md:hidden h-9 w-9"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               <motion.div
                 animate={{ rotate: isMenuOpen ? 180 : 0 }}
                 transition={{ duration: 0.3 }}
               >
-                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                {isMenuOpen ? <X className="h-4.5 w-4.5" /> : <Menu className="h-4.5 w-4.5" />}
               </motion.div>
             </Button>
           </div>
@@ -242,10 +242,10 @@ export function StoreHeader() {
                     placeholder="Buscar productos..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 h-12 bg-secondary/50 border-border/50 rounded-full"
+                    className="w-full pl-10 pr-4 h-11 bg-card/40 backdrop-blur-sm border-border/30 rounded-full"
                     autoFocus
                   />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
                 </motion.div>
               </form>
             </motion.div>
@@ -260,7 +260,7 @@ export function StoreHeader() {
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="md:hidden overflow-hidden border-t border-border/30"
+              className="md:hidden overflow-hidden border-t border-border/10"
             >
               <div className="py-4 space-y-1">
                 {navLinks.map((link, index) => (
@@ -273,7 +273,7 @@ export function StoreHeader() {
                     <Link 
                       to={link.to}
                       onClick={() => setIsMenuOpen(false)}
-                      className="block py-3 px-4 text-foreground hover:bg-secondary/50 rounded-xl transition-all duration-200 active:scale-[0.98]"
+                      className="block py-3 px-4 text-foreground/80 hover:text-foreground hover:bg-card/40 rounded-xl transition-all duration-300 active:scale-[0.98] text-sm tracking-wide"
                     >
                       {link.label}
                     </Link>
@@ -287,11 +287,11 @@ export function StoreHeader() {
                   <Link 
                     to="/carrito"
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center justify-between py-3 px-4 text-foreground hover:bg-secondary/50 rounded-xl transition-all duration-200"
+                    className="flex items-center justify-between py-3 px-4 text-foreground/80 hover:text-foreground hover:bg-card/40 rounded-xl transition-all duration-300 text-sm tracking-wide"
                   >
                     <span>Mi Carrito</span>
                     {itemCount > 0 && (
-                      <Badge className="bg-gold text-white">{itemCount}</Badge>
+                      <Badge className="bg-gold text-white text-[10px] rounded-full">{itemCount}</Badge>
                     )}
                   </Link>
                 </motion.div>

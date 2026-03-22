@@ -33,6 +33,7 @@ const profileSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
+// Perfil del cliente — editorial luxury
 export default function CustomerProfile() {
   // --- STATE ---
   const { user } = useAuth();
@@ -53,8 +54,6 @@ export default function CustomerProfile() {
   });
 
   // --- DERIVED / EFFECTS ---
-
-  // Update form when profile loads
   useEffect(() => {
     if (profile) {
       form.reset({
@@ -82,11 +81,11 @@ export default function CustomerProfile() {
   if (!user) {
     return (
       <StoreLayout>
-        <div className="container py-12 text-center">
-          <h1 className="text-2xl font-bold mb-4">Acceso requerido</h1>
-          <p className="text-muted-foreground mb-6">Debes iniciar sesión para ver tu perfil</p>
+        <div className="container py-24 text-center">
+          <h1 className="text-3xl font-serif font-medium mb-3 tracking-tight">Acceso requerido</h1>
+          <p className="text-muted-foreground/50 mb-6 text-sm tracking-wide">Debes iniciar sesión para ver tu perfil</p>
           <Link to="/cliente/auth">
-            <Button>Iniciar Sesión</Button>
+            <Button className="btn-gold rounded-full px-8">Iniciar Sesión</Button>
           </Link>
         </div>
       </StoreLayout>
@@ -96,8 +95,8 @@ export default function CustomerProfile() {
   if (isLoading) {
     return (
       <StoreLayout>
-        <div className="container py-12 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="container py-24 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
         </div>
       </StoreLayout>
     );
@@ -105,48 +104,49 @@ export default function CustomerProfile() {
 
   return (
     <StoreLayout>
-      <div className="container py-8 max-w-4xl">
+      <div className="container py-8 md:py-12 max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
+          {/* Header — editorial hero with gradient */}
+          <div className="flex items-center gap-4 mb-10">
             <Link to="/">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="text-muted-foreground/40">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-5">
               <div className="relative">
-                <Avatar className="h-16 w-16 border-2 border-primary">
+                <Avatar className="h-16 w-16 border-2 border-primary/20 ring-2 ring-primary/10 ring-offset-2 ring-offset-background">
                   <AvatarImage src={undefined} />
-                  <AvatarFallback className="text-lg bg-primary/10">
+                  <AvatarFallback className="text-lg bg-primary/10 text-primary font-serif">
                     {getInitials(profile?.full_name)}
                   </AvatarFallback>
                 </Avatar>
                 <Button 
                   size="icon" 
                   variant="secondary" 
-                  className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full"
+                  className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-card border border-border/20"
                 >
                   <Camera className="h-3.5 w-3.5" />
                 </Button>
               </div>
               <div>
-                <h1 className="page-header">
+                <h1 className="text-3xl md:text-4xl font-serif font-medium text-foreground tracking-tight">
                   {profile?.full_name || 'Mi Cuenta'}
                 </h1>
-                <p className="text-muted-foreground">{user.email}</p>
+                <p className="text-muted-foreground/40 text-sm tracking-wide">{user.email}</p>
               </div>
             </div>
           </div>
 
-          <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="dashboard">Inicio</TabsTrigger>
-              <TabsTrigger value="profile">Perfil</TabsTrigger>
-              <TabsTrigger value="purchases">Compras</TabsTrigger>
+          <Tabs defaultValue="dashboard" className="space-y-8">
+            <TabsList className="grid w-full grid-cols-3 p-1 bg-card/40 backdrop-blur-sm border border-border/10 rounded-full h-11">
+              <TabsTrigger value="dashboard" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Inicio</TabsTrigger>
+              <TabsTrigger value="profile" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Perfil</TabsTrigger>
+              <TabsTrigger value="purchases" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Compras</TabsTrigger>
             </TabsList>
 
             {/* Tab: Dashboard */}
@@ -156,13 +156,13 @@ export default function CustomerProfile() {
 
             {/* Tab: Perfil */}
             <TabsContent value="profile">
-              <Card className="glass-card">
+              <Card className="bg-card/40 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.06)]">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5 text-primary" />
+                  <CardTitle className="flex items-center gap-2 font-serif tracking-tight">
+                    <User className="h-4.5 w-4.5 text-primary/70" />
                     Información Personal
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-muted-foreground/40 text-sm tracking-wide">
                     Actualiza tus datos de contacto y dirección de envío
                   </CardDescription>
                 </CardHeader>
@@ -170,10 +170,11 @@ export default function CustomerProfile() {
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="full_name">Nombre completo</Label>
+                        <Label htmlFor="full_name" className="text-xs tracking-wide text-muted-foreground/60">Nombre completo</Label>
                         <Input
                           id="full_name"
                           placeholder="Tu nombre"
+                          className="bg-card/30 border-border/15 focus:border-primary/30"
                           {...form.register('full_name')}
                         />
                         {form.formState.errors.full_name && (
@@ -182,13 +183,13 @@ export default function CustomerProfile() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Teléfono *</Label>
+                        <Label htmlFor="phone" className="text-xs tracking-wide text-muted-foreground/60">Teléfono *</Label>
                         <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/30" />
                           <Input
                             id="phone"
                             placeholder="+58 412 1234567"
-                            className="pl-10"
+                            className="pl-10 bg-card/30 border-border/15 focus:border-primary/30"
                             {...form.register('phone')}
                           />
                         </div>
@@ -198,14 +199,14 @@ export default function CustomerProfile() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email" className="text-xs tracking-wide text-muted-foreground/60">Email</Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/30" />
                           <Input
                             id="email"
                             type="email"
                             placeholder="tu@email.com"
-                            className="pl-10"
+                            className="pl-10 bg-card/30 border-border/15 focus:border-primary/30"
                             {...form.register('email')}
                           />
                         </div>
@@ -215,41 +216,44 @@ export default function CustomerProfile() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="city">Ciudad</Label>
+                        <Label htmlFor="city" className="text-xs tracking-wide text-muted-foreground/60">Ciudad</Label>
                         <Input
                           id="city"
                           placeholder="Tu ciudad"
+                          className="bg-card/30 border-border/15 focus:border-primary/30"
                           {...form.register('city')}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="state">Estado</Label>
+                        <Label htmlFor="state" className="text-xs tracking-wide text-muted-foreground/60">Estado</Label>
                         <Input
                           id="state"
                           placeholder="Tu estado"
+                          className="bg-card/30 border-border/15 focus:border-primary/30"
                           {...form.register('state')}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="zip_code">Código Postal</Label>
+                        <Label htmlFor="zip_code" className="text-xs tracking-wide text-muted-foreground/60">Código Postal</Label>
                         <Input
                           id="zip_code"
                           placeholder="1234"
+                          className="bg-card/30 border-border/15 focus:border-primary/30"
                           {...form.register('zip_code')}
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="address">Dirección completa</Label>
+                      <Label htmlFor="address" className="text-xs tracking-wide text-muted-foreground/60">Dirección completa</Label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/30" />
                         <Textarea
                           id="address"
                           placeholder="Calle, número, urbanización, punto de referencia..."
-                          className="pl-10 min-h-[80px]"
+                          className="pl-10 min-h-[80px] bg-card/30 border-border/15 focus:border-primary/30"
                           {...form.register('address')}
                         />
                       </div>
@@ -257,7 +261,7 @@ export default function CustomerProfile() {
 
                     <Button 
                       type="submit" 
-                      className="w-full btn-gold"
+                      className="w-full btn-gold btn-shimmer rounded-full h-12"
                       disabled={upsertProfile.isPending}
                     >
                       {upsertProfile.isPending ? (
@@ -274,43 +278,43 @@ export default function CustomerProfile() {
 
             {/* Tab: Compras */}
             <TabsContent value="purchases">
-              <Card className="glass-card">
+              <Card className="bg-card/40 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.06)]">
                 <CardHeader>
-                  <CardTitle>Historial de Compras</CardTitle>
-                  <CardDescription>
-                    Total gastado: ${totalSpent.toFixed(2)} USD en {totalPurchases} compras
+                  <CardTitle className="font-serif tracking-tight">Historial de Compras</CardTitle>
+                  <CardDescription className="text-muted-foreground/40 text-sm tracking-wide">
+                    Total gastado: <span className="text-gradient-gold font-semibold">${totalSpent.toFixed(2)} USD</span> en {totalPurchases} compras
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {purchasesLoading ? (
                     <div className="flex justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/30" />
                     </div>
                   ) : purchases.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>No tienes compras registradas</p>
+                    <div className="text-center py-12 text-muted-foreground/40">
+                      <p className="text-sm tracking-wide">No tienes compras registradas</p>
                       <Link to="/tienda">
-                        <Button variant="outline" className="mt-4">
+                        <Button variant="outline" className="mt-4 rounded-full border-border/20">
                           Explorar Tienda
                         </Button>
                       </Link>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {purchases.slice(0, 10).map((purchase) => (
                         <div 
                           key={purchase.id}
-                          className="flex items-center justify-between p-4 rounded-xl bg-secondary/50"
+                          className="flex items-center justify-between p-4 rounded-xl bg-card/30 hover:bg-card/50 transition-colors duration-300"
                         >
                           <div>
-                            <p className="font-medium">{purchase.product_name}</p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="font-medium text-sm">{purchase.product_name}</p>
+                            <p className="text-xs text-muted-foreground/40 tracking-wide">
                               {format(new Date(purchase.created_at), 'PPP', { locale: es })}
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold">${purchase.total_usd.toFixed(2)}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="font-semibold text-sm text-gradient-gold">${purchase.total_usd.toFixed(2)}</p>
+                            <p className="text-[10px] text-muted-foreground/30 tracking-wide">
                               x{purchase.quantity}
                             </p>
                           </div>
@@ -318,7 +322,7 @@ export default function CustomerProfile() {
                       ))}
                       {purchases.length > 10 && (
                         <Link to="/cliente/pedidos">
-                          <Button variant="outline" className="w-full mt-2">
+                          <Button variant="outline" className="w-full mt-3 rounded-full border-border/15 text-sm">
                             Ver todas las compras
                           </Button>
                         </Link>

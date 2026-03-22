@@ -16,7 +16,7 @@ import { ProductCard } from '@/components/store/ProductCard';
 import { usePublicProducts } from '@/hooks/usePublicProducts';
 import { AngelaPersonalShopper } from '@/components/ai/AngelaPersonalShopper';
 
-// Página del catálogo de productos
+// Página del catálogo — Editorial luxury
 export default function StoreCatalog() {
   // --- STATE ---
   const [searchParams, setSearchParams] = useSearchParams();
@@ -115,21 +115,22 @@ export default function StoreCatalog() {
 
   // Componente de filtros
   const FiltersContent = () => (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Categorías */}
       <div>
-        <h4 className="font-medium text-foreground mb-3">Categorías</h4>
-        <div className="space-y-2">
+        <h4 className="font-serif text-sm text-foreground/80 mb-4 tracking-wide">Categorías</h4>
+        <div className="space-y-3">
           {categories.map(category => (
-            <div key={category} className="flex items-center gap-2">
+            <div key={category} className="flex items-center gap-3">
               <Checkbox
                 id={`cat-${category}`}
                 checked={selectedCategories.includes(category)}
                 onCheckedChange={() => toggleCategory(category)}
+                className="border-border/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
               />
               <Label 
                 htmlFor={`cat-${category}`}
-                className="text-sm cursor-pointer"
+                className="text-sm cursor-pointer text-muted-foreground/70 hover:text-foreground transition-colors"
               >
                 {category}
               </Label>
@@ -140,8 +141,8 @@ export default function StoreCatalog() {
 
       {/* Rango de precio */}
       <div>
-        <h4 className="font-medium text-foreground mb-3">Precio (USD)</h4>
-        <div className="px-2">
+        <h4 className="font-serif text-sm text-foreground/80 mb-4 tracking-wide">Precio (USD)</h4>
+        <div className="px-1">
           <Slider
             value={priceRange}
             onValueChange={(value) => setPriceRange(value as [number, number])}
@@ -150,7 +151,7 @@ export default function StoreCatalog() {
             step={5}
             className="mb-4"
           />
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center justify-between text-xs text-muted-foreground/50 tracking-wide">
             <span>${priceRange[0]}</span>
             <span>${priceRange[1]}</span>
           </div>
@@ -161,10 +162,10 @@ export default function StoreCatalog() {
       {hasActiveFilters && (
         <Button
           variant="outline"
-          className="w-full"
+          className="w-full rounded-full border-border/20 hover:border-primary/30 text-sm"
           onClick={clearFilters}
         >
-          <X className="h-4 w-4 mr-2" />
+          <X className="h-3.5 w-3.5 mr-2" />
           Limpiar Filtros
         </Button>
       )}
@@ -174,21 +175,21 @@ export default function StoreCatalog() {
   // --- RENDER ---
   return (
     <StoreLayout>
-      <div className="container mx-auto px-4 py-6 md:py-10">
+      <div className="container mx-auto px-4 py-8 md:py-12">
         {/* Header */}
-        <div className="mb-8">
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+        <div className="mb-10">
+          <nav className="flex items-center gap-2 text-xs text-muted-foreground/40 mb-5 tracking-wide">
             <Link to="/" className="hover:text-foreground transition-colors">Inicio</Link>
             <span>/</span>
-            <span className="text-foreground">Tienda</span>
+            <span className="text-foreground/70">Tienda</span>
           </nav>
           
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground">
+              <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
                 Nuestra Tienda
               </h1>
-              <p className="text-muted-foreground mt-1">
+              <p className="text-muted-foreground/40 mt-2 text-sm tracking-wide">
                 {loading ? 'Cargando...' : `${filteredProducts.length} productos encontrados`}
               </p>
             </div>
@@ -196,7 +197,7 @@ export default function StoreCatalog() {
         </div>
 
         {/* Search and Controls Bar */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-3 mb-8">
           {/* Search */}
           <div className="relative flex-1">
             <Input
@@ -204,28 +205,28 @@ export default function StoreCatalog() {
               placeholder="Buscar productos..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 bg-secondary/30 border-border/50 rounded-xl"
+              className="pl-10 h-11 bg-card/40 backdrop-blur-sm border-border/15 rounded-full text-sm focus:border-primary/30 transition-all duration-300"
             />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
           </div>
 
           <div className="flex items-center gap-2">
             {/* Filter button - Mobile */}
             <Sheet open={showFilters} onOpenChange={setShowFilters}>
               <SheetTrigger asChild>
-                <Button variant="outline" className="md:hidden relative">
+                <Button variant="outline" className="md:hidden relative rounded-full border-border/20 h-11">
                   <SlidersHorizontal className="h-4 w-4 mr-2" />
                   Filtros
                   {hasActiveFilters && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-accent rounded-full" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-gold rounded-full shadow-gold" />
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80">
+              <SheetContent side="left" className="w-80 bg-background/95 backdrop-blur-2xl border-border/10">
                 <SheetHeader>
-                  <SheetTitle>Filtros</SheetTitle>
+                  <SheetTitle className="font-serif tracking-tight">Filtros</SheetTitle>
                 </SheetHeader>
-                <div className="mt-6">
+                <div className="mt-8">
                   <FiltersContent />
                 </div>
               </SheetContent>
@@ -233,7 +234,7 @@ export default function StoreCatalog() {
 
             {/* Sort */}
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px] h-12 bg-secondary/30 border-border/50 rounded-xl">
+              <SelectTrigger className="w-[180px] h-11 bg-card/40 backdrop-blur-sm border-border/15 rounded-full text-sm">
                 <SelectValue placeholder="Ordenar por" />
               </SelectTrigger>
               <SelectContent>
@@ -245,11 +246,11 @@ export default function StoreCatalog() {
             </Select>
 
             {/* View mode - Desktop */}
-            <div className="hidden md:flex items-center border border-border/50 rounded-xl overflow-hidden">
+            <div className="hidden md:flex items-center border border-border/15 rounded-full overflow-hidden bg-card/30 backdrop-blur-sm">
               <Button
                 variant="ghost"
                 size="icon"
-                className={`rounded-none ${viewMode === 'grid' ? 'bg-secondary' : ''}`}
+                className={`rounded-none h-11 w-11 ${viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'text-muted-foreground/40'}`}
                 onClick={() => setViewMode('grid')}
               >
                 <Grid3X3 className="h-4 w-4" />
@@ -257,7 +258,7 @@ export default function StoreCatalog() {
               <Button
                 variant="ghost"
                 size="icon"
-                className={`rounded-none ${viewMode === 'list' ? 'bg-secondary' : ''}`}
+                className={`rounded-none h-11 w-11 ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground/40'}`}
                 onClick={() => setViewMode('list')}
               >
                 <LayoutList className="h-4 w-4" />
@@ -270,25 +271,25 @@ export default function StoreCatalog() {
         {hasActiveFilters && (
           <div className="flex flex-wrap gap-2 mb-6">
             {searchQuery && (
-              <Badge variant="secondary" className="px-3 py-1">
+              <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/40 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 Búsqueda: "{searchQuery}"
-                <button onClick={() => setSearchQuery('')} className="ml-2">
+                <button onClick={() => setSearchQuery('')} className="ml-2 text-muted-foreground/40 hover:text-foreground">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             )}
             {selectedCategories.map(cat => (
-              <Badge key={cat} variant="secondary" className="px-3 py-1">
+              <Badge key={cat} variant="secondary" className="px-3 py-1.5 rounded-full bg-card/40 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 {cat}
-                <button onClick={() => toggleCategory(cat)} className="ml-2">
+                <button onClick={() => toggleCategory(cat)} className="ml-2 text-muted-foreground/40 hover:text-foreground">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             ))}
             {(priceRange[0] > 0 || priceRange[1] < maxPrice) && (
-              <Badge variant="secondary" className="px-3 py-1">
+              <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/40 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 ${priceRange[0]} - ${priceRange[1]}
-                <button onClick={() => setPriceRange([0, maxPrice])} className="ml-2">
+                <button onClick={() => setPriceRange([0, maxPrice])} className="ml-2 text-muted-foreground/40 hover:text-foreground">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
@@ -301,13 +302,13 @@ export default function StoreCatalog() {
           <AngelaPersonalShopper />
         </div>
 
-        <div className="flex gap-8">
+        <div className="flex gap-10">
           {/* Sidebar Filters - Desktop */}
           <aside className="hidden md:block w-64 flex-shrink-0">
             <div className="sticky top-24 space-y-6">
-              <div className="glass-card rounded-2xl p-6">
-                <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
+              <div className="p-6 rounded-2xl bg-card/40 backdrop-blur-sm border border-border/10">
+                <h3 className="font-serif text-foreground/80 mb-6 flex items-center gap-2 text-sm tracking-wide">
+                  <Filter className="h-4 w-4 text-gold/60" />
                   Filtros
                 </h3>
                 <FiltersContent />
@@ -321,17 +322,17 @@ export default function StoreCatalog() {
           {/* Products Grid */}
           <div className="flex-1">
             {loading ? (
-              <div className={`grid gap-4 md:gap-6 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+              <div className={`grid gap-5 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                 {[...Array(9)].map((_, i) => (
                   <div key={i} className="space-y-3">
-                    <Skeleton className="aspect-square rounded-2xl" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-6 w-1/2" />
+                    <div className="aspect-[3/4] rounded-2xl skeleton-shimmer" />
+                    <div className="h-3 w-3/4 rounded-full skeleton-shimmer" />
+                    <div className="h-4 w-1/2 rounded-full skeleton-shimmer" />
                   </div>
                 ))}
               </div>
             ) : filteredProducts.length > 0 ? (
-              <div className={`grid gap-4 md:gap-6 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+              <div className={`grid gap-5 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                 <AnimatePresence mode="popLayout">
                   {filteredProducts.map((product, index) => (
                     <ProductCard key={product.id} product={product} index={index} allProducts={products} />
@@ -342,16 +343,16 @@ export default function StoreCatalog() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center py-20 text-center"
+                className="flex flex-col items-center justify-center py-24 text-center"
               >
-                <Package className="h-20 w-20 text-muted-foreground/30 mb-4" />
-                <h3 className="text-xl font-semibold text-foreground mb-2">
+                <Package className="h-20 w-20 text-muted-foreground/15 mb-4" />
+                <h3 className="text-xl font-serif text-foreground/80 mb-2 tracking-tight">
                   No encontramos productos
                 </h3>
-                <p className="text-muted-foreground mb-6 max-w-md">
+                <p className="text-muted-foreground/40 mb-6 max-w-md text-sm tracking-wide">
                   Intenta con otros filtros o términos de búsqueda
                 </p>
-                <Button onClick={clearFilters}>
+                <Button onClick={clearFilters} className="rounded-full btn-gold px-8">
                   Limpiar Filtros
                 </Button>
               </motion.div>

@@ -25,10 +25,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 const TYPE_CONFIG: Record<string, { icon: typeof Info; color: string; bg: string }> = {
-  info: { icon: Info, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-  warning: { icon: AlertTriangle, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-  success: { icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-500/10' },
-  error: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-500/10' },
+  info: { icon: Info, color: 'text-primary/80', bg: 'bg-primary/10' },
+  warning: { icon: AlertTriangle, color: 'text-gold', bg: 'bg-gold/10' },
+  success: { icon: CheckCircle2, color: 'text-primary', bg: 'bg-primary/10' },
+  error: { icon: XCircle, color: 'text-destructive', bg: 'bg-destructive/10' },
 };
 
 export default function CustomerNotifications() {

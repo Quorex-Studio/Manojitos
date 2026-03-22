@@ -17,7 +17,7 @@ interface ProductCardProps {
   allProducts?: PublicProduct[];
 }
 
-// Tarjeta de producto para el catálogo con microinteracciones premium
+// Tarjeta de producto editorial — portrait 3:4, overlay slide-up
 export function ProductCard({ product, index = 0, allProducts }: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -67,7 +67,7 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ 
-        duration: 0.4, 
+        duration: 0.5, 
         delay: index * 0.08,
         ease: [0.25, 0.46, 0.45, 0.94]
       }}
@@ -79,35 +79,35 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
         className="block group"
       >
         <motion.div 
-          className="glass-card rounded-2xl overflow-hidden relative"
-          whileHover={{ y: -6 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="rounded-2xl overflow-hidden relative bg-card/40 backdrop-blur-sm border border-border/10"
+          whileHover={{ y: -8 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
           style={{
             boxShadow: isHovered 
-              ? '0 20px 50px -10px hsl(var(--rose) / 0.25)' 
-              : '0 8px 32px 0 hsl(var(--rose) / 0.1)'
+              ? '0 24px 60px -12px hsl(var(--rose) / 0.2), 0 0 0 1px hsl(var(--rose) / 0.1)' 
+              : '0 4px 24px 0 hsl(var(--rose) / 0.06)'
           }}
         >
-          {/* Image Container */}
-          <div className="relative aspect-square bg-secondary/30 overflow-hidden">
+          {/* Image Container — Portrait 3:4 */}
+          <div className="relative aspect-[3/4] bg-secondary/20 overflow-hidden">
             {product.image_url ? (
               <motion.img
                 src={product.image_url}
                 alt={product.name}
                 className="w-full h-full object-cover"
                 animate={{ 
-                  scale: isHovered ? 1.08 : 1 
+                  scale: isHovered ? 1.05 : 1 
                 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary/50 to-secondary/20">
-                <Package className="w-16 h-16 text-muted-foreground/30" />
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary/30 to-secondary/10">
+                <Package className="w-16 h-16 text-muted-foreground/20" />
               </div>
             )}
 
             {/* Etiquetas automáticas */}
-            <div className="absolute top-3 left-3 flex flex-col gap-2">
+            <div className="absolute top-3 left-3 flex flex-col gap-1.5">
               <AutoProductLabels 
                 product={{
                   id: product.id,
@@ -127,126 +127,100 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
                 }))}
                 maxLabels={2}
               />
-              {product.category && (
-                <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur-sm">
-                  {product.category}
-                </Badge>
-              )}
             </div>
 
-            {/* Quick Actions Overlay con mejor animación */}
+            {/* Overlay slide-up con backdrop-blur */}
             <motion.div 
-              className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent flex items-end"
+              className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end"
               initial={{ opacity: 0 }}
               animate={{ opacity: isHovered ? 1 : 0 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.3 }}
             >
               <motion.div 
-                className="w-full p-4 flex gap-2"
-                initial={{ y: 20, opacity: 0 }}
+                className="w-full p-4 space-y-3"
+                initial={{ y: 30, opacity: 0 }}
                 animate={{ 
-                  y: isHovered ? 0 : 20, 
+                  y: isHovered ? 0 : 30, 
                   opacity: isHovered ? 1 : 0 
                 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
+                transition={{ duration: 0.35, delay: 0.05 }}
               >
-                <Button
-                  variant="gold"
-                  size="sm"
-                  className="flex-1"
-                  onClick={handleAddToCart}
-                  disabled={!canAdd || isAdding}
-                >
-                  <AnimatePresence mode="wait">
-                    {isAdding ? (
-                      <motion.div
-                        key="check"
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        exit={{ scale: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <Check className="h-4 w-4" />
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="bag"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="flex items-center gap-2"
-                      >
-                        <ShoppingBag className="h-4 w-4" />
-                        <span>{inCart ? 'Agregar más' : 'Agregar'}</span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="bg-background/90 backdrop-blur-sm"
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
+                {/* Product info in overlay */}
+                <div>
+                  <h3 className="font-serif text-white text-sm md:text-base font-medium line-clamp-2 leading-snug">
+                    {product.name}
+                  </h3>
+                  <p className="text-gold font-bold text-lg mt-1">
+                    ${product.price_usd.toFixed(2)}
+                  </p>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-gold/90 hover:bg-gold text-white border-0 rounded-full text-xs h-9 btn-shimmer"
+                    onClick={handleAddToCart}
+                    disabled={!canAdd || isAdding}
+                  >
+                    <AnimatePresence mode="wait">
+                      {isAdding ? (
+                        <motion.div
+                          key="check"
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          exit={{ scale: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <Check className="h-4 w-4" />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="bag"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="flex items-center gap-1.5"
+                        >
+                          <ShoppingBag className="h-3.5 w-3.5" />
+                          <span>{inCart ? 'Agregar más' : 'Agregar'}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </Button>
+                  <Button
+                    size="icon"
+                    className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border-0 rounded-full h-9 w-9"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </motion.div>
             </motion.div>
           </div>
 
-          {/* Content */}
-          <div className="p-4 space-y-2">
-            {/* Name */}
-            <h3 className="font-medium text-foreground line-clamp-2 min-h-[2.5rem] transition-colors duration-200 group-hover:text-gold">
-              {product.name}
-            </h3>
-
-            {/* Price con animación de números */}
-            <div className="space-y-0.5">
-              <motion.p 
-                className="text-lg font-bold text-gold"
-                key={product.price_usd}
-                initial={{ opacity: 0.5 }}
-                animate={{ opacity: 1 }}
-              >
-                ${product.price_usd.toFixed(2)}
-              </motion.p>
-              {rate > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Bs. {convertToBS(product.price_usd).toFixed(2)}
-                </p>
+          {/* Minimal info below image — only category + stock */}
+          <div className="p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full ${
+                product.stock > 5 ? 'bg-primary' : product.stock > 0 ? 'bg-gold animate-pulse' : 'bg-destructive'
+              }`} />
+              <span className="text-[11px] text-muted-foreground/60 tracking-wide">
+                {product.category || 'General'}
+              </span>
+            </div>
+            <AnimatePresence>
+              {inCart && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                >
+                  <Badge variant="outline" className="text-[9px] border-gold/30 text-gold/80 h-5 px-1.5 rounded-full">
+                    {cartQuantity} en carrito
+                  </Badge>
+                </motion.div>
               )}
-              <PriceValidityBadge compact />
-            </div>
-
-            {/* Stock con indicador visual */}
-            <div className="flex items-center justify-between pt-1">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  product.stock > 5 ? 'bg-green-500' : product.stock > 0 ? 'bg-orange-500 animate-pulse' : 'bg-red-500'
-                }`} />
-                <span className={`text-xs ${product.stock > 5 ? 'text-green-600 dark:text-green-400' : 'text-orange-500'}`}>
-                  {product.stock > 5 
-                    ? 'En stock' 
-                    : product.stock > 0 
-                      ? `Solo ${product.stock} disponibles` 
-                      : 'Agotado'
-                  }
-                </span>
-              </div>
-              <AnimatePresence>
-                {inCart && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  >
-                    <Badge variant="outline" className="text-xs border-gold/50 text-gold">
-                      {cartQuantity} en carrito
-                    </Badge>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            </AnimatePresence>
           </div>
         </motion.div>
       </Link>

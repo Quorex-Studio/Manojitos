@@ -57,10 +57,10 @@ import { NotificationCenter, CreditReminderHistoryPanel } from '@/components/not
 
 // Configuración de estados con colores
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  ACTIVO: { label: 'Activo', color: 'bg-green-500', icon: <CheckCircle2 className="h-4 w-4" /> },
-  POR_VENCER: { label: 'Por vencer', color: 'bg-yellow-500', icon: <Clock className="h-4 w-4" /> },
-  EN_GRACIA: { label: 'En gracia', color: 'bg-orange-500', icon: <AlertCircle className="h-4 w-4" /> },
-  VENCIDO: { label: 'Vencido', color: 'bg-red-500', icon: <AlertCircle className="h-4 w-4" /> },
+  ACTIVO: { label: 'Activo', color: 'bg-primary/80', icon: <CheckCircle2 className="h-4 w-4" /> },
+  POR_VENCER: { label: 'Por vencer', color: 'bg-gold/80', icon: <Clock className="h-4 w-4" /> },
+  EN_GRACIA: { label: 'En gracia', color: 'bg-gold/60', icon: <AlertCircle className="h-4 w-4" /> },
+  VENCIDO: { label: 'Vencido', color: 'bg-destructive/80', icon: <AlertCircle className="h-4 w-4" /> },
   BLOQUEADO: { label: 'Bloqueado', color: 'bg-gray-500', icon: <Ban className="h-4 w-4" /> },
 };
 
@@ -349,25 +349,25 @@ export default function Credits() {
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-green-600">{stats.byStatus.ACTIVO}</p>
+              <p className="text-2xl font-bold text-primary">{stats.byStatus.ACTIVO}</p>
               <p className="text-xs text-muted-foreground">Activos</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-yellow-600">{stats.byStatus.POR_VENCER}</p>
+              <p className="text-2xl font-bold text-gold">{stats.byStatus.POR_VENCER}</p>
               <p className="text-xs text-muted-foreground">Por vencer</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-orange-600">{stats.byStatus.EN_GRACIA}</p>
+              <p className="text-2xl font-bold text-gold">{stats.byStatus.EN_GRACIA}</p>
               <p className="text-xs text-muted-foreground">En gracia</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-red-600">{stats.byStatus.VENCIDO}</p>
+              <p className="text-2xl font-bold text-destructive">{stats.byStatus.VENCIDO}</p>
               <p className="text-xs text-muted-foreground">Vencidos</p>
             </CardContent>
           </Card>

@@ -396,7 +396,7 @@ export default function PriceCalculator() {
                     key={`efectivo-${totalEfectivo}`}
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="p-4 rounded-xl bg-green-500/10 border border-green-500/20"
+                    className="p-4 rounded-xl bg-primary/10 border border-primary/20"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-muted-foreground">Precio Total Efectivo ({currency})</span>
@@ -409,7 +409,7 @@ export default function PriceCalculator() {
                         {copiedId === 'efectivo' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                       </Button>
                     </div>
-                    <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                    <p className="text-3xl font-bold text-primary">
                       {currencySymbol}{totalEfectivo.toFixed(2)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -422,7 +422,7 @@ export default function PriceCalculator() {
                     key={`bs-${totalBS}`}
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20"
+                    className="p-4 rounded-xl bg-gold/10 border border-gold/20"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-muted-foreground">Precio Total Bolívares</span>
@@ -435,15 +435,15 @@ export default function PriceCalculator() {
                         {copiedId === 'bs' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                       </Button>
                     </div>
-                    <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    <p className="text-3xl font-bold text-gold">
                       Bs. {totalBS.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                     </p>
-                    <div className="mt-2 pt-2 border-t border-blue-500/20 space-y-1">
+                    <div className="mt-2 pt-2 border-t border-gold/20 space-y-1">
                       <p className="text-xs text-muted-foreground">
                         Fórmula: ({quantityNumber} × ${unitPriceNumber.toFixed(2)} × {rate.toFixed(2)}) × (1 + {extraPercentage.toFixed(1)}%)
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Tasa final con {extraPercentage.toFixed(1)}%: <span className="font-semibold text-blue-600 dark:text-blue-400">Bs. {finalRate.toFixed(4)}</span>
+                        Tasa final con {extraPercentage.toFixed(1)}%: <span className="font-semibold text-gold">Bs. {finalRate.toFixed(4)}</span>
                       </p>
                     </div>
                   </motion.div>
@@ -479,7 +479,7 @@ export default function PriceCalculator() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Tasa Final</p>
-                      <p className="font-bold text-blue-600 dark:text-blue-400">Bs. {finalRate.toFixed(2)}</p>
+                      <p className="font-bold text-gold">Bs. {finalRate.toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -590,13 +590,13 @@ export default function PriceCalculator() {
                   <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-xl bg-secondary/30">
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">Total Efectivo USD</p>
-                      <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                      <p className="text-lg font-bold text-primary">
                         ${batchTotals.totalEfectivo.toFixed(2)}
                       </p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">Total BS</p>
-                      <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      <p className="text-lg font-bold text-gold">
                         Bs. {batchTotals.totalBS.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -627,10 +627,10 @@ export default function PriceCalculator() {
                             <td className="py-2 px-2 font-medium">{product.name}</td>
                             <td className="py-2 px-2 text-center">{product.quantity}</td>
                             <td className="py-2 px-2 text-right">{currencySymbol}{product.unitPrice.toFixed(2)}</td>
-                            <td className="py-2 px-2 text-right text-green-600 dark:text-green-400 font-medium">
+                            <td className="py-2 px-2 text-right text-primary font-medium">
                               {currencySymbol}{product.totalEfectivo.toFixed(2)}
                             </td>
-                            <td className="py-2 px-2 text-right text-blue-600 dark:text-blue-400 font-medium">
+                            <td className="py-2 px-2 text-right text-gold font-medium">
                               Bs. {product.totalBS.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                             </td>
                             <td className="py-2 px-2 text-right">
@@ -708,13 +708,13 @@ export default function PriceCalculator() {
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <p className="text-xs text-muted-foreground">Total {entry.currency}</p>
-                                <p className="font-bold text-green-600 dark:text-green-400">
+                                <p className="font-bold text-primary">
                                   {entry.currency === 'EUR' ? '€' : '$'}{entry.totalEfectivo.toFixed(2)}
                                 </p>
                               </div>
                               <div>
                                 <p className="text-xs text-muted-foreground">Total BS</p>
-                                <p className="font-bold text-blue-600 dark:text-blue-400">
+                                <p className="font-bold text-gold">
                                   Bs. {entry.totalBS.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                                 </p>
                               </div>

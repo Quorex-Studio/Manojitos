@@ -1,6 +1,5 @@
 // Chat component para Ángela AI Assistant
 // REGLA CRÍTICA: Usa exclusivamente Hugging Face Inference API - NO Lovable AI
-import * as React from 'react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
@@ -536,12 +535,12 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
               onClick={() => setIsOpen(true)}
               whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.95 }}
-              className="h-16 w-16 rounded-full shadow-lg overflow-hidden border-2 border-pink-300 relative"
+              className="h-16 w-16 rounded-full shadow-lg overflow-hidden border-2 border-primary/30 relative animate-glow-pulse-rosa"
             >
               <img src={stitchRosaMascot} alt="Ángela" className="w-full h-full object-cover" />
               {/* Pulse ring effect */}
               <motion.div
-                className="absolute inset-0 rounded-full border-2 border-pink-400"
+                className="absolute inset-0 rounded-full border-2 border-primary/40"
                 animate={{
                   scale: [1, 1.3, 1.3],
                   opacity: [0.8, 0, 0],
@@ -573,19 +572,19 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
               className
             )}
           >
-            <Card className="flex flex-col h-full overflow-hidden border-pink-200 dark:border-pink-800">
+            <Card className="flex flex-col h-full overflow-hidden border-primary/15 bg-background/95 backdrop-blur-2xl shadow-[0_16px_64px_hsl(var(--rose)/0.15)]">
               {/* Header */}
-               <div className="p-4 bg-primary flex items-center justify-between border-b border-primary/20">
+               <div className="p-4 bg-[#120A0C] flex items-center justify-between border-b border-[#F5EDE8]/5">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-primary-foreground/10 flex items-center justify-center p-1 border border-primary-foreground/20 overflow-hidden">
+            <div className="w-10 h-10 rounded-full bg-[#F5EDE8]/10 flex items-center justify-center p-1 border border-[#F5EDE8]/15 overflow-hidden animate-breathing">
               <img src="/stitch-rosa-mascot.png" alt="Angela" className="w-full h-full object-contain" />
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-primary shadow-sm" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#120A0C] shadow-sm" />
           </div>
           <div>
-            <h3 className="font-semibold text-primary-foreground">Angela AI</h3>
-            <p className="text-[10px] text-primary-foreground/70 font-medium">Asistente Virtual</p>
+            <h3 className="font-serif font-medium text-[#F5EDE8]">Angela AI</h3>
+            <p className="text-[10px] text-[#F5EDE8]/40 font-medium tracking-[0.1em] uppercase">Asistente Virtual</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -595,7 +594,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-8 w-8 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                  className="h-8 w-8 text-[#F5EDE8]/50 hover:text-[#F5EDE8] hover:bg-[#F5EDE8]/5"
                   onClick={() => setIsExpanded(!isExpanded)}
                 >
                   {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -607,7 +606,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
+            className="h-8 w-8 text-[#F5EDE8]/50 hover:text-[#F5EDE8] hover:bg-[#F5EDE8]/5"
             onClick={() => setIsOpen(false)}
           >
             <X className="h-4 w-4" />
@@ -629,7 +628,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                       )}
                     >
                       {msg.role === 'assistant' && (
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden border border-pink-300">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden border border-primary/20">
                           <img src={stitchRosaMascot} alt="Ángela" className="w-full h-full object-cover" />
                         </div>
                       )}
@@ -638,8 +637,8 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                           className={cn(
                             "p-3 rounded-2xl text-sm",
                             msg.role === 'user'
-                              ? "bg-primary text-primary-foreground rounded-br-sm"
-                              : "bg-muted rounded-bl-sm"
+                              ? "bg-primary/90 text-primary-foreground rounded-br-sm"
+                              : "bg-card/60 backdrop-blur-sm border border-border/10 rounded-bl-sm text-foreground/80"
                           )}
                           dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
                         />
@@ -654,7 +653,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                             <Button
                               size="sm"
                               onClick={() => openHumanSupport(sessionMemory, sessionMemory.recommendations[sessionMemory.recommendations.length - 1])}
-                              className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white gap-2"
+                              className="bg-gold/90 hover:bg-gold text-white gap-2 rounded-full btn-shimmer shadow-gold"
                             >
                               <Headphones className="h-4 w-4" />
                               Hablar con un asesor
@@ -673,17 +672,17 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                               <Button
                                 size="sm"
                                 onClick={() => executeAction(msg.action!, idx)}
-                                className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white gap-2"
+                                className="bg-primary/80 hover:bg-primary text-white gap-2 rounded-full btn-shimmer-rosa"
                               >
                                 {getActionLabel(msg.action.type)}
                               </Button>
                             ) : msg.action.status === 'success' ? (
-                              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                              <div className="flex items-center gap-2 text-sm text-primary">
                                 <CheckCircle2 className="h-4 w-4" />
                                 <span>{msg.action.result}</span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                              <div className="flex items-center gap-2 text-sm text-destructive">
                                 <AlertCircle className="h-4 w-4" />
                                 <span>{msg.action.result}</span>
                               </div>
@@ -707,7 +706,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                                 transition={{ delay: sIdx * 0.05 }}
                                 onClick={() => handleSuggestionClick(suggestion.message)}
                                 disabled={isLoading}
-                                className="px-2.5 py-1 text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full hover:bg-pink-200 dark:hover:bg-pink-800/50 transition-colors border border-pink-200 dark:border-pink-700 whitespace-nowrap"
+                                className="px-3 py-1.5 text-xs bg-card/40 backdrop-blur-sm text-foreground/60 rounded-full hover:bg-card/60 hover:text-foreground/80 transition-all duration-300 border border-border/15 hover:border-primary/20 whitespace-nowrap tracking-wide"
                               >
                                 {suggestion.label}
                               </motion.button>
@@ -716,7 +715,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                         )}
                       </div>
                       {msg.role === 'user' && (
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/80 flex items-center justify-center text-primary-foreground">
                           <User className="h-4 w-4" />
                         </div>
                       )}
@@ -728,10 +727,10 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                       animate={{ opacity: 1 }}
                       className="flex gap-3"
                     >
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden border border-pink-300">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden border border-primary/20">
                         <img src={stitchRosaMascot} alt="Ángela" className="w-full h-full object-cover" />
                       </div>
-                      <div className="bg-muted p-3 rounded-2xl rounded-bl-sm">
+                      <div className="bg-card/40 backdrop-blur-sm border border-border/10 p-3 rounded-2xl rounded-bl-sm">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Loader2 className="h-4 w-4 animate-spin" />
                           <span>Ángela está pensando...</span>
@@ -743,7 +742,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
               </ScrollArea>
 
               {/* Input */}
-              <div className="p-4 border-t bg-background">
+              <div className="p-4 border-t border-border/10 bg-background/80 backdrop-blur-sm">
                 <div className="flex gap-2">
                   <Input
                     ref={inputRef}
@@ -752,19 +751,19 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                     onKeyDown={handleKeyDown}
                     placeholder="Escribe tu mensaje..."
                     disabled={isLoading}
-                    className="flex-1 rounded-full"
+                    className="flex-1 rounded-full bg-card/30 border-border/15 focus:border-primary/30"
                   />
                   <Button
                     onClick={() => sendMessage()}
                     disabled={!input.trim() || isLoading}
                     size="icon"
-                    className="rounded-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
+                    className="rounded-full bg-primary/80 hover:bg-primary text-primary-foreground"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  Ángela • Tu asistente inteligente 🩷
+                <p className="text-[10px] text-muted-foreground/30 text-center mt-2 tracking-widest uppercase">
+                  Ángela • Asistente Inteligente
                 </p>
               </div>
             </Card>

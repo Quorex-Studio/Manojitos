@@ -34,21 +34,21 @@ export function CreditFinancialProfile({ creditId, compact = false }: CreditFina
   }
   const getTrustBadgeColor = () => {
     switch (profile.trustLevel) {
-      case 'EXCELENTE': return 'bg-green-500 text-white';
-      case 'BUENO': return 'bg-blue-500 text-white';
-      case 'REGULAR': return 'bg-yellow-500 text-white';
-      case 'RIESGO': return 'bg-orange-500 text-white';
-      case 'CRITICO': return 'bg-red-500 text-white';
+      case 'EXCELENTE': return 'bg-primary/10 text-white';
+      case 'BUENO': return 'bg-primary/10 text-white';
+      case 'REGULAR': return 'bg-gold/10 text-white';
+      case 'RIESGO': return 'bg-gold/20 text-white';
+      case 'CRITICO': return 'bg-destructive/10 text-white';
       default: return 'bg-gray-500 text-white';
     }
   };
 
   const getAdjustmentIcon = () => {
     switch (profile.adjustmentSuggestion) {
-      case 'increase': return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case 'decrease': return <TrendingDown className="h-4 w-4 text-red-500" />;
-      case 'block': return <AlertCircle className="h-4 w-4 text-red-600" />;
-      default: return <CheckCircle className="h-4 w-4 text-blue-500" />;
+      case 'increase': return <TrendingUp className="h-4 w-4 text-primary" />;
+      case 'decrease': return <TrendingDown className="h-4 w-4 text-destructive" />;
+      case 'block': return <AlertCircle className="h-4 w-4 text-destructive" />;
+      default: return <CheckCircle className="h-4 w-4 text-primary/80" />;
     }
   };
 
@@ -74,7 +74,7 @@ export function CreditFinancialProfile({ creditId, compact = false }: CreditFina
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2 text-center text-sm">
             <div>
-              <p className="font-medium text-green-600">{profile.paymentRate.toFixed(0)}%</p>
+              <p className="font-medium text-primary">{profile.paymentRate.toFixed(0)}%</p>
               <p className="text-xs text-muted-foreground">A tiempo</p>
             </div>
             <div>
@@ -141,14 +141,14 @@ export function CreditFinancialProfile({ creditId, compact = false }: CreditFina
         </Card>
         <Card className="glass-card">
           <CardContent className="p-3 text-center">
-            <Target className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+            <Target className="h-5 w-5 mx-auto mb-1 text-primary/80" />
             <p className="text-lg font-bold">{profile.utilizationRate.toFixed(0)}%</p>
             <p className="text-xs text-muted-foreground">Uso del límite</p>
           </CardContent>
         </Card>
         <Card className="glass-card">
           <CardContent className="p-3 text-center">
-            <Shield className="h-5 w-5 mx-auto mb-1 text-green-500" />
+            <Shield className="h-5 w-5 mx-auto mb-1 text-primary" />
             <p className="text-lg font-bold">${profile.availableCredit.toFixed(0)}</p>
             <p className="text-xs text-muted-foreground">Disponible</p>
           </CardContent>
@@ -167,10 +167,10 @@ export function CreditFinancialProfile({ creditId, compact = false }: CreditFina
           <div className="flex justify-between items-center">
             <span className="text-sm">Pagos a tiempo</span>
             <div className="flex items-center gap-2">
-              <span className="font-medium text-green-600">{profile.onTimePayments}</span>
+              <span className="font-medium text-primary">{profile.onTimePayments}</span>
               <div className="w-20 bg-secondary rounded-full h-2">
                 <div 
-                  className="bg-green-500 h-2 rounded-full" 
+                  className="bg-primary/10 h-2 rounded-full" 
                   style={{ width: `${profile.paymentRate}%` }}
                 />
               </div>
@@ -179,10 +179,10 @@ export function CreditFinancialProfile({ creditId, compact = false }: CreditFina
           <div className="flex justify-between items-center">
             <span className="text-sm">Pagos tardíos</span>
             <div className="flex items-center gap-2">
-              <span className="font-medium text-red-600">{profile.latePayments}</span>
+              <span className="font-medium text-destructive">{profile.latePayments}</span>
               <div className="w-20 bg-secondary rounded-full h-2">
                 <div 
-                  className="bg-red-500 h-2 rounded-full" 
+                  className="bg-destructive/10 h-2 rounded-full" 
                   style={{ width: `${100 - profile.paymentRate}%` }}
                 />
               </div>
@@ -227,12 +227,12 @@ export function CreditFinancialProfile({ creditId, compact = false }: CreditFina
                 <p className="text-sm font-medium flex items-center gap-2">
                   {profile.suggestedLimitChange > 0 ? (
                     <>
-                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      <TrendingUp className="h-4 w-4 text-primary" />
                       Sugerencia: Aumentar límite en {profile.suggestedLimitChange}%
                     </>
                   ) : (
                     <>
-                      <TrendingDown className="h-4 w-4 text-red-500" />
+                      <TrendingDown className="h-4 w-4 text-destructive" />
                       Sugerencia: Reducir límite en {Math.abs(profile.suggestedLimitChange)}%
                     </>
                   )}

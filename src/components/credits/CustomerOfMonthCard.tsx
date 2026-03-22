@@ -69,7 +69,7 @@ export function CustomerOfMonthCard() {
           {/* Stats */}
           <div className="grid grid-cols-4 gap-2 p-3 rounded-xl bg-secondary/30">
             <div className="text-center">
-              <p className="text-lg font-bold text-green-600">{customerOfMonth.stats.paymentRate.toFixed(0)}%</p>
+              <p className="text-lg font-bold text-primary">{customerOfMonth.stats.paymentRate.toFixed(0)}%</p>
               <p className="text-[10px] text-muted-foreground">A tiempo</p>
             </div>
             <div className="text-center">
@@ -109,7 +109,7 @@ export function CustomerOfMonthCard() {
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   index === 0 ? 'bg-gold text-white' :
                   index === 1 ? 'bg-gray-400 text-white' :
-                  'bg-orange-400 text-white'
+                  'bg-gold/20 text-white'
                 }`}>
                   {index === 0 ? <Medal className="h-4 w-4" /> :
                    index === 1 ? <Star className="h-4 w-4" /> :

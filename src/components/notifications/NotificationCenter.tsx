@@ -297,7 +297,7 @@ export function CreditReminderHistoryPanel({ creditId, clientName }: CreditRemin
                   {reminder.message}
                 </p>
                 {reminder.error_message && (
-                  <p className="text-xs text-red-500 mt-1">
+                  <p className="text-xs text-destructive mt-1">
                     Error: {reminder.error_message}
                   </p>
                 )}
