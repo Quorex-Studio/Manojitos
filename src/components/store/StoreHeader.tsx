@@ -59,7 +59,7 @@ export function StoreHeader() {
       className={`sticky top-0 z-50 w-full transition-all duration-500 ${
         isScrolled 
           ? 'bg-background/80 backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.06)] border-b border-border/20' 
-          : 'bg-background/60 backdrop-blur-xl border-b border-border/10'
+          : 'bg-background/80 backdrop-blur-xl border-b border-border/10'
       }`}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
@@ -141,7 +141,7 @@ export function StoreHeader() {
                   placeholder="Buscar..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-44 lg:w-56 pl-9 pr-4 h-9 bg-card/40 backdrop-blur-sm border-border/30 rounded-full text-sm focus:w-64 focus:border-primary/30 transition-all duration-400"
+                  className="w-44 lg:w-56 pl-9 pr-4 h-9 bg-card/80 backdrop-blur-sm border-border/30 rounded-full text-sm focus:w-64 focus:border-primary/30 transition-all duration-400"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
               </form>
@@ -242,7 +242,7 @@ export function StoreHeader() {
                     placeholder="Buscar productos..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 h-11 bg-card/40 backdrop-blur-sm border-border/30 rounded-full"
+                    className="w-full pl-10 pr-4 h-11 bg-card/80 backdrop-blur-sm border-border/30 rounded-full"
                     autoFocus
                   />
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
@@ -273,7 +273,7 @@ export function StoreHeader() {
                     <Link 
                       to={link.to}
                       onClick={() => setIsMenuOpen(false)}
-                      className="block py-3 px-4 text-foreground/80 hover:text-foreground hover:bg-card/40 rounded-xl transition-all duration-300 active:scale-[0.98] text-sm tracking-wide"
+                      className="block py-3 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 active:scale-[0.98] text-sm tracking-wide"
                     >
                       {link.label}
                     </Link>
@@ -287,7 +287,7 @@ export function StoreHeader() {
                   <Link 
                     to="/carrito"
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center justify-between py-3 px-4 text-foreground/80 hover:text-foreground hover:bg-card/40 rounded-xl transition-all duration-300 text-sm tracking-wide"
+                    className="flex items-center justify-between py-3 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm tracking-wide"
                   >
                     <span>Mi Carrito</span>
                     {itemCount > 0 && (

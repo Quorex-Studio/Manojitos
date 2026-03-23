@@ -56,7 +56,7 @@ function QuickLink({ to, icon, label, description, badge, badgeVariant = 'second
       <Link to={to}>
         <div className={cn(
           "flex items-center gap-4 p-4 rounded-xl transition-all duration-300 group",
-          "bg-card/30 hover:bg-card/50 border border-transparent hover:border-primary/10",
+          "bg-card/80 hover:bg-card/80 border border-transparent hover:border-primary/10",
           "hover:shadow-[0_0_20px_hsl(var(--rose)/0.08)]",
           accent && "border-primary/10 bg-primary/5"
         )}>
@@ -136,15 +136,15 @@ export function CustomerDashboard() {
 
       {/* Grid de estadísticas — Gold numbers */}
       <motion.div variants={item} className="grid grid-cols-3 gap-3">
-        <div className="text-center p-3.5 rounded-xl bg-card/40 backdrop-blur-sm border border-gold/10">
+        <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-gold/10">
           <p className="text-xl font-bold font-serif text-gradient-gold">{orders.length}</p>
           <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/30 mt-0.5">Pedidos</p>
         </div>
-        <div className="text-center p-3.5 rounded-xl bg-card/40 backdrop-blur-sm border border-border/10">
+        <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
           <p className="text-xl font-bold font-serif text-gradient-gold">{wishlistCount}</p>
           <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/30 mt-0.5">Favoritos</p>
         </div>
-        <div className="text-center p-3.5 rounded-xl bg-card/40 backdrop-blur-sm border border-border/10">
+        <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
           <p className="text-xl font-bold font-serif text-gradient-gold">{unreadCount}</p>
           <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/30 mt-0.5">Avisos</p>
         </div>
@@ -215,7 +215,7 @@ export function CustomerDashboard() {
       <motion.div variants={item} className="pt-2">
         <div className="grid grid-cols-2 gap-3">
           <Link to="/tienda">
-            <div className="p-5 rounded-xl bg-card/30 border border-border/10 hover:border-primary/15 hover:bg-card/50 transition-all duration-300 cursor-pointer group text-center">
+            <div className="p-5 rounded-xl bg-card/80 border border-border/10 hover:border-primary/15 hover:bg-card/80 transition-all duration-300 cursor-pointer group text-center">
               <div className="w-12 h-12 bg-primary/5 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-300">
                 <ShoppingBag className="h-5 w-5 text-primary/60" />
               </div>
@@ -223,7 +223,7 @@ export function CustomerDashboard() {
             </div>
           </Link>
           <Link to="/cliente/pedidos">
-            <div className="p-5 rounded-xl bg-card/30 border border-border/10 hover:border-gold/15 hover:bg-card/50 transition-all duration-300 cursor-pointer group text-center">
+            <div className="p-5 rounded-xl bg-card/80 border border-border/10 hover:border-gold/15 hover:bg-card/80 transition-all duration-300 cursor-pointer group text-center">
               <div className="w-12 h-12 bg-gold/5 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 group-hover:bg-gold/10 transition-all duration-300">
                 <Clock className="h-5 w-5 text-gold/60" />
               </div>

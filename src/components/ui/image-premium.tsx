@@ -47,7 +47,7 @@ export function ImagePremium({
 
             {/* Fallback en caso de error */}
             {hasError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-secondary/30 text-muted-foreground p-4 text-center text-sm">
+                <div className="absolute inset-0 flex items-center justify-center bg-secondary/80 text-muted-foreground p-4 text-center text-sm">
                     <span>Imagen no disponible</span>
                 </div>
             )}

@@ -251,7 +251,7 @@ export default function CustomerCredit() {
                         {transactions.map(tx => (
                           <div
                             key={tx.id}
-                            className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                            className="flex items-center justify-between p-3 rounded-lg bg-secondary/80"
                           >
                             <div className="flex items-center gap-3">
                               {tx.type === 'ABONO' ? (

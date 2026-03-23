@@ -146,7 +146,7 @@ function NotificationItem({
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.03 }}
       className={cn(
-        "p-4 hover:bg-secondary/50 transition-colors cursor-pointer",
+        "p-4 hover:bg-secondary/80 transition-colors cursor-pointer",
         !notification.is_read && "bg-primary/5"
       )}
       onClick={() => !notification.is_read && onMarkAsRead()}

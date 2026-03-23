@@ -223,7 +223,7 @@ export function CreditFinancialProfile({ creditId, compact = false }: CreditFina
               </div>
             ))}
             {profile.suggestedLimitChange !== 0 && (
-              <div className="mt-3 p-3 rounded-lg bg-secondary/50">
+              <div className="mt-3 p-3 rounded-lg bg-secondary/80">
                 <p className="text-sm font-medium flex items-center gap-2">
                   {profile.suggestedLimitChange > 0 ? (
                     <>

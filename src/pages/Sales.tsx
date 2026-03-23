@@ -170,7 +170,7 @@ export default function Sales() {
                 </div>
 
                 {selectedProduct && (
-                  <div className="p-4 rounded-xl bg-secondary/50 space-y-1">
+                  <div className="p-4 rounded-xl bg-secondary/80 space-y-1">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Total USD:</span>
                       <span className="font-bold text-gradient-gold">${totalUSD.toFixed(2)}</span>
@@ -184,7 +184,7 @@ export default function Sales() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/30">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/80">
                   <Label className="cursor-pointer">¿Es a crédito?</Label>
                   <Switch
                     checked={form.is_credit}

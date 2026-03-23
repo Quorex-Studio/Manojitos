@@ -205,7 +205,7 @@ export default function StoreCatalog() {
               placeholder="Buscar productos..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-11 bg-card/40 backdrop-blur-sm border-border/15 rounded-full text-sm focus:border-primary/30 transition-all duration-300"
+              className="pl-10 h-11 bg-card/80 backdrop-blur-sm border-border/15 rounded-full text-sm focus:border-primary/30 transition-all duration-300"
             />
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
           </div>
@@ -234,7 +234,7 @@ export default function StoreCatalog() {
 
             {/* Sort */}
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px] h-11 bg-card/40 backdrop-blur-sm border-border/15 rounded-full text-sm">
+              <SelectTrigger className="w-[180px] h-11 bg-card/80 backdrop-blur-sm border-border/15 rounded-full text-sm">
                 <SelectValue placeholder="Ordenar por" />
               </SelectTrigger>
               <SelectContent>
@@ -246,7 +246,7 @@ export default function StoreCatalog() {
             </Select>
 
             {/* View mode - Desktop */}
-            <div className="hidden md:flex items-center border border-border/15 rounded-full overflow-hidden bg-card/30 backdrop-blur-sm">
+            <div className="hidden md:flex items-center border border-border/15 rounded-full overflow-hidden bg-card/80 backdrop-blur-sm">
               <Button
                 variant="ghost"
                 size="icon"
@@ -271,7 +271,7 @@ export default function StoreCatalog() {
         {hasActiveFilters && (
           <div className="flex flex-wrap gap-2 mb-6">
             {searchQuery && (
-              <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/40 backdrop-blur-sm border-border/15 text-xs tracking-wide">
+              <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 Búsqueda: "{searchQuery}"
                 <button onClick={() => setSearchQuery('')} className="ml-2 text-muted-foreground/40 hover:text-foreground">
                   <X className="h-3 w-3" />
@@ -279,7 +279,7 @@ export default function StoreCatalog() {
               </Badge>
             )}
             {selectedCategories.map(cat => (
-              <Badge key={cat} variant="secondary" className="px-3 py-1.5 rounded-full bg-card/40 backdrop-blur-sm border-border/15 text-xs tracking-wide">
+              <Badge key={cat} variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 {cat}
                 <button onClick={() => toggleCategory(cat)} className="ml-2 text-muted-foreground/40 hover:text-foreground">
                   <X className="h-3 w-3" />
@@ -287,7 +287,7 @@ export default function StoreCatalog() {
               </Badge>
             ))}
             {(priceRange[0] > 0 || priceRange[1] < maxPrice) && (
-              <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/40 backdrop-blur-sm border-border/15 text-xs tracking-wide">
+              <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 ${priceRange[0]} - ${priceRange[1]}
                 <button onClick={() => setPriceRange([0, maxPrice])} className="ml-2 text-muted-foreground/40 hover:text-foreground">
                   <X className="h-3 w-3" />
@@ -306,7 +306,7 @@ export default function StoreCatalog() {
           {/* Sidebar Filters - Desktop */}
           <aside className="hidden md:block w-64 flex-shrink-0">
             <div className="sticky top-24 space-y-6">
-              <div className="p-6 rounded-2xl bg-card/40 backdrop-blur-sm border border-border/10">
+              <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-sm border border-border/10">
                 <h3 className="font-serif text-foreground/80 mb-6 flex items-center gap-2 text-sm tracking-wide">
                   <Filter className="h-4 w-4 text-gold/60" />
                   Filtros

@@ -272,7 +272,7 @@ export default function CustomerSettings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/80">
                   <div>
                     <p className="font-medium">Email</p>
                     <p className="text-sm text-muted-foreground">
@@ -285,7 +285,7 @@ export default function CustomerSettings() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/80">
                   <div>
                     <p className="font-medium">SMS</p>
                     <p className="text-sm text-muted-foreground">
@@ -298,7 +298,7 @@ export default function CustomerSettings() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/80">
                   <div>
                     <p className="font-medium">Notificaciones internas</p>
                     <p className="text-sm text-muted-foreground">

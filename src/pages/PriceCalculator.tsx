@@ -587,7 +587,7 @@ export default function PriceCalculator() {
                 </CardHeader>
                 <CardContent>
                   {/* Totales */}
-                  <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-xl bg-secondary/30">
+                  <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-xl bg-secondary/80">
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">Total Efectivo USD</p>
                       <p className="text-lg font-bold text-primary">
@@ -622,7 +622,7 @@ export default function PriceCalculator() {
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="border-b border-border/50 hover:bg-secondary/20"
+                            className="border-b border-border/50 hover:bg-secondary/80"
                           >
                             <td className="py-2 px-2 font-medium">{product.name}</td>
                             <td className="py-2 px-2 text-center">{product.quantity}</td>
@@ -695,7 +695,7 @@ export default function PriceCalculator() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
                             transition={{ delay: i * 0.05 }}
-                            className="p-4 rounded-xl bg-secondary/30 border border-border/50"
+                            className="p-4 rounded-xl bg-secondary/80 border border-border/50"
                           >
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-xs text-muted-foreground">

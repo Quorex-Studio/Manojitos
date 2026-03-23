@@ -126,7 +126,7 @@ export default function Settings() {
                 </Tabs>
               </div>
 
-              <div className="p-4 rounded-xl bg-secondary/30">
+              <div className="p-4 rounded-xl bg-secondary/80">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Tasa {selectedCurrency} actual</p>
@@ -190,7 +190,7 @@ export default function Settings() {
               <CardDescription>Personaliza la apariencia de la aplicación</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/30">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/80">
                 <div>
                   <p className="font-medium">Modo Oscuro</p>
                   <p className="text-sm text-muted-foreground">Cambia entre tema claro y oscuro</p>
@@ -215,11 +215,11 @@ export default function Settings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="flex justify-between p-3 rounded-lg bg-secondary/30">
+              <div className="flex justify-between p-3 rounded-lg bg-secondary/80">
                 <span className="text-muted-foreground">Versión</span>
                 <span className="font-medium">1.0.0</span>
               </div>
-              <div className="flex justify-between p-3 rounded-lg bg-secondary/30">
+              <div className="flex justify-between p-3 rounded-lg bg-secondary/80">
                 <span className="text-muted-foreground">Nombre</span>
                 <span className="font-medium text-gradient-gold">Manojitos</span>
               </div>

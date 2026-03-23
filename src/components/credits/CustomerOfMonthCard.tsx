@@ -67,7 +67,7 @@ export function CustomerOfMonthCard() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-2 p-3 rounded-xl bg-secondary/30">
+          <div className="grid grid-cols-4 gap-2 p-3 rounded-xl bg-secondary/80">
             <div className="text-center">
               <p className="text-lg font-bold text-primary">{customerOfMonth.stats.paymentRate.toFixed(0)}%</p>
               <p className="text-[10px] text-muted-foreground">A tiempo</p>
@@ -104,7 +104,7 @@ export function CustomerOfMonthCard() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="flex items-center gap-3 p-2 rounded-lg bg-secondary/20"
+                className="flex items-center gap-3 p-2 rounded-lg bg-secondary/80"
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   index === 0 ? 'bg-gold text-white' :

@@ -223,7 +223,7 @@ export default function ProductDetail() {
                 <motion.img
                   src={product.image_url}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain p-4"
                   animate={{ scale: imageZoomed ? 1.08 : 1 }}
                   transition={{ duration: 0.6, ease: 'easeOut' }}
                 />
@@ -262,7 +262,7 @@ export default function ProductDetail() {
               <Button
                 variant="secondary"
                 size="icon"
-                className="bg-background/60 backdrop-blur-md rounded-full border border-border/10 hover:bg-background/80"
+                className="bg-background/80 backdrop-blur-md rounded-full border border-border/10 hover:bg-background/80"
                 onClick={handleShare}
               >
                 <Share2 className="h-4 w-4" />
@@ -344,7 +344,7 @@ export default function ProductDetail() {
                     Cantidad
                   </label>
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center border border-border/15 rounded-full bg-card/30 backdrop-blur-sm overflow-hidden">
+                    <div className="flex items-center border border-border/15 rounded-full bg-card/80 backdrop-blur-sm overflow-hidden">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -416,11 +416,11 @@ export default function ProductDetail() {
 
             {/* Benefits */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-3 p-3.5 rounded-xl bg-card/30 backdrop-blur-sm border border-border/10">
+              <div className="flex items-center gap-3 p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
                 <Truck className="h-4 w-4 text-gold/70 flex-shrink-0" />
                 <span className="text-xs text-foreground/60 tracking-wide">Envío nacional</span>
               </div>
-              <div className="flex items-center gap-3 p-3.5 rounded-xl bg-card/30 backdrop-blur-sm border border-border/10">
+              <div className="flex items-center gap-3 p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
                 <Shield className="h-4 w-4 text-gold/70 flex-shrink-0" />
                 <span className="text-xs text-foreground/60 tracking-wide">Compra segura</span>
               </div>

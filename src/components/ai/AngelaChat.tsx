@@ -638,7 +638,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                             "p-3 rounded-2xl text-sm",
                             msg.role === 'user'
                               ? "bg-primary/90 text-primary-foreground rounded-br-sm"
-                              : "bg-card/60 backdrop-blur-sm border border-border/10 rounded-bl-sm text-foreground/80"
+                              : "bg-card/80 backdrop-blur-sm border border-border/10 rounded-bl-sm text-foreground/80"
                           )}
                           dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
                         />
@@ -706,7 +706,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                                 transition={{ delay: sIdx * 0.05 }}
                                 onClick={() => handleSuggestionClick(suggestion.message)}
                                 disabled={isLoading}
-                                className="px-3 py-1.5 text-xs bg-card/40 backdrop-blur-sm text-foreground/60 rounded-full hover:bg-card/60 hover:text-foreground/80 transition-all duration-300 border border-border/15 hover:border-primary/20 whitespace-nowrap tracking-wide"
+                                className="px-3 py-1.5 text-xs bg-card/80 backdrop-blur-sm text-foreground/60 rounded-full hover:bg-card/80 hover:text-foreground/80 transition-all duration-300 border border-border/15 hover:border-primary/20 whitespace-nowrap tracking-wide"
                               >
                                 {suggestion.label}
                               </motion.button>
@@ -730,7 +730,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                       <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden border border-primary/20">
                         <img src={stitchRosaMascot} alt="Ángela" className="w-full h-full object-cover" />
                       </div>
-                      <div className="bg-card/40 backdrop-blur-sm border border-border/10 p-3 rounded-2xl rounded-bl-sm">
+                      <div className="bg-card/80 backdrop-blur-sm border border-border/10 p-3 rounded-2xl rounded-bl-sm">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Loader2 className="h-4 w-4 animate-spin" />
                           <span>Ángela está pensando...</span>
@@ -751,7 +751,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                     onKeyDown={handleKeyDown}
                     placeholder="Escribe tu mensaje..."
                     disabled={isLoading}
-                    className="flex-1 rounded-full bg-card/30 border-border/15 focus:border-primary/30"
+                    className="flex-1 rounded-full bg-card/80 border-border/15 focus:border-primary/30"
                   />
                   <Button
                     onClick={() => sendMessage()}

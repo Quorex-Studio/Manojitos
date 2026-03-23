@@ -169,7 +169,7 @@ export default function Reports() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {Object.entries(stats.byPaymentMethod).map(([method, total]) => (
-                <div key={method} className="p-4 rounded-xl bg-secondary/30 text-center">
+                <div key={method} className="p-4 rounded-xl bg-secondary/80 text-center">
                   <p className="text-sm text-muted-foreground capitalize">{method.replace('_', ' ')}</p>
                   <p className="text-lg font-bold text-gradient-gold">${(total as number).toFixed(2)}</p>
                 </div>

@@ -86,7 +86,7 @@ export default function Cart() {
                   <Link to={`/producto/${item.id}`}>
                     <div className="w-20 h-24 md:w-24 md:h-28 rounded-xl overflow-hidden bg-secondary flex-shrink-0 group-hover:shadow-lg transition-shadow duration-300">
                       {item.image_url ? (
-                        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                        <img src={item.image_url} alt={item.name} className="w-full h-full object-contain p-1" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Package className="w-8 h-8 text-muted-foreground/20" />
@@ -106,7 +106,7 @@ export default function Cart() {
                     
                     {/* Quantity controls — pill */}
                     <div className="flex items-center gap-3 mt-3">
-                      <div className="flex items-center border border-border/15 rounded-full bg-card/20 backdrop-blur-sm overflow-hidden">
+                      <div className="flex items-center border border-border/15 rounded-full bg-card/80 backdrop-blur-sm overflow-hidden">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -160,7 +160,7 @@ export default function Cart() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="rounded-2xl p-6 bg-card/50 backdrop-blur-xl border border-gold/15 shadow-[0_16px_48px_hsl(var(--gold)/0.08)]"
+              className="rounded-2xl p-6 bg-card/80 backdrop-blur-xl border border-gold/15 shadow-[0_16px_48px_hsl(var(--gold)/0.08)]"
             >
               <h3 className="font-serif text-foreground/80 text-sm tracking-wide mb-6">Resumen del pedido</h3>
 

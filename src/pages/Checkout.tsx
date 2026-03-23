@@ -354,7 +354,7 @@ export default function Checkout() {
                 ))}
               </RadioGroup>
 
-              <div className="mt-6 flex items-center gap-2 text-xs text-muted-foreground bg-secondary/30 p-3 rounded-lg justify-center">
+              <div className="mt-6 flex items-center gap-2 text-xs text-muted-foreground bg-secondary/80 p-3 rounded-lg justify-center">
                 <Shield className="h-3 w-3" />
                 Sus datos son tratados confidencialmente y encriptados.
               </div>
@@ -377,7 +377,7 @@ export default function Checkout() {
                       {item.image_url ? (
                         <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-secondary/20">
+                        <div className="w-full h-full flex items-center justify-center bg-secondary/80">
                           <Package className="w-6 h-6 text-muted-foreground/30" />
                         </div>
                       )}

@@ -223,7 +223,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
 
                 {/* Shipping info */}
                 {order.shipping_address && (
-                  <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/50 mb-4">
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/80 mb-4">
                     <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                     <div className="text-sm">
                       <p>{order.shipping_address}</p>

@@ -310,16 +310,16 @@ export default function BusinessRules() {
                       
                       <CollapsibleContent>
                         <CardContent className="pt-0">
-                          <div className="grid gap-4 md:grid-cols-2 p-4 bg-secondary/30 rounded-lg">
+                          <div className="grid gap-4 md:grid-cols-2 p-4 bg-secondary/80 rounded-lg">
                             <div>
                               <p className="text-sm font-medium mb-2">Condiciones</p>
-                              <pre className="text-xs bg-background/50 p-3 rounded-md overflow-auto max-h-32">
+                              <pre className="text-xs bg-background/80 p-3 rounded-md overflow-auto max-h-32">
                                 {JSON.stringify(rule.conditions, null, 2)}
                               </pre>
                             </div>
                             <div>
                               <p className="text-sm font-medium mb-2">Acciones</p>
-                              <pre className="text-xs bg-background/50 p-3 rounded-md overflow-auto max-h-32">
+                              <pre className="text-xs bg-background/80 p-3 rounded-md overflow-auto max-h-32">
                                 {JSON.stringify(rule.actions, null, 2)}
                               </pre>
                             </div>

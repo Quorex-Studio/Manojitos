@@ -185,7 +185,7 @@ export default function StoreFront() {
                   <Link to={`/tienda?category=${encodeURIComponent(category)}`}>
                     <Button
                       variant="ghost"
-                      className="h-auto py-3 px-7 text-sm font-normal rounded-full bg-card/40 backdrop-blur-md border border-primary/10 text-foreground/70 hover:text-foreground hover:border-primary/30 hover:shadow-[0_0_20px_hsl(var(--rose)/0.15)] transition-all duration-400 tracking-wide"
+                      className="h-auto py-3 px-7 text-sm font-normal rounded-full bg-card/80 backdrop-blur-md border border-primary/10 text-foreground/70 hover:text-foreground hover:border-primary/30 hover:shadow-[0_0_20px_hsl(var(--rose)/0.15)] transition-all duration-400 tracking-wide"
                     >
                       {category}
                     </Button>
@@ -284,7 +284,7 @@ export default function StoreFront() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1, duration: 0.5 }}
                 whileHover={{ y: -8, transition: { duration: 0.3 } }}
-                className="group p-8 rounded-2xl bg-card/40 backdrop-blur-md border border-gold/10 flex flex-col items-center text-center hover:border-gold/25 hover:shadow-[0_16px_48px_hsl(var(--gold)/0.1)] transition-all duration-500"
+                className="group p-8 rounded-2xl bg-card/80 backdrop-blur-md border border-gold/10 flex flex-col items-center text-center hover:border-gold/25 hover:shadow-[0_16px_48px_hsl(var(--gold)/0.1)] transition-all duration-500"
               >
                 <div className="w-14 h-14 rounded-full bg-gold/8 border border-gold/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-gold/12 transition-all duration-300">
                   <benefit.icon className="h-6 w-6 text-gold" />

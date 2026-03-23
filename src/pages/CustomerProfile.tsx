@@ -143,7 +143,7 @@ export default function CustomerProfile() {
           </div>
 
           <Tabs defaultValue="dashboard" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-3 p-1 bg-card/40 backdrop-blur-sm border border-border/10 rounded-full h-11">
+            <TabsList className="grid w-full grid-cols-3 p-1 bg-card/80 backdrop-blur-sm border border-border/10 rounded-full h-11">
               <TabsTrigger value="dashboard" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Inicio</TabsTrigger>
               <TabsTrigger value="profile" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Perfil</TabsTrigger>
               <TabsTrigger value="purchases" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Compras</TabsTrigger>
@@ -156,7 +156,7 @@ export default function CustomerProfile() {
 
             {/* Tab: Perfil */}
             <TabsContent value="profile">
-              <Card className="bg-card/40 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.06)]">
+              <Card className="bg-card/80 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.06)]">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-serif tracking-tight">
                     <User className="h-4.5 w-4.5 text-primary/70" />
@@ -174,7 +174,7 @@ export default function CustomerProfile() {
                         <Input
                           id="full_name"
                           placeholder="Tu nombre"
-                          className="bg-card/30 border-border/15 focus:border-primary/30"
+                          className="bg-card/80 border-border/15 focus:border-primary/30"
                           {...form.register('full_name')}
                         />
                         {form.formState.errors.full_name && (
@@ -189,7 +189,7 @@ export default function CustomerProfile() {
                           <Input
                             id="phone"
                             placeholder="+58 412 1234567"
-                            className="pl-10 bg-card/30 border-border/15 focus:border-primary/30"
+                            className="pl-10 bg-card/80 border-border/15 focus:border-primary/30"
                             {...form.register('phone')}
                           />
                         </div>
@@ -206,7 +206,7 @@ export default function CustomerProfile() {
                             id="email"
                             type="email"
                             placeholder="tu@email.com"
-                            className="pl-10 bg-card/30 border-border/15 focus:border-primary/30"
+                            className="pl-10 bg-card/80 border-border/15 focus:border-primary/30"
                             {...form.register('email')}
                           />
                         </div>
@@ -220,7 +220,7 @@ export default function CustomerProfile() {
                         <Input
                           id="city"
                           placeholder="Tu ciudad"
-                          className="bg-card/30 border-border/15 focus:border-primary/30"
+                          className="bg-card/80 border-border/15 focus:border-primary/30"
                           {...form.register('city')}
                         />
                       </div>
@@ -230,7 +230,7 @@ export default function CustomerProfile() {
                         <Input
                           id="state"
                           placeholder="Tu estado"
-                          className="bg-card/30 border-border/15 focus:border-primary/30"
+                          className="bg-card/80 border-border/15 focus:border-primary/30"
                           {...form.register('state')}
                         />
                       </div>
@@ -240,7 +240,7 @@ export default function CustomerProfile() {
                         <Input
                           id="zip_code"
                           placeholder="1234"
-                          className="bg-card/30 border-border/15 focus:border-primary/30"
+                          className="bg-card/80 border-border/15 focus:border-primary/30"
                           {...form.register('zip_code')}
                         />
                       </div>
@@ -253,7 +253,7 @@ export default function CustomerProfile() {
                         <Textarea
                           id="address"
                           placeholder="Calle, número, urbanización, punto de referencia..."
-                          className="pl-10 min-h-[80px] bg-card/30 border-border/15 focus:border-primary/30"
+                          className="pl-10 min-h-[80px] bg-card/80 border-border/15 focus:border-primary/30"
                           {...form.register('address')}
                         />
                       </div>
@@ -278,7 +278,7 @@ export default function CustomerProfile() {
 
             {/* Tab: Compras */}
             <TabsContent value="purchases">
-              <Card className="bg-card/40 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.06)]">
+              <Card className="bg-card/80 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.06)]">
                 <CardHeader>
                   <CardTitle className="font-serif tracking-tight">Historial de Compras</CardTitle>
                   <CardDescription className="text-muted-foreground/40 text-sm tracking-wide">
@@ -304,7 +304,7 @@ export default function CustomerProfile() {
                       {purchases.slice(0, 10).map((purchase) => (
                         <div 
                           key={purchase.id}
-                          className="flex items-center justify-between p-4 rounded-xl bg-card/30 hover:bg-card/50 transition-colors duration-300"
+                          className="flex items-center justify-between p-4 rounded-xl bg-card/80 hover:bg-card/80 transition-colors duration-300"
                         >
                           <div>
                             <p className="font-medium text-sm">{purchase.product_name}</p>
