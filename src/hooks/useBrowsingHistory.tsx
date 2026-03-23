@@ -8,6 +8,17 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
+const HISTORY_STORAGE_KEY = 'mnj_browsing_history';
+const MAX_HISTORY_ITEMS = 20;
+
+export interface BrowsingHistoryItem {
+  productId: string;
+  productName: string;
+  imageUrl: string | null;
+  priceUsd: number;
+  viewedAt: string;
+}
+
 const getHistoryKey = (userId: string | null) =>
   userId ? `${HISTORY_STORAGE_KEY}_${userId}` : `${HISTORY_STORAGE_KEY}_guest`;
 
