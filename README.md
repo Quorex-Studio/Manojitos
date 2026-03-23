@@ -1,4 +1,4 @@
-# 🌸 Manojitos Bloom — Plataforma E-commerce + ERP/CRM con IA
+# 🌸 Manojitos — Plataforma E-commerce + ERP/CRM con IA
 
 <div align="center">
 
@@ -16,7 +16,7 @@
 
 ## 🚀 ¿Qué es esto?
 
-Manojitos Bloom es una **Single Page Application (SPA) completa** que fusiona tres sistemas en uno:
+Manojitos es una **Single Page Application (SPA) completa** que fusiona tres sistemas en uno:
 
 - 🛒 **E-commerce B2C** — Tienda online con experiencia de compra premium
 - 👤 **Portal de Clientes** — Panel personal con historial, crédito y métodos de pago
