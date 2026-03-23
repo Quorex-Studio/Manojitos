@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-export default defineConfig(async ({ mode }) => {
+export default defineConfig(async ({ mode }: { mode: string }) => {
   const plugins = [react()];
   
   if (mode === "development") {
