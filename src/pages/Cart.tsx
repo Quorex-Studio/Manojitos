@@ -8,10 +8,10 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 
 // Carrito de compras — Luxury receipt layout
 export default function Cart() {
-  const { items, removeItem, updateQuantity, getTotal, getItemCount, clearCart } = useCart();
+  const { items, removeItem, updateQuantity, getSubtotal, getItemCount, clearCart } = useCart();
   const { rate, convertToBS } = useExchangeRate();
 
-  const total = getTotal();
+  const total = getSubtotal();
   const itemCount = getItemCount();
 
   if (items.length === 0) {
