@@ -283,13 +283,13 @@ export default function ProductDetail() {
             )}
 
             {/* Name */}
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif font-medium text-foreground tracking-tight leading-[1.1]">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-serif font-medium text-foreground tracking-tight leading-[1.1]">
               {product.name}
             </h1>
 
             {/* Price — large golden */}
             <div className="space-y-1">
-              <span className="text-4xl md:text-5xl font-bold text-gradient-gold font-serif">
+              <span className="text-3xl md:text-4xl font-bold text-gradient-gold font-serif">
                 ${product.price_usd.toFixed(2)}
               </span>
               {rate > 0 && (

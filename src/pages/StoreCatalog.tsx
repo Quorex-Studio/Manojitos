@@ -186,7 +186,7 @@ export default function StoreCatalog() {
           
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
+              <h1 className="text-3xl md:text-4xl font-serif font-medium text-foreground tracking-tight">
                 Nuestra Tienda
               </h1>
               <p className="text-muted-foreground/40 mt-2 text-sm tracking-wide">

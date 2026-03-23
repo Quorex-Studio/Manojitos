@@ -58,7 +58,7 @@ export default function Cart() {
           </nav>
           <div className="flex items-end justify-between">
             <div>
-              <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
+              <h1 className="text-3xl md:text-4xl font-serif font-medium text-foreground tracking-tight">
                 Tu Carrito
               </h1>
               <p className="text-muted-foreground/40 mt-2 text-sm tracking-wide">

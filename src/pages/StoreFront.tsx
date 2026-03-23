@@ -105,7 +105,7 @@ export default function StoreFront() {
             {/* Giant headline — stagger word entrance */}
             <div className="overflow-hidden">
               <motion.h1
-                className="text-5xl sm:text-6xl md:text-8xl lg:text-[10rem] font-serif font-semibold leading-[0.9] tracking-tighter break-words hyphens-auto"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-semibold leading-[0.9] tracking-tighter break-words hyphens-auto"
                 variants={containerVariants}
                 initial="hidden"
                 animate="show"
@@ -304,8 +304,8 @@ export default function StoreFront() {
       {/* ========================
           CTA FINAL — Editorial full-width
           ======================== */}
-      <section className="py-24 container mx-auto px-4">
-        <div className="relative rounded-3xl overflow-hidden text-center py-28 px-6 grain-overlay">
+      <section className="py-12 container mx-auto px-4">
+        <div className="relative rounded-3xl overflow-hidden text-center py-16 px-6 grain-overlay">
           {/* Dark background */}
           <div className="absolute inset-0 bg-[#120A0C]" />
           {/* Fashion editorial photo at 10% opacity */}
