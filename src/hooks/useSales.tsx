@@ -5,11 +5,19 @@
  * RPCs: `process_checkout`
  * Returns: { sales, loading, addSale, confirmSale, cancelSale, processCheckout, deleteSale, refetch }
  */
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { saleSchema, validateInput, SaleStatus, SaleInput } from '@/lib/validations';
+import { useEffect } from 'react';
+
+export interface StockValidationError {
+  productId: string;
+  productName: string;
+  requested: number;
+  available: number;
+}
 
 export interface Sale {
   id: string;
@@ -31,26 +39,30 @@ export interface Sale {
 
 export function useSales() {
   const { user } = useAuth();
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchSales = async () => {
-    if (!user) return;
+  const { data: sales = [], isLoading, refetch } = useQuery({
+    queryKey: ['admin-sales'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sales')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    const { data, error } = await supabase
-      .from('sales')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      toast({ title: 'Error', description: 'No se pudieron cargar las ventas', variant: 'destructive' });
-    } else {
-      setSales((data || []).map(sale => ({
+      if (error) throw error;
+      return (data || []).map(sale => ({
         ...sale,
         status: sale.status as SaleStatus
-      })));
-    }
-    setLoading(false);
+      })) as Sale[];
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+  });
+
+  const invalidateSales = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-sales'] });
   };
 
   // Crea venta en estado pending (transaccional)
@@ -201,6 +213,37 @@ export function useSales() {
     exchange_rate_used: number;
   }
 
+  // Validar stock antes de checkout
+  const validateStock = async (items: CheckoutItem[]): Promise<{ valid: boolean; errors: StockValidationError[] }> => {
+    const errors: StockValidationError[] = [];
+
+    for (const item of items) {
+      const { data: product, error } = await supabase
+        .from('products')
+        .select('stock')
+        .eq('id', item.id)
+        .single();
+
+      if (error || !product) {
+        errors.push({
+          productId: item.id,
+          productName: item.name,
+          requested: item.quantity,
+          available: 0,
+        });
+      } else if (product.stock < item.quantity) {
+        errors.push({
+          productId: item.id,
+          productName: item.name,
+          requested: item.quantity,
+          available: product.stock,
+        });
+      }
+    }
+
+    return { valid: errors.length === 0, errors };
+  };
+
   // Checkout transaccional - usa la función atómica del servidor
   // Nota: process_checkout usa un tipo compuesto (order_item_input[]) que Supabase
   // no expone en los tipos autogenerados del cliente. El cast es necesario.
@@ -211,6 +254,28 @@ export function useSales() {
     if (!user) return { error: new Error('No autenticado'), saleIds: [] as string[] };
 
     try {
+      // Validar stock antes de procesar
+      const { valid, errors } = await validateStock(items);
+
+      if (!valid) {
+        const errorMessages = errors.map(
+          e => `${e.productName}: solicitaste ${e.requested}, pero solo quedan ${e.available}`
+        );
+        const errorMessage = `Stock insuficiente:\n${errorMessages.join('\n')}`;
+
+        toast({
+          title: 'Stock no disponible',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+
+        return {
+          error: new Error(errorMessage),
+          saleIds: [],
+          stockErrors: errors,
+        };
+      }
+
       const { data, error } = await (supabase.rpc as unknown as (
         fn: 'process_checkout',
         args: {
@@ -240,7 +305,7 @@ export function useSales() {
 
       if (data?.success) {
         toast({ title: 'Éxito', description: 'Pedido procesado correctamente' });
-        fetchSales();
+        invalidateSales();
         return { error: null, saleIds: data.sale_ids };
       } else {
         throw new Error('La transacción no se pudo completar');
@@ -256,45 +321,49 @@ export function useSales() {
     }
   };
 
-  const deleteSale = async (id: string) => {
-    const { error } = await supabase
-      .from('sales')
-      .delete()
-      .eq('id', id);
+  const deleteSale = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('sales')
+        .delete()
+        .eq('id', id);
 
-    if (error) {
-      toast({ title: 'Error', description: 'No se pudo eliminar la venta', variant: 'destructive' });
-    } else {
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateSales();
       toast({ title: 'Éxito', description: 'Venta eliminada' });
-    }
-    return { error };
-  };
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message || 'No se pudo eliminar la venta', variant: 'destructive' });
+    },
+  });
 
+  // Suscribirse a cambios en tiempo real
   useEffect(() => {
-    if (user) {
-      fetchSales();
+    if (!user) return;
 
-      const channel = supabase
-        .channel('sales-changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'sales' },
-          () => { fetchSales(); }
-        )
-        .subscribe();
+    const channel = supabase
+      .channel('sales-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sales' },
+        () => { invalidateSales(); }
+      )
+      .subscribe();
 
-      return () => { supabase.removeChannel(channel); };
-    }
-  }, [user]);
+    return () => { supabase.removeChannel(channel); };
+  }, [user, queryClient]);
 
   return {
     sales,
-    loading,
+    loading: isLoading,
     addSale,
     confirmSale,
     cancelSale,
     processCheckout,
-    deleteSale,
-    refetch: fetchSales
+    validateStock,
+    deleteSale: deleteSale.mutateAsync,
+    refetch,
   };
 }

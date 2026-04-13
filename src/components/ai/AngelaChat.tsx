@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
-import { 
-  X, 
-  Send, 
-  Loader2, 
+import {
+  X,
+  Send,
+  Loader2,
   User,
   Minimize2,
   Maximize2,
@@ -29,6 +29,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import stitchRosaMascot from '@/assets/stitch-rosa-mascot.png';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 // Declarar tipo global para Tidio
 declare global {
@@ -102,8 +104,6 @@ const HUMAN_SUPPORT_PHRASES = [
 
 const ANGELA_GREETING = "¡Hola! 🩷 Soy **Ángela**, tu asistente inteligente de Manojitos. Estoy aquí para ayudarte con productos, precios, crédito y más. ¿Qué necesitas hoy? ✨";
 
-const SUPABASE_URL = 'https://utfoempgdbhhikpvbvir.supabase.co';
-
 // Detectar si el usuario quiere atención humana
 function detectHumanSupportRequest(message: string): boolean {
   const lowerMessage = message.toLowerCase();
@@ -142,16 +142,16 @@ async function executeBackendAction(action: ActionData, userId?: string): Promis
   try {
     // Get current session for authentication
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    
+
     // Add auth header if session exists
     if (session?.access_token) {
       headers['Authorization'] = `Bearer ${session.access_token}`;
     }
-    
+
     const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant`, {
       method: 'POST',
       headers,
@@ -199,7 +199,7 @@ const ADMIN_INITIAL_SUGGESTIONS: Suggestion[] = [
 // Parse action from AI response
 function parseAction(content: string): { cleanContent: string; action: ActionData | null } {
   const actionMatch = content.match(/```action\s*([\s\S]*?)\s*```/);
-  
+
   if (actionMatch) {
     try {
       const actionData = JSON.parse(actionMatch[1]) as ActionData;
@@ -209,7 +209,7 @@ function parseAction(content: string): { cleanContent: string; action: ActionDat
       console.error('Error parsing action:', e);
     }
   }
-  
+
   return { cleanContent: content, action: null };
 }
 
@@ -219,7 +219,7 @@ function extractProductMentions(content: string): string[] {
     /\*\*([^*]+)\*\*/g,  // **Producto**
     /producto[s]?\s+(\w+)/gi,  // producto X
   ];
-  
+
   const products: string[] = [];
   productPatterns.forEach(pattern => {
     let match;
@@ -229,7 +229,7 @@ function extractProductMentions(content: string): string[] {
       }
     }
   });
-  
+
   return products;
 }
 
@@ -273,12 +273,12 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
   const updateSessionMemory = useCallback((userMessage: string, assistantResponse: string) => {
     setSessionMemory(prev => {
       const newMemory = { ...prev };
-      
+
       // Agregar pregunta del usuario
       if (!prev.askedQuestions.includes(userMessage)) {
         newMemory.askedQuestions = [...prev.askedQuestions, userMessage].slice(-10);
       }
-      
+
       // Extraer productos mencionados
       const mentionedProducts = extractProductMentions(assistantResponse);
       mentionedProducts.forEach(product => {
@@ -286,12 +286,12 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
           newMemory.viewedProducts = [...prev.viewedProducts, product].slice(-20);
         }
       });
-      
+
       // Guardar recomendación si parece ser una
       if (assistantResponse.includes('recomiendo') || assistantResponse.includes('te sugiero')) {
         newMemory.recommendations = [...prev.recommendations, assistantResponse.slice(0, 100)].slice(-5);
       }
-      
+
       return newMemory;
     });
   }, []);
@@ -299,7 +299,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
   const executeAction = async (action: ActionData, messageIndex: number) => {
     try {
       const result = await executeBackendAction(action, user?.id);
-      
+
       setMessages(prev => prev.map((msg, idx) => {
         if (idx === messageIndex && msg.action) {
           return {
@@ -337,7 +337,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
     // Detectar si el usuario quiere atención humana
     if (detectHumanSupportRequest(textToSend)) {
       const lastRecommendation = sessionMemory.recommendations[sessionMemory.recommendations.length - 1];
-      
+
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: '¡Entendido! 🩷 Ya te comunico con uno de nuestros asesores humanos. Le dejé toda la información de nuestra conversación para que te atienda más rápido. ✨',
@@ -354,16 +354,16 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
     try {
       // Get current session for authentication
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      
+
       // Add auth header if session exists
       if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
-      
+
       const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-assistant`, {
         method: 'POST',
         headers,
@@ -392,12 +392,12 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
       const rawContent = data.content || '¡Ups! No pude procesar eso. ¿Podrías intentar de nuevo? 🩷';
       const serverSuggestions = data.suggestions as Suggestion[] | undefined;
       const analysis = data.analysis as ConversationAnalysis | undefined;
-      
+
       // Guardar análisis
       if (analysis) {
         setLastAnalysis(analysis);
       }
-      
+
       // Parse for actions
       const { cleanContent, action } = parseAction(rawContent);
 
@@ -405,12 +405,12 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
       updateSessionMemory(textToSend, cleanContent);
 
       // Usar sugerencias del servidor o generar locales
-      const finalSuggestions = serverSuggestions?.length 
-        ? serverSuggestions 
+      const finalSuggestions = serverSuggestions?.length
+        ? serverSuggestions
         : generateLocalSuggestions(cleanContent, isAdmin);
 
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
+      setMessages(prev => [...prev, {
+        role: 'assistant',
         content: cleanContent,
         action,
         suggestions: finalSuggestions,
@@ -440,12 +440,12 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
     if (lowerResponse.includes('precio') || lowerResponse.includes('bs')) {
       suggestions.push({ label: "💱 Comparar USD/Bs", message: "¿Me conviene pagar en USD o en Bs?" });
     }
-    
+
     if (lowerResponse.includes('producto')) {
       suggestions.push({ label: "🛒 Ver más productos", message: "Muéstrame más productos" });
       suggestions.push({ label: "📦 Hay stock?", message: "¿Tienen stock de este producto?" });
     }
-    
+
     if (lowerResponse.includes('crédito')) {
       suggestions.push({ label: "💳 Mi límite", message: "¿Cuál es mi límite de crédito?" });
     }
@@ -489,7 +489,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/\n/g, '<br/>');
-    
+
     // Sanitize HTML to prevent XSS attacks
     // Only allow safe formatting tags
     return DOMPurify.sanitize(formatted, {
@@ -516,8 +516,8 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
         {!isOpen && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ 
-              scale: 1, 
+            animate={{
+              scale: 1,
               opacity: 1,
               y: [0, -8, 0],
             }}
@@ -566,53 +566,53 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className={cn(
               "fixed z-50 shadow-2xl",
-              isExpanded 
-                ? "inset-4 md:inset-8" 
+              isExpanded
+                ? "inset-4 md:inset-8"
                 : "bottom-6 right-6 w-[380px] h-[550px]",
               className
             )}
           >
             <Card className="flex flex-col h-full overflow-hidden border-primary/15 bg-background/95 backdrop-blur-2xl shadow-[0_16px_64px_hsl(var(--rose)/0.15)]">
               {/* Header */}
-               <div className="p-4 bg-background flex items-center justify-between border-b border-border/20">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-foreground/10 flex items-center justify-center p-1 border border-border/30 overflow-hidden animate-breathing">
-              <img src="/stitch-rosa-mascot.png" alt="Angela" className="w-full h-full object-contain" />
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#120A0C] shadow-sm" />
-          </div>
-          <div>
-            <h3 className="font-serif font-medium text-foreground">Angela AI</h3>
-            <p className="text-[10px] text-foreground/40 font-medium tracking-[0.1em] uppercase">Asistente Virtual</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 text-foreground/50 hover:text-foreground hover:bg-foreground/5"
-                  onClick={() => setIsExpanded(!isExpanded)}
-                >
-                  {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Minimizar</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 text-foreground/50 hover:text-foreground hover:bg-foreground/5"
-            onClick={() => setIsOpen(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+              <div className="p-4 bg-background flex items-center justify-between border-b border-border/20">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full bg-foreground/10 flex items-center justify-center p-1 border border-border/30 overflow-hidden animate-breathing">
+                      <img src="/stitch-rosa-mascot.png" alt="Angela" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#120A0C] shadow-sm" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-medium text-foreground">Angela AI</h3>
+                    <p className="text-[10px] text-foreground/40 font-medium tracking-[0.1em] uppercase">Asistente Virtual</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-foreground/50 hover:text-foreground hover:bg-foreground/5"
+                          onClick={() => setIsExpanded(!isExpanded)}
+                        >
+                          {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Minimizar</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-foreground/50 hover:text-foreground hover:bg-foreground/5"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
 
               {/* Messages */}
               <ScrollArea className="flex-1 p-4" ref={scrollRef}>
@@ -642,7 +642,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                           )}
                           dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
                         />
-                        
+
                         {/* Human Support Button */}
                         {msg.showHumanSupport && (
                           <motion.div
@@ -660,7 +660,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
                             </Button>
                           </motion.div>
                         )}
-                        
+
                         {/* Action Button */}
                         {msg.action && (
                           <motion.div

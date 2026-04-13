@@ -85,7 +85,7 @@ const queryClient = new QueryClient();
 // Ruta protegida para el panel administrativo (solo admins)
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isAdmin } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -93,17 +93,38 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
+
   // Si no está autenticado, redirigir a login
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-  
+
   // Si está autenticado pero NO es admin, redirigir a tienda
   if (!isAdmin) {
     return <Navigate to="/" replace />;
   }
-  
+
+  return <>{children}</>;
+}
+
+// Ruta protegida para el portal de cliente (requiere autenticación de cliente)
+function CustomerProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Si no está autenticado, redirigir al login de cliente con redirect
+  if (!user) {
+    const currentPath = window.location.pathname;
+    return <Navigate to={`/cliente/auth?redirect=${encodeURIComponent(currentPath)}`} replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -111,7 +132,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 // Rutas de la aplicación
 function AppRoutes() {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -129,14 +150,14 @@ function AppRoutes() {
       <Route path="/carrito" element={<Cart />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/cliente/auth" element={<CustomerAuth />} />
-      <Route path="/cliente/perfil" element={<CustomerProfile />} />
-      <Route path="/cliente/credito" element={<CustomerCredit />} />
-      <Route path="/cliente/pedidos" element={<CustomerOrders />} />
-      <Route path="/cliente/favoritos" element={<CustomerWishlist />} />
-      <Route path="/cliente/notificaciones" element={<CustomerNotifications />} />
-      <Route path="/cliente/configuracion" element={<CustomerSettings />} />
-      <Route path="/cliente/metodos-pago" element={<CustomerPaymentMethods />} />
-      
+      <Route path="/cliente/perfil" element={<CustomerProtectedRoute><CustomerProfile /></CustomerProtectedRoute>} />
+      <Route path="/cliente/credito" element={<CustomerProtectedRoute><CustomerCredit /></CustomerProtectedRoute>} />
+      <Route path="/cliente/pedidos" element={<CustomerProtectedRoute><CustomerOrders /></CustomerProtectedRoute>} />
+      <Route path="/cliente/favoritos" element={<CustomerProtectedRoute><CustomerWishlist /></CustomerProtectedRoute>} />
+      <Route path="/cliente/notificaciones" element={<CustomerProtectedRoute><CustomerNotifications /></CustomerProtectedRoute>} />
+      <Route path="/cliente/configuracion" element={<CustomerProtectedRoute><CustomerSettings /></CustomerProtectedRoute>} />
+      <Route path="/cliente/metodos-pago" element={<CustomerProtectedRoute><CustomerPaymentMethods /></CustomerProtectedRoute>} />
+
       {/* ===== RUTAS INFORMATIVAS ===== */}
       <Route path="/nosotros" element={<AboutUs />} />
       <Route path="/terminos" element={<TermsAndConditions />} />
@@ -156,7 +177,7 @@ function AppRoutes() {
       <Route path="/import-products" element={<ProtectedRoute><ImportProducts /></ProtectedRoute>} />
       <Route path="/calculadora" element={<ProtectedRoute><PriceCalculator /></ProtectedRoute>} />
       <Route path="/reglas" element={<ProtectedRoute><BusinessRules /></ProtectedRoute>} />
-      
+
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -165,22 +186,22 @@ function AppRoutes() {
 
 const App = () => (
   <ErrorBoundary>
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <CartProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <AppRoutes />
-              <AngelaChat />
-            </TooltipProvider>
-          </CartProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
-  </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <CartProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <AppRoutes />
+                <AngelaChat />
+              </TooltipProvider>
+            </CartProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </ThemeProvider>
+    </QueryClientProvider>
   </ErrorBoundary>
 );
 

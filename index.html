@@ -1,43 +1,61 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manojitos</title>
-    <meta name="description" content="Manojitos - Boutique de lujo. Ropa, accesorios y lencería exclusiva. Envíos a toda Venezuela." />
-    <meta name="author" content="Manojitos" />
-    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
 
-    <meta property="og:title" content="Manojitos - Luxury Boutique" />
-    <meta property="og:description" content="Ropa, accesorios y lencería fashion. Elegancia que inspira a toda Venezuela." />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/logo.jpeg" />
+<head>
+  <!-- Google Tag Manager -->
+  <script>(function (w, d, s, l, i) {
+      w[l] = w[l] || []; w[l].push({
+        'gtm.start':
+          new Date().getTime(), event: 'gtm.js'
+      }); var f = d.getElementsByTagName(s)[0],
+        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+          'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-W7SP74CQ');</script>
+  <!-- End Google Tag Manager -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manojitos</title>
+  <meta name="description"
+    content="Manojitos - Boutique de lujo. Ropa, accesorios y lencería exclusiva. Envíos a toda Venezuela." />
+  <meta name="author" content="Manojitos" />
+  <link rel="icon" href="/favicon.ico" type="image/x-icon" />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Manojitos" />
-    <meta name="twitter:image" content="/logo.jpeg" />
-  </head>
+  <meta property="og:title" content="Manojitos - Luxury Boutique" />
+  <meta property="og:description"
+    content="Ropa, accesorios y lencería fashion. Elegancia que inspira a toda Venezuela." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/logo.jpeg" />
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- Tidio Chat - Solo atención humana (oculto por defecto) -->
-    <script src="//code.tidio.co/liumibylta7aqxilwi712sqybcjmatrq.js" async></script>
-    <script>
-      document.addEventListener("tidioChat-ready", function() {
-        if (window.tidioChatApi) {
-          window.tidioChatApi.hide();
-        }
-      });
-      
-      // Función global para abrir Tidio
-      window.abrirTidio = function() {
-        if (window.tidioChatApi) {
-          window.tidioChatApi.show();
-          window.tidioChatApi.open();
-        }
-      };
-    </script>
-  </body>
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@Manojitos" />
+  <meta name="twitter:image" content="/logo.jpeg" />
+</head>
+
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W7SP74CQ" height="0" width="0"
+      style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+
+  <!-- Tidio Chat - Solo atención humana (oculto por defecto) -->
+  <script src="//code.tidio.co/liumibylta7aqxilwi712sqybcjmatrq.js" async></script>
+  <script>
+    document.addEventListener("tidioChat-ready", function () {
+      if (window.tidioChatApi) {
+        window.tidioChatApi.hide();
+      }
+    });
+
+    // Función global para abrir Tidio
+    window.abrirTidio = function () {
+      if (window.tidioChatApi) {
+        window.tidioChatApi.show();
+        window.tidioChatApi.open();
+      }
+    };
+  </script>
+</body>
+
 </html>

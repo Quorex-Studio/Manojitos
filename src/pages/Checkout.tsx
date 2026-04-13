@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Check, CreditCard, Truck, Package,
   User, Mail, Phone, MapPin, Loader2, ShoppingBag, Shield
@@ -16,7 +16,10 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useSales } from '@/hooks/useSales';
-import { toast } from '@/hooks/use-toast';
+import type { StockValidationError } from '@/hooks/useSales';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, X } from 'lucide-react';
 
 // Métodos de pago disponibles
 const paymentMethods = [
@@ -34,11 +37,13 @@ export default function Checkout() {
   const { user, loading: authLoading } = useAuth();
   const { items, getSubtotal, clearCart } = useCart();
   const { rate, convertToBS } = useExchangeRate();
-  const { processCheckout } = useSales();
+  const { processCheckout, validateStock } = useSales();
+  const { toast } = useToast();
 
   const [step, setStep] = useState<'auth' | 'shipping' | 'payment' | 'confirm'>('shipping');
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
+  const [stockErrors, setStockErrors] = useState<StockValidationError[]>([]);
 
   // Datos del formulario
   const [shippingData, setShippingData] = useState({
@@ -89,8 +94,25 @@ export default function Checkout() {
     if (!user) return;
 
     setLoading(true);
+    setStockErrors([]);
 
     try {
+      // Validar stock antes de enviar
+      const { valid, errors } = await validateStock(
+        items.map(item => ({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price_usd: item.price_usd
+        }))
+      );
+
+      if (!valid) {
+        setStockErrors(errors);
+        setLoading(false);
+        return;
+      }
+
       const { error, saleIds } = await processCheckout(
         items.map(item => ({
           id: item.id,
@@ -222,6 +244,45 @@ export default function Checkout() {
           </div>
         </div>
 
+        {/* Alerta de errores de stock */}
+        <AnimatePresence>
+          {stockErrors.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-6"
+            >
+              <Alert variant="destructive" className="border-destructive/50 bg-destructive/5">
+                <AlertCircle className="h-5 w-5" />
+                <AlertTitle className="text-lg font-semibold">Stock no disponible</AlertTitle>
+                <AlertDescription className="mt-3">
+                  <p className="text-sm mb-3">Algunos productos no tienen suficiente stock:</p>
+                  <ul className="space-y-2">
+                    {stockErrors.map((err) => (
+                      <li key={err.productId} className="flex items-center justify-between text-sm bg-destructive/10 rounded-lg p-3">
+                        <span className="font-medium">{err.productName}</span>
+                        <span className="text-destructive">
+                          Solicitaste {err.requested}, pero solo quedan {err.available}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs mt-3 text-muted-foreground">
+                    Ajusta las cantidades en tu carrito o elimina los productos sin stock.
+                  </p>
+                </AlertDescription>
+                <button
+                  onClick={() => setStockErrors([])}
+                  className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="grid lg:grid-cols-3 gap-8 items-start">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
@@ -341,8 +402,8 @@ export default function Checkout() {
                   <label
                     key={method.id}
                     className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${paymentMethod === method.id
-                        ? 'border-accent bg-accent/5 ring-1 ring-accent/30'
-                        : 'border-border bg-white/40 hover:bg-white/60'
+                      ? 'border-accent bg-accent/5 ring-1 ring-accent/30'
+                      : 'border-border bg-white/40 hover:bg-white/60'
                       }`}
                   >
                     <RadioGroupItem value={method.id} id={method.id} className="mt-1" />

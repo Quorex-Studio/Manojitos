@@ -4,6 +4,8 @@ import { Plus, Search, Package, Edit2, Trash2, AlertTriangle, ImageIcon } from '
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { useClientPagination } from '@/hooks/useClientPagination';
+import { Pagination } from '@/components/ui/pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,10 +32,21 @@ export default function Products() {
 
   // --- DERIVED ---
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.category?.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Paginación
+  const {
+    currentPage,
+    totalPages,
+    pageSize,
+    totalItems,
+    paginatedData: paginatedProducts,
+    setCurrentPage,
+    setPageSize,
+  } = useClientPagination(filteredProducts, { pageSize: 10 });
 
   // --- HANDLERS ---
   const resetForm = () => {
@@ -61,7 +74,7 @@ export default function Products() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const productData = {
       name: form.name,
       description: form.description || null,
@@ -76,7 +89,7 @@ export default function Products() {
     } else {
       await addProduct(productData);
     }
-    
+
     handleOpenChange(false);
   };
 
@@ -96,7 +109,7 @@ export default function Products() {
             <h1 className="page-header">Productos</h1>
             <p className="page-subtitle">{products.length} productos registrados</p>
           </div>
-          
+
           <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
               <Button className="btn-gold rounded-xl gap-2">
@@ -199,7 +212,7 @@ export default function Products() {
         {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           <AnimatePresence mode="popLayout">
-            {filteredProducts.map((product, index) => (
+            {paginatedProducts.map((product, index) => (
               <motion.div
                 key={product.id}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -212,8 +225,8 @@ export default function Products() {
                   {/* Image */}
                   <div className="aspect-square bg-secondary relative overflow-hidden">
                     {product.image_url ? (
-                      <img 
-                        src={product.image_url} 
+                      <img
+                        src={product.image_url}
                         alt={product.name}
                         className="w-full h-full object-cover"
                       />
@@ -223,8 +236,8 @@ export default function Products() {
                       </div>
                     )}
                     {product.stock <= 5 && (
-                      <Badge 
-                        variant="destructive" 
+                      <Badge
+                        variant="destructive"
                         className="absolute top-2 right-2 gap-1"
                       >
                         <AlertTriangle className="h-3 w-3" />
@@ -251,7 +264,7 @@ export default function Products() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <CardContent className="p-4">
                     <div className="space-y-2">
                       {product.category && (
@@ -284,12 +297,23 @@ export default function Products() {
           </AnimatePresence>
         </div>
 
-        {filteredProducts.length === 0 && !loading && (
+        {paginatedProducts.length === 0 && !loading && (
           <div className="text-center py-16">
             <Package className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
             <p className="text-muted-foreground">No hay productos que mostrar</p>
           </div>
         )}
+
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          className="mt-6"
+        />
       </div>
     </AppLayout>
   );
