@@ -30,11 +30,12 @@ export function useDebts() {
 
   const fetchDebts = async () => {
     if (!user) return;
-    
+
     const { data, error } = await supabase
       .from('debts')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(200);
 
     if (error) {
       toast({ title: 'Error', description: 'No se pudieron cargar las deudas', variant: 'destructive' });
@@ -50,7 +51,7 @@ export function useDebts() {
     // Validate input before database operation
     try {
       const validated = validateInput(debtSchema, debt);
-      
+
       const { data, error } = await supabase
         .from('debts')
         .insert([{

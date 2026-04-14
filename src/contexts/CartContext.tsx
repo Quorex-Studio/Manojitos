@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 // Interfaz del item en el carrito
@@ -75,80 +75,81 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, userId]);
 
   // Agregar producto al carrito
-  const addItem = (product: CartItem) => {
+  const addItem = useCallback((product: CartItem) => {
     setItems(currentItems => {
       const existingItem = currentItems.find(item => item.id === product.id);
-      
+
       if (existingItem) {
-        // Si ya existe, incrementar cantidad (respetando stock)
         const newQuantity = Math.min(existingItem.quantity + product.quantity, product.stock);
         return currentItems.map(item =>
           item.id === product.id ? { ...item, quantity: newQuantity } : item
         );
       }
-      
-      // Si no existe, agregar nuevo item
+
       return [...currentItems, { ...product, quantity: Math.min(product.quantity, product.stock) }];
     });
-  };
+  }, []);
 
   // Eliminar producto del carrito
-  const removeItem = (productId: string) => {
+  const removeItem = useCallback((productId: string) => {
     setItems(currentItems => currentItems.filter(item => item.id !== productId));
-  };
+  }, []);
 
   // Actualizar cantidad de un producto
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = useCallback((productId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeItem(productId);
+      setItems(currentItems => currentItems.filter(item => item.id !== productId));
       return;
     }
-    
+
     setItems(currentItems =>
       currentItems.map(item =>
         item.id === productId ? { ...item, quantity: Math.min(quantity, item.stock) } : item
       )
     );
-  };
+  }, []);
 
   // Vaciar el carrito
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setItems([]);
-  };
+  }, []);
 
   // Obtener número total de items
-  const getItemCount = () => {
+  const getItemCount = useCallback(() => {
     return items.reduce((total, item) => total + item.quantity, 0);
-  };
+  }, [items]);
 
   // Obtener subtotal en USD
-  const getSubtotal = () => {
+  const getSubtotal = useCallback(() => {
     return items.reduce((total, item) => total + (item.price_usd * item.quantity), 0);
-  };
+  }, [items]);
 
   // Verificar si un producto está en el carrito
-  const isInCart = (productId: string) => {
+  const isInCart = useCallback((productId: string) => {
     return items.some(item => item.id === productId);
-  };
+  }, [items]);
 
   // Obtener cantidad de un producto en el carrito
-  const getItemQuantity = (productId: string) => {
+  const getItemQuantity = useCallback((productId: string) => {
     const item = items.find(item => item.id === productId);
     return item ? item.quantity : 0;
-  };
+  }, [items]);
+
+  // Memoizar el valor del contexto para evitar re-renders innecesarios
+  const contextValue = useMemo(() => ({
+    items,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    getItemCount,
+    getSubtotal,
+    isInCart,
+    getItemQuantity
+  }), [items, addItem, removeItem, updateQuantity, clearCart, getItemCount, getSubtotal, isInCart, getItemQuantity]);
 
   return (
-    <CartContext.Provider value={{
-      items,
-      addItem,
-      removeItem,
-      updateQuantity,
-      clearCart,
-      getItemCount,
-      getSubtotal,
-      isInCart,
-      getItemQuantity
-    }}>
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

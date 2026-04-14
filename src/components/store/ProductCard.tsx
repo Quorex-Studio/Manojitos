@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Eye, Check, Package, Sparkles } from 'lucide-react';
@@ -18,22 +18,24 @@ interface ProductCardProps {
 }
 
 // Tarjeta de producto editorial — portrait 3:4, overlay slide-up
-export function ProductCard({ product, index = 0, allProducts }: ProductCardProps) {
+export const ProductCard = memo(function ProductCard({ product, index = 0, allProducts }: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const { addItem, isInCart, getItemQuantity } = useCart();
   const { rate, convertToBS } = useExchangeRate();
-  
+
   const inCart = isInCart(product.id);
   const cartQuantity = getItemQuantity(product.id);
   const remainingStock = product.stock - cartQuantity;
   const canAdd = remainingStock > 0;
 
+  const bsPrice = useMemo(() => convertToBS(product.price_usd), [product.price_usd, rate]);
+
   // Manejar agregar al carrito con animación
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!canAdd) {
       toast.error('Sin stock disponible', {
         description: 'Ya tienes el máximo disponible en tu carrito'
@@ -42,7 +44,7 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
     }
 
     setIsAdding(true);
-    
+
     const cartItem: CartItem = {
       id: product.id,
       name: product.name,
@@ -53,7 +55,7 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
     };
 
     addItem(cartItem);
-    
+
     toast.success('¡Agregado al carrito!', {
       description: product.name,
       icon: <Sparkles className="h-4 w-4 text-gold" />
@@ -66,25 +68,25 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ 
-        duration: 0.5, 
+      transition={{
+        duration: 0.5,
         delay: index * 0.08,
         ease: [0.25, 0.46, 0.45, 0.94]
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Link 
+      <Link
         to={`/producto/${product.id}`}
         className="block group"
       >
-        <motion.div 
+        <motion.div
           className="rounded-2xl overflow-hidden relative bg-card backdrop-blur-sm border border-border/10"
           whileHover={{ y: -8 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
           style={{
-            boxShadow: isHovered 
-              ? '0 24px 60px -12px hsl(var(--rose) / 0.2), 0 0 0 1px hsl(var(--rose) / 0.1)' 
+            boxShadow: isHovered
+              ? '0 24px 60px -12px hsl(var(--rose) / 0.2), 0 0 0 1px hsl(var(--rose) / 0.1)'
               : '0 4px 24px 0 hsl(var(--rose) / 0.06)'
           }}
         >
@@ -95,8 +97,8 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
                 src={product.image_url}
                 alt={product.name}
                 className="w-full h-full object-contain p-2"
-                animate={{ 
-                  scale: isHovered ? 1.05 : 1 
+                animate={{
+                  scale: isHovered ? 1.05 : 1
                 }}
                 transition={{ duration: 0.6, ease: 'easeOut' }}
               />
@@ -108,7 +110,7 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
 
             {/* Etiquetas automáticas */}
             <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-              <AutoProductLabels 
+              <AutoProductLabels
                 product={{
                   id: product.id,
                   sold_count: product.sold_count || 0,
@@ -130,18 +132,18 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
             </div>
 
             {/* Overlay slide-up con backdrop-blur */}
-            <motion.div 
+            <motion.div
               className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end"
               initial={{ opacity: 0 }}
               animate={{ opacity: isHovered ? 1 : 0 }}
               transition={{ duration: 0.3 }}
             >
-              <motion.div 
+              <motion.div
                 className="w-full p-4 space-y-3"
                 initial={{ y: 30, opacity: 0 }}
-                animate={{ 
-                  y: isHovered ? 0 : 30, 
-                  opacity: isHovered ? 1 : 0 
+                animate={{
+                  y: isHovered ? 0 : 30,
+                  opacity: isHovered ? 1 : 0
                 }}
                 transition={{ duration: 0.35, delay: 0.05 }}
               >
@@ -153,8 +155,13 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
                   <p className="text-gold font-bold text-lg mt-1">
                     ${product.price_usd.toFixed(2)}
                   </p>
+                  {rate > 0 && (
+                    <p className="text-white/60 text-xs mt-0.5">
+                      Bs. {bsPrice.toFixed(2)}
+                    </p>
+                  )}
                 </div>
-                
+
                 <div className="flex gap-2">
                   <Button
                     size="sm"
@@ -200,9 +207,8 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
           {/* Minimal info below image — only category + stock */}
           <div className="p-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className={`w-1.5 h-1.5 rounded-full ${
-                product.stock > 5 ? 'bg-primary' : product.stock > 0 ? 'bg-gold animate-pulse' : 'bg-destructive'
-              }`} />
+              <div className={`w-1.5 h-1.5 rounded-full ${product.stock > 5 ? 'bg-primary' : product.stock > 0 ? 'bg-gold animate-pulse' : 'bg-destructive'
+                }`} />
               <span className="text-[11px] text-muted-foreground/60 tracking-wide">
                 {product.category || 'General'}
               </span>
@@ -226,4 +232,4 @@ export function ProductCard({ product, index = 0, allProducts }: ProductCardProp
       </Link>
     </motion.div>
   );
-}
+});

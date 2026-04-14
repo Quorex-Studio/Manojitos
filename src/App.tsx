@@ -1,4 +1,5 @@
 // App principal de Manojitos - Ángela AI Assistant
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,42 +9,42 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
-// Admin Pages
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import Products from "./pages/Products";
-import Sales from "./pages/Sales";
-import Debts from "./pages/Debts";
-import Providers from "./pages/Providers";
-import Reports from "./pages/Reports";
-import Settings from "./pages/Settings";
-import ImportProducts from "./pages/ImportProducts";
-import Credits from "./pages/Credits";
-import PriceCalculator from "./pages/PriceCalculator";
-import BusinessRules from "./pages/BusinessRules";
+// Admin Pages - Lazy loaded
+const Auth = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Products = lazy(() => import("./pages/Products"));
+const Sales = lazy(() => import("./pages/Sales"));
+const Debts = lazy(() => import("./pages/Debts"));
+const Providers = lazy(() => import("./pages/Providers"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Settings = lazy(() => import("./pages/Settings"));
+const ImportProducts = lazy(() => import("./pages/ImportProducts"));
+const Credits = lazy(() => import("./pages/Credits"));
+const PriceCalculator = lazy(() => import("./pages/PriceCalculator"));
+const BusinessRules = lazy(() => import("./pages/BusinessRules"));
 
-// Customer Pages
-import StoreFront from "./pages/StoreFront";
-import StoreCatalog from "./pages/StoreCatalog";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import CustomerAuth from "./pages/CustomerAuth";
-import CustomerProfile from "./pages/CustomerProfile";
-import CustomerCredit from "./pages/CustomerCredit";
-import CustomerOrders from "./pages/CustomerOrders";
-import CustomerWishlist from "./pages/CustomerWishlist";
-import CustomerNotifications from "./pages/CustomerNotifications";
-import CustomerSettings from "./pages/CustomerSettings";
-import CustomerPaymentMethods from "./pages/CustomerPaymentMethods";
+// Customer Pages - Lazy loaded
+const StoreFront = lazy(() => import("./pages/StoreFront"));
+const StoreCatalog = lazy(() => import("./pages/StoreCatalog"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const CustomerAuth = lazy(() => import("./pages/CustomerAuth"));
+const CustomerProfile = lazy(() => import("./pages/CustomerProfile"));
+const CustomerCredit = lazy(() => import("./pages/CustomerCredit"));
+const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
+const CustomerWishlist = lazy(() => import("./pages/CustomerWishlist"));
+const CustomerNotifications = lazy(() => import("./pages/CustomerNotifications"));
+const CustomerSettings = lazy(() => import("./pages/CustomerSettings"));
+const CustomerPaymentMethods = lazy(() => import("./pages/CustomerPaymentMethods"));
 
-// Info Pages
-import AboutUs from "./pages/AboutUs";
-import TermsAndConditions from "./pages/TermsAndConditions";
-import ShippingPolicy from "./pages/ShippingPolicy";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
+// Info Pages - Lazy loaded
+const AboutUs = lazy(() => import("./pages/AboutUs"));
+const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
+const ShippingPolicy = lazy(() => import("./pages/ShippingPolicy"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 
-import NotFound from "./pages/NotFound";
+const NotFound = lazy(() => import("./pages/NotFound"));
 import { Loader2 } from "lucide-react";
 import { AngelaChat } from "@/components/ai/AngelaChat";
 
@@ -129,6 +130,19 @@ function CustomerProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 
+// Suspense wrapper for lazy routes
+function LazyPage({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      {children}
+    </Suspense>
+  );
+}
+
 // Rutas de la aplicación
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -144,42 +158,42 @@ function AppRoutes() {
   return (
     <Routes>
       {/* ===== RUTAS PÚBLICAS (CLIENTE) ===== */}
-      <Route path="/" element={<StoreFront />} />
-      <Route path="/tienda" element={<StoreCatalog />} />
-      <Route path="/producto/:id" element={<ProductDetail />} />
-      <Route path="/carrito" element={<Cart />} />
-      <Route path="/checkout" element={<Checkout />} />
-      <Route path="/cliente/auth" element={<CustomerAuth />} />
-      <Route path="/cliente/perfil" element={<CustomerProtectedRoute><CustomerProfile /></CustomerProtectedRoute>} />
-      <Route path="/cliente/credito" element={<CustomerProtectedRoute><CustomerCredit /></CustomerProtectedRoute>} />
-      <Route path="/cliente/pedidos" element={<CustomerProtectedRoute><CustomerOrders /></CustomerProtectedRoute>} />
-      <Route path="/cliente/favoritos" element={<CustomerProtectedRoute><CustomerWishlist /></CustomerProtectedRoute>} />
-      <Route path="/cliente/notificaciones" element={<CustomerProtectedRoute><CustomerNotifications /></CustomerProtectedRoute>} />
-      <Route path="/cliente/configuracion" element={<CustomerProtectedRoute><CustomerSettings /></CustomerProtectedRoute>} />
-      <Route path="/cliente/metodos-pago" element={<CustomerProtectedRoute><CustomerPaymentMethods /></CustomerProtectedRoute>} />
+      <Route path="/" element={<LazyPage><StoreFront /></LazyPage>} />
+      <Route path="/tienda" element={<LazyPage><StoreCatalog /></LazyPage>} />
+      <Route path="/producto/:id" element={<LazyPage><ProductDetail /></LazyPage>} />
+      <Route path="/carrito" element={<LazyPage><Cart /></LazyPage>} />
+      <Route path="/checkout" element={<LazyPage><Checkout /></LazyPage>} />
+      <Route path="/cliente/auth" element={<LazyPage><CustomerAuth /></LazyPage>} />
+      <Route path="/cliente/perfil" element={<LazyPage><CustomerProtectedRoute><CustomerProfile /></CustomerProtectedRoute></LazyPage>} />
+      <Route path="/cliente/credito" element={<LazyPage><CustomerProtectedRoute><CustomerCredit /></CustomerProtectedRoute></LazyPage>} />
+      <Route path="/cliente/pedidos" element={<LazyPage><CustomerProtectedRoute><CustomerOrders /></CustomerProtectedRoute></LazyPage>} />
+      <Route path="/cliente/favoritos" element={<LazyPage><CustomerProtectedRoute><CustomerWishlist /></CustomerProtectedRoute></LazyPage>} />
+      <Route path="/cliente/notificaciones" element={<LazyPage><CustomerProtectedRoute><CustomerNotifications /></CustomerProtectedRoute></LazyPage>} />
+      <Route path="/cliente/configuracion" element={<LazyPage><CustomerProtectedRoute><CustomerSettings /></CustomerProtectedRoute></LazyPage>} />
+      <Route path="/cliente/metodos-pago" element={<LazyPage><CustomerProtectedRoute><CustomerPaymentMethods /></CustomerProtectedRoute></LazyPage>} />
 
       {/* ===== RUTAS INFORMATIVAS ===== */}
-      <Route path="/nosotros" element={<AboutUs />} />
-      <Route path="/terminos" element={<TermsAndConditions />} />
-      <Route path="/envios" element={<ShippingPolicy />} />
-      <Route path="/privacidad" element={<PrivacyPolicy />} />
+      <Route path="/nosotros" element={<LazyPage><AboutUs /></LazyPage>} />
+      <Route path="/terminos" element={<LazyPage><TermsAndConditions /></LazyPage>} />
+      <Route path="/envios" element={<LazyPage><ShippingPolicy /></LazyPage>} />
+      <Route path="/privacidad" element={<LazyPage><PrivacyPolicy /></LazyPage>} />
 
       {/* ===== RUTAS ADMIN ===== */}
-      <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-      <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
-      <Route path="/debts" element={<ProtectedRoute><Debts /></ProtectedRoute>} />
-      <Route path="/credits" element={<ProtectedRoute><Credits /></ProtectedRoute>} />
-      <Route path="/providers" element={<ProtectedRoute><Providers /></ProtectedRoute>} />
-      <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/import-products" element={<ProtectedRoute><ImportProducts /></ProtectedRoute>} />
-      <Route path="/calculadora" element={<ProtectedRoute><PriceCalculator /></ProtectedRoute>} />
-      <Route path="/reglas" element={<ProtectedRoute><BusinessRules /></ProtectedRoute>} />
+      <Route path="/auth" element={<LazyPage>{user ? <Navigate to="/dashboard" replace /> : <Auth />}</LazyPage>} />
+      <Route path="/dashboard" element={<LazyPage><ProtectedRoute><Dashboard /></ProtectedRoute></LazyPage>} />
+      <Route path="/products" element={<LazyPage><ProtectedRoute><Products /></ProtectedRoute></LazyPage>} />
+      <Route path="/sales" element={<LazyPage><ProtectedRoute><Sales /></ProtectedRoute></LazyPage>} />
+      <Route path="/debts" element={<LazyPage><ProtectedRoute><Debts /></ProtectedRoute></LazyPage>} />
+      <Route path="/credits" element={<LazyPage><ProtectedRoute><Credits /></ProtectedRoute></LazyPage>} />
+      <Route path="/providers" element={<LazyPage><ProtectedRoute><Providers /></ProtectedRoute></LazyPage>} />
+      <Route path="/reports" element={<LazyPage><ProtectedRoute><Reports /></ProtectedRoute></LazyPage>} />
+      <Route path="/settings" element={<LazyPage><ProtectedRoute><Settings /></ProtectedRoute></LazyPage>} />
+      <Route path="/import-products" element={<LazyPage><ProtectedRoute><ImportProducts /></ProtectedRoute></LazyPage>} />
+      <Route path="/calculadora" element={<LazyPage><ProtectedRoute><PriceCalculator /></ProtectedRoute></LazyPage>} />
+      <Route path="/reglas" element={<LazyPage><ProtectedRoute><BusinessRules /></ProtectedRoute></LazyPage>} />
 
       {/* 404 */}
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={<LazyPage><NotFound /></LazyPage>} />
     </Routes>
   );
 }

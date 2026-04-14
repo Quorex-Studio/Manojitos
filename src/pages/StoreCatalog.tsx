@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, X, Package, SlidersHorizontal, Grid3X3, LayoutList, ChevronDown } from 'lucide-react';
@@ -16,14 +16,32 @@ import { ProductCard } from '@/components/store/ProductCard';
 import { usePublicProducts } from '@/hooks/usePublicProducts';
 import { AngelaPersonalShopper } from '@/components/ai/AngelaPersonalShopper';
 
+// Hook personalizado para debounce
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 // Página del catálogo — Editorial luxury
 export default function StoreCatalog() {
   // --- STATE ---
   const [searchParams, setSearchParams] = useSearchParams();
   const { products, loading, categories } = usePublicProducts();
-  
+
   // Estado de filtros
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
     const cat = searchParams.get('category');
     return cat ? [cat] : [];
@@ -51,9 +69,9 @@ export default function StoreCatalog() {
     let result = [...products];
 
     // Filtrar por búsqueda
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(p => 
+    if (debouncedSearch.trim()) {
+      const query = debouncedSearch.toLowerCase();
+      result = result.filter(p =>
         p.name.toLowerCase().includes(query) ||
         (p.description?.toLowerCase().includes(query)) ||
         (p.category?.toLowerCase().includes(query))
@@ -62,13 +80,13 @@ export default function StoreCatalog() {
 
     // Filtrar por categorías
     if (selectedCategories.length > 0) {
-      result = result.filter(p => 
+      result = result.filter(p =>
         p.category && selectedCategories.includes(p.category)
       );
     }
 
     // Filtrar por rango de precio
-    result = result.filter(p => 
+    result = result.filter(p =>
       p.price_usd >= priceRange[0] && p.price_usd <= priceRange[1]
     );
 
@@ -95,7 +113,7 @@ export default function StoreCatalog() {
   // --- HANDLERS ---
   // Manejar cambio de categoría
   const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
+    setSelectedCategories(prev =>
       prev.includes(category)
         ? prev.filter(c => c !== category)
         : [...prev, category]
@@ -128,7 +146,7 @@ export default function StoreCatalog() {
                 onCheckedChange={() => toggleCategory(category)}
                 className="border-border/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
               />
-              <Label 
+              <Label
                 htmlFor={`cat-${category}`}
                 className="text-sm cursor-pointer text-muted-foreground/70 hover:text-foreground transition-colors"
               >
@@ -183,7 +201,7 @@ export default function StoreCatalog() {
             <span>/</span>
             <span className="text-foreground/70">Tienda</span>
           </nav>
-          
+
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl md:text-4xl font-serif font-medium text-foreground tracking-tight">
@@ -313,7 +331,7 @@ export default function StoreCatalog() {
                 </h3>
                 <FiltersContent />
               </div>
-              
+
               {/* Ángela Personal Shopper - Desktop */}
               <AngelaPersonalShopper />
             </div>

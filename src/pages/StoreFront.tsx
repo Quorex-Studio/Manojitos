@@ -70,23 +70,11 @@ export default function StoreFront() {
       <section className="relative overflow-hidden min-h-screen flex items-center justify-center grain-overlay isolate">
         {/* Deep warm black background */}
         <div className="absolute inset-0 bg-[#120A0C]" />
-        
-        {/* Floating decorative orbs */}
-        <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.15, 0.3, 0.15] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-          className="absolute top-20 right-10 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px]"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.4, 1], opacity: [0.1, 0.25, 0.1] }}
-          transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-20 left-10 w-[600px] h-[600px] bg-gold/15 rounded-full blur-[180px]"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.08, 0.18, 0.08] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-rose-dark/10 rounded-full blur-[120px]"
-        />
+
+        {/* Floating decorative orbs — CSS animations instead of framer-motion for GPU performance */}
+        <div className="absolute top-20 right-10 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px] animate-orb-1" />
+        <div className="absolute bottom-20 left-10 w-[600px] h-[600px] bg-gold/15 rounded-full blur-[180px] animate-orb-2" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-rose-dark/10 rounded-full blur-[120px] animate-orb-3" />
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-5xl mx-auto text-center space-y-10">
@@ -110,14 +98,14 @@ export default function StoreFront() {
                 initial="hidden"
                 animate="show"
               >
-                <motion.span 
+                <motion.span
                   variants={wordVariants}
                   transition={{ duration: 0.8, delay: 0.2 }}
                   className="block text-[#F5EDE8]"
                 >
                   Elegancia que
                 </motion.span>
-                <motion.span   
+                <motion.span
                   variants={wordVariants}
                   transition={{ duration: 0.8, delay: 0.5 }}
                   className="block italic text-primary text-glow-rosa"
@@ -310,9 +298,9 @@ export default function StoreFront() {
           <div className="absolute inset-0 bg-[#120A0C]" />
           {/* Fashion editorial photo at 10% opacity */}
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-[0.08] mix-blend-screen" />
-          
+
           <div className="relative z-10 max-w-2xl mx-auto space-y-8">
-            <motion.h2 
+            <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -320,7 +308,7 @@ export default function StoreFront() {
             >
               Tu estilo, redefinido.
             </motion.h2>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}

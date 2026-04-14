@@ -42,19 +42,19 @@ export interface Order {
 }
 
 export const ORDER_STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending:    { label: 'Pendiente',       color: 'bg-gold/80' },
-  confirmed:  { label: 'Confirmado',      color: 'bg-primary/80' },
-  processing: { label: 'En preparación',  color: 'bg-primary/60' },
-  shipped:    { label: 'Enviado',         color: 'bg-primary' },
-  delivered:  { label: 'Entregado',       color: 'bg-rose-dark' },
-  cancelled:  { label: 'Cancelado',       color: 'bg-destructive/80' },
+  pending: { label: 'Pendiente', color: 'bg-gold/80' },
+  confirmed: { label: 'Confirmado', color: 'bg-primary/80' },
+  processing: { label: 'En preparación', color: 'bg-primary/60' },
+  shipped: { label: 'Enviado', color: 'bg-primary' },
+  delivered: { label: 'Entregado', color: 'bg-rose-dark' },
+  cancelled: { label: 'Cancelado', color: 'bg-destructive/80' },
 };
 
 export const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending:  { label: 'Pendiente',    color: 'bg-gold/80' },
-  paid:     { label: 'Pagado',       color: 'bg-rose-dark' },
-  failed:   { label: 'Fallido',      color: 'bg-destructive/80' },
-  refunded: { label: 'Reembolsado',  color: 'bg-muted-foreground/60' },
+  pending: { label: 'Pendiente', color: 'bg-gold/80' },
+  paid: { label: 'Pagado', color: 'bg-rose-dark' },
+  failed: { label: 'Fallido', color: 'bg-destructive/80' },
+  refunded: { label: 'Reembolsado', color: 'bg-muted-foreground/60' },
 };
 
 export function useCustomerOrders() {
@@ -68,14 +68,16 @@ export function useCustomerOrders() {
         .from('orders')
         .select('*')
         .eq('customer_user_id', user!.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       // Fetch from sales table (current checkout system)
       const { data: salesData } = await supabase
         .from('sales')
         .select('*')
         .eq('customer_user_id', user!.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       const fromOrders: Order[] = (ordersData || []).map(order => ({
         ...order,

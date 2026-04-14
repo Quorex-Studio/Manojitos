@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, Eye, Heart, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,12 +13,12 @@ interface ProductCardProps {
     product: PublicProduct;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
     const { addItem, isInCart } = useCart();
     const { toggleWishlist, isInWishlist } = useWishlist();
     const { user } = useAuth();
     const [isAdded, setIsAdded] = useState(false);
-    
+
     const isProductInCart = isInCart(product.id);
     const isProductInWishlist = isInWishlist(product.id);
 
@@ -31,7 +31,7 @@ export function ProductCard({ product }: ProductCardProps) {
             image_url: product.image_url,
             stock: product.stock
         });
-        
+
         setIsAdded(true);
         setTimeout(() => setIsAdded(false), 600);
     };
@@ -84,10 +84,10 @@ export function ProductCard({ product }: ProductCardProps) {
                                 ${product.price_usd.toFixed(2)}
                             </span>
                         </div>
-                        
+
                         <div className="flex justify-center gap-2">
-                            <Button 
-                                size="icon" 
+                            <Button
+                                size="icon"
                                 className="rounded-full w-10 h-10 bg-gold/80 hover:bg-gold text-white border-0 hover:scale-110 transition-all duration-300 shadow-lg btn-shimmer"
                                 onClick={handleAddToCart}
                             >
@@ -98,8 +98,8 @@ export function ProductCard({ product }: ProductCardProps) {
                                     <Eye className="h-4 w-4" />
                                 </Button>
                             </Link>
-                            <Button 
-                                size="icon" 
+                            <Button
+                                size="icon"
                                 className={`rounded-full w-10 h-10 bg-white/10 backdrop-blur-sm hover:bg-white/20 border-0 hover:scale-110 transition-all duration-300 shadow-lg ${isProductInWishlist ? 'text-primary' : 'text-white hover:text-primary'}`}
                                 onClick={handleToggleWishlist}
                             >
@@ -121,4 +121,10 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
         </div>
     );
-}
+}, (prevProps, nextProps) => {
+    // Custom comparison for ProductCard — only re-render if product ID or stock changes
+    return prevProps.product.id === nextProps.product.id &&
+        prevProps.product.stock === nextProps.product.stock &&
+        prevProps.product.price_usd === nextProps.product.price_usd &&
+        prevProps.product.name === nextProps.product.name;
+});

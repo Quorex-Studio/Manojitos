@@ -2,16 +2,21 @@
 <html lang="es">
 
 <head>
-  <!-- Google Tag Manager -->
-  <script>(function (w, d, s, l, i) {
-      w[l] = w[l] || []; w[l].push({
-        'gtm.start':
-          new Date().getTime(), event: 'gtm.js'
-      }); var f = d.getElementsByTagName(s)[0],
-        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-          'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-    })(window, document, 'script', 'dataLayer', 'GTM-W7SP74CQ');</script>
-  <!-- End Google Tag Manager -->
+  <!-- Google Tag Manager (deferido hasta después de window.load) -->
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        (function (w, d, s, l, i) {
+          w[l] = w[l] || []; w[l].push({
+            'gtm.start': new Date().getTime(), event: 'gtm.js'
+          }); var f = d.getElementsByTagName(s)[0],
+            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+              'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-W7SP74CQ');
+      }, 1500);
+    });
+  </script>
+  <!-- End Google Tag Manager (deferido) -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Manojitos</title>
@@ -39,20 +44,44 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
-  <!-- Tidio Chat - Solo atención humana (oculto por defecto) -->
-  <script src="//code.tidio.co/liumibylta7aqxilwi712sqybcjmatrq.js" async></script>
+  <!-- Tidio Chat (diferido hasta después de window.load para no bloquear el hilo principal) -->
   <script>
-    document.addEventListener("tidioChat-ready", function () {
-      if (window.tidioChatApi) {
-        window.tidioChatApi.hide();
-      }
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        var script = document.createElement('script');
+        script.src = '//code.tidio.co/liumibylta7aqxilwi712sqybcjmatrq.js';
+        script.async = true;
+        document.body.appendChild(script);
+
+        script.addEventListener('load', function () {
+          document.addEventListener("tidioChat-ready", function () {
+            if (window.tidioChatApi) {
+              window.tidioChatApi.hide();
+            }
+          });
+        });
+      }, 2500);
     });
 
-    // Función global para abrir Tidio
+    // Función global para abrir Tidio (incluso antes de que cargue)
     window.abrirTidio = function () {
       if (window.tidioChatApi) {
         window.tidioChatApi.show();
         window.tidioChatApi.open();
+      } else {
+        // Si aún no cargó, cargarlo inmediatamente
+        var script = document.createElement('script');
+        script.src = '//code.tidio.co/liumibylta7aqxilwi712sqybcjmatrq.js';
+        script.async = true;
+        document.body.appendChild(script);
+        script.addEventListener('load', function () {
+          setTimeout(function () {
+            if (window.tidioChatApi) {
+              window.tidioChatApi.show();
+              window.tidioChatApi.open();
+            }
+          }, 500);
+        });
       }
     };
   </script>

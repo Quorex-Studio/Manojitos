@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, memo } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -11,7 +11,7 @@ interface StatCardProps {
   delay?: number;
 }
 
-export function StatCard({ title, value, subtitle, icon, variant = 'default', delay = 0 }: StatCardProps) {
+export const StatCard = memo(function StatCard({ title, value, subtitle, icon, variant = 'default', delay = 0 }: StatCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -75,4 +75,4 @@ export function StatCard({ title, value, subtitle, icon, variant = 'default', de
       </div>
     </motion.div>
   );
-}
+});

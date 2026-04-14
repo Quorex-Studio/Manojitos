@@ -42,11 +42,12 @@ export function useProviders() {
 
   const fetchProviders = async () => {
     if (!user) return;
-    
+
     const { data, error } = await supabase
       .from('providers')
       .select('*')
-      .order('name', { ascending: true });
+      .order('name', { ascending: true })
+      .limit(100);
 
     if (!error) {
       setProviders(data || []);
@@ -55,11 +56,12 @@ export function useProviders() {
 
   const fetchPurchases = async () => {
     if (!user) return;
-    
+
     const { data, error } = await supabase
       .from('purchases')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100);
 
     if (!error) {
       setPurchases(data || []);
@@ -169,13 +171,13 @@ export function useProviders() {
     }
   }, [user]);
 
-  return { 
-    providers, 
-    purchases, 
-    loading, 
-    addProvider, 
-    deleteProvider, 
-    addPurchase, 
+  return {
+    providers,
+    purchases,
+    loading,
+    addProvider,
+    deleteProvider,
+    addPurchase,
     markPurchaseAsPaid,
     refetch: () => { fetchProviders(); fetchPurchases(); }
   };

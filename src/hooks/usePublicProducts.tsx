@@ -12,7 +12,7 @@ import { PublicProduct } from '@/types';
 
 // Hook para obtener productos públicos
 export function usePublicProducts() {
-  
+
   const { data: products = [], isLoading, refetch } = useQuery({
     queryKey: ['public-products'],
     queryFn: async () => {
@@ -20,7 +20,8 @@ export function usePublicProducts() {
         .from('products')
         .select('id, name, description, price_usd, stock, category, image_url, sold_count, created_at')
         .gt('stock', 0) // Solo productos con stock
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100); // Limitar a 100 productos para carga inicial
 
       if (error) throw error;
       return data as PublicProduct[];
@@ -54,11 +55,11 @@ export function usePublicProducts() {
     return data as PublicProduct;
   };
 
-  return { 
-    products, 
-    loading: isLoading, 
-    categories, 
+  return {
+    products,
+    loading: isLoading,
+    categories,
     refetch,
-    getProductById 
+    getProductById
   };
 }

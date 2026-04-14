@@ -121,19 +121,19 @@ export function calculateCreditStatus(
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const dueDate = new Date(nextDueDate);
   dueDate.setHours(0, 0, 0, 0);
-  
+
   const graceEnd = new Date(dueDate);
   graceEnd.setDate(graceEnd.getDate() + graceDays);
-  
+
   const threeDaysBefore = new Date(dueDate);
   threeDaysBefore.setDate(threeDaysBefore.getDate() - 3);
 
   const diffTime = dueDate.getTime() - today.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   const daysUntilDue = diffDays > 0 ? diffDays : 0;
   const daysOverdue = diffDays < 0 ? Math.abs(diffDays) : 0;
 
@@ -145,19 +145,19 @@ export function calculateCreditStatus(
   } else if (today > graceEnd) {
     status = 'VENCIDO';
   }
-  
+
   return { status, daysUntilDue, daysOverdue };
 }
 
 // Obtener color del semáforo de confianza
 export const getTrustLevelColor = (level: string) => {
-    switch (level) {
-      case 'CONFIABLE': return 'text-primary';
-      case 'RIESGO': return 'text-gold';
-      case 'CRITICO': return 'text-destructive';
-      default: return 'text-muted-foreground';
-    }
-  };
+  switch (level) {
+    case 'CONFIABLE': return 'text-primary';
+    case 'RIESGO': return 'text-gold';
+    case 'CRITICO': return 'text-destructive';
+    default: return 'text-muted-foreground';
+  }
+};
 
 // Obtener etiqueta de restricción
 export function getRestrictionLabel(level: number): string {
@@ -182,10 +182,11 @@ export function useCredits() {
       const { data, error } = await supabase
         .from('credits')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       if (error) throw error;
-      
+
       // Calcular estado y días para cada crédito
       return (data || []).map(credit => {
         const { status, daysUntilDue, daysOverdue } = calculateCreditStatus(
@@ -330,9 +331,9 @@ export function useCredits() {
 
   // Registrar pago con actualización de score
   const registerPayment = useMutation({
-    mutationFn: async ({ creditId, amount, description, isOnTime }: { 
-      creditId: string; 
-      amount: number; 
+    mutationFn: async ({ creditId, amount, description, isOnTime }: {
+      creditId: string;
+      amount: number;
       description?: string;
       isOnTime?: boolean;
     }) => {
@@ -349,10 +350,10 @@ export function useCredits() {
 
       const previousBalance = credit.current_balance;
       const newBalance = Math.max(0, previousBalance - amount);
-      
+
       // Calcular si el pago es puntual
-      const paymentIsOnTime = isOnTime ?? (credit.next_due_date 
-        ? new Date() <= new Date(credit.next_due_date) 
+      const paymentIsOnTime = isOnTime ?? (credit.next_due_date
+        ? new Date() <= new Date(credit.next_due_date)
         : true);
 
       // Actualizar contadores de pagos
