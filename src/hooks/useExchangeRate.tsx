@@ -39,14 +39,14 @@ export function useExchangeRate(currency: Currency = 'USD') {
   const autoFetchBCV = async () => {
     if (autoFetchAttempted.current[currency]) return;
     autoFetchAttempted.current[currency] = true;
-    
+
     setAutoFetching(true);
     try {
       console.log(`Auto-fetching ${currency} rate...`);
       const { data, error } = await supabase.functions.invoke('get-bcv-rate', {
         body: { currency }
       });
-      
+
       if (!error && data?.saved) {
         console.log(`${currency} rate auto-updated:`, data.rate);
         await fetchRate();
@@ -76,11 +76,11 @@ export function useExchangeRate(currency: Currency = 'USD') {
     const initializeRate = async () => {
       setLoading(true);
       const currentData = await fetchRate();
-      
+
       // Auto-fetch if no rate exists or rate is older than 24 hours
       const shouldAutoFetch = () => {
         if (!currentData) return true;
-        
+
         const lastUpdateTime = new Date(currentData.created_at);
         const hoursSinceUpdate = (Date.now() - lastUpdateTime.getTime()) / (1000 * 60 * 60);
         return hoursSinceUpdate >= 24;
@@ -93,39 +93,24 @@ export function useExchangeRate(currency: Currency = 'USD') {
 
     initializeRate();
 
-    // Subscribe to realtime updates
-    const channel = supabase
-      .channel(`exchange-rates-changes-${currency}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'exchange_rates',
-          filter: `currency=eq.${currency}`
-        },
-        (payload) => {
-          setRate(Number(payload.new.rate));
-          setLastUpdate(new Date(payload.new.created_at));
-        }
-      )
-      .subscribe();
+    // Polling cada 60s en lugar de realtime para evitar conflictos de canal
+    const interval = setInterval(fetchRate, 60 * 1000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [currency]);
 
   const convertToBS = (amount: number) => rate ? amount * rate : 0;
   const convertFromBS = (bs: number) => rate ? bs / rate : 0;
 
-  return { 
-    rate, 
-    loading, 
-    lastUpdate, 
-    updateRate, 
-    convertToBS, 
-    convertFromBS, 
+  return {
+    rate,
+    loading,
+    lastUpdate,
+    updateRate,
+    convertToBS,
+    convertFromBS,
     refetch: fetchRate,
     autoFetching,
     currency
