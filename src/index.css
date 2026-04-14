@@ -4,6 +4,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Ocultar siempre el widget flotante de Tidio — usamos solo Ángela */
+#tidio-chat,
+#tidio-chat iframe,
+.tidio-chat,
+.tidio-chat__launcher,
+[data-testid="tidio-launcher"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Observer para cuando Tidio inyecta elementos dinámicamente */
+body>div[class*="tidio"],
+body>iframe[class*="tidio"],
+body>iframe[src*="tidio"] {
+  display: none !important;
+}
+
 @layer base {
   :root {
     /* 
