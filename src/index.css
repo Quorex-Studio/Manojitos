@@ -4,23 +4,15 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Ocultar siempre el widget flotante de Tidio — usamos solo Ángela */
-#tidio-chat,
-#tidio-chat iframe,
-.tidio-chat,
-.tidio-chat__launcher,
+/* Ocultar SOLO el botón launcher (burbuja flotante) de Tidio — usamos solo Ángela */
+/* La ventana de chat sí se muestra cuando se abre desde "hablar con un asesor" */
+#tidio-launch,
+.tidio-launcher,
 [data-testid="tidio-launcher"] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
-}
-
-/* Observer para cuando Tidio inyecta elementos dinámicamente */
-body>div[class*="tidio"],
-body>iframe[class*="tidio"],
-body>iframe[src*="tidio"] {
-  display: none !important;
 }
 
 @layer base {
