@@ -3,7 +3,7 @@
  * Tables: `debts`
  * Returns: { debts, pendingDebts, paidDebts, loading, addDebt, markAsPaid, deleteDebt }
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -108,30 +108,9 @@ export function useDebts() {
     return { error };
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchDebts();
-
-      const channel = supabase
-        .channel('debts-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'debts'
-          },
-          () => {
-            fetchDebts();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user]);
+  if (user) {
+    fetchDebts();
+  }
 
   const pendingDebts = debts.filter(d => d.status === 'pending');
   const paidDebts = debts.filter(d => d.status === 'paid');

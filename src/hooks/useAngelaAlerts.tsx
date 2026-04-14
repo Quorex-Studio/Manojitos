@@ -58,7 +58,7 @@ export function useAngelaAlerts() {
 
   const fetchAlerts = useCallback(async () => {
     if (!user) return;
-    
+
     try {
       const { data, error } = await supabase
         .from('angela_alerts')
@@ -68,7 +68,7 @@ export function useAngelaAlerts() {
         .limit(50);
 
       if (error) throw error;
-      
+
       // Type assertion since we know the structure
       const typedAlerts = (data || []) as unknown as AngelaAlert[];
       setAlerts(typedAlerts);
@@ -87,7 +87,7 @@ export function useAngelaAlerts() {
         .update({ is_read: true })
         .eq('id', alertId);
 
-      setAlerts(prev => prev.map(a => 
+      setAlerts(prev => prev.map(a =>
         a.id === alertId ? { ...a, is_read: true } : a
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
@@ -129,30 +129,8 @@ export function useAngelaAlerts() {
     }
   }, [user, isAdmin, fetchAlerts]);
 
-  // Suscripción realtime
-  useEffect(() => {
-    if (!user || !isAdmin) return;
-
-    const channel = supabase
-      .channel('angela-alerts-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'angela_alerts',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          fetchAlerts();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, isAdmin, fetchAlerts]);
+  // Las mutaciones ya invalidan el caché automáticamente.
+  // No se necesita suscripción realtime.
 
   return {
     alerts,

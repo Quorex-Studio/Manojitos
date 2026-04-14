@@ -114,7 +114,7 @@ export function useLedger() {
 
       // Crear entrada de reverso (tipo opuesto)
       const reversalType = original.entry_type === 'debit' ? 'credit' : 'debit';
-      
+
       const { data: reversalId, error: createError } = await supabase.rpc('create_ledger_entry', {
         p_user_id: user.id,
         p_entry_type: reversalType,
@@ -131,7 +131,7 @@ export function useLedger() {
       // Actualizar la entrada original para marcar que fue reversada
       const { error: updateError } = await supabase
         .from('ledger_entries')
-        .update({ 
+        .update({
           reversed_by_id: reversalId,
         })
         .eq('id', entryId);
@@ -141,7 +141,7 @@ export function useLedger() {
       // Actualizar el reverso para marcarlo como tal
       const { error: updateReversalError } = await supabase
         .from('ledger_entries')
-        .update({ 
+        .update({
           is_reversal: true,
           reversal_of_id: entryId,
         })
@@ -168,7 +168,7 @@ export function useLedger() {
   });
 
   // Calcular balance actual
-  const currentBalance = entries.length > 0 
+  const currentBalance = entries.length > 0
     ? { usd: entries[0].balance_after_usd, bs: entries[0].balance_after_bs }
     : { usd: 0, bs: 0 };
 
@@ -182,25 +182,8 @@ export function useLedger() {
     currentBalanceBs: currentBalance.bs,
   };
 
-  // Suscripción en tiempo real
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('ledger-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'ledger_entries' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['ledger-entries'] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, queryClient]);
+  // Las mutaciones ya invalidan el caché automáticamente.
+  // No se necesita suscripción realtime.
 
   return {
     entries,

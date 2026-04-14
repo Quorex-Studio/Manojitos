@@ -10,7 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { saleSchema, validateInput, SaleStatus, SaleInput } from '@/lib/validations';
-import { useEffect } from 'react';
 
 export interface StockValidationError {
   productId: string;
@@ -340,21 +339,8 @@ export function useSales() {
     },
   });
 
-  // Suscribirse a cambios en tiempo real
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('sales-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'sales' },
-        () => { invalidateSales(); }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient]);
+  // Las mutaciones ya invalidan el caché automáticamente vía invalidateSales().
+  // No se necesita suscripción realtime.
 
   return {
     sales,

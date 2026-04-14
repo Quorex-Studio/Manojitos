@@ -12,7 +12,6 @@ import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { productSchema, validateInput } from '@/lib/validations';
 import { Product } from '@/types';
-import { useEffect } from 'react';
 
 export function useProducts() {
   const { user } = useAuth();
@@ -108,29 +107,8 @@ export function useProducts() {
     },
   });
 
-  // Suscribirse a cambios en tiempo real
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('products-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'products'
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, queryClient]);
+  // Las mutaciones ya invalidan el caché automáticamente.
+  // No se necesita suscripción realtime.
 
   return {
     products,

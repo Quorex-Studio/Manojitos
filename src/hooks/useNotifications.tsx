@@ -133,7 +133,7 @@ export function useNotifications() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['credit-reminders'] });
-      
+
       const successCount = data.results?.filter((r: { success: boolean }) => r.success).length || 0;
       if (successCount > 0) {
         toast.success(`Notificación enviada por ${successCount} canal(es)`);
@@ -175,37 +175,8 @@ export function useNotifications() {
     },
   });
 
-  // Suscripción en tiempo real a nuevas notificaciones
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('notifications-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          // Refrescar notificaciones cuando llegue una nueva
-          queryClient.invalidateQueries({ queryKey: ['notifications'] });
-          
-          // Mostrar toast para nueva notificación
-          const newNotif = payload.new as AdminNotification;
-          toast.info(newNotif.title, {
-            description: newNotif.message.substring(0, 100) + '...',
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, queryClient]);
+  // Las mutaciones ya invalidan el caché automáticamente.
+  // No se necesita suscripción realtime.
 
   return {
     notifications,
