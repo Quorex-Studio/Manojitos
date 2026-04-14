@@ -37,6 +37,7 @@ export function useProducts() {
   const addProduct = useMutation({
     mutationFn: async (product: Omit<Product, 'id' | 'user_id' | 'sold_count' | 'created_at' | 'updated_at'>) => {
       if (!user) throw new Error('No autenticado');
+      if (!product) throw new Error('Datos de producto requeridos');
 
       const validated = validateInput(productSchema, product);
 
@@ -68,6 +69,9 @@ export function useProducts() {
 
   const updateProduct = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Product> }) => {
+      if (!id) throw new Error('ID de producto requerido');
+      if (!updates || typeof updates !== 'object') throw new Error('Datos de actualización requeridos');
+
       const validated = productSchema.partial().parse(updates);
 
       const { data, error } = await supabase

@@ -85,7 +85,7 @@ export default function Products() {
     };
 
     if (editingProduct) {
-      await updateProduct(editingProduct.id, productData);
+      await updateProduct({ id: editingProduct.id, updates: productData });
     } else {
       await addProduct(productData);
     }
