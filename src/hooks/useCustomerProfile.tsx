@@ -12,7 +12,7 @@ import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import type { Json } from '@/integrations/supabase/types';
-
+import type { CustomerProfile } from '@/types';
 // Schema de validación para perfil de cliente
 const customerProfileSchema = z.object({
   full_name: z.string().min(2, 'Nombre muy corto').max(100).optional(),
@@ -31,27 +31,6 @@ const customerProfileSchema = z.object({
 });
 
 export type CustomerProfileInput = z.infer<typeof customerProfileSchema>;
-
-export interface CustomerProfile {
-  id: string;
-  user_id: string;
-  full_name: string | null;
-  phone: string;
-  phone_verified: boolean;
-  email: string | null;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  zip_code: string | null;
-  notes: string | null;
-  notification_preferences: {
-    email: boolean;
-    sms: boolean;
-    internal: boolean;
-  };
-  created_at: string;
-  updated_at: string;
-}
 
 // Hook para el perfil del cliente actual
 export function useCustomerProfile() {

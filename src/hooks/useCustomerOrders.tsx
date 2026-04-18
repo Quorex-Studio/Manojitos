@@ -7,39 +7,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import type { Order, OrderItem } from '@/types';
 
-export interface OrderItem {
-  product_id: string;
-  product_name: string;
-  quantity: number;
-  unit_price: number;
-  total: number;
-  image_url?: string;
-}
-
-export interface Order {
-  id: string;
-  user_id: string;
-  customer_user_id: string | null;
-  customer_name: string;
-  customer_phone: string | null;
-  customer_email: string | null;
-  items: OrderItem[];
-  subtotal: number;
-  discount: number;
-  total_usd: number;
-  total_bs: number | null;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  payment_method: string | null;
-  payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
-  shipping_address: string | null;
-  shipping_city: string | null;
-  shipping_state: string | null;
-  tracking_number: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 export const ORDER_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending: { label: 'Pendiente', color: 'bg-gold/80' },

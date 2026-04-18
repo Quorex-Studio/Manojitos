@@ -68,13 +68,13 @@ export default function StoreFront() {
           HERO SECTION — Full viewport, editorial
           ======================== */}
       <section className="relative overflow-hidden min-h-screen flex items-center justify-center grain-overlay isolate">
-        {/* Deep warm black background */}
-        <div className="absolute inset-0 bg-[#120A0C]" />
+        {/* Dynamic background using theme tokens */}
+        <div className="absolute inset-0 bg-background transition-colors duration-500" />
 
-        {/* Floating decorative orbs — CSS animations instead of framer-motion for GPU performance */}
-        <div className="absolute top-20 right-10 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px] animate-orb-1" />
-        <div className="absolute bottom-20 left-10 w-[600px] h-[600px] bg-gold/15 rounded-full blur-[180px] animate-orb-2" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-rose-dark/10 rounded-full blur-[120px] animate-orb-3" />
+        {/* Floating decorative orbs — subtle opacity adjustments for light/dark */}
+        <div className="absolute top-20 right-10 w-[500px] h-[500px] bg-primary/20 dark:bg-primary/20 rounded-full blur-[150px] animate-orb-1 opacity-60 dark:opacity-100" />
+        <div className="absolute bottom-20 left-10 w-[600px] h-[600px] bg-gold/15 dark:bg-gold/15 rounded-full blur-[180px] animate-orb-2 opacity-50 dark:opacity-100" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-rose-dark/10 dark:bg-rose-dark/10 rounded-full blur-[120px] animate-orb-3 opacity-40 dark:opacity-100" />
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-5xl mx-auto text-center space-y-10">
@@ -84,7 +84,7 @@ export default function StoreFront() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-[#F5EDE8]/60 text-xs font-medium tracking-[0.15em] uppercase">
+              <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-card/40 dark:bg-white/5 backdrop-blur-md border border-border/20 dark:border-white/10 text-foreground/60 dark:text-[#F5EDE8]/60 text-xs font-medium tracking-[0.15em] uppercase">
                 <Sparkles className="h-3.5 w-3.5 text-gold" />
                 Nueva Colección Disponible
               </span>
@@ -101,14 +101,14 @@ export default function StoreFront() {
                 <motion.span
                   variants={wordVariants}
                   transition={{ duration: 0.8, delay: 0.2 }}
-                  className="block text-[#F5EDE8]"
+                  className="block text-foreground dark:text-[#F5EDE8]"
                 >
                   Elegancia que
                 </motion.span>
                 <motion.span
                   variants={wordVariants}
                   transition={{ duration: 0.8, delay: 0.5 }}
-                  className="block italic text-primary text-glow-rosa"
+                  className="block italic text-primary text-glow-rosa drop-shadow-[0_0_20px_rgba(255,105,180,0.3)]"
                 >
                   Inspira
                 </motion.span>
@@ -120,7 +120,7 @@ export default function StoreFront() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.8 }}
-              className="text-base md:text-lg text-[#F5EDE8]/35 max-w-2xl mx-auto font-light leading-relaxed tracking-[0.05em]"
+              className="text-base md:text-lg text-muted-foreground/60 dark:text-[#F5EDE8]/35 max-w-2xl mx-auto font-light leading-relaxed tracking-[0.05em]"
             >
               Descubre una selección exclusiva diseñada para resaltar tu esencia única. Calidad, estilo y distinción en cada detalle.
             </motion.p>
@@ -133,13 +133,13 @@ export default function StoreFront() {
               className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-4"
             >
               <Link to="/tienda">
-                <Button size="lg" className="h-14 px-12 rounded-full text-base font-medium border border-primary/50 bg-primary/10 text-[#F5EDE8] hover:bg-primary/20 hover:border-primary/70 transition-all duration-500 btn-shimmer-rosa backdrop-blur-sm">
+                <Button size="lg" className="h-14 px-12 rounded-full text-base font-medium border border-primary/50 bg-primary/10 text-foreground dark:text-[#F5EDE8] hover:bg-primary/20 hover:border-primary/70 transition-all duration-500 btn-shimmer-rosa backdrop-blur-sm">
                   Explorar Tienda
                   <ArrowRight className="ml-2 h-4.5 w-4.5" />
                 </Button>
               </Link>
               <Link to="/tienda?category=destacados">
-                <Button size="lg" variant="ghost" className="h-14 px-12 rounded-full text-base text-[#F5EDE8]/50 border border-[#F5EDE8]/10 hover:text-[#F5EDE8]/80 hover:border-[#F5EDE8]/20 transition-all duration-500 backdrop-blur-sm">
+                <Button size="lg" variant="ghost" className="h-14 px-12 rounded-full text-base text-muted-foreground dark:text-[#F5EDE8]/50 border border-border dark:border-[#F5EDE8]/10 hover:text-foreground dark:hover:text-[#F5EDE8]/80 hover:border-border/40 dark:hover:border-[#F5EDE8]/20 transition-all duration-500 backdrop-blur-sm">
                   Ver Destacados
                 </Button>
               </Link>
@@ -294,17 +294,17 @@ export default function StoreFront() {
           ======================== */}
       <section className="py-12 container mx-auto px-4">
         <div className="relative rounded-3xl overflow-hidden text-center py-16 px-6 grain-overlay">
-          {/* Dark background */}
-          <div className="absolute inset-0 bg-[#120A0C]" />
+          {/* Dynamic background using theme tokens */}
+          <div className="absolute inset-0 bg-background transition-colors duration-500" />
           {/* Fashion editorial photo at 10% opacity */}
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-[0.08] mix-blend-screen" />
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-[0.05] dark:opacity-[0.08] mix-blend-multiply dark:mix-blend-screen" />
 
           <div className="relative z-10 max-w-2xl mx-auto space-y-8">
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-4xl md:text-6xl font-serif text-[#F5EDE8] tracking-tight"
+              className="text-4xl md:text-6xl font-serif text-foreground dark:text-[#F5EDE8] tracking-tight"
             >
               Tu estilo, redefinido.
             </motion.h2>
@@ -313,7 +313,7 @@ export default function StoreFront() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-[#F5EDE8]/30 text-base md:text-lg font-light tracking-wide"
+              className="text-muted-foreground/60 dark:text-[#F5EDE8]/30 text-base md:text-lg font-light tracking-wide"
             >
               Únete a miles de clientes satisfechos que han encontrado su esencia con nosotros.
             </motion.p>

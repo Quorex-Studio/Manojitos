@@ -9,32 +9,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
-import { saleSchema, validateInput, SaleStatus, SaleInput } from '@/lib/validations';
+import { saleSchema, validateInput } from '@/lib/validations';
+import type { 
+  Sale, 
+  SaleStatus, 
+  SaleInput, 
+  StockValidationError 
+} from '@/types';
 
-export interface StockValidationError {
-  productId: string;
-  productName: string;
-  requested: number;
-  available: number;
-}
-
-export interface Sale {
-  id: string;
-  user_id: string;
-  product_id: string | null;
-  product_name: string;
-  quantity: number;
-  unit_price_usd: number;
-  total_usd: number;
-  total_bs: number | null;
-  payment_method: string;
-  client_name: string | null;
-  client_phone: string | null;
-  is_credit: boolean;
-  notes: string | null;
-  status: SaleStatus;
-  created_at: string;
-}
 
 export function useSales() {
   const { user } = useAuth();

@@ -14,35 +14,8 @@ import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Json } from '@/integrations/supabase/types';
+import type { LedgerEntry, LedgerEntryInput } from '@/types';
 
-// Tipos para ledger entries
-export interface LedgerEntry {
-  id: string;
-  user_id: string;
-  entry_type: 'debit' | 'credit';
-  amount_usd: number;
-  amount_bs: number | null;
-  reference_type: string;
-  reference_id: string | null;
-  description: string | null;
-  balance_after_usd: number;
-  balance_after_bs: number | null;
-  metadata: Record<string, unknown>;
-  is_reversal: boolean;
-  reversal_of_id: string | null;
-  reversed_by_id: string | null;
-  created_at: string;
-}
-
-export interface LedgerEntryInput {
-  entry_type: 'debit' | 'credit';
-  amount_usd: number;
-  amount_bs?: number | null;
-  reference_type: string;
-  reference_id?: string | null;
-  description?: string | null;
-  metadata?: Record<string, unknown>;
-}
 
 // Hook principal del ledger
 export function useLedger() {

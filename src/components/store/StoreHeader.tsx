@@ -66,20 +66,6 @@ export function StoreHeader() {
       transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       <div className="container mx-auto px-4">
-        {/* Top bar - Solo en desktop */}
-        <AnimatePresence>
-          {!isScrolled && (
-            <motion.div 
-              className="hidden md:flex items-center justify-end py-1.5 text-xs text-muted-foreground/70 tracking-[0.15em] uppercase"
-              initial={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <span>Envíos a toda Venezuela 🇻🇪</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Main header */}
         <div className={`flex items-center justify-between transition-all duration-500 ${
           isScrolled ? 'h-14 md:h-16' : 'h-16 md:h-20'

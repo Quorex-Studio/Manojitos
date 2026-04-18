@@ -9,30 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { providerSchema, purchaseSchema, validateInput } from '@/lib/validations';
+import type { Provider, Purchase } from '@/types';
 
-export interface Provider {
-  id: string;
-  user_id: string;
-  name: string;
-  phone: string | null;
-  email: string | null;
-  notes: string | null;
-  created_at: string;
-}
-
-export interface Purchase {
-  id: string;
-  user_id: string;
-  provider_id: string | null;
-  provider_name: string;
-  amount_usd: number;
-  amount_bs: number | null;
-  status: string;
-  notes: string | null;
-  purchase_date: string;
-  created_at: string;
-  paid_at: string | null;
-}
 
 export function useProviders() {
   const { user } = useAuth();

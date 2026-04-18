@@ -12,54 +12,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import type { Json } from '@/integrations/supabase/types';
+import type { 
+  BusinessRule, 
+  RuleConditions, 
+  RuleActions, 
+  RuleType, 
+  BusinessRuleInput 
+} from '@/types';
 
-// Tipos de reglas disponibles
-export type RuleType = 'credit_block' | 'limit_adjustment' | 'notification' | 'restriction';
-
-export interface BusinessRule {
-  id: string;
-  user_id: string;
-  rule_key: string;
-  rule_name: string;
-  description: string | null;
-  rule_type: RuleType;
-  conditions: RuleConditions;
-  actions: RuleActions;
-  is_active: boolean;
-  priority: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface RuleConditions {
-  min_trust_score?: number;
-  max_trust_score?: number;
-  max_overdue_days?: number;
-  min_overdue_days?: number;
-  min_balance?: number;
-  max_balance?: number;
-  credit_status?: string[];
-}
-
-export interface RuleActions {
-  block_credit?: boolean;
-  reduce_limit_percentage?: number;
-  send_notification?: boolean;
-  notification_channel?: string[];
-  restriction_level?: number;
-  custom_message?: string;
-}
-
-export interface BusinessRuleInput {
-  rule_key: string;
-  rule_name: string;
-  description?: string;
-  rule_type: RuleType;
-  conditions: RuleConditions;
-  actions: RuleActions;
-  is_active?: boolean;
-  priority?: number;
-}
 
 // Reglas predeterminadas del sistema
 export const DEFAULT_RULES: BusinessRuleInput[] = [

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { SaleStatus } from '@/types';
 
 // Sanitize text to prevent XSS - removes potential HTML tags
 export const sanitizeText = (text: string): string => {
@@ -45,7 +46,8 @@ export const creditSchema = z.object({
   notes: z.string().max(2000).optional().nullable().transform(val => val ? sanitizeText(val) : val),
 });
 
-export type CreditInput = z.infer<typeof creditSchema>;
+// We keep this as the internal validation type, but index.ts CreditInput is the canonical one for API/Props
+export type CreditValidationInput = z.infer<typeof creditSchema>;
 
 // Payment promise validation schema
 export const paymentPromiseSchema = z.object({
@@ -64,7 +66,6 @@ export type PaymentPromiseInput = z.infer<typeof paymentPromiseSchema>;
 
 // Sale status enum
 export const SALE_STATUSES = ['pending', 'confirmed', 'cancelled'] as const;
-export type SaleStatus = typeof SALE_STATUSES[number];
 
 // Sale validation schema
 export const saleSchema = z.object({
@@ -116,3 +117,4 @@ export function validateInput<T>(schema: z.ZodSchema<T>, data: unknown): T {
   }
   return result.data;
 }
+

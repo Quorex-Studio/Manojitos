@@ -11,104 +11,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-import type { Json } from '@/integrations/supabase/types';
+import type { 
+  Credit, 
+  CreditInput, 
+  CreditTransaction, 
+  CreditReminder, 
+  PaymentPromise 
+} from '@/types';
 import { creditSchema, paymentPromiseSchema, validateInput, sanitizeText } from '@/lib/validations';
 
-// Tipos para créditos con campos profesionales
-export interface Credit {
-  id: string;
-  user_id: string;
-  client_user_id: string | null;
-  client_name: string;
-  client_phone: string | null;
-  client_email: string | null;
-  credit_limit: number;
-  current_balance: number;
-  cut_off_day: number;
-  grace_days: number;
-  status: string;
-  is_blocked: boolean;
-  blocked_at: string | null;
-  blocked_reason: string | null;
-  next_due_date: string | null;
-  last_payment_date: string | null;
-  last_reminder_sent_at: string | null;
-  reminders_sent: Json;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-  // Campos profesionales
-  trust_score: number;
-  trust_level: 'CONFIABLE' | 'RIESGO' | 'CRITICO';
-  avg_payment_days: number;
-  total_purchases: number;
-  total_paid_on_time: number;
-  total_paid_late: number;
-  last_late_date: string | null;
-  consecutive_late_payments: number;
-  restriction_level: number;
-  early_payment_discount: number;
-  auto_limit_adjustment: boolean;
-  // Campos calculados en frontend
-  calculatedStatus?: string;
-  daysUntilDue?: number;
-  daysOverdue?: number;
-}
-
-// Tipo para crear/actualizar crédito
-export interface CreditInput {
-  client_name: string;
-  client_phone?: string | null;
-  client_email?: string | null;
-  credit_limit?: number;
-  cut_off_day?: number;
-  grace_days?: number;
-  notes?: string | null;
-  next_due_date?: string | null;
-  early_payment_discount?: number;
-  auto_limit_adjustment?: boolean;
-}
-
-export interface CreditTransaction {
-  id: string;
-  credit_id: string;
-  user_id: string;
-  type: 'CARGO' | 'ABONO';
-  amount: number;
-  previous_balance: number;
-  new_balance: number;
-  sale_id: string | null;
-  description: string | null;
-  created_at: string;
-}
-
-export interface CreditReminder {
-  id: string;
-  credit_id: string;
-  reminder_type: string;
-  channel: string;
-  message: string;
-  sent_at: string | null;
-  delivered: boolean;
-  created_at: string;
-}
-
-// Tipo para promesas de pago
-export interface PaymentPromise {
-  id: string;
-  credit_id: string;
-  user_id: string;
-  promised_amount: number;
-  promised_date: string;
-  actual_payment_date: string | null;
-  actual_amount_paid: number | null;
-  status: 'PENDIENTE' | 'CUMPLIDA' | 'INCUMPLIDA' | 'PARCIAL';
-  client_accepted: boolean;
-  accepted_at: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 // Calcular estado del crédito y días de mora
 export function calculateCreditStatus(
