@@ -77,7 +77,7 @@ export function AppSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "h-full w-[280px] bg-[#120A0C] border-r border-[#F5EDE8]/5 flex-shrink-0",
+          "h-full w-[280px] bg-sidebar border-r border-sidebar-border flex-shrink-0",
           isMobile && "fixed left-0 top-0 z-50 transition-transform duration-300",
           isMobile && !isOpen && "-translate-x-full",
           isMobile && isOpen && "translate-x-0",
@@ -96,13 +96,13 @@ export function AppSidebar() {
               <h1 className="font-serif text-xl font-bold text-gradient-gold tracking-normal">
                 Manojitos
               </h1>
-              <p className="text-[#F5EDE8]/30 text-[10px] font-sans tracking-[0.15em] uppercase">Sistema de Gestión</p>
+              <p className="text-sidebar-foreground/30 text-[10px] font-sans tracking-[0.15em] uppercase">Sistema de Gestión</p>
             </div>
           </div>
 
           {/* Ver Tienda */}
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#F5EDE8]/5">
-            <Link to="/" className="flex items-center gap-2 text-xs text-[#F5EDE8]/40 hover:text-gold transition-colors duration-300 tracking-wide">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-sidebar-border">
+            <Link to="/" className="flex items-center gap-2 text-xs text-sidebar-foreground/40 hover:text-gold transition-colors duration-300 tracking-wide">
               <Store className="h-3.5 w-3.5" />
               <span>Ver tienda</span>
             </Link>
@@ -124,8 +124,8 @@ export function AppSidebar() {
                     className={cn(
                       "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300",
                       isActive 
-                        ? "bg-primary/15 text-primary shadow-[0_0_20px_rgba(196,96,122,0.15)]" 
-                        : "hover:bg-[#F5EDE8]/5 text-[#F5EDE8]/50 hover:text-[#F5EDE8]/80"
+                        ? "bg-primary/10 text-primary shadow-sm" 
+                        : "hover:bg-sidebar-accent text-sidebar-foreground/50 hover:text-sidebar-foreground"
                     )}
                   >
                     <item.icon className={cn("h-4.5 w-4.5", isActive && "text-primary")} />
@@ -146,7 +146,7 @@ export function AppSidebar() {
           <Button
             variant="ghost"
             onClick={() => signOut()}
-            className="w-full justify-start gap-3 text-[#F5EDE8]/30 hover:text-destructive hover:bg-destructive/10 text-sm"
+            className="w-full justify-start gap-3 text-sidebar-foreground/40 hover:text-destructive hover:bg-destructive/10 text-sm"
           >
             <LogOut className="h-4 w-4" />
             Cerrar Sesión

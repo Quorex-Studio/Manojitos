@@ -120,7 +120,7 @@ export default function StoreFront() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.8 }}
-              className="text-base md:text-lg text-muted-foreground/60 dark:text-[#F5EDE8]/35 max-w-2xl mx-auto font-light leading-relaxed tracking-[0.05em]"
+              className="text-base md:text-lg text-muted-foreground/80 dark:text-[#F5EDE8]/35 max-w-2xl mx-auto font-light leading-relaxed tracking-[0.05em]"
             >
               Descubre una selección exclusiva diseñada para resaltar tu esencia única. Calidad, estilo y distinción en cada detalle.
             </motion.p>
@@ -280,7 +280,7 @@ export default function StoreFront() {
                 <h3 className="font-serif font-semibold text-lg text-foreground mb-2 tracking-tight">
                   {benefit.title}
                 </h3>
-                <p className="text-muted-foreground/50 text-sm leading-relaxed tracking-wide">
+                <p className="text-muted-foreground/70 text-sm leading-relaxed tracking-wide">
                   {benefit.description}
                 </p>
               </motion.div>
@@ -313,7 +313,7 @@ export default function StoreFront() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-muted-foreground/60 dark:text-[#F5EDE8]/30 text-base md:text-lg font-light tracking-wide"
+              className="text-muted-foreground/80 dark:text-[#F5EDE8]/30 text-base md:text-lg font-light tracking-wide"
             >
               Únete a miles de clientes satisfechos que han encontrado su esencia con nosotros.
             </motion.p>

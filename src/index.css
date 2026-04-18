@@ -26,13 +26,13 @@
        - --background: Warm neutral for comfort
     */
     --background: 30 15% 98%;
-    --foreground: 340 20% 12%;
+    --foreground: 340 20% 8%; /* Más oscuro para mejor contraste */
 
     --card: 0 0% 100%;
-    --card-foreground: 340 20% 12%;
+    --card-foreground: 340 20% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 340 20% 12%;
+    --popover-foreground: 340 20% 10%;
 
     /* Rosa Principal */
     --primary: 345 55% 62%;
@@ -40,23 +40,24 @@
 
     /* Fondos sutiles */
     --secondary: 340 18% 95%;
-    --secondary-foreground: 340 25% 22%;
+    --secondary-foreground: 340 25% 18%;
 
-    --muted: 30 10% 94%;
-    --muted-foreground: 340 10% 45%;
+    --muted: 30 10% 92%;
+    --muted-foreground: 340 15% 35%; /* Incrementado contraste de 45% a 35% */
 
     /* Dorado — accent */
-    --accent: 38 68% 50%;
+    --accent: 38 68% 45%; /* Un poco más oscuro para legibilidad sobre blanco */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 68% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 12% 89%;
-    --input: 30 12% 89%;
+    --border: 30 12% 85%; /* Bordes un poco más definidos */
+    --input: 30 12% 85%;
     --ring: 345 55% 62%;
 
     --radius: 0.875rem;
+
 
     /* Custom Color Tokens */
     --gold: 38 68% 50%;
@@ -76,8 +77,8 @@
     --sidebar-ring: 345 55% 62%;
 
     /* Glass */
-    --glass-bg: 0 0% 100% / 0.85;
-    --glass-border: 0 0% 100% / 0.6;
+    --glass-bg: 0 0% 100% / 0.7;
+    --glass-border: 0 0% 100% / 0.5;
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
   }
 
@@ -128,7 +129,7 @@
     --sidebar-border: 340 14% 16%;
     --sidebar-ring: 345 50% 66%;
 
-    --glass-bg: 340 16% 9% / 0.75;
+    --glass-bg: 340 18% 9% / 0.7;
     --glass-border: 0 0% 100% / 0.06;
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
   }
@@ -286,7 +287,7 @@
      INPUT
      ======================== */
   .input-glass {
-    @apply bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary focus:ring-primary/20;
+    @apply bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary focus:ring-primary/20 transition-all duration-300;
   }
 
   /* ========================

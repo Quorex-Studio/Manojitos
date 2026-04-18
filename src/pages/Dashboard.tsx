@@ -142,7 +142,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <Card className="bg-card/80 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.04)]">
+            <Card className="bg-card backdrop-blur-sm border border-border/40 shadow-sm dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
               <CardHeader>
                 <CardTitle className="font-serif text-lg tracking-tight text-foreground/80">
                   Ventas de los últimos 7 días
@@ -157,9 +157,9 @@ export default function Dashboard() {
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border) / 0.15)',
+                        border: '1px solid hsl(var(--border) / 0.4)',
                         borderRadius: '16px',
-                        boxShadow: '0 8px 32px hsl(var(--rose) / 0.1)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
                         fontSize: '13px'
                       }} 
                     />
@@ -182,7 +182,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <Card className="bg-card/80 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.04)]">
+            <Card className="bg-card backdrop-blur-sm border border-border/40 shadow-sm dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
               <CardHeader>
                 <CardTitle className="font-serif text-lg tracking-tight text-foreground/80">
                   Productos más vendidos
@@ -217,7 +217,7 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
         >
-          <Card className="bg-card/80 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.04)]">
+          <Card className="bg-card backdrop-blur-sm border border-border/40 shadow-sm dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
             <CardHeader>
               <CardTitle className="font-serif text-lg tracking-tight text-foreground/80">
                 Últimas ventas
@@ -226,7 +226,7 @@ export default function Dashboard() {
             <CardContent>
               <div className="space-y-2">
                 {sales.slice(0, 5).map((sale) => (
-                  <div key={sale.id} className="flex items-center justify-between p-4 rounded-xl bg-card/80 hover:bg-card/80 transition-colors duration-300">
+                  <div key={sale.id} className="flex items-center justify-between p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors duration-300">
                     <div className="flex items-center gap-4">
                       <div className="p-2.5 rounded-xl bg-primary/10">
                         <ShoppingBag className="h-4 w-4 text-primary/70" />

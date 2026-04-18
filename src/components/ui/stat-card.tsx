@@ -20,9 +20,9 @@ export const StatCard = memo(function StatCard({ title, value, subtitle, icon, v
       whileHover={{ y: -6, transition: { duration: 0.3 } }}
       className={cn(
         "rounded-2xl transition-all duration-300 p-4 md:p-5 backdrop-blur-sm",
-        variant === 'gold' && "bg-card/80 border border-gold/15 shadow-[0_8px_32px_hsl(var(--gold)/0.08)] hover:shadow-[0_16px_48px_hsl(var(--gold)/0.15)] hover:border-gold/25",
-        variant === 'rose' && "bg-card/80 border border-primary/15 shadow-[0_8px_32px_hsl(var(--rose)/0.08)] hover:shadow-[0_16px_48px_hsl(var(--rose)/0.15)] hover:border-primary/25",
-        variant === 'default' && "bg-card/80 border border-border/15 shadow-[0_8px_32px_hsl(var(--rose)/0.04)] hover:shadow-[0_16px_48px_hsl(var(--rose)/0.1)] hover:border-border/25"
+        variant === 'gold' && "bg-card border border-gold/20 shadow-[0_8px_32px_hsl(var(--gold)/0.12)] hover:shadow-[0_16px_48px_hsl(var(--gold)/0.2)] hover:border-gold/40",
+        variant === 'rose' && "bg-card border border-primary/20 shadow-[0_8px_32px_hsl(var(--rose)/0.12)] hover:shadow-[0_16px_48px_hsl(var(--rose)/0.2)] hover:border-primary/40",
+        variant === 'default' && "bg-card border border-border/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_16px_48px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_16px_48px_rgba(0,0,0,0.4)] hover:border-border/60"
       )}
     >
       {/* Mobile Layout (Horizontal) */}

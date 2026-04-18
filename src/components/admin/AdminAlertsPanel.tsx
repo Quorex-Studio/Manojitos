@@ -28,24 +28,24 @@ const lucideIcons: Record<string, typeof AlertTriangle> = {
 
 const alertColors: Record<AlertType, { bg: string; border: string; icon: string }> = {
   critical: {
-    bg: 'bg-destructive/10',
-    border: 'border-destructive/30',
+    bg: 'bg-destructive/15 dark:bg-destructive/10',
+    border: 'border-destructive/30 dark:border-destructive/30',
     icon: 'text-destructive'
   },
   warning: {
-    bg: 'bg-gold/10',
-    border: 'border-gold/30',
+    bg: 'bg-gold/15 dark:bg-gold/10',
+    border: 'border-gold/30 dark:border-gold/30',
     icon: 'text-gold'
   },
   info: {
-    bg: 'bg-primary/10',
-    border: 'border-primary/25',
+    bg: 'bg-primary/15 dark:bg-primary/10',
+    border: 'border-primary/30 dark:border-primary/25',
     icon: 'text-primary'
   },
   success: {
-    bg: 'bg-secondary',
-    border: 'border-border',
-    icon: 'text-primary'
+    bg: 'bg-secondary dark:bg-secondary/50',
+    border: 'border-border dark:border-border/30',
+    icon: 'text-primary dark:text-primary/90'
   }
 };
 
