@@ -858,33 +858,40 @@ Respuesta de Ángela:`;
     let generatedText = '';
 
     if (GEMINI_KEY) {
-      try {
-        const geminiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: contextPrompt }] }],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 512,
-                topP: 0.9,
-              },
-            }),
-          }
-        );
+      const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-pro', 'gemini-2.0-flash'];
+      for (const model of modelsToTry) {
+        try {
+          console.log(`Trying Gemini model: ${model}`);
+          const geminiResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: contextPrompt }] }],
+                generationConfig: {
+                  temperature: 0.7,
+                  maxOutputTokens: 512,
+                  topP: 0.9,
+                },
+              }),
+            }
+          );
 
-        if (geminiResponse.ok) {
-          const geminiResult = await geminiResponse.json();
-          generatedText = geminiResult?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          console.log('Gemini response received, length:', generatedText.length);
-        } else {
-          const errText = await geminiResponse.text();
-          console.error('Gemini API error:', geminiResponse.status, errText);
+          if (geminiResponse.ok) {
+            const geminiResult = await geminiResponse.json();
+            generatedText = geminiResult?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            if (generatedText && generatedText.length >= 10) {
+              console.log(`Gemini response received from ${model}, length:`, generatedText.length);
+              break; // Success! Exit loop
+            }
+          } else {
+            const errText = await geminiResponse.text();
+            console.error(`Gemini API error for model ${model}:`, geminiResponse.status, errText);
+          }
+        } catch (geminiErr) {
+          console.error(`Gemini fetch error for model ${model}:`, geminiErr);
         }
-      } catch (geminiErr) {
-        console.error('Gemini fetch error:', geminiErr);
       }
     } else {
       console.warn('No GEMINI_API_KEY configured, using fallback responses');

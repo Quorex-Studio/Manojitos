@@ -49,6 +49,8 @@ import { Loader2 } from "lucide-react";
 import { AngelaChat } from "@/components/ai/AngelaChat";
 
 // ErrorBoundary — captura crashes de React y muestra mensaje en vez de pantalla negra
+// También maneja el error "Failed to fetch dynamically imported module" que ocurre
+// cuando Vercel hace un nuevo deploy y los hashes de los chunks cambian.
 import React from "react";
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -61,6 +63,23 @@ class ErrorBoundary extends React.Component<
   static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
   }
+  componentDidCatch(error: Error) {
+    // Detectar el error de chunk dinámico (nuevo deploy de Vercel)
+    const isChunkError =
+      error.message?.includes('Failed to fetch dynamically imported module') ||
+      error.message?.includes('Importing a module script failed') ||
+      error.name === 'ChunkLoadError';
+
+    if (isChunkError) {
+      // Guardia anti-loop: solo recargamos UNA vez por sesión
+      const reloadKey = 'chunk_reload_attempted';
+      if (!sessionStorage.getItem(reloadKey)) {
+        sessionStorage.setItem(reloadKey, '1');
+        window.location.reload();
+        return; // evita el render del error mientras recarga
+      }
+    }
+  }
   render() {
     if (this.state.hasError) {
       return (
@@ -69,7 +88,10 @@ class ErrorBoundary extends React.Component<
           <p className="text-muted-foreground text-sm mb-4">{this.state.error?.message}</p>
           <button
             className="px-6 py-2 rounded-full bg-primary text-primary-foreground text-sm"
-            onClick={() => window.location.href = '/'}
+            onClick={() => {
+              sessionStorage.removeItem('chunk_reload_attempted');
+              window.location.href = '/';
+            }}
           >
             Volver al inicio
           </button>
