@@ -211,7 +211,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
     .limit(15);
 
   // Categorías únicas
-  const categories = [...new Set((products || []).map(p => p.category).filter(Boolean))] as string[];
+  const categories = [...new Set((products || []).map((p: any) => p.category).filter(Boolean))] as string[];
 
   // Productos con stock bajo
   const { data: lowStock } = await supabase
@@ -222,7 +222,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
     .limit(5);
 
   // Best sellers
-  const bestSellers = (products || []).slice(0, 5).map(p => ({ name: p.name, sold_count: p.sold_count }));
+  const bestSellers = (products || []).slice(0, 5).map((p: any) => ({ name: p.name, sold_count: p.sold_count }));
 
   // Ventas recientes (7 días)
   const { data: salesData } = await supabase
@@ -230,7 +230,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
     .select('total_usd')
     .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
   
-  const recentSales = (salesData || []).reduce((sum, s) => sum + Number(s.total_usd), 0);
+  const recentSales = (salesData || []).reduce((sum: number, s: any) => sum + Number(s.total_usd), 0);
 
   // Créditos pendientes (solo admin)
   let pendingCredits: { client_name: string; current_balance: number }[] = [];
@@ -269,7 +269,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
       let preferredPayment = customerMemory.preferredPayment || 'efectivo';
       const paymentCounts: Record<string, number> = {};
 
-      customerOrders?.forEach(order => {
+      customerOrders?.forEach((order: any) => {
         if (order.payment_method) {
           paymentCounts[order.payment_method] = (paymentCounts[order.payment_method] || 0) + 1;
         }
@@ -630,7 +630,7 @@ async function handleCheckStock(data: { productName?: string; lowStockOnly?: boo
     return { success: true, message: 'No hay productos con stock bajo 🎉', data: [] };
   }
   
-  const stockList = products.map(p => `• ${p.name}: ${p.stock} unidades`).join('\n');
+  const stockList = products.map((p: any) => `• ${p.name}: ${p.stock} unidades`).join('\n');
   return { 
     success: true, 
     message: `📦 Estado de stock:\n${stockList}`,
@@ -699,7 +699,7 @@ async function processAction(actionType: string, actionData: Record<string, unkn
 
 // ================== MAIN HANDLER ==================
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

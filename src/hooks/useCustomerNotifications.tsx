@@ -87,11 +87,13 @@ export function useCustomerNotifications() {
   const { showNotification } = usePushNotifications();
   const knownIds = useRef(new Set<string>());
 
+  // Sync knownIds when notifications change
+  useEffect(() => {
+    notifications.forEach(n => knownIds.current.add(n.id));
+  }, [notifications]);
+
   useEffect(() => {
     if (!user) return;
-
-    // Track already-known IDs so we only push-notify on truly new ones
-    notifications.forEach(n => knownIds.current.add(n.id));
 
     const channel = supabase
       .channel(`customer-notifications-${user.id}`)
@@ -121,8 +123,10 @@ export function useCustomerNotifications() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, showNotification, notifications]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient, showNotification]);
 
   return {
     notifications,
