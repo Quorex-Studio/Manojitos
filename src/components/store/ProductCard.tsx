@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Eye, Check, Package, Sparkles } from 'lucide-react';
@@ -18,7 +18,7 @@ interface ProductCardProps {
 }
 
 // Tarjeta de producto editorial — portrait 3:4, overlay slide-up
-export const ProductCard = memo(function ProductCard({ product, index = 0, allProducts }: ProductCardProps) {
+export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(function ProductCard({ product, index = 0, allProducts }, ref) {
   const [isAdding, setIsAdding] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const { addItem, isInCart, getItemQuantity } = useCart();
@@ -66,6 +66,7 @@ export const ProductCard = memo(function ProductCard({ product, index = 0, allPr
 
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
@@ -232,4 +233,4 @@ export const ProductCard = memo(function ProductCard({ product, index = 0, allPr
       </Link>
     </motion.div>
   );
-});
+}));

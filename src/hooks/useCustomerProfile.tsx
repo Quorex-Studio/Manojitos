@@ -133,6 +133,25 @@ export function useCustomerProfile() {
   };
 }
 
+// Hook para admin: obtener todos los perfiles de clientes
+export function useAllCustomerProfiles() {
+  const { isAdmin } = useAuth();
+
+  return useQuery({
+    queryKey: ['admin-customer-profiles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customer_profiles')
+        .select('*')
+        .order('full_name', { ascending: true });
+
+      if (error) throw error;
+      return data as CustomerProfile[];
+    },
+    enabled: isAdmin,
+  });
+}
+
 // Hook para admin: ver perfil de cualquier cliente
 export function useAdminCustomerProfile(customerId?: string) {
   const { isAdmin } = useAuth();

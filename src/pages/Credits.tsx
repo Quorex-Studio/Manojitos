@@ -52,6 +52,7 @@ import {
 import { useCredits, calculateCreditStatus } from '@/hooks/useCredits';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
+import { useAllCustomerProfiles } from '@/hooks/useCustomerProfile';
 import { cn } from '@/lib/utils';
 import { NotificationCenter, CreditReminderHistoryPanel } from '@/components/notifications/NotificationCenter';
 
@@ -77,10 +78,13 @@ export default function Credits() {
   const { isAdmin } = useAuth();
   const { credits, isLoading, createCredit, updateCredit, toggleBlock, registerPayment, createReminder, stats } = useCredits();
   const { sendManualNotification } = useNotifications();
+  const { data: customerProfiles = [], isLoading: isLoadingProfiles } = useAllCustomerProfiles();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [creationMode, setCreationMode] = useState<'manual' | 'registered'>('manual');
+  const [selectedProfileId, setSelectedProfileId] = useState<string>('');
   const [selectedCredit, setSelectedCredit] = useState<string | null>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isReminderOpen, setIsReminderOpen] = useState(false);
@@ -128,6 +132,7 @@ export default function Credits() {
       client_name: newCredit.client_name,
       client_phone: newCredit.client_phone || null,
       client_email: newCredit.client_email || null,
+      client_user_id: creationMode === 'registered' ? selectedProfileId || null : null,
       credit_limit: parseFloat(newCredit.credit_limit) || 0,
       cut_off_day: parseInt(newCredit.cut_off_day),
       notes: newCredit.notes || null,
@@ -141,6 +146,8 @@ export default function Credits() {
       cut_off_day: '15',
       notes: '',
     });
+    setSelectedProfileId('');
+    setCreationMode('manual');
   };
 
   // Manejar pago
@@ -236,7 +243,21 @@ export default function Credits() {
             </p>
           </div>
           
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <Dialog open={isCreateOpen} onOpenChange={(open) => {
+              setIsCreateOpen(open);
+              if (!open) {
+                setCreationMode('manual');
+                setNewCredit({
+                  client_name: '',
+                  client_phone: '',
+                  client_email: '',
+                  credit_limit: '',
+                  cut_off_day: '15',
+                  notes: '',
+                });
+                setSelectedProfileId('');
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="h-4 w-4" />
@@ -252,6 +273,66 @@ export default function Credits() {
               </DialogHeader>
               
               <div className="space-y-4 py-4">
+                <Tabs value={creationMode} onValueChange={(value) => {
+                  setCreationMode(value as 'manual' | 'registered');
+                  setNewCredit({
+                    client_name: '',
+                    client_phone: '',
+                    client_email: '',
+                    credit_limit: '',
+                    cut_off_day: '15',
+                    notes: '',
+                  });
+                  setSelectedProfileId('');
+                }} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="manual">Creación Manual</TabsTrigger>
+                    <TabsTrigger value="registered">Cliente Registrado</TabsTrigger>
+                  </TabsList>
+                  
+                  {creationMode === 'registered' && (
+                    <div className="space-y-2 mb-4">
+                      <Label htmlFor="customer_select">Seleccionar Cliente Registrado *</Label>
+                      {isLoadingProfiles ? (
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground py-2">
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <span>Cargando clientes...</span>
+                        </div>
+                      ) : (
+                        <Select
+                          value={selectedProfileId}
+                          onValueChange={(value) => {
+                            setSelectedProfileId(value);
+                            const selected = customerProfiles.find(p => p.user_id === value);
+                            if (selected) {
+                              setNewCredit(prev => ({
+                                ...prev,
+                                client_name: selected.full_name || '',
+                                client_phone: selected.phone || '',
+                                client_email: selected.email || '',
+                              }));
+                            }
+                          }}
+                        >
+                          <SelectTrigger id="customer_select" className="w-full">
+                            <SelectValue placeholder="Seleccione un cliente" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {customerProfiles.map(profile => (
+                              <SelectItem key={profile.id} value={profile.user_id}>
+                                {profile.full_name} ({profile.email || 'Sin correo'})
+                              </SelectItem>
+                            ))}
+                            {customerProfiles.length === 0 && (
+                              <SelectItem value="none" disabled>No hay clientes registrados</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  )}
+                </Tabs>
+
                 <div className="space-y-2">
                   <Label htmlFor="client_name">Nombre del Cliente *</Label>
                   <Input
@@ -259,6 +340,7 @@ export default function Credits() {
                     value={newCredit.client_name}
                     onChange={e => setNewCredit(prev => ({ ...prev, client_name: e.target.value }))}
                     placeholder="Nombre completo"
+                    disabled={creationMode === 'registered'}
                   />
                 </div>
                 
@@ -270,6 +352,7 @@ export default function Credits() {
                       value={newCredit.client_phone}
                       onChange={e => setNewCredit(prev => ({ ...prev, client_phone: e.target.value }))}
                       placeholder="+58 412..."
+                      disabled={creationMode === 'registered'}
                     />
                   </div>
                   <div className="space-y-2">
@@ -280,6 +363,7 @@ export default function Credits() {
                       value={newCredit.client_email}
                       onChange={e => setNewCredit(prev => ({ ...prev, client_email: e.target.value }))}
                       placeholder="correo@ejemplo.com"
+                      disabled={creationMode === 'registered'}
                     />
                   </div>
                 </div>

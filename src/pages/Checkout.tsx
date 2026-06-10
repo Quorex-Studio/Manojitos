@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Check, CreditCard, Truck, Package,
-  User, Mail, Phone, MapPin, Loader2, ShoppingBag, Shield
+  User, Mail, Phone, MapPin, Loader2, ShoppingBag, Shield,
+  Copy, Smartphone, Landmark
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,114 @@ const paymentMethods = [
   { id: 'efectivo_usd', label: 'Efectivo USD', description: 'Pago en dólares al entregar' },
   { id: 'efectivo_bs', label: 'Efectivo Bs', description: 'Pago en bolívares al entregar' },
 ];
+
+// Datos de pago de Manojitos
+const PAYMENT_INFO = {
+  pagoMovil: {
+    ci: '30785117',
+    bank: 'Bancamiga',
+    phone: '04248780607',
+    name: 'Josmaris De Los Ángeles',
+  },
+  transferencia: {
+    bank: 'Banco de Venezuela',
+    accountNumber: '01020512310000243896',
+    ci: 'V-30785117',
+    name: 'Josmaris De Los Ángeles',
+  },
+  contacto: '+58 426 3863042',
+};
+
+// Componente interno: Panel con datos de pago
+function PaymentInfoPanel({ method }: { method: string }) {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 1800);
+  };
+
+  if (method !== 'pago_movil' && method !== 'transferencia') return null;
+
+  return (
+    <motion.div
+      key={method}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.25 }}
+      className="mt-5 rounded-xl border border-accent/30 bg-accent/5 p-5"
+    >
+      <div className="flex items-center gap-2 mb-4">
+        {method === 'pago_movil' ? (
+          <Smartphone className="h-4 w-4 text-accent" />
+        ) : (
+          <Landmark className="h-4 w-4 text-accent" />
+        )}
+        <p className="text-sm font-bold text-accent uppercase tracking-wide">
+          {method === 'pago_movil' ? 'Datos para Pago Móvil' : 'Datos para Transferencia'}
+        </p>
+      </div>
+
+      {method === 'pago_movil' ? (
+        <div className="space-y-2.5">
+          {[
+            { label: 'Banco', value: PAYMENT_INFO.pagoMovil.bank },
+            { label: 'Teléfono', value: PAYMENT_INFO.pagoMovil.phone },
+            { label: 'C.I.', value: PAYMENT_INFO.pagoMovil.ci },
+            { label: 'Nombre', value: PAYMENT_INFO.pagoMovil.name },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex items-center justify-between gap-2">
+              <span className="text-xs text-muted-foreground min-w-[60px]">{label}</span>
+              <span className="text-sm font-semibold text-foreground flex-1">{value}</span>
+              <button
+                onClick={() => copy(value, label)}
+                className="text-muted-foreground hover:text-accent transition-colors"
+                title="Copiar"
+              >
+                {copied === label ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {[
+            { label: 'Banco', value: PAYMENT_INFO.transferencia.bank },
+            { label: 'N° Cuenta', value: PAYMENT_INFO.transferencia.accountNumber },
+            { label: 'C.I.', value: PAYMENT_INFO.transferencia.ci },
+            { label: 'Nombre', value: PAYMENT_INFO.transferencia.name },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex items-center justify-between gap-2">
+              <span className="text-xs text-muted-foreground min-w-[70px]">{label}</span>
+              <span className="text-sm font-semibold text-foreground flex-1 break-all">{value}</span>
+              <button
+                onClick={() => copy(value, label)}
+                className="text-muted-foreground hover:text-accent transition-colors"
+                title="Copiar"
+              >
+                {copied === label ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4 pt-4 border-t border-accent/20 flex items-center gap-2">
+        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Contacto:</span>
+        <span className="text-xs font-semibold text-foreground">{PAYMENT_INFO.contacto}</span>
+        <button
+          onClick={() => copy(PAYMENT_INFO.contacto, 'contacto')}
+          className="ml-auto text-muted-foreground hover:text-accent transition-colors"
+        >
+          {copied === 'contacto' ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
 
 // Página de checkout
 export default function Checkout() {
@@ -178,11 +287,11 @@ export default function Checkout() {
             </h1>
 
             <p className="text-muted-foreground mb-8">
-              Tu pedido ha sido registrado exitosamente. Nos pondremos en contacto contigo
-              pronto para coordinar el pago y envío.
+              Tu pedido ha sido registrado exitosamente. Por favor realiza tu pago usando los datos
+              de abajo y envíanos el comprobante al número de contacto.
             </p>
 
-            <div className="glass-card rounded-2xl p-6 mb-8 text-left">
+            <div className="glass-card rounded-2xl p-6 mb-6 text-left">
               <h3 className="font-semibold text-foreground mb-4">Datos del Pedido</h3>
               <div className="space-y-2 text-sm">
                 <p><span className="text-muted-foreground">Nombre:</span> {shippingData.fullName}</p>
@@ -191,6 +300,23 @@ export default function Checkout() {
                 <p><span className="text-muted-foreground">Método de Pago:</span> {paymentMethods.find(m => m.id === paymentMethod)?.label}</p>
               </div>
             </div>
+
+            {/* Panel de datos de pago en confirmación */}
+            <AnimatePresence>
+              <PaymentInfoPanel method={paymentMethod} />
+            </AnimatePresence>
+
+            {/* Mensaje de envío de comprobante */}
+            {(paymentMethod === 'pago_movil' || paymentMethod === 'transferencia') && (
+              <div className="mt-4 mb-6 rounded-xl bg-primary/5 border border-primary/20 p-4 text-sm text-foreground">
+                <p className="font-semibold mb-1">📱 Último paso</p>
+                <p className="text-muted-foreground">
+                  Envía el comprobante de pago al número de contacto{' '}
+                  <span className="font-bold text-foreground">{PAYMENT_INFO.contacto}</span>{' '}
+                  indicando tu nombre y pedido para confirmar el despacho.
+                </p>
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/tienda">
@@ -414,6 +540,11 @@ export default function Checkout() {
                   </label>
                 ))}
               </RadioGroup>
+
+              {/* Panel de instrucciones de pago */}
+              <AnimatePresence mode="wait">
+                <PaymentInfoPanel method={paymentMethod} />
+              </AnimatePresence>
 
               <div className="mt-6 flex items-center gap-2 text-xs text-muted-foreground bg-secondary/80 p-3 rounded-lg justify-center">
                 <Shield className="h-3 w-3" />

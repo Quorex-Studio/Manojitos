@@ -64,7 +64,7 @@ export default function Auth() {
         } else {
           toast({
             title: 'Cuenta creada',
-            description: 'Revisa tu correo para confirmar tu cuenta'
+            description: 'Revisa tu correo de confirmación o intenta iniciar sesión directamente.'
           });
         }
       }

@@ -39,6 +39,7 @@ export const creditSchema = z.object({
   client_name: z.string().min(1, 'El nombre del cliente es requerido').max(200).transform(sanitizeText),
   client_email: z.string().email('Email inválido').optional().nullable().or(z.literal('')),
   client_phone: z.string().max(50).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  client_user_id: z.string().uuid().optional().nullable(),
   credit_limit: z.number().nonnegative('El límite no puede ser negativo').max(1000000),
   current_balance: z.number().nonnegative().default(0),
   cut_off_day: z.number().int().min(1).max(31).default(15),

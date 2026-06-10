@@ -94,7 +94,7 @@ export default function CustomerAuth() {
         } else {
           toast({
             title: '¡Registro exitoso!',
-            description: 'Por favor verifica tu email para continuar'
+            description: 'Cuenta creada. Revisa tu correo o intenta iniciar sesión directamente.'
           });
         }
       }

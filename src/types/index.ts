@@ -188,6 +188,7 @@ export interface CreditInput {
   client_name: string;
   client_phone?: string | null;
   client_email?: string | null;
+  client_user_id?: string | null;
   credit_limit?: number;
   cut_off_day?: number;
   grace_days?: number;
