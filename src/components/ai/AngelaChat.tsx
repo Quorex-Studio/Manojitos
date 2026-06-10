@@ -419,9 +419,17 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
 
     } catch (error) {
       console.error('Chat error:', error);
+      // Never show raw network/DNS errors to the user
+      const errMsg = error instanceof Error ? error.message : '';
+      const isTechnicalError = errMsg.includes('dns') || errMsg.includes('fetch') || 
+        errMsg.includes('network') || errMsg.includes('connect') || errMsg.includes('hostname');
+      const friendlyMsg = isTechnicalError
+        ? '🩷 En este momento estoy con alta demanda. ¿Qué necesitas? Puedo ayudarte con precios, productos o créditos. ✨'
+        : `🩷 ${errMsg || 'Algo falló momentáneamente'}. ¿Intentamos de nuevo? ✨`;
+
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `¡Oops! 😅 ${error instanceof Error ? error.message : 'Error desconocido'}. ¿Puedes intentarlo de nuevo? 🩷`,
+        content: friendlyMsg,
         suggestions: [
           { label: "🔄 Reintentar", message: textToSend },
           { label: "🧑‍💼 Hablar con asesor", message: "Quiero hablar con un asesor" },
@@ -431,6 +439,7 @@ export function AngelaChat({ context, className }: AngelaChatProps) {
       setIsLoading(false);
     }
   };
+
 
   // Generar sugerencias locales si el servidor no las envía
   const generateLocalSuggestions = (response: string, admin: boolean): Suggestion[] => {

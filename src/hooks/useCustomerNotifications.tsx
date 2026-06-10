@@ -8,6 +8,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { useEffect, useRef } from 'react';
+import { usePushNotifications } from './usePushNotifications';
 
 export interface CustomerNotification {
   id: string;
@@ -80,6 +82,47 @@ export function useCustomerNotifications() {
       toast.success('Todas las notificaciones marcadas como leídas');
     },
   });
+
+  // ── Realtime subscription: auto-refresh on new notification & push browser alert ──
+  const { showNotification } = usePushNotifications();
+  const knownIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Track already-known IDs so we only push-notify on truly new ones
+    notifications.forEach(n => knownIds.current.add(n.id));
+
+    const channel = supabase
+      .channel(`customer-notifications-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        async (payload) => {
+          const notif = payload.new as CustomerNotification;
+          queryClient.invalidateQueries({ queryKey: ['customer-notifications'] });
+
+          // Only push if we haven't seen this ID before
+          if (!knownIds.current.has(notif.id)) {
+            knownIds.current.add(notif.id);
+            // In-app toast
+            toast(notif.title, {
+              description: notif.message,
+              duration: 6000,
+            });
+            // Browser push notification
+            await showNotification(
+              `🩷 Manojitos: ${notif.title}`,
+              notif.message,
+              { tag: notif.id, url: '/cliente/notificaciones' }
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, queryClient, showNotification, notifications]);
 
   return {
     notifications,

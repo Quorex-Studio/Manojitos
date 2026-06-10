@@ -100,7 +100,7 @@ export default function AboutUs() {
                   <div>
                     <h3 className="font-semibold mb-1">Teléfono / WhatsApp</h3>
                     <p className="text-muted-foreground text-sm">
-                      +58 412 XXX XXXX<br />
+                      +58 426-3863042<br />
                       Escríbenos para atención personalizada
                     </p>
                   </div>

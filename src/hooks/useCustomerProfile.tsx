@@ -202,48 +202,53 @@ export function useAdminCustomerProfile(customerId?: string) {
 
 // Hook para historial de compras del cliente
 export function useCustomerPurchaseHistory(customerId?: string) {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const targetUserId = customerId || user?.id;
 
   const { data: purchases = [], isLoading } = useQuery({
     queryKey: ['customer-purchases', targetUserId],
     queryFn: async () => {
-      // Try by user_id first (direct match)
-      let query = supabase
-        .from('sales')
-        .select('*')
-        .order('created_at', { ascending: false });
+      if (!user) return [];
 
+      // 1. Query orders table (has customer_user_id) - primary source
+      const { data: ordersData } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      // 2. Get phone to find matching sales records
       const { data: profile } = await supabase
         .from('customer_profiles')
         .select('phone')
-        .eq('user_id', user!.id)
+        .eq('user_id', user.id)
         .maybeSingle();
 
+      let salesData: typeof ordersData = [];
       if (profile?.phone) {
-        // Search by phone (linked to old sales records)
         const { data } = await supabase
           .from('sales')
           .select('*')
-          .or(`client_phone.eq.${profile.phone},customer_user_id.eq.${user!.id}`)
+          .eq('client_phone', profile.phone)
           .order('created_at', { ascending: false })
           .limit(100);
-        return data || [];
-      } else {
-        // Fallback: search by customer_user_id only
-        const { data } = await supabase
-          .from('sales')
-          .select('*')
-          .eq('customer_user_id', user!.id)
-          .order('created_at', { ascending: false })
-          .limit(100);
-        return data || [];
+        salesData = data || [];
       }
+
+      // Combine both sources, deduplicate by id
+      const all = [...(ordersData || []), ...(salesData || [])];
+      const seen = new Set<string>();
+      return all.filter(o => {
+        if (seen.has(o.id)) return false;
+        seen.add(o.id);
+        return true;
+      });
     },
     enabled: !!targetUserId,
   });
 
-  const totalSpent = purchases.reduce((sum, p) => sum + (p.total_usd || 0), 0);
+  const totalSpent = purchases.reduce((sum, p) => sum + (Number(p.total_usd) || 0), 0);
   const totalPurchases = purchases.length;
 
   return {
@@ -253,3 +258,4 @@ export function useCustomerPurchaseHistory(customerId?: string) {
     totalPurchases,
   };
 }
+

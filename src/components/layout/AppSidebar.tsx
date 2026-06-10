@@ -13,9 +13,7 @@ import {
   X,
   Store,
   FileUp,
-  Wallet,
-  Calculator,
-  Scale
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -35,7 +33,6 @@ const menuItems = [
   { icon: Wallet, label: 'Créditos', path: '/credits' },
   { icon: Truck, label: 'Proveedores', path: '/providers' },
   { icon: FileText, label: 'Reportes', path: '/reports' },
-  { icon: Calculator, label: 'Calculadora', path: '/calculadora' },
   { icon: Settings, label: 'Configuración', path: '/settings' },
 ];
 

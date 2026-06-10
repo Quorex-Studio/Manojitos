@@ -20,7 +20,6 @@ const Reports = lazy(() => import("./pages/Reports"));
 const Settings = lazy(() => import("./pages/Settings"));
 const ImportProducts = lazy(() => import("./pages/ImportProducts"));
 const Credits = lazy(() => import("./pages/Credits"));
-const PriceCalculator = lazy(() => import("./pages/PriceCalculator"));
 const BusinessRules = lazy(() => import("./pages/BusinessRules"));
 
 // Customer Pages - Lazy loaded
@@ -43,6 +42,7 @@ const AboutUs = lazy(() => import("./pages/AboutUs"));
 const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
 const ShippingPolicy = lazy(() => import("./pages/ShippingPolicy"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Atencion = lazy(() => import("./pages/Atencion"));
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 import { Loader2 } from "lucide-react";
@@ -173,6 +173,7 @@ function AppRoutes() {
       <Route path="/cliente/metodos-pago" element={<LazyPage><CustomerProtectedRoute><CustomerPaymentMethods /></CustomerProtectedRoute></LazyPage>} />
 
       {/* ===== RUTAS INFORMATIVAS ===== */}
+      <Route path="/atencion" element={<LazyPage><Atencion /></LazyPage>} />
       <Route path="/nosotros" element={<LazyPage><AboutUs /></LazyPage>} />
       <Route path="/terminos" element={<LazyPage><TermsAndConditions /></LazyPage>} />
       <Route path="/envios" element={<LazyPage><ShippingPolicy /></LazyPage>} />
@@ -189,7 +190,6 @@ function AppRoutes() {
       <Route path="/reports" element={<LazyPage><ProtectedRoute><Reports /></ProtectedRoute></LazyPage>} />
       <Route path="/settings" element={<LazyPage><ProtectedRoute><Settings /></ProtectedRoute></LazyPage>} />
       <Route path="/import-products" element={<LazyPage><ProtectedRoute><ImportProducts /></ProtectedRoute></LazyPage>} />
-      <Route path="/calculadora" element={<LazyPage><ProtectedRoute><PriceCalculator /></ProtectedRoute></LazyPage>} />
       <Route path="/reglas" element={<LazyPage><ProtectedRoute><BusinessRules /></ProtectedRoute></LazyPage>} />
 
       {/* 404 */}

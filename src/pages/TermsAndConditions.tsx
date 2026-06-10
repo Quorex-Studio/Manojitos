@@ -39,8 +39,9 @@ export default function TermsAndConditions() {
       content: `• El crédito es un beneficio otorgado a discreción de Manojitos
       • El límite de crédito se asigna según evaluación individual
       • Los pagos deben realizarse en las fechas acordadas
-      • El incumplimiento puede resultar en suspensión del crédito
-      • El historial de pagos afecta su nivel de confianza en el sistema`
+      • El incumplimiento puede resultar en la suspensión inmediata del crédito
+      • El historial de pagos afecta su nivel de confianza en el sistema
+      • En caso de transcurrir más de un (1) mes con deuda pendiente, se procederá a la apertura de un expediente legal con respaldo de nuestro equipo de abogados y los cuerpos policiales competentes.`
     },
     {
       title: "6. Responsabilidades del Usuario",

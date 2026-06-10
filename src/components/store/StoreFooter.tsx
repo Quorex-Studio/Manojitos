@@ -62,6 +62,11 @@ export function StoreFooter() {
             <h4 className="font-serif text-[#F5EDE8]/90 text-sm tracking-[0.15em] uppercase">Atención</h4>
             <ul className="space-y-3">
               <li>
+                <Link to="/atencion" className="text-[#F5EDE8]/40 hover:text-gold transition-colors duration-300 text-sm tracking-wide">
+                  Atención al Cliente
+                </Link>
+              </li>
+              <li>
                 <Link to="/nosotros" className="text-[#F5EDE8]/40 hover:text-gold transition-colors duration-300 text-sm tracking-wide">
                   Sobre Nosotros
                 </Link>
@@ -90,7 +95,7 @@ export function StoreFooter() {
             <ul className="space-y-4">
               <li className="flex items-center gap-3 text-[#F5EDE8]/40 text-sm tracking-wide">
                 <Phone className="h-4 w-4 text-gold/70 flex-shrink-0" />
-                <span>+58 412-123-4567</span>
+                <span>+58 426-3863042</span>
               </li>
               <li className="flex items-center gap-3 text-[#F5EDE8]/40 text-sm tracking-wide">
                 <Mail className="h-4 w-4 text-gold/70 flex-shrink-0" />

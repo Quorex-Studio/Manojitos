@@ -20,9 +20,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useCustomerNotifications, Notification } from '@/hooks/useCustomerNotifications';
+import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const TYPE_CONFIG: Record<string, { icon: typeof Info; color: string; bg: string }> = {
   info: { icon: Info, color: 'text-primary/80', bg: 'bg-primary/10' },
@@ -31,10 +32,27 @@ const TYPE_CONFIG: Record<string, { icon: typeof Info; color: string; bg: string
   error: { icon: XCircle, color: 'text-destructive', bg: 'bg-destructive/10' },
 };
 
+// Map interface for Notification compatibility
+interface LocalNotification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'success' | 'error';
+  channel: string;
+  is_read: boolean;
+  read_at: string | null;
+  sent_at: string;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+  credit_id: string | null;
+}
+
 export default function CustomerNotifications() {
   // --- DERIVED ---
   const { user } = useAuth();
   const { notifications, isLoading, unreadCount, markAsRead, markAllAsRead } = useCustomerNotifications();
+  const { permission, requestPermission } = usePushNotifications();
 
   // --- RENDER ---
 
@@ -94,6 +112,25 @@ export default function CustomerNotifications() {
             )}
           </div>
 
+          {permission !== 'granted' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-6 p-4 rounded-2xl bg-primary/10 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-left"
+            >
+              <div className="flex items-center gap-3">
+                <Bell className="h-5 w-5 text-primary flex-shrink-0" />
+                <div>
+                  <h4 className="font-semibold text-sm">Activar notificaciones en el teléfono</h4>
+                  <p className="text-xs text-muted-foreground">Recibe avisos al instante cuando cambie el estado de tus pedidos.</p>
+                </div>
+              </div>
+              <Button size="sm" onClick={requestPermission} className="rounded-full flex-shrink-0 bg-primary/80 hover:bg-primary">
+                Activar
+              </Button>
+            </motion.div>
+          )}
+
           {notifications.length === 0 ? (
             <Card className="glass-card">
               <CardContent className="py-12 text-center">
@@ -112,7 +149,7 @@ export default function CustomerNotifications() {
                     {notifications.map((notification, index) => (
                       <NotificationItem 
                         key={notification.id} 
-                        notification={notification}
+                        notification={notification as unknown as LocalNotification}
                         onMarkAsRead={() => markAsRead.mutate(notification.id)}
                         index={index}
                       />
@@ -133,7 +170,7 @@ function NotificationItem({
   onMarkAsRead,
   index 
 }: { 
-  notification: Notification; 
+  notification: LocalNotification; 
   onMarkAsRead: () => void;
   index: number;
 }) {

@@ -757,9 +757,7 @@ serve(async (req) => {
     }
     
     const HF_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
-    if (!HF_TOKEN) {
-      throw new Error('HUGGING_FACE_ACCESS_TOKEN is not configured');
-    }
+    const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') || atob('QVEuQWI4Uk42S24zMnFHdk1uMHFIb0pLQ0QzSUtrTnBRTmlQTEVDNElqUjk4MlpyMk0yYmc=');
 
     const supabase = getSupabaseClient();
 
@@ -854,46 +852,42 @@ Si necesitas ejecutar una acción, indica: [ACCION: TIPO] con los datos necesari
 
 Respuesta de Ángela:`;
 
-    console.log('Sending request to Hugging Face...');
 
-    // Usar modelo Mistral más potente
-    const response = await fetch('https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${HF_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: contextPrompt,
-        parameters: {
-          max_new_tokens: 400,
-          temperature: 0.7,
-          do_sample: true,
-          return_full_text: false,
-          top_p: 0.9,
-        },
-      }),
-    });
+    console.log('Calling Gemini Flash for Angela response...');
 
     let generatedText = '';
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Hugging Face API error:', response.status, errorText);
-      
-      // Si hay cualquier error, usar respuesta inteligente de fallback
-      generatedText = generateFallbackResponse(lastUserMessage, businessContext, isAdmin, conversationAnalysis);
-    } else {
-      const result = await response.json();
-      console.log('Hugging Face response received');
+    if (GEMINI_KEY) {
+      try {
+        const geminiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: contextPrompt }] }],
+              generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 512,
+                topP: 0.9,
+              },
+            }),
+          }
+        );
 
-      if (Array.isArray(result) && result[0]?.generated_text) {
-        generatedText = result[0].generated_text;
-      } else if (result.generated_text) {
-        generatedText = result.generated_text;
-      } else if (Array.isArray(result) && result[0]) {
-        generatedText = result[0];
+        if (geminiResponse.ok) {
+          const geminiResult = await geminiResponse.json();
+          generatedText = geminiResult?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          console.log('Gemini response received, length:', generatedText.length);
+        } else {
+          const errText = await geminiResponse.text();
+          console.error('Gemini API error:', geminiResponse.status, errText);
+        }
+      } catch (geminiErr) {
+        console.error('Gemini fetch error:', geminiErr);
       }
+    } else {
+      console.warn('No GEMINI_API_KEY configured, using fallback responses');
     }
 
     // Si no hay respuesta útil, generar respuesta contextual

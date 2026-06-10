@@ -16,11 +16,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNotifications } from '@/hooks/useNotifications';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export function NotificationBell() {
   const navigate = useNavigate();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
+  const { permission, requestPermission } = usePushNotifications();
 
   // Mostrar solo las últimas 5 notificaciones
   const recentNotifications = notifications.slice(0, 5);
@@ -65,6 +67,17 @@ export function NotificationBell() {
             </Button>
           )}
         </div>
+
+        {permission !== 'granted' && (
+          <div className="p-3 bg-primary/10 border-b border-primary/20 flex flex-col gap-2 text-left">
+            <p className="text-[11px] text-muted-foreground leading-normal">
+              Activa notificaciones nativas en tu Google Chrome / navegador para recibir avisos de compras al instante.
+            </p>
+            <Button size="sm" variant="outline" className="h-7 text-xs rounded-full w-full bg-background hover:bg-muted" onClick={requestPermission}>
+              Activar notificaciones
+            </Button>
+          </div>
+        )}
 
         <ScrollArea className="h-[300px]">
           {isLoading ? (
