@@ -32,7 +32,7 @@ export function useCustomerOrders() {
   const { data: orders = [], isLoading, refetch } = useQuery({
     queryKey: ['customer-orders', user?.id],
     queryFn: async () => {
-      // Fetch from orders table (future/new system)
+      // 1. Orders table (new system) — by customer_user_id
       const { data: ordersData } = await supabase
         .from('orders')
         .select('*')
@@ -40,13 +40,25 @@ export function useCustomerOrders() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      // Fetch from sales table (current checkout system)
-      const { data: salesData } = await supabase
+      // 2. Get customer profile phone to search sales by phone too
+      const { data: profile } = await supabase
+        .from('customer_profiles')
+        .select('phone')
+        .eq('user_id', user!.id)
+        .maybeSingle();
+
+      // 3. Sales table — search by phone or email (checkout stores client_phone)
+      let salesQuery = supabase
         .from('sales')
         .select('*')
-        .eq('customer_user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(50);
+
+      if (profile?.phone) {
+        salesQuery = salesQuery.or(`client_phone.eq.${profile.phone}`);
+      }
+
+      const { data: salesData } = await salesQuery;
 
       const fromOrders: Order[] = (ordersData || []).map(order => ({
         ...order,
@@ -57,7 +69,7 @@ export function useCustomerOrders() {
       const fromSales: Order[] = (salesData || []).map(sale => ({
         id: sale.id,
         user_id: sale.user_id,
-        customer_user_id: sale.customer_user_id ?? null,
+        customer_user_id: null,
         customer_name: sale.client_name ?? 'Cliente',
         customer_phone: sale.client_phone ?? null,
         customer_email: null,
@@ -93,6 +105,7 @@ export function useCustomerOrders() {
     },
     enabled: !!user,
   });
+
 
   // Estadísticas
   const stats = {

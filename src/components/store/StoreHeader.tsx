@@ -9,7 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { UserMenu } from '@/components/ui/user-menu';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
 import logoImage from '@/assets/logo.jpeg';
+import { Bell } from 'lucide-react';
 
 // Header de la tienda — Editorial luxury frosted glass
 export function StoreHeader() {
@@ -18,6 +21,7 @@ export function StoreHeader() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
   const { getItemCount } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const itemCount = getItemCount();
@@ -150,6 +154,9 @@ export function StoreHeader() {
 
             {/* Theme Toggle */}
             <ThemeToggle />
+
+            {/* Notification Bell — solo para clientes autenticados */}
+            {user && <CustomerNotificationBell />}
 
             {/* User Menu */}
             <UserMenu />
@@ -287,5 +294,108 @@ export function StoreHeader() {
         </AnimatePresence>
       </div>
     </motion.header>
+  );
+}
+
+// Campanita de notificaciones para clientes en el StoreHeader
+function CustomerNotificationBell() {
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useCustomerNotifications();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const recent = notifications.slice(0, 5);
+
+  return (
+    <div className="relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="relative h-9 w-9"
+        onClick={() => setOpen(v => !v)}
+        aria-label="Notificaciones"
+      >
+        <Bell className="h-4.5 w-4.5" />
+        <AnimatePresence>
+          {unreadCount > 0 && (
+            <motion.div
+              key="badge"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+              className="absolute -top-0.5 -right-0.5"
+            >
+              <Badge className="h-4.5 min-w-4.5 p-0 px-1 flex items-center justify-center text-[10px] bg-destructive text-white font-bold rounded-full">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </Badge>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Overlay */}
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 top-full mt-2 w-80 z-50 bg-card/95 backdrop-blur-xl border border-border/20 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-border/10">
+                <h4 className="font-semibold text-sm">Notificaciones</h4>
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost" size="sm"
+                    onClick={() => markAllAsRead.mutate()}
+                    disabled={markAllAsRead.isPending}
+                    className="text-xs h-7 text-primary"
+                  >
+                    Marcar todas
+                  </Button>
+                )}
+              </div>
+              <div className="divide-y divide-border/10 max-h-72 overflow-y-auto">
+                {recent.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Sin notificaciones</p>
+                  </div>
+                ) : recent.map(n => (
+                  <div
+                    key={n.id}
+                    onClick={() => { if (!n.is_read) markAsRead.mutate(n.id); }}
+                    className={`p-3 cursor-pointer hover:bg-muted/40 transition-colors ${!n.is_read ? 'bg-primary/5' : ''}`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                        n.type === 'warning' ? 'bg-yellow-500' :
+                        n.type === 'error' ? 'bg-destructive' :
+                        n.type === 'success' ? 'bg-green-500' : 'bg-primary'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium truncate ${!n.is_read ? 'text-primary' : ''}`}>{n.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="p-2 border-t border-border/10">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs text-muted-foreground"
+                  onClick={() => { setOpen(false); navigate('/cliente/notificaciones'); }}
+                >
+                  Ver todas las notificaciones
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
