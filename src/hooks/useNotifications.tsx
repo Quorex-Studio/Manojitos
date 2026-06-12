@@ -14,6 +14,12 @@ import { toast } from 'sonner';
 import { useEffect, useRef } from 'react';
 import { usePushNotifications } from './usePushNotifications';
 
+// ── Module-level singleton registry ──────────────────────────────────────────
+// Keeps ONE channel per user ID regardless of how many components use this hook.
+// Ref-counted: created on first mount, destroyed when last consumer unmounts.
+type NotifChannelEntry = { channel: ReturnType<typeof supabase.channel>; refs: number };
+const notifChannelRegistry = new Map<string, NotifChannelEntry>();
+
 // Tipo para notificación
 export interface AdminNotification {
   id: string;
@@ -176,18 +182,36 @@ export function useNotifications() {
     },
   });
 
-  // ── Realtime subscription: auto-refresh on new notification & push browser alert ──
+  // ── Realtime subscription: singleton ref-counted per user ──
   const { showNotification } = usePushNotifications();
   const knownIds = useRef(new Set<string>());
+
+  // Keep knownIds in sync with loaded notifications (without re-triggering the channel effect)
+  useEffect(() => {
+    notifications.forEach(n => knownIds.current.add(n.id));
+  }, [notifications]);
 
   useEffect(() => {
     if (!user) return;
 
-    // Track already-known IDs so we only push-notify on truly new ones
-    notifications.forEach(n => knownIds.current.add(n.id));
+    const channelName = `notifications-${user.id}`;
+    const existing = notifChannelRegistry.get(channelName);
 
+    if (existing) {
+      // Another mount already owns this channel — just bump the ref count.
+      existing.refs += 1;
+      return () => {
+        existing.refs -= 1;
+        if (existing.refs === 0) {
+          supabase.removeChannel(existing.channel);
+          notifChannelRegistry.delete(channelName);
+        }
+      };
+    }
+
+    // First mount for this user: create and subscribe the channel.
     const channel = supabase
-      .channel(`notifications-${user.id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
@@ -195,15 +219,12 @@ export function useNotifications() {
           const notif = payload.new as AdminNotification;
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
 
-          // Only push if we haven't seen this ID before
           if (!knownIds.current.has(notif.id)) {
             knownIds.current.add(notif.id);
-            // In-app toast
             toast(notif.title, {
               description: notif.message,
               duration: 6000,
             });
-            // Browser push notification
             await showNotification(
               `🩷 Manojitos: ${notif.title}`,
               notif.message,
@@ -214,8 +235,18 @@ export function useNotifications() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient, showNotification]);
+    notifChannelRegistry.set(channelName, { channel, refs: 1 });
+
+    return () => {
+      const entry = notifChannelRegistry.get(channelName);
+      if (!entry) return;
+      entry.refs -= 1;
+      if (entry.refs === 0) {
+        supabase.removeChannel(entry.channel);
+        notifChannelRegistry.delete(channelName);
+      }
+    };
+  }, [user?.id]); // Only re-subscribe when the user ID changes
 
   return {
     notifications,
