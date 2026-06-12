@@ -971,15 +971,61 @@ function generateFallbackResponse(
   isAdmin: boolean,
   analysis: ConversationAnalysis
 ): string {
-  const msg = userMessage.toLowerCase();
+  const msg = userMessage.toLowerCase().trim();
   const bcvRate = context.bcvRate;
-  
+
   // ── EMOCIONAL ──
   if (analysis.sentiment === 'negative') {
     return `🩷 Entiendo, quiero ayudarte. ¿Qué necesitas?\n\n• 💰 Precios y cálculos\n• 📦 Productos disponibles\n• 💳 Información de crédito\n• 🧑\u200D💼 Hablar con un asesor\n\nEstoy aquí para ti. ✨`;
   }
   if (analysis.sentiment === 'confused') {
     return `🩷 ¡Sin problema! Puedo ayudarte con:\n• 💰 Precios (tasa BCV: ${bcvRate} Bs/$)\n• 🛒 Buscar productos\n• 💳 Tu crédito\n\n¿Qué te gustaría hacer? ✨`;
+  }
+
+  // ── RESPUESTAS CORTESÍA / ESTADO / CASUALES ──
+  if (msg.includes('todo bien') || msg.includes('cómo estás') || msg.includes('como estas') || 
+      msg.includes('como te va') || msg.includes('cómo te va') || msg.includes('qué tal') || msg.includes('que tal')) {
+    return `🩷 ¡Todo excelente por aquí! 😊 ¿En qué te puedo ayudar hoy con nuestro catálogo de Manojitos? ✨`;
+  }
+  
+  if (msg.includes('gracias') || msg.includes('agradecido') || msg.includes('agradecida')) {
+    return `🩷 ¡Con muchísimo gusto! Si necesitas algo más del catálogo, consultar la tasa BCV o tu crédito, solo dímelo. ¡Feliz día! ✨`;
+  }
+
+  // ── PREGUNTAS INFANTILES / NIÑOS ──
+  if (msg.includes('niño') || msg.includes('niña') || msg.includes('niños') || msg.includes('niñas') || 
+      msg.includes('infantil') || msg.includes('bebe') || msg.includes('bebé') || msg.includes('hijo') || msg.includes('hija')) {
+    return `🩷 Por los momentos no tenemos prendas infantiles o para niños en nuestro catálogo. Disponemos de ropa para caballeros, damas, perfumes y accesorios. ¡Te invito a explorar nuestras categorías de Ropa o Perfumes! ✨`;
+  }
+
+  // ── UBICACIÓN / TIENDA FÍSICA ──
+  if (msg.includes('tienda') || msg.includes('ubicacion') || msg.includes('ubicación') || 
+      msg.includes('direccion') || msg.includes('dirección') || msg.includes('donde estan') || 
+      msg.includes('dónde están') || msg.includes('local') || msg.includes('donde queda') || msg.includes('dónde queda')) {
+    return `🩷 Manojitos es principalmente una tienda virtual con atención y envíos a toda Venezuela. Realizamos entregas personales seguras y envíos por las agencias nacionales.\n\n📞 Si deseas coordinar una entrega o tienes alguna pregunta específica, puedes contactarnos al WhatsApp **+58 426-3863042**. ✨`;
+  }
+
+  // ── ENVÍOS / DELIVERY ──
+  if (msg.includes('delivery') || msg.includes('envio') || msg.includes('envío') || 
+      msg.includes('envi') || msg.includes('entreg') || msg.includes('recibir')) {
+    return `🩷 ¡Hacemos envíos a nivel nacional a toda Venezuela! 📦 También realizamos entregas personales bajo coordinación previa.\n\nPara detalles de costo y zonas de entrega, escríbenos directamente a nuestro WhatsApp **+58 426-3863042** y con gusto te ayudamos. ✨`;
+  }
+
+  // ── MÉTODOS DE PAGO ──
+  if (msg.includes('pago') || msg.includes('pagar') || msg.includes('zelle') || msg.includes('pago móvil') || 
+      msg.includes('pagomovil') || msg.includes('bolivares') || msg.includes('bs') || msg.includes('transferencia') || msg.includes('efectivo')) {
+    return `🩷 **Métodos de pago aceptados:**\n\n• Pago Móvil 📱\n• Efectivo USD/Bs 💵\n• Zelle 💳\n• Transferencias bancarias\n\nLa tasa oficial de hoy es la del BCV: **${bcvRate} Bs/$** (más 10.7% de recargo en transacciones aplicables). ✨`;
+  }
+
+  // ── HORARIOS ──
+  if (msg.includes('horario') || msg.includes('abierto') || msg.includes('cerrado') || 
+      msg.includes('hora') || msg.includes('dia') || msg.includes('trabaja')) {
+    return `🩷 **Nuestro horario de atención:**\n\n• Lunes a Viernes: 8:00 AM - 6:00 PM\n• Sábados: 9:00 AM - 1:00 PM\n\n¡Puedes ver y pedir productos en la web las 24 horas! ✨`;
+  }
+
+  // ── COLORES / TALLAS ──
+  if (msg.includes('color') || msg.includes('colores') || msg.includes('talla') || msg.includes('tallas') || msg.includes('medida')) {
+    return `🩷 Puedes consultar las tallas y colores disponibles para cada producto seleccionándolo en el catálogo aquí en la web. Si tienes alguna duda con las medidas de una prenda, escríbenos al WhatsApp **+58 426-3863042**. ✨`;
   }
 
   // ── SALUDO ──
@@ -998,13 +1044,14 @@ function generateFallbackResponse(
     return `🩷 ¡Hola! Soy **Ángela**, tu asistente de Manojitos. 👋\n\nPuedo ayudarte con:\n• 🛒 Productos y recomendaciones\n• 💰 Precios y cálculos\n• 💳 Tu crédito\n\n¿En qué te puedo ayudar? ✨`;
   }
 
-  // Detectar intención y responder apropiadamente
-  if (msg.includes('tasa') || msg.includes('bcv') || msg.includes('dólar')) {
+  // ── TASA BCV ──
+  if (msg.includes('tasa') || msg.includes('bcv') || msg.includes('dólar') || msg.includes('dolar')) {
     const extraPercent = context.extraPercentage;
-    return `🩷 **Tasa BCV actual: ${bcvRate} Bs/$**\n\nCon el ${extraPercent}% adicional, la tasa efectiva es: **${(bcvRate * (1 + extraPercent / 100)).toFixed(2)} Bs/$**\n\n¿Quieres calcular algún precio? ✨`;
+    return `🩷 **Tasa BCV de hoy: ${bcvRate} Bs/$**\n\nCon el ${extraPercent}% de recargo, la tasa efectiva es: **${(bcvRate * (1 + extraPercent / 100)).toFixed(2)} Bs/$**\n\n¿Quieres calcular algún precio? ✨`;
   }
   
-  if (msg.includes('calcul') || msg.includes('precio') || msg.includes('cuánto')) {
+  // ── PRECIOS / CONVERSIÓN ──
+  if (msg.includes('calcul') || msg.includes('precio') || msg.includes('cuánto') || msg.includes('cuanto') || msg.includes('costo')) {
     const numbers = msg.match(/\d+(\.\d+)?/g);
     if (numbers && numbers.length >= 1 && bcvRate > 0) {
       const amount = parseFloat(numbers[0]);
@@ -1014,15 +1061,15 @@ function generateFallbackResponse(
       
       return `🩷 **Cálculo de precio:**\n\n• Monto: **$${amount}**\n• Tasa BCV: ${bcvRate} Bs/$\n• En Bs puro: ${totalBsWithout.toFixed(2)} Bs\n• Con ${extraPercent}%: **${totalBs.toFixed(2)} Bs**\n\n💡 *Si pagas en USD ahorras ${(totalBs - totalBsWithout).toFixed(2)} Bs* ✨`;
     }
-    return `🩷 Para calcular un precio:\n\nDime el monto en USD y te lo convierto.\nTasa BCV: ${bcvRate} Bs/$ + ${context.extraPercentage}% adicional ✨`;
+    return `🩷 Para calcular un precio:\n\nDime el monto en USD y te lo convierto.\nTasa BCV: ${bcvRate} Bs/$ + ${context.extraPercentage}% de recargo ✨`;
   }
   
-  // Detectar consulta de categorías específicas
-  const hasCategoryQuery = msg.includes('categor') || msg.includes('ropa') || msg.includes('perfume') || msg.includes('interior') ||
-    context.categories.some(cat => msg.includes(cat.toLowerCase()));
+  // ── DETECTAR CATEGORÍAS ──
+  const hasCategoryQuery = msg.includes('categor') || msg.includes('ropa') || msg.includes('perfume') || 
+                           msg.includes('interior') || msg.includes('pantalon') || msg.includes('playa') ||
+                           context.categories.some(cat => msg.includes(cat.toLowerCase()));
   
   if (hasCategoryQuery) {
-    // Identificar qué categorías mencionó el usuario
     const mentionedCategories = context.categories.filter(cat => msg.includes(cat.toLowerCase()));
     const targetCategories = mentionedCategories.length > 0 ? mentionedCategories : context.categories.slice(0, 3);
     
@@ -1041,6 +1088,7 @@ function generateFallbackResponse(
     return response;
   }
 
+  // ── CRÉDITO ──
   if (msg.includes('crédito') || msg.includes('credito') || msg.includes('saldo') || msg.includes('deuda') || msg.includes('fiado') || msg.includes('debo')) {
     if (context.customerHistory) {
       return `🩷 **Tu crédito en Manojitos:**\n\n• Estado: ${context.customerHistory.creditStatus}\n• Límite: $${context.customerHistory.creditLimit}\n• Compras totales: ${context.customerHistory.totalPurchases}\n\n¿Necesitas más detalles? ✨`;
@@ -1049,6 +1097,7 @@ function generateFallbackResponse(
     return `🩷 Puedo mostrarte tu información de crédito. ¿Quieres ver tu saldo o límite disponible? ✨`;
   }
 
+  // ── STOCK (ADMIN) ──
   if (msg.includes('stock') && isAdmin) {
     if (context.lowStockProducts.length > 0) {
       const list = context.lowStockProducts.map(p => `• ${p.name}: ${p.stock} unidades`).join('\n');
@@ -1057,23 +1106,24 @@ function generateFallbackResponse(
     return `🩷 ¡Todo el inventario está bien abastecido! 🎉`;
   }
 
-  // ── MAPEO SEMÁNTICO de estilos / contexto / género ──
+  // ── MAPEO SEMÁNTICO DE ESTILOS / CONTEXTO ──
   const styleMap: Record<string, string[]> = {
-    playero:   ['short', 'shorts', 'franela', 'franelilla', 'vestido'],
-    playa:     ['short', 'shorts', 'franela', 'franelilla', 'vestido'],
-    verano:    ['short', 'shorts', 'franela', 'franelilla', 'vestido'],
+    playero:   ['short', 'shorts', 'franela', 'franelilla', 'vestido', 'playa', 'maya', 'mayas', 'baño'],
+    playa:     ['short', 'shorts', 'franela', 'franelilla', 'vestido', 'playa', 'maya', 'mayas', 'baño'],
+    verano:    ['short', 'shorts', 'franela', 'franelilla', 'vestido', 'playa', 'maya', 'mayas', 'baño'],
     calor:     ['short', 'shorts', 'franela', 'franelilla'],
-    sport:     ['short', 'shorts', 'franela'],
-    gym:       ['short', 'shorts', 'franela'],
-    ejercicio: ['short', 'shorts', 'franela'],
-    fiesta:    ['vestido', 'body', 'perfume', 'jean paul'],
+    sport:     ['short', 'shorts', 'franela', 'deportivo'],
+    gym:       ['short', 'shorts', 'franela', 'deportivo'],
+    ejercicio: ['short', 'shorts', 'franela', 'deportivo'],
+    deportivo: ['short', 'shorts', 'franela', 'deportivo'],
+    fiesta:    ['vestido', 'body', 'perfume', 'jean paul', 'scandal'],
     salir:     ['vestido', 'body', 'perfume'],
     noche:     ['vestido', 'body', 'perfume'],
     cita:      ['vestido', 'body', 'perfume'],
     'cómodo':  ['bragas', 'body'],
     comodo:    ['bragas', 'body'],
-    hombre:    ['short', 'shorts hombre', 'franela', 'oversize'],
-    caballero: ['short', 'shorts hombre', 'franela', 'oversize'],
+    hombre:    ['short', 'shorts hombre', 'franela', 'oversize', 'chemise'],
+    caballero: ['short', 'shorts hombre', 'franela', 'oversize', 'chemise'],
     mujer:     ['vestido', 'body', 'bragas', 'short dama', 'franelilla'],
     dama:      ['vestido', 'body', 'bragas', 'short dama', 'franelilla'],
     barato:    [],
@@ -1091,7 +1141,6 @@ function generateFallbackResponse(
     let matched = context.topProducts.filter(p =>
       searchTerms.some(t => p.name.toLowerCase().includes(t))
     );
-    // Si pide barato → ordenar por precio
     if (matchedKws.some(kw => ['barato', 'económico', 'economico'].includes(kw))) {
       matched = [...context.topProducts].sort((a, b) => a.price_usd - b.price_usd).slice(0, 4);
     }
@@ -1126,7 +1175,7 @@ function generateFallbackResponse(
   );
   if (catalogMatches.length > 0) {
     const list = catalogMatches.slice(0, 4).map(p => `• **${p.name}**: $${p.price_usd} (${p.stock} disponibles)`).join('\n');
-    return `🩷 Encontré esto que podría interesarte:\n\n${list}\n\n¿Es lo que buscabas? ✨`;
+    return `🩷 Encontré esto en nuestro catálogo que podría interesarte:\n\n${list}\n\n¿Es lo que buscabas? ✨`;
   }
 
   // ── MENÚ FINAL ──
