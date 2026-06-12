@@ -11,6 +11,15 @@ import { toast } from 'sonner';
 import { useEffect, useRef } from 'react';
 import { usePushNotifications } from './usePushNotifications';
 
+// ── Module-level singleton registry ──────────────────────────────────────────
+// Keeps ONE Supabase realtime channel per user ID across all concurrent mounts.
+// Using a ref-count means the channel is created on first mount and removed only
+// when the last consumer unmounts — preventing the "cannot add postgres_changes
+// callbacks after subscribe()" error caused by React Strict Mode double-effects
+// or multiple components using this hook simultaneously.
+type ChannelEntry = { channel: ReturnType<typeof supabase.channel>; refs: number };
+const channelRegistry = new Map<string, ChannelEntry>();
+
 export interface CustomerNotification {
   id: string;
   user_id: string;
@@ -95,24 +104,31 @@ export function useCustomerNotifications() {
     notifications.forEach(n => knownIds.current.add(n.id));
   }, [notifications]);
 
-  useEffect(() => {
+  useEffect(() =&gt; {
     if (!user) return;
 
     const channelName = `customer-notifications-${user.id}`;
+    const existing = channelRegistry.get(channelName);
 
-    // Re-use an existing active channel for this user if one already exists
-    const existing = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
     if (existing) {
-      // Another instance of this hook already owns the subscription — nothing to do.
-      return;
+      // Another mount already owns this channel — just bump the ref count.
+      existing.refs += 1;
+      return () =&gt; {
+        existing.refs -= 1;
+        if (existing.refs === 0) {
+          supabase.removeChannel(existing.channel);
+          channelRegistry.delete(channelName);
+        }
+      };
     }
 
+    // First mount for this user: create and subscribe the channel.
     const channel = supabase
       .channel(channelName)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        async (payload) => {
+        async (payload) =&gt; {
           const notif = payload.new as CustomerNotification;
           queryClient.invalidateQueries({ queryKey: ['customer-notifications'] });
 
@@ -135,8 +151,16 @@ export function useCustomerNotifications() {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
+    channelRegistry.set(channelName, { channel, refs: 1 });
+
+    return () =&gt; {
+      const entry = channelRegistry.get(channelName);
+      if (!entry) return;
+      entry.refs -= 1;
+      if (entry.refs === 0) {
+        supabase.removeChannel(entry.channel);
+        channelRegistry.delete(channelName);
+      }
     };
   }, [user?.id]); // Only re-subscribe when the user ID actually changes
 
