@@ -104,7 +104,7 @@ export function useCustomerNotifications() {
     notifications.forEach(n => knownIds.current.add(n.id));
   }, [notifications]);
 
-  useEffect(() =&gt; {
+  useEffect(() => {
     if (!user) return;
 
     const channelName = `customer-notifications-${user.id}`;
@@ -113,7 +113,7 @@ export function useCustomerNotifications() {
     if (existing) {
       // Another mount already owns this channel — just bump the ref count.
       existing.refs += 1;
-      return () =&gt; {
+      return () => {
         existing.refs -= 1;
         if (existing.refs === 0) {
           supabase.removeChannel(existing.channel);
@@ -128,7 +128,7 @@ export function useCustomerNotifications() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        async (payload) =&gt; {
+        async (payload) => {
           const notif = payload.new as CustomerNotification;
           queryClient.invalidateQueries({ queryKey: ['customer-notifications'] });
 
@@ -153,7 +153,7 @@ export function useCustomerNotifications() {
 
     channelRegistry.set(channelName, { channel, refs: 1 });
 
-    return () =&gt; {
+    return () => {
       const entry = channelRegistry.get(channelName);
       if (!entry) return;
       entry.refs -= 1;
