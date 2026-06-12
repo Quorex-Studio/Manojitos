@@ -508,7 +508,7 @@ async function handleRegisterSale(data: {
   
   const { data: products } = await supabase
     .from('products')
-    .select('id, name, price_usd, stock')
+    .select('id, name, price_usd, stock, sold_count')
     .ilike('name', `%${data.productName}%`)
     .limit(1);
   
@@ -556,7 +556,7 @@ async function handleRegisterSale(data: {
     .from('products')
     .update({ 
       stock: product.stock - data.quantity,
-      sold_count: product.stock + data.quantity 
+      sold_count: (product.sold_count || 0) + data.quantity 
     })
     .eq('id', product.id);
   
@@ -757,7 +757,7 @@ serve(async (req: Request) => {
     }
     
     const HF_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
-    const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY') || atob('QVEuQWI4Uk42S24zMnFHdk1uMHFIb0pLQ0QzSUtrTnBRTmlQTEVDNElqUjk4MlpyMk0yYmc=');
+    const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY');
 
     const supabase = getSupabaseClient();
 
@@ -847,8 +847,12 @@ FECHA: ${new Date().toLocaleDateString('es-VE')}
 
 Pregunta del usuario: ${lastUserMessage}
 
-Responde de forma clara, amigable y profesional. Si el usuario pregunta por precios, siempre muestra USD y Bs.
-Si necesitas ejecutar una acción, indica: [ACCION: TIPO] con los datos necesarios.
+INSTRUCCIONES CLAVE:
+- Si el usuario pregunta por precios, muestra siempre USD y Bs.
+- Si el usuario pregunta sobre categorías específicas ("Ropa", "Ropa Interior", "Perfume", etc.), lista los productos de CADA categoría mencionada con nombre, precio USD, precio Bs y stock.
+- Si el usuario pide ver productos de una categoría, busca en los PRODUCTOS DISPONIBLES de arriba y filtra por esa categoría.
+- NO respondas con el saludo genérico si el usuario hace una pregunta concreta de productos o categorías.
+- Si necesitas ejecutar una acción, indica: [ACCION: TIPO] con los datos necesarios.
 
 Respuesta de Ángela:`;
 
@@ -858,7 +862,7 @@ Respuesta de Ángela:`;
     let generatedText = '';
 
     if (GEMINI_KEY) {
-      const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-pro', 'gemini-2.0-flash'];
+      const modelsToTry = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-pro'];
       for (const model of modelsToTry) {
         try {
           console.log(`Trying Gemini model: ${model}`);
@@ -884,6 +888,8 @@ Respuesta de Ángela:`;
             if (generatedText && generatedText.length >= 10) {
               console.log(`Gemini response received from ${model}, length:`, generatedText.length);
               break; // Success! Exit loop
+            } else {
+              console.warn(`Gemini model ${model} returned empty/short response`);
             }
           } else {
             const errText = await geminiResponse.text();
@@ -892,6 +898,9 @@ Respuesta de Ángela:`;
         } catch (geminiErr) {
           console.error(`Gemini fetch error for model ${model}:`, geminiErr);
         }
+      }
+      if (!generatedText || generatedText.length < 10) {
+        console.error('All Gemini models failed. Falling back to rule-based response.');
       }
     } else {
       console.warn('No GEMINI_API_KEY configured, using fallback responses');
@@ -965,20 +974,28 @@ function generateFallbackResponse(
   const msg = userMessage.toLowerCase();
   const bcvRate = context.bcvRate;
   
-  // Si detectamos frustración, simplificar
+  // ── EMOCIONAL ──
   if (analysis.sentiment === 'negative') {
-    return `🩷 Entiendo tu frustración y quiero ayudarte. ¿Qué necesitas específicamente?\n\n• 💰 Precios y cálculos\n• 📦 Productos disponibles\n• 💳 Información de crédito\n• 🧑‍💼 Hablar con un asesor\n\nEstoy aquí para ti. ✨`;
+    return `🩷 Entiendo, quiero ayudarte. ¿Qué necesitas?\n\n• 💰 Precios y cálculos\n• 📦 Productos disponibles\n• 💳 Información de crédito\n• 🧑\u200D💼 Hablar con un asesor\n\nEstoy aquí para ti. ✨`;
   }
-
-  // Si está confundido, ofrecer guía
   if (analysis.sentiment === 'confused') {
-    return `🩷 ¡No te preocupes! Te explico de forma sencilla.\n\nPuedo ayudarte con:\n• 💰 Calcular precios (tasa BCV: ${bcvRate} Bs/$)\n• 🛒 Buscar productos\n• 💳 Tu crédito\n• 📦 Tus pedidos\n\n¿Qué te gustaría hacer? ✨`;
+    return `🩷 ¡Sin problema! Puedo ayudarte con:\n• 💰 Precios (tasa BCV: ${bcvRate} Bs/$)\n• 🛒 Buscar productos\n• 💳 Tu crédito\n\n¿Qué te gustaría hacer? ✨`;
   }
 
-  // Usar memoria del cliente para personalizar saludo
-  if (context.customerMemory?.viewedProducts?.length && (msg.includes('hola') || msg.includes('buenos'))) {
-    const lastProduct = context.customerMemory.viewedProducts.slice(-1)[0];
-    return `🩷 ¡Hola de nuevo! 👋 Me alegra verte.\n\nLa última vez te interesó **${lastProduct}**. ¿Quieres saber más sobre eso o buscas algo nuevo?\n\nTasa BCV: ${bcvRate} Bs/$ ✨`;
+  // ── SALUDO ──
+  if (msg.includes('hola') || msg.includes('buenas') || msg.includes('buenos') || msg.includes('hey')) {
+    if (context.customerMemory?.viewedProducts?.length) {
+      const last = context.customerMemory.viewedProducts.slice(-1)[0];
+      return `🩷 ¡Hola de nuevo! 👋 La última vez te interesó **${last}**. ¿Quieres saber más o buscas algo nuevo?\n\nTasa BCV: ${bcvRate} Bs/$ ✨`;
+    }
+    if (context.customerHistory?.lastProducts?.length) {
+      const last = context.customerHistory.lastProducts[0];
+      return `🩷 ¡Hola de nuevo! 👋 La última vez pediste **${last}**. ¿Lo repites o buscas algo diferente?\n\nPuedo ayudarte con 🛒 productos, 💰 precios o 💳 tu crédito. ✨`;
+    }
+    if (isAdmin) {
+      return `🩷 ¡Hola! Soy **Ángela**.\n\n📊 **Resumen rápido:**\n• Ventas 7 días: $${context.recentSales.toFixed(2)}\n• Stock bajo: ${context.lowStockProducts.length} productos\n• Créditos pendientes: ${context.pendingCredits.length}\n\n¿Qué necesitas? ✨`;
+    }
+    return `🩷 ¡Hola! Soy **Ángela**, tu asistente de Manojitos. 👋\n\nPuedo ayudarte con:\n• 🛒 Productos y recomendaciones\n• 💰 Precios y cálculos\n• 💳 Tu crédito\n\n¿En qué te puedo ayudar? ✨`;
   }
 
   // Detectar intención y responder apropiadamente
@@ -1000,49 +1017,119 @@ function generateFallbackResponse(
     return `🩷 Para calcular un precio:\n\nDime el monto en USD y te lo convierto.\nTasa BCV: ${bcvRate} Bs/$ + ${context.extraPercentage}% adicional ✨`;
   }
   
-  if (msg.includes('product') || msg.includes('recomienda') || msg.includes('buscar')) {
-    const topProducts = context.topProducts.slice(0, 3);
-    if (topProducts.length > 0) {
-      const productList = topProducts.map(p => `• **${p.name}**: $${p.price_usd} (${p.stock} disponibles)`).join('\n');
-      return `🩷 ¡Te muestro nuestros **productos destacados**:\n\n${productList}\n\n¿Alguno te interesa? ✨`;
+  // Detectar consulta de categorías específicas
+  const hasCategoryQuery = msg.includes('categor') || msg.includes('ropa') || msg.includes('perfume') || msg.includes('interior') ||
+    context.categories.some(cat => msg.includes(cat.toLowerCase()));
+  
+  if (hasCategoryQuery) {
+    // Identificar qué categorías mencionó el usuario
+    const mentionedCategories = context.categories.filter(cat => msg.includes(cat.toLowerCase()));
+    const targetCategories = mentionedCategories.length > 0 ? mentionedCategories : context.categories.slice(0, 3);
+    
+    let response = `🩷 Aquí tienes los productos por categoría:\n`;
+    for (const cat of targetCategories) {
+      const catProducts = context.topProducts.filter(p => p.category?.toLowerCase() === cat.toLowerCase());
+      if (catProducts.length > 0) {
+        response += `\n📦 **${cat}:**\n`;
+        response += catProducts.map(p => `  • ${p.name}: $${p.price_usd} USD (${p.stock} disponibles)`).join('\n');
+        response += '\n';
+      } else {
+        response += `\n📦 **${cat}:** Sin productos disponibles actualmente.\n`;
+      }
     }
-    return `🩷 ¿Qué tipo de producto buscas? Tenemos estas categorías: ${context.categories.join(', ')}. ✨`;
+    response += `\n¿Alguno te interesa? ✨`;
+    return response;
   }
 
-  if (msg.includes('crédito') || msg.includes('saldo') || msg.includes('deuda')) {
+  if (msg.includes('crédito') || msg.includes('credito') || msg.includes('saldo') || msg.includes('deuda') || msg.includes('fiado') || msg.includes('debo')) {
     if (context.customerHistory) {
-      return `🩷 **Tu información de crédito:**\n\n• Estado: ${context.customerHistory.creditStatus}\n• Límite: $${context.customerHistory.creditLimit}\n• Compras totales: ${context.customerHistory.totalPurchases}\n\n¿Necesitas más detalles? ✨`;
+      return `🩷 **Tu crédito en Manojitos:**\n\n• Estado: ${context.customerHistory.creditStatus}\n• Límite: $${context.customerHistory.creditLimit}\n• Compras totales: ${context.customerHistory.totalPurchases}\n\n¿Necesitas más detalles? ✨`;
     }
-    if (isAdmin) {
-      return `🩷 Puedo consultar información de créditos. ¿De qué cliente necesitas información? ✨`;
-    }
+    if (isAdmin) return `🩷 ¿De qué cliente necesitas información de crédito? ✨`;
     return `🩷 Puedo mostrarte tu información de crédito. ¿Quieres ver tu saldo o límite disponible? ✨`;
   }
 
   if (msg.includes('stock') && isAdmin) {
     if (context.lowStockProducts.length > 0) {
-      const stockList = context.lowStockProducts.map(p => `• ${p.name}: ${p.stock} unidades`).join('\n');
-      return `🩷 **Productos con stock bajo:**\n\n${stockList}\n\n¿Quieres que te ayude a hacer un pedido a proveedor? ✨`;
+      const list = context.lowStockProducts.map(p => `• ${p.name}: ${p.stock} unidades`).join('\n');
+      return `🩷 **Productos con stock bajo:**\n\n${list}\n\n¿Hago un pedido al proveedor? ✨`;
     }
-    return `🩷 ¡Todo el inventario está bien abastecido! No hay productos con stock bajo. 🎉`;
+    return `🩷 ¡Todo el inventario está bien abastecido! 🎉`;
   }
-  
-  if (msg.includes('hola') || msg.includes('buenas') || msg.includes('buenos')) {
-    if (context.customerHistory) {
-      const lastProduct = context.customerHistory.lastProducts[0];
-      const greeting = lastProduct
-        ? `🩷 ¡Hola de nuevo! 👋 La última vez te interesó **${lastProduct}**. ¿Quieres volver a verlo o buscas algo nuevo?\n\n`
-        : `🩷 ¡Hola! 👋 Qué gusto verte por aquí.\n\n`;
-      return greeting + `Puedo ayudarte con:\n• 🛒 Productos\n• 💰 Precios\n• 💳 Tu crédito\n\n¿Qué necesitas hoy? ✨`;
+
+  // ── MAPEO SEMÁNTICO de estilos / contexto / género ──
+  const styleMap: Record<string, string[]> = {
+    playero:   ['short', 'shorts', 'franela', 'franelilla', 'vestido'],
+    playa:     ['short', 'shorts', 'franela', 'franelilla', 'vestido'],
+    verano:    ['short', 'shorts', 'franela', 'franelilla', 'vestido'],
+    calor:     ['short', 'shorts', 'franela', 'franelilla'],
+    sport:     ['short', 'shorts', 'franela'],
+    gym:       ['short', 'shorts', 'franela'],
+    ejercicio: ['short', 'shorts', 'franela'],
+    fiesta:    ['vestido', 'body', 'perfume', 'jean paul'],
+    salir:     ['vestido', 'body', 'perfume'],
+    noche:     ['vestido', 'body', 'perfume'],
+    cita:      ['vestido', 'body', 'perfume'],
+    'cómodo':  ['bragas', 'body'],
+    comodo:    ['bragas', 'body'],
+    hombre:    ['short', 'shorts hombre', 'franela', 'oversize'],
+    caballero: ['short', 'shorts hombre', 'franela', 'oversize'],
+    mujer:     ['vestido', 'body', 'bragas', 'short dama', 'franelilla'],
+    dama:      ['vestido', 'body', 'bragas', 'short dama', 'franelilla'],
+    barato:    [],
+    'económico': [],
+    economico: [],
+    perfume:   ['perfume', 'jean paul', 'scandal'],
+    fragancia: ['perfume', 'jean paul', 'scandal'],
+    olor:      ['perfume', 'jean paul', 'scandal'],
+  };
+
+  const matchedKws = Object.keys(styleMap).filter(kw => msg.includes(kw));
+
+  if (matchedKws.length > 0) {
+    const searchTerms = [...new Set(matchedKws.flatMap(kw => styleMap[kw]))];
+    let matched = context.topProducts.filter(p =>
+      searchTerms.some(t => p.name.toLowerCase().includes(t))
+    );
+    // Si pide barato → ordenar por precio
+    if (matchedKws.some(kw => ['barato', 'económico', 'economico'].includes(kw))) {
+      matched = [...context.topProducts].sort((a, b) => a.price_usd - b.price_usd).slice(0, 4);
     }
-    
-    const greeting = isAdmin 
-      ? `🩷 ¡Hola! Soy **Ángela**, tu asistente de Manojitos.\n\n📊 **Resumen rápido:**\n• Ventas 7 días: $${context.recentSales.toFixed(2)}\n• Stock bajo: ${context.lowStockProducts.length} productos\n• Créditos pendientes: ${context.pendingCredits.length}\n\n¿Qué necesitas? ✨`
-      : `🩷 ¡Hola! Soy **Ángela**, tu asistente de Manojitos. 👋\n\nPuedo ayudarte con:\n• 🛒 Productos y recomendaciones\n• 💰 Precios y cálculos\n• 💳 Tu crédito\n• 📦 Tus pedidos\n\n¿En qué te puedo ayudar? ✨`;
-    return greeting;
+    if (matched.length > 0) {
+      const intent = matchedKws[0];
+      const list = matched.map(p => `• **${p.name}**: $${p.price_usd} (${p.stock} disponibles)`).join('\n');
+      return `🩷 Para algo **${intent}** te recomiendo:\n\n${list}\n\n¿Alguno te llama la atención? ✨`;
+    }
   }
-  
-  // Respuesta genérica mejorada
+
+  // ── MÁS VENDIDOS EXPLÍCITO ──
+  if (msg.includes('vendido') || msg.includes('popular') || msg.includes('top')) {
+    const top = context.bestSellers.slice(0, 5).map(p => `• ${p.name}`).join('\n');
+    return `🔥 **Nuestros más vendidos:**\n\n${top}\n\n¿Quieres ver precios de alguno? ✨`;
+  }
+
+  // ── RECOMENDACIÓN / BÚSQUEDA GENÉRICA ──
+  if (msg.includes('recomienda') || msg.includes('sugieres') || msg.includes('sugiere') ||
+      msg.includes('qué tienes') || msg.includes('que tienes') || msg.includes('busco') ||
+      msg.includes('buscar') || msg.includes('product')) {
+    const top = context.topProducts.slice(0, 4);
+    if (top.length > 0) {
+      const list = top.map(p => `• **${p.name}**: $${p.price_usd} (${p.stock} disponibles)`).join('\n');
+      return `🩷 ¡Con gusto! Te muestro lo más destacado:\n\n${list}\n\n📂 Categorías: ${context.categories.join(', ')}\n\n¿Algo específico que estés buscando? ✨`;
+    }
+  }
+
+  // ── CATCH-ALL: busca palabras del mensaje en catálogo ──
+  const words = msg.split(/\s+/).filter(w => w.length > 3);
+  const catalogMatches = context.topProducts.filter(p =>
+    words.some(w => p.name.toLowerCase().includes(w) || (p.category || '').toLowerCase().includes(w))
+  );
+  if (catalogMatches.length > 0) {
+    const list = catalogMatches.slice(0, 4).map(p => `• **${p.name}**: $${p.price_usd} (${p.stock} disponibles)`).join('\n');
+    return `🩷 Encontré esto que podría interesarte:\n\n${list}\n\n¿Es lo que buscabas? ✨`;
+  }
+
+  // ── MENÚ FINAL ──
   const topProduct = context.topProducts[0];
-  return `🩷 ¡Hola! Soy **Ángela**. ${isAdmin ? 'Como administrador, ' : ''}puedo ayudarte con:\n\n• 💰 Precios (tasa BCV: ${bcvRate} Bs/$)\n• ${isAdmin ? '📊 Ventas y stock' : '🛒 Productos disponibles'}\n• 💳 Créditos y pagos\n${topProduct ? `\n🔥 **Producto destacado:** ${topProduct.name} - $${topProduct.price_usd}` : ''}\n\n¿Qué necesitas? ✨`;
+  return `🩷 Puedo ayudarte con:\n\n• 🛒 Productos: ${context.categories.slice(0, 3).join(', ')}\n• 💰 Precios en USD y Bs (tasa: ${bcvRate} Bs/$)\n• 💳 Tu crédito disponible${topProduct ? `\n\n🔥 Destacado: **${topProduct.name}** - $${topProduct.price_usd}` : ''}\n\n¿Qué necesitas? ✨`;
 }

@@ -83,7 +83,10 @@ export function useCustomerNotifications() {
     },
   });
 
-  // ── Realtime subscription: auto-refresh on new notification & push browser alert ──
+  // ── Realtime subscription: singleton per user to avoid duplicate channel errors ──
+  // This hook can be mounted in multiple places (StoreHeader bell + notifications page).
+  // Supabase throws if you call .on() on an already-subscribed channel, so we keep
+  // a module-level registry and reuse the same channel for every concurrent mount.
   const { showNotification } = usePushNotifications();
   const knownIds = useRef(new Set<string>());
 
@@ -95,8 +98,17 @@ export function useCustomerNotifications() {
   useEffect(() => {
     if (!user) return;
 
+    const channelName = `customer-notifications-${user.id}`;
+
+    // Re-use an existing active channel for this user if one already exists
+    const existing = supabase.getChannels().find(ch => ch.topic === `realtime:${channelName}`);
+    if (existing) {
+      // Another instance of this hook already owns the subscription — nothing to do.
+      return;
+    }
+
     const channel = supabase
-      .channel(`customer-notifications-${user.id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
@@ -126,7 +138,7 @@ export function useCustomerNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient, showNotification]);
+  }, [user?.id]); // Only re-subscribe when the user ID actually changes
 
   return {
     notifications,
