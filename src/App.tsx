@@ -1,4 +1,4 @@
-// App principal de Manojitos - Ángela AI Assistant
+// App principal de Manojitos
 import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -46,7 +46,7 @@ const Atencion = lazy(() => import("./pages/Atencion"));
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 import { Loader2 } from "lucide-react";
-import { AngelaChat } from "@/components/ai/AngelaChat";
+
 
 // ErrorBoundary — captura crashes de React y muestra mensaje en vez de pantalla negra
 // También maneja el error "Failed to fetch dynamically imported module" que ocurre
@@ -231,7 +231,7 @@ const App = () => (
                 <Toaster />
                 <Sonner />
                 <AppRoutes />
-                <AngelaChat />
+
               </TooltipProvider>
             </CartProvider>
           </AuthProvider>

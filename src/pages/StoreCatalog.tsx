@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/store/ProductCard';
 import { usePublicProducts } from '@/hooks/usePublicProducts';
-import { AngelaPersonalShopper } from '@/components/ai/AngelaPersonalShopper';
+
 
 // Hook personalizado para debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -315,10 +315,7 @@ export default function StoreCatalog() {
           </div>
         )}
 
-        {/* Ángela Personal Shopper - Mobile */}
-        <div className="md:hidden mb-6">
-          <AngelaPersonalShopper />
-        </div>
+
 
         <div className="flex gap-10">
           {/* Sidebar Filters - Desktop */}
@@ -332,8 +329,6 @@ export default function StoreCatalog() {
                 <FiltersContent />
               </div>
 
-              {/* Ángela Personal Shopper - Desktop */}
-              <AngelaPersonalShopper />
             </div>
           </aside>
 

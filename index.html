@@ -44,47 +44,7 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
-  <!-- Tidio Chat (diferido hasta después de window.load para no bloquear el hilo principal) -->
-  <script>
-    window.addEventListener('load', function () {
-      setTimeout(function () {
-        var script = document.createElement('script');
-        script.src = '//code.tidio.co/liumibylta7aqxilwi712sqybcjmatrq.js';
-        script.async = true;
-        document.body.appendChild(script);
 
-        script.addEventListener('load', function () {
-          document.addEventListener("tidioChat-ready", function () {
-            if (window.tidioChatApi) {
-              window.tidioChatApi.hide();
-            }
-          });
-        });
-      }, 2500);
-    });
-
-    // Función global para abrir Tidio (incluso antes de que cargue)
-    window.abrirTidio = function () {
-      if (window.tidioChatApi) {
-        window.tidioChatApi.show();
-        window.tidioChatApi.open();
-      } else {
-        // Si aún no cargó, cargarlo inmediatamente
-        var script = document.createElement('script');
-        script.src = '//code.tidio.co/liumibylta7aqxilwi712sqybcjmatrq.js';
-        script.async = true;
-        document.body.appendChild(script);
-        script.addEventListener('load', function () {
-          setTimeout(function () {
-            if (window.tidioChatApi) {
-              window.tidioChatApi.show();
-              window.tidioChatApi.open();
-            }
-          }, 500);
-        });
-      }
-    };
-  </script>
 </body>
 
 </html>
