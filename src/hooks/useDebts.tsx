@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { debtSchema, validateInput } from '@/lib/validations';
 
 export interface Debt {
@@ -38,7 +38,7 @@ export function useDebts() {
       .limit(200);
 
     if (error) {
-      toast({ title: 'Error', description: 'No se pudieron cargar las deudas', variant: 'destructive' });
+      toast.error('No se pudieron cargar las deudas');
     } else {
       setDebts(data || []);
     }
@@ -68,15 +68,15 @@ export function useDebts() {
         .single();
 
       if (error) {
-        toast({ title: 'Error', description: 'No se pudo registrar la deuda', variant: 'destructive' });
+        toast.error('No se pudo registrar la deuda');
       } else {
-        toast({ title: 'Éxito', description: 'Deuda registrada correctamente' });
+        toast.success('Deuda registrada correctamente');
         fetchDebts();
       }
       return { data, error };
     } catch (validationError) {
       const errorMessage = validationError instanceof Error ? validationError.message : 'Datos inválidos';
-      toast({ title: 'Error de validación', description: errorMessage, variant: 'destructive' });
+      toast.error('Error de validación: ' + errorMessage);
       return { error: new Error(errorMessage) };
     }
   };
@@ -88,9 +88,51 @@ export function useDebts() {
       .eq('id', id);
 
     if (error) {
-      toast({ title: 'Error', description: 'No se pudo actualizar la deuda', variant: 'destructive' });
+      toast.error('No se pudo actualizar la deuda');
     } else {
-      toast({ title: 'Éxito', description: 'Deuda marcada como pagada' });
+      toast.success('Deuda marcada como pagada 🩷');
+      fetchDebts();
+    }
+    return { error };
+  };
+
+  const registerAbono = async (id: string, amount: number, notes?: string, rate?: number) => {
+    const debt = debts.find(d => d.id === id);
+    if (!debt) return { error: new Error('Deuda no encontrada') };
+
+    const newAmountUsd = Math.max(0, Number(debt.amount_usd) - amount);
+    let newAmountBs = debt.amount_bs;
+    if (rate && newAmountBs) {
+      newAmountBs = Math.max(0, Number(debt.amount_bs) - (amount * rate));
+    } else if (rate) {
+      newAmountBs = newAmountUsd * rate;
+    }
+
+    const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const abonoLog = `\n[Abono: $${amount.toFixed(2)} - ${notes || 'Sin referencia'} - ${dateStr}]`;
+    const newNotes = debt.notes ? `${debt.notes}${abonoLog}` : abonoLog.trim();
+
+    const isPaid = newAmountUsd <= 0;
+    const updateData: any = {
+      amount_usd: newAmountUsd,
+      amount_bs: newAmountBs,
+      notes: newNotes,
+    };
+
+    if (isPaid) {
+      updateData.status = 'paid';
+      updateData.paid_at = new Date().toISOString();
+    }
+
+    const { error } = await supabase
+      .from('debts')
+      .update(updateData)
+      .eq('id', id);
+
+    if (error) {
+      toast.error('No se pudo registrar el abono');
+    } else {
+      toast.success(isPaid ? 'Abono registrado. Deuda totalmente pagada! 🩷' : `Abono de $${amount.toFixed(2)} registrado.`);
       fetchDebts();
     }
     return { error };
@@ -103,9 +145,9 @@ export function useDebts() {
       .eq('id', id);
 
     if (error) {
-      toast({ title: 'Error', description: 'No se pudo eliminar la deuda', variant: 'destructive' });
+      toast.error('No se pudo eliminar la deuda');
     } else {
-      toast({ title: 'Éxito', description: 'Deuda eliminada' });
+      toast.success('Deuda eliminada 🩷');
       fetchDebts();
     }
     return { error };
@@ -120,5 +162,5 @@ export function useDebts() {
   const pendingDebts = debts.filter(d => d.status === 'pending');
   const paidDebts = debts.filter(d => d.status === 'paid');
 
-  return { debts, pendingDebts, paidDebts, loading, addDebt, markAsPaid, deleteDebt, refetch: fetchDebts };
+  return { debts, pendingDebts, paidDebts, loading, addDebt, markAsPaid, registerAbono, deleteDebt, refetch: fetchDebts };
 }

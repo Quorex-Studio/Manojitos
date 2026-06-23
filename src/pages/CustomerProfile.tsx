@@ -83,7 +83,7 @@ export default function CustomerProfile() {
       <StoreLayout>
         <div className="container py-24 text-center">
           <h1 className="text-3xl font-serif font-medium mb-3 tracking-tight">Acceso requerido</h1>
-          <p className="text-muted-foreground/50 mb-6 text-sm tracking-wide">Debes iniciar sesión para ver tu perfil</p>
+          <p className="text-muted-foreground/80 dark:text-muted-foreground/50 mb-6 text-sm tracking-wide">Debes iniciar sesión para ver tu perfil</p>
           <Link to="/cliente/auth">
             <Button className="btn-gold rounded-full px-8">Iniciar Sesión</Button>
           </Link>
@@ -113,7 +113,7 @@ export default function CustomerProfile() {
           {/* Header — editorial hero with gradient */}
           <div className="flex items-center gap-4 mb-10">
             <Link to="/">
-              <Button variant="ghost" size="icon" className="text-muted-foreground/40">
+              <Button variant="ghost" size="icon" className="text-muted-foreground/75 dark:text-muted-foreground/40">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
@@ -137,7 +137,7 @@ export default function CustomerProfile() {
                 <h1 className="text-3xl md:text-4xl font-serif font-medium text-foreground tracking-tight">
                   {profile?.full_name || 'Mi Cuenta'}
                 </h1>
-                <p className="text-muted-foreground/40 text-sm tracking-wide">{user.email}</p>
+                <p className="text-muted-foreground/75 dark:text-muted-foreground/40 text-sm tracking-wide">{user.email}</p>
               </div>
             </div>
           </div>
@@ -162,7 +162,7 @@ export default function CustomerProfile() {
                     <User className="h-4.5 w-4.5 text-primary/70" />
                     Información Personal
                   </CardTitle>
-                  <CardDescription className="text-muted-foreground/40 text-sm tracking-wide">
+                  <CardDescription className="text-muted-foreground/75 dark:text-muted-foreground/40 text-sm tracking-wide">
                     Actualiza tus datos de contacto y dirección de envío
                   </CardDescription>
                 </CardHeader>
@@ -170,7 +170,7 @@ export default function CustomerProfile() {
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="full_name" className="text-xs tracking-wide text-muted-foreground/60">Nombre completo</Label>
+                        <Label htmlFor="full_name" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Nombre completo</Label>
                         <Input
                           id="full_name"
                           placeholder="Tu nombre"
@@ -183,9 +183,9 @@ export default function CustomerProfile() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-xs tracking-wide text-muted-foreground/60">Teléfono *</Label>
+                        <Label htmlFor="phone" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Teléfono *</Label>
                         <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/30" />
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground/30" />
                           <Input
                             id="phone"
                             placeholder="+58 412 1234567"
@@ -199,9 +199,9 @@ export default function CustomerProfile() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="email" className="text-xs tracking-wide text-muted-foreground/60">Email</Label>
+                        <Label htmlFor="email" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Email</Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/30" />
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground/30" />
                           <Input
                             id="email"
                             type="email"
@@ -216,7 +216,7 @@ export default function CustomerProfile() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="city" className="text-xs tracking-wide text-muted-foreground/60">Ciudad</Label>
+                        <Label htmlFor="city" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Ciudad</Label>
                         <Input
                           id="city"
                           placeholder="Tu ciudad"
@@ -226,7 +226,7 @@ export default function CustomerProfile() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="state" className="text-xs tracking-wide text-muted-foreground/60">Estado</Label>
+                        <Label htmlFor="state" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Estado</Label>
                         <Input
                           id="state"
                           placeholder="Tu estado"
@@ -236,7 +236,7 @@ export default function CustomerProfile() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="zip_code" className="text-xs tracking-wide text-muted-foreground/60">Código Postal</Label>
+                        <Label htmlFor="zip_code" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Código Postal</Label>
                         <Input
                           id="zip_code"
                           placeholder="1234"
@@ -247,9 +247,9 @@ export default function CustomerProfile() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="address" className="text-xs tracking-wide text-muted-foreground/60">Dirección completa</Label>
+                      <Label htmlFor="address" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Dirección completa</Label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/30" />
+                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground/30" />
                         <Textarea
                           id="address"
                           placeholder="Calle, número, urbanización, punto de referencia..."
@@ -281,7 +281,7 @@ export default function CustomerProfile() {
               <Card className="bg-card/80 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.06)]">
                 <CardHeader>
                   <CardTitle className="font-serif tracking-tight">Historial de Compras</CardTitle>
-                  <CardDescription className="text-muted-foreground/40 text-sm tracking-wide">
+                  <CardDescription className="text-muted-foreground/75 dark:text-muted-foreground/40 text-sm tracking-wide">
                     Total gastado: <span className="text-gradient-gold font-semibold">${totalSpent.toFixed(2)} USD</span> en {totalPurchases} compras
                   </CardDescription>
                 </CardHeader>
@@ -291,7 +291,7 @@ export default function CustomerProfile() {
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/30" />
                     </div>
                   ) : purchases.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground/40">
+                    <div className="text-center py-12 text-muted-foreground/75 dark:text-muted-foreground/40">
                       <p className="text-sm tracking-wide">No tienes compras registradas</p>
                       <Link to="/tienda">
                         <Button variant="outline" className="mt-4 rounded-full border-border/20">

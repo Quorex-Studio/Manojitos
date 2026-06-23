@@ -194,38 +194,127 @@ export default function Sales() {
         }
 
         if (targetCredit) {
-          const previousBalance = targetCredit.current_balance;
-          const newBalance = previousBalance + approvedOrder.total_usd;
+          const totalUsd = approvedOrder.total_usd;
+          const montoFinanciado = totalUsd * 0.50;
+          const montoCuota = montoFinanciado / 3;
+          const saldoDeudorNeto = montoFinanciado - montoCuota; // 2 cuotas pendientes ($40 en una orden de $120)
 
-          // Actualizar el balance
+          const previousBalance = targetCredit.current_balance;
+          const newBalance = previousBalance + saldoDeudorNeto;
+
+          // Próxima fecha de vencimiento a 15 días
+          const nextDueDate = new Date();
+          nextDueDate.setDate(nextDueDate.getDate() + 15);
+
+          // Actualizar el balance, total_purchases y next_due_date
           const { error: updateCreditErr } = await supabase
             .from('credits')
             .update({
               current_balance: newBalance,
-              total_purchases: (targetCredit.total_purchases || 0) + 1
+              total_purchases: (targetCredit.total_purchases || 0) + 1,
+              next_due_date: targetCredit.next_due_date 
+                ? (new Date(targetCredit.next_due_date) < nextDueDate ? targetCredit.next_due_date : nextDueDate.toISOString())
+                : nextDueDate.toISOString()
             })
             .eq('id', targetCredit.id);
 
           if (updateCreditErr) throw updateCreditErr;
 
-          // Registrar la transacción de tipo cargo
-          const { error: txErr } = await supabase
+          // Registrar 2 transacciones para transparencia:
+          // 1. CARGO del 50% financiado
+          const { error: txCargoErr } = await supabase
             .from('credit_transactions')
             .insert({
               credit_id: targetCredit.id,
               user_id: approvedOrder.customer_user_id || targetCredit.user_id,
               type: 'CARGO',
-              amount: approvedOrder.total_usd,
+              amount: montoFinanciado,
+              previous_balance: previousBalance,
+              new_balance: previousBalance + montoFinanciado,
+              description: `Cargo Financiamiento 50% pedido #${orderId.substring(0, 8)}`,
+            });
+
+          if (txCargoErr) throw txCargoErr;
+
+          // 2. ABONO inmediato de la Cuota 1 de 3 (incluida en el pago inicial)
+          const { error: txAbonoErr } = await supabase
+            .from('credit_transactions')
+            .insert({
+              credit_id: targetCredit.id,
+              user_id: approvedOrder.customer_user_id || targetCredit.user_id,
+              type: 'ABONO',
+              amount: montoCuota,
+              previous_balance: previousBalance + montoFinanciado,
+              new_balance: newBalance,
+              description: `Abono Cuota 1/3 (Pago Inicial) pedido #${orderId.substring(0, 8)}`,
+            });
+
+          if (txAbonoErr) throw txAbonoErr;
+
+          toast.success(`Financiamiento Cashea aplicado a ${targetCredit.client_name}: Cargado $${montoFinanciado.toFixed(2)}, Abonado Cuota 1 $${montoCuota.toFixed(2)}. Saldo restante financiado: $${saldoDeudorNeto.toFixed(2)}.`);
+        } else {
+          toast.warning('El pedido se aprobó con método Crédito, pero el cliente no posee una línea de crédito registrada.');
+        }
+      } else if (approvedOrder.notes?.includes('[ABONO_CREDITO]')) {
+        // Encontrar cuenta de crédito por user_id, email, o teléfono
+        let { data: targetCredit, error: creditError } = await supabase
+          .from('credits')
+          .select('*')
+          .eq('client_user_id', approvedOrder.customer_user_id)
+          .maybeSingle();
+
+        if (!targetCredit) {
+          if (approvedOrder.customer_email) {
+            const { data: emailData } = await supabase
+              .from('credits')
+              .select('*')
+              .eq('client_email', approvedOrder.customer_email)
+              .maybeSingle();
+            targetCredit = emailData;
+          }
+          if (!targetCredit && approvedOrder.customer_phone) {
+            const { data: phoneData } = await supabase
+              .from('credits')
+              .select('*')
+              .eq('client_phone', approvedOrder.customer_phone)
+              .maybeSingle();
+            targetCredit = phoneData;
+          }
+        }
+
+        if (targetCredit) {
+          const abonoAmount = approvedOrder.total_usd;
+          const previousBalance = targetCredit.current_balance;
+          const newBalance = Math.max(0, previousBalance - abonoAmount);
+
+          // Actualizar el balance de la línea de crédito
+          const { error: updateCreditErr } = await supabase
+            .from('credits')
+            .update({
+              current_balance: newBalance
+            })
+            .eq('id', targetCredit.id);
+
+          if (updateCreditErr) throw updateCreditErr;
+
+          // Registrar la transacción de tipo ABONO
+          const { error: txErr } = await supabase
+            .from('credit_transactions')
+            .insert({
+              credit_id: targetCredit.id,
+              user_id: approvedOrder.customer_user_id || targetCredit.user_id,
+              type: 'ABONO',
+              amount: abonoAmount,
               previous_balance: previousBalance,
               new_balance: newBalance,
-              description: `Cargo por pedido aprobado #${orderId.substring(0, 8)}`,
+              description: `Abono verificado (Pedido #${orderId.substring(0, 8)})`,
             });
 
           if (txErr) throw txErr;
 
-          toast.success(`Cargo de $${approvedOrder.total_usd.toFixed(2)} aplicado a la línea de crédito de ${targetCredit.client_name}.`);
+          toast.success(`Abono a Crédito verificado para ${targetCredit.client_name}: Saldo disminuido en $${abonoAmount.toFixed(2)}. Nuevo saldo: $${newBalance.toFixed(2)}.`);
         } else {
-          toast.warning('El pedido se aprobó con método Crédito, pero el cliente no posee una línea de crédito registrada.');
+          toast.warning('Se verificó el abono, pero no se encontró la cuenta de crédito asociada.');
         }
       }
       

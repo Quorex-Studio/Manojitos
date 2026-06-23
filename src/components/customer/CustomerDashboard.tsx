@@ -73,7 +73,7 @@ function QuickLink({ to, icon, label, description, badge, badgeVariant = 'second
               )}
             </div>
             {description && (
-              <p className="text-xs text-muted-foreground/40 truncate tracking-wide">{description}</p>
+              <p className="text-xs text-muted-foreground/75 dark:text-muted-foreground/40 truncate tracking-wide">{description}</p>
             )}
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground/20 group-hover:text-primary/50 transition-all group-hover:translate-x-0.5" />
@@ -127,7 +127,7 @@ export function CustomerDashboard() {
               ? `Hola, ${profile.full_name.split(' ')[0]}` 
               : 'Bienvenido'}
           </h2>
-          <p className="text-sm text-muted-foreground/40 max-w-[250px] tracking-wide mt-1">
+          <p className="text-sm text-muted-foreground/75 dark:text-muted-foreground/40 max-w-[250px] tracking-wide mt-1">
             Gestiona tu cuenta y revisa tus compras en Manojitos.
           </p>
         </div>
@@ -138,15 +138,15 @@ export function CustomerDashboard() {
       <motion.div variants={item} className="grid grid-cols-3 gap-3">
         <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-gold/10">
           <p className="text-xl font-bold font-serif text-gradient-gold">{orders.length}</p>
-          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/30 mt-0.5">Pedidos</p>
+          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground/30 mt-0.5">Pedidos</p>
         </div>
         <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
           <p className="text-xl font-bold font-serif text-gradient-gold">{wishlistCount}</p>
-          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/30 mt-0.5">Favoritos</p>
+          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground/30 mt-0.5">Favoritos</p>
         </div>
         <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
           <p className="text-xl font-bold font-serif text-gradient-gold">{unreadCount}</p>
-          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/30 mt-0.5">Avisos</p>
+          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground/30 mt-0.5">Avisos</p>
         </div>
       </motion.div>
 

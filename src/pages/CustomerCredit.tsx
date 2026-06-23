@@ -225,6 +225,48 @@ export default function CustomerCredit() {
   const statusConfig = STATUS_CONFIG[credit.calculatedStatus || 'ACTIVO'];
   const usagePercent = (credit.current_balance / credit.credit_limit) * 100;
 
+  // Calcular las cuotas Cashea a partir de los cargos de financiamiento registrados
+  const cuotasFinanciadas = transactions
+    .filter(tx => tx.type === 'CARGO' && (tx.description?.includes('Cargo Financiamiento') || tx.description?.toLowerCase().includes('pedido')))
+    .map(tx => {
+      const isFinanciamiento = tx.description?.includes('Cargo Financiamiento');
+      const montoFinanciado = tx.amount;
+      const totalPedido = isFinanciamiento ? montoFinanciado * 2 : montoFinanciado;
+      const montoCuota = montoFinanciado / (isFinanciamiento ? 3 : 1);
+      const fechaCompra = new Date(tx.created_at);
+
+      // Cuotas
+      const cuotas = [
+        {
+          numero: 1,
+          monto: montoCuota,
+          fechaVencimiento: fechaCompra,
+          estado: 'PAGADA', // Se paga de inmediato
+        },
+        {
+          numero: 2,
+          monto: montoCuota,
+          fechaVencimiento: new Date(new Date(fechaCompra).getTime() + 15 * 24 * 60 * 60 * 1000),
+          estado: 'PENDIENTE',
+        },
+        {
+          numero: 3,
+          monto: montoCuota,
+          fechaVencimiento: new Date(new Date(fechaCompra).getTime() + 30 * 24 * 60 * 60 * 1000),
+          estado: 'PENDIENTE',
+        }
+      ];
+
+      return {
+        id: tx.id,
+        descripcion: tx.description,
+        totalPedido,
+        montoFinanciado,
+        cuotas,
+        fechaCompra
+      };
+    });
+
   return (
     <StoreLayout>
       <div className="container py-8 max-w-4xl">
@@ -265,7 +307,7 @@ export default function CustomerCredit() {
                         Reportar Abono
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="glass-card max-w-md bg-background/95 backdrop-blur-md border border-white/10 text-foreground">
+                    <DialogContent className="glass-card max-w-md bg-background/95 backdrop-blur-md border border-border dark:border-white/10 text-foreground">
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
                           <DollarSign className="h-5 w-5 text-primary animate-pulse" />
@@ -303,7 +345,7 @@ export default function CustomerCredit() {
                             <SelectTrigger className="bg-background/50">
                               <SelectValue placeholder="Selecciona un método" />
                             </SelectTrigger>
-                            <SelectContent className="bg-background/95 border-white/10">
+                            <SelectContent className="bg-background/95 border-border dark:border-white/10">
                               <SelectItem value="pago_movil">Pago Móvil</SelectItem>
                               <SelectItem value="zelle">Zelle</SelectItem>
                               <SelectItem value="transferencia">Transferencia Bancaria</SelectItem>
@@ -454,8 +496,9 @@ export default function CustomerCredit() {
 
           {/* Tabs */}
           <Tabs defaultValue="transactions" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="transactions">Movimientos</TabsTrigger>
+              <TabsTrigger value="cuotas">Mis Cuotas</TabsTrigger>
               <TabsTrigger value="promises">Compromisos</TabsTrigger>
               <TabsTrigger value="timeline">
                 <History className="h-4 w-4 mr-1" />
@@ -553,6 +596,102 @@ export default function CustomerCredit() {
                       </div>
                     </ScrollArea>
                   </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="cuotas">
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    Cronograma de Cuotas (Estilo Cashea)
+                  </CardTitle>
+                  <CardDescription>
+                    Visualiza el estado de tus cuotas quincenales para cada compra financiada.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {cuotasFinanciadas.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      No tienes compras financiadas registradas.
+                    </p>
+                  ) : (
+                    <div className="space-y-6">
+                      {cuotasFinanciadas.map(compra => {
+                        return (
+                          <div key={compra.id} className="p-4 rounded-xl border border-border dark:border-white/10 bg-secondary/30 space-y-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-semibold text-foreground text-sm md:text-base">
+                                  {compra.descripcion || 'Compra Financiada'}
+                                </h4>
+                                <p className="text-xs text-muted-foreground">
+                                  Comprado el {format(compra.fechaCompra, "dd MMM yyyy", { locale: es })}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-xs text-muted-foreground block">Total Pedido</span>
+                                <span className="font-bold text-primary">${compra.totalPedido.toFixed(2)}</span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {compra.cuotas.map((cuota) => {
+                                // Determinar estado de la cuota:
+                                // La cuota 1 siempre es pagada al inicio.
+                                // La cuota 2 y 3 dependen de si el saldo total de la línea de crédito ha sido amortizado.
+                                let isPaid = false;
+                                if (cuota.numero === 1) {
+                                  isPaid = true;
+                                } else if (cuota.numero === 2) {
+                                  // Si el saldo deudor es menor al costo de la última cuota (cuota 3), significa que la cuota 2 está pagada
+                                  isPaid = credit.current_balance <= cuota.monto;
+                                } else if (cuota.numero === 3) {
+                                  // Si el saldo deudor es cero, la cuota 3 está pagada
+                                  isPaid = credit.current_balance <= 0.01;
+                                }
+
+                                return (
+                                  <div 
+                                    key={cuota.numero} 
+                                    className={cn(
+                                      "p-3 rounded-lg border flex flex-col justify-between space-y-2",
+                                      isPaid 
+                                        ? "bg-primary/5 border-primary/20" 
+                                        : "bg-background/40 border-border dark:border-white/5"
+                                    )}
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs font-semibold text-muted-foreground">
+                                        Cuota {cuota.numero}/3
+                                      </span>
+                                      <Badge 
+                                        variant={isPaid ? "default" : "outline"} 
+                                        className={cn(
+                                          "text-[10px] px-1.5 py-0.5",
+                                          isPaid ? "bg-primary/20 text-primary border-primary/30" : "text-muted-foreground"
+                                        )}
+                                      >
+                                        {isPaid ? 'PAGADA' : 'PENDIENTE'}
+                                      </Badge>
+                                    </div>
+                                    <div>
+                                      <p className="text-lg font-bold">${cuota.monto.toFixed(2)}</p>
+                                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                        <Calendar className="h-3 w-3" />
+                                        Vence: {format(cuota.fechaVencimiento, "dd MMM yyyy", { locale: es })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </CardContent>
               </Card>

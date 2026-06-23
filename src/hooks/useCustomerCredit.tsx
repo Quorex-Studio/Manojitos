@@ -54,6 +54,17 @@ export function useCustomerCredit() {
 
       if (!data) return null;
 
+      // Si se encontró por email o teléfono pero no tiene client_user_id, vincularlo ahora mismo de forma permanente.
+      if (!data.client_user_id) {
+        const { error: linkError } = await supabase
+          .from('credits')
+          .update({ client_user_id: user.id })
+          .eq('id', data.id);
+        if (!linkError) {
+          data.client_user_id = user.id;
+        }
+      }
+
       // Calcular estado y días
       const { status, daysUntilDue, daysOverdue } = calculateCreditStatus(
         data.next_due_date,

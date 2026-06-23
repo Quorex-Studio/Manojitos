@@ -159,22 +159,32 @@ export default function Checkout() {
   const subtotal = getSubtotal();
   const isEmpty = items.length === 0;
 
-  // Crédito disponible — calcular si puede usar crédito
+  // Estados del pago inicial Cashea
+  const [casheaMethod, setCasheaMethod] = useState('pago_movil');
+  const [casheaRef, setCasheaRef] = useState('');
+
+  // Financiamiento Cashea
+  const montoFinanciado = subtotal * 0.50;
+  const montoCuota = montoFinanciado / 3;
+  const montoInicialTotal = (subtotal * 0.50) + montoCuota;
+
+  // Crédito disponible — calcular si puede usar crédito (se financia el 50%)
   const creditAvailable = hasCredit &&
     credit &&
     !credit.is_blocked &&
     credit.calculatedStatus !== 'BLOQUEADO' &&
     credit.calculatedStatus !== 'VENCIDO' &&
-    (credit.credit_limit - credit.current_balance) >= subtotal;
+    (credit.credit_limit - credit.current_balance) >= montoFinanciado;
 
-  // Lista de métodos de pago (con crédito si aplica)
-  const paymentMethods = creditAvailable
+  // Lista de métodos de pago (con crédito si el usuario posee una cuenta)
+  const paymentMethods = hasCredit
     ? [
         ...BASE_PAYMENT_METHODS,
         {
           id: 'credito',
-          label: 'Crédito (Fiado)',
-          description: `Cargo a tu línea de crédito — Disponible: $${(credit!.credit_limit - credit!.current_balance).toFixed(2)}`,
+          label: 'Crédito (Cashea - Pago en partes)',
+          description: `Crédito financia el 50%. Paga la Inicial + Cuota 1 hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales.`,
+          disabled: !creditAvailable,
         },
       ]
     : BASE_PAYMENT_METHODS;
@@ -244,6 +254,10 @@ export default function Checkout() {
         return;
       }
 
+      const notesPrefix = paymentMethod === 'credito'
+        ? `[Inicial Cashea: $${montoInicialTotal.toFixed(2)} - Método: ${casheaMethod} - Ref: ${casheaRef || 'N/A'}] `
+        : '';
+
       const { error, saleIds } = await processCheckout(
         items.map(item => ({
           id: item.id,
@@ -255,7 +269,7 @@ export default function Checkout() {
           payment_method: paymentMethod,
           client_name: shippingData.fullName,
           client_phone: shippingData.phone,
-          notes: `Dirección: ${shippingData.address}, ${shippingData.city}. ${shippingData.notes || ''}`,
+          notes: `${notesPrefix}Dirección: ${shippingData.address}, ${shippingData.city}. ${shippingData.notes || ''}`,
           total_bs_rate: rate > 0 ? rate : undefined
         }
       );
@@ -548,31 +562,61 @@ export default function Checkout() {
               <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
                 {paymentMethods.map((method) => {
                   const isCreditMethod = method.id === 'credito';
+                  const isDisabled = (method as any).disabled;
+                  
                   return (
                     <label
                       key={method.id}
-                      className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
-                        paymentMethod === method.id
+                      className={`flex items-start gap-4 p-4 rounded-xl border transition-all ${
+                        isDisabled
+                          ? 'opacity-60 cursor-not-allowed border-dashed bg-secondary/5'
+                          : 'cursor-pointer hover:shadow-md bg-white/40 hover:bg-white/60'
+                      } ${
+                        paymentMethod === method.id && !isDisabled
                           ? isCreditMethod
                             ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
                             : 'border-accent bg-accent/5 ring-1 ring-accent/30'
-                          : 'border-border bg-white/40 hover:bg-white/60'
+                          : isDisabled ? '' : 'border-border'
                       }`}
                     >
-                      <RadioGroupItem value={method.id} id={method.id} className="mt-1" />
+                      <RadioGroupItem 
+                        value={method.id} 
+                        id={method.id} 
+                        className="mt-1" 
+                        disabled={isDisabled}
+                      />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           {isCreditMethod && <Wallet className="h-4 w-4 text-primary" />}
                           <p className="font-medium text-foreground text-base">{method.label}</p>
                           {isCreditMethod && (
-                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Autorizado</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                              isDisabled 
+                                ? 'bg-destructive/10 text-destructive' 
+                                : 'bg-primary/10 text-primary'
+                            }`}>
+                              {isDisabled ? 'No Disponible' : 'Autorizado'}
+                            </span>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{method.description}</p>
+                        
                         {isCreditMethod && credit && (
-                          <div className="mt-2 flex gap-4 text-xs">
-                            <span className="text-muted-foreground">Usado: <strong>${credit.current_balance.toFixed(2)}</strong></span>
-                            <span className="text-muted-foreground">Límite: <strong>${credit.credit_limit.toFixed(2)}</strong></span>
+                          <div className="mt-2 flex flex-col gap-1 text-xs">
+                            <div className="flex gap-4">
+                              <span className="text-muted-foreground">Usado: <strong>${credit.current_balance.toFixed(2)}</strong></span>
+                              <span className="text-muted-foreground">Límite: <strong>${credit.credit_limit.toFixed(2)}</strong></span>
+                              <span className="text-muted-foreground">Disponible: <strong>${(credit.credit_limit - credit.current_balance).toFixed(2)}</strong></span>
+                            </div>
+                            {isDisabled && (
+                              <p className="text-destructive font-semibold mt-1">
+                                {credit.is_blocked || credit.calculatedStatus === 'BLOQUEADO'
+                                  ? '⚠️ Tu crédito está bloqueado temporalmente.'
+                                  : credit.calculatedStatus === 'VENCIDO'
+                                  ? '⚠️ Tienes cuotas vencidas. Pon al día tu cuenta.'
+                                  : `⚠️ El monto financiado ($${montoFinanciado.toFixed(2)}) supera tu saldo disponible ($${(credit.credit_limit - credit.current_balance).toFixed(2)}).`}
+                              </p>
+                            )}
                           </div>
                         )}
                       </div>
@@ -580,20 +624,6 @@ export default function Checkout() {
                   );
                 })}
               </RadioGroup>
-
-              {/* Alerta si crédito bloqueado/vencido */}
-              {hasCredit && !creditAvailable && credit && (
-                <div className="mt-3 flex items-center gap-2 text-xs text-destructive bg-destructive/10 p-3 rounded-lg">
-                  <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                  <span>
-                    {credit.is_blocked || credit.calculatedStatus === 'BLOQUEADO'
-                      ? 'Tu crédito está bloqueado. Contacta con la tienda.'
-                      : credit.calculatedStatus === 'VENCIDO'
-                      ? 'Tu crédito está vencido. Ponlo al día para usarlo.'
-                      : 'No tienes crédito disponible.'}
-                  </span>
-                </div>
-              )}
 
               {/* Panel de instrucciones de pago */}
               <AnimatePresence mode="wait">
@@ -605,23 +635,96 @@ export default function Checkout() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.25 }}
-                    className="mt-5 rounded-xl border border-primary/30 bg-primary/5 p-5"
+                    className="mt-5 rounded-xl border border-primary/40 bg-primary/5 p-5 space-y-4 shadow-sm"
                   >
-                    <div className="flex items-center gap-2 mb-3">
-                      <Wallet className="h-4 w-4 text-primary" />
-                      <p className="text-sm font-bold text-primary uppercase tracking-wide">Pago con Crédito Autorizado</p>
+                    <div className="flex items-center gap-2 pb-2 border-b border-primary/20">
+                      <Wallet className="h-5 w-5 text-primary" />
+                      <p className="text-sm font-bold text-primary uppercase tracking-wide">Financiamiento Estilo Cashea</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      El monto del pedido se cargará a tu línea de crédito. El administrador procesará el cargo y podrás ver el movimiento en tu cuenta de crédito.
-                    </p>
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                      <div className="bg-background/60 rounded-lg p-2 text-center">
-                        <p className="font-bold text-foreground">${credit.current_balance.toFixed(2)}</p>
-                        <p className="text-xs text-muted-foreground">Saldo actual</p>
+
+                    <div className="space-y-3 text-sm">
+                      <div className="bg-background/80 rounded-xl p-3 border border-primary/20 space-y-2">
+                        <div className="flex justify-between font-bold text-foreground">
+                          <span>Pago Inicial Hoy (50% + Cuota 1):</span>
+                          <span className="text-primary text-base">${montoInicialTotal.toFixed(2)}</span>
+                        </div>
+                        {rate > 0 && (
+                          <div className="text-right text-xs text-muted-foreground font-medium">
+                            ≈ Bs. {convertToBS(montoInicialTotal).toFixed(2)}
+                          </div>
+                        )}
+                        <p className="text-[11px] text-muted-foreground leading-normal mt-1 border-t border-border/40 pt-1.5">
+                          Para completar tu compra debes transferir o pagar la inicial hoy. El 50% restante (${montoFinanciado.toFixed(2)}) se cargará a tu línea de crédito en 3 cuotas.
+                        </p>
                       </div>
-                      <div className="bg-background/60 rounded-lg p-2 text-center">
-                        <p className="font-bold text-primary">${(credit.credit_limit - credit.current_balance).toFixed(2)}</p>
-                        <p className="text-xs text-muted-foreground">Disponible</p>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-background/50 rounded-lg p-2 text-center border border-border/50">
+                          <p className="text-xs text-muted-foreground">Cuota 1 (Hoy)</p>
+                          <p className="font-semibold text-foreground text-xs mt-0.5">${montoCuota.toFixed(2)}</p>
+                          <span className="text-[10px] text-green-600 bg-green-50 px-1 rounded font-medium">Pagas hoy</span>
+                        </div>
+                        <div className="bg-background/50 rounded-lg p-2 text-center border border-border/50">
+                          <p className="text-xs text-muted-foreground">Cuota 2 (15d)</p>
+                          <p className="font-semibold text-foreground text-xs mt-0.5">${montoCuota.toFixed(2)}</p>
+                          <span className="text-[10px] text-muted-foreground">Pendiente</span>
+                        </div>
+                        <div className="bg-background/50 rounded-lg p-2 text-center border border-border/50">
+                          <p className="text-xs text-muted-foreground">Cuota 3 (30d)</p>
+                          <p className="font-semibold text-foreground text-xs mt-0.5">${montoCuota.toFixed(2)}</p>
+                          <span className="text-[10px] text-muted-foreground">Pendiente</span>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-border/50 pt-3 space-y-3">
+                        <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Reportar Pago de la Inicial</h4>
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label htmlFor="casheaMethod" className="text-xs">Método de Pago</Label>
+                            <select
+                              id="casheaMethod"
+                              value={casheaMethod}
+                              onChange={(e) => setCasheaMethod(e.target.value)}
+                              className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <option value="pago_movil">Pago Móvil</option>
+                              <option value="zelle">Zelle</option>
+                              <option value="transferencia">Transferencia Bs</option>
+                              <option value="efectivo_usd">Efectivo USD</option>
+                              <option value="efectivo_bs">Efectivo Bs</option>
+                            </select>
+                          </div>
+
+                          {casheaMethod !== 'efectivo_usd' && casheaMethod !== 'efectivo_bs' && (
+                            <div>
+                              <Label htmlFor="casheaRef" className="text-xs">Referencia / Teléfono</Label>
+                              <Input
+                                id="casheaRef"
+                                placeholder="Ej: 123456"
+                                value={casheaRef}
+                                onChange={(e) => setCasheaRef(e.target.value)}
+                                className="mt-1 h-9 text-xs"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {casheaMethod === 'pago_movil' && (
+                          <div className="text-[11px] bg-accent/5 p-2.5 rounded-lg border border-accent/20 text-muted-foreground space-y-1">
+                            <p className="font-semibold text-accent">Datos Pago Móvil:</p>
+                            <p>Banco: {PAYMENT_INFO.pagoMovil.bank} | Tlf: {PAYMENT_INFO.pagoMovil.phone}</p>
+                            <p>C.I: {PAYMENT_INFO.pagoMovil.ci} | {PAYMENT_INFO.pagoMovil.name}</p>
+                          </div>
+                        )}
+
+                        {casheaMethod === 'zelle' && (
+                          <div className="text-[11px] bg-accent/5 p-2.5 rounded-lg border border-accent/20 text-muted-foreground">
+                            <p className="font-semibold text-accent">Datos Zelle:</p>
+                            <p>Email: zelle@manojitos.com (Ejemplo - reportar por WhatsApp)</p>
+                            <p>Contacto de soporte: {PAYMENT_INFO.contacto}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -699,31 +802,50 @@ export default function Checkout() {
                 )}
               </div>
 
-              <Button
-                size="lg"
-                className="w-full btn-gold h-14 text-base mt-6 shadow-xl"
-                disabled={!isShippingValid || loading}
-                onClick={handleSubmitOrder}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    Procesando...
-                  </>
-                ) : (
-                  <>
-                    Confirmar Pedido
-                    <Check className="h-5 w-5 ml-2" />
-                  </>
-                )}
-              </Button>
+              {/* Validación de pago inicial Cashea */}
+              {(() => {
+                const isCasheaValid = paymentMethod !== 'credito' || 
+                  casheaMethod === 'efectivo_usd' || 
+                  casheaMethod === 'efectivo_bs' || 
+                  casheaRef.trim() !== '';
 
-              {!isShippingValid && (
-                <div className="mt-4 p-3 bg-destructive/10 text-destructive text-xs rounded-lg text-center flex items-center justify-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
-                  Por favor completa los campos de envío requeridos
-                </div>
-              )}
+                return (
+                  <>
+                    <Button
+                      size="lg"
+                      className="w-full btn-gold h-14 text-base mt-6 shadow-xl"
+                      disabled={!isShippingValid || !isCasheaValid || loading}
+                      onClick={handleSubmitOrder}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Procesando...
+                        </>
+                      ) : (
+                        <>
+                          Confirmar Pedido
+                          <Check className="h-5 w-5 ml-2" />
+                        </>
+                      )}
+                    </Button>
+
+                    {!isShippingValid && (
+                      <div className="mt-4 p-3 bg-destructive/10 text-destructive text-xs rounded-lg text-center flex items-center justify-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                        Por favor completa los campos de envío requeridos
+                      </div>
+                    )}
+
+                    {isShippingValid && !isCasheaValid && (
+                      <div className="mt-4 p-3 bg-destructive/10 text-destructive text-xs rounded-lg text-center flex items-center justify-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                        Por favor ingresa la referencia o teléfono del pago de la inicial
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

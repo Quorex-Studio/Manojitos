@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Search, Check, Trash2, Phone, User } from 'lucide-react';
+import { CreditCard, Search, Check, Trash2, Phone, User, DollarSign, Loader2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useDebts, Debt } from '@/hooks/useDebts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
@@ -9,13 +9,26 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 export default function Debts() {
   // --- STATE ---
-  const { pendingDebts, paidDebts, markAsPaid, deleteDebt } = useDebts();
-  const { convertToBS } = useExchangeRate();
+  const { pendingDebts, paidDebts, markAsPaid, registerAbono, deleteDebt } = useDebts();
+  const { convertToBS, rate } = useExchangeRate();
   const [search, setSearch] = useState('');
+  const [selectedDebt, setSelectedDebt] = useState<Debt | null>(null);
+  const [abonoAmount, setAbonoAmount] = useState('');
+  const [abonoNotes, setAbonoNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // --- DERIVED ---
 
@@ -27,7 +40,7 @@ export default function Debts() {
   // --- HANDLERS ---
 
   const handleMarkPaid = async (id: string) => {
-    if (confirm('¿Marcar esta deuda como pagada?')) {
+    if (confirm('¿Marcar esta deuda como pagada en su totalidad?')) {
       await markAsPaid(id);
     }
   };
@@ -38,7 +51,31 @@ export default function Debts() {
     }
   };
 
+  const handleOpenAbono = (debt: Debt) => {
+    setSelectedDebt(debt);
+    setAbonoAmount('');
+    setAbonoNotes('');
+  };
 
+  const handleSaveAbono = async () => {
+    if (!selectedDebt || !abonoAmount || Number(abonoAmount) <= 0) return;
+    
+    const amount = Number(abonoAmount);
+    if (amount > selectedDebt.amount_usd) {
+      alert('El monto del abono no puede superar el saldo pendiente de la deuda.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await registerAbono(selectedDebt.id, amount, abonoNotes, rate || undefined);
+      setSelectedDebt(null);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // --- RENDER ---
   return (
@@ -49,6 +86,15 @@ export default function Debts() {
           <p className="page-subtitle">
             Total pendiente: <span className="text-gradient-gold font-bold">${totalPending.toFixed(2)}</span>
           </p>
+        </div>
+
+        <div className="p-4 rounded-xl border border-white/10 bg-secondary/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-foreground">💡 ¿Deudas vs Crédito?</p>
+            <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">
+              Las <strong>Deudas</strong> corresponden a ventas manuales o físicas facturadas en partes. El <strong>Crédito</strong> (estilo Cashea) se gestiona de forma automatizada por cliente en la pestaña o sección de Clientes / Créditos.
+            </p>
+          </div>
         </div>
 
         <div className="relative max-w-md">
@@ -78,6 +124,7 @@ export default function Debts() {
                 debt={debt}
                 onMarkPaid={handleMarkPaid}
                 onDelete={handleDelete}
+                onAbono={handleOpenAbono}
                 convertToBS={convertToBS}
               />
             ))}
@@ -109,6 +156,91 @@ export default function Debts() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Diálogo para registrar abono parcial */}
+      <Dialog open={!!selectedDebt} onOpenChange={(open) => !open && setSelectedDebt(null)}>
+        <DialogContent className="glass-card border-border/50 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-serif text-gradient-gold">Registrar Abono</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm">
+              Ingresa el monto del abono en USD para <strong>{selectedDebt?.client_name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedDebt && (
+            <div className="space-y-4 py-4">
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/40 text-sm space-y-1">
+                <p className="flex justify-between">
+                  <span>Monto original/pendiente:</span>
+                  <span className="font-bold text-gradient-gold">${Number(selectedDebt.amount_usd).toFixed(2)}</span>
+                </p>
+                <p className="flex justify-between text-xs text-muted-foreground">
+                  <span>Equivalente en Bs:</span>
+                  <span>Bs. {convertToBS(Number(selectedDebt.amount_usd)).toFixed(2)}</span>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="abono-amount" className="text-sm font-medium">Monto a abonar (USD)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">$</span>
+                  <Input
+                    id="abono-amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={selectedDebt.amount_usd}
+                    value={abonoAmount}
+                    onChange={(e) => setAbonoAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="pl-7 input-glass rounded-xl font-semibold text-lg"
+                  />
+                </div>
+                {abonoAmount && !isNaN(Number(abonoAmount)) && (
+                  <p className="text-xs text-muted-foreground pl-1">
+                    Equivalente en Bs: Bs. {convertToBS(Number(abonoAmount)).toFixed(2)}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="abono-notes" className="text-sm font-medium">Referencia / Método de pago</Label>
+                <Input
+                  id="abono-notes"
+                  value={abonoNotes}
+                  onChange={(e) => setAbonoNotes(e.target.value)}
+                  placeholder="Ej: Pago Móvil ref: 123456, Efectivo, etc."
+                  className="input-glass rounded-xl"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setSelectedDebt(null)}
+              className="rounded-xl border-border/60 hover:bg-muted/50"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveAbono}
+              disabled={isSubmitting || !abonoAmount || Number(abonoAmount) <= 0 || Number(abonoAmount) > (selectedDebt?.amount_usd || 0)}
+              className="gradient-primary text-white rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                'Registrar Pago'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
@@ -118,10 +250,16 @@ interface DebtCardProps {
   showActions?: boolean;
   onMarkPaid: (id: string) => void;
   onDelete: (id: string) => void;
+  onAbono?: (debt: Debt) => void;
   convertToBS: (usd: number) => number;
 }
 
-function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, convertToBS }: DebtCardProps) {
+function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, onAbono, convertToBS }: DebtCardProps) {
+  // Procesar notas para ver si contienen historial de abonos
+  const lines = debt.notes ? debt.notes.split('\n') : [];
+  const mainNotes = lines.filter(l => !l.startsWith('[Abono:')).join('\n');
+  const abonosLogs = lines.filter(l => l.startsWith('[Abono:'));
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -130,7 +268,7 @@ function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, convertToBS 
     >
       <Card className="glass-card border-border/50">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className={cn(
                 "p-2 rounded-lg",
@@ -153,16 +291,28 @@ function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, convertToBS 
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground mt-1">
-                  {new Date(debt.created_at).toLocaleDateString('es', {
+                  Creado: {new Date(debt.created_at).toLocaleDateString('es', {
                     day: 'numeric', month: 'short', year: 'numeric'
                   })}
                 </p>
-                {debt.notes && <p className="text-xs text-muted-foreground italic mt-1">{debt.notes}</p>}
+                {mainNotes && <p className="text-xs text-muted-foreground italic mt-1">{mainNotes}</p>}
+
+                {/* Mostrar historial de abonos si existen */}
+                {abonosLogs.length > 0 && (
+                  <div className="mt-2 pl-2 border-l border-amber-500/30 space-y-1">
+                    <p className="text-[10px] text-amber-500 uppercase tracking-wider font-semibold">Historial de abonos:</p>
+                    {abonosLogs.map((log, i) => (
+                      <p key={i} className="text-xs text-muted-foreground leading-relaxed">
+                        {log.replace(/[\[\]]/g, '')}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 pt-3 md:pt-0 border-border/30">
               <div className="text-right">
-                <p className="font-bold text-gradient-gold">${Number(debt.amount_usd).toFixed(2)}</p>
+                <p className="font-bold text-gradient-gold text-lg">${Number(debt.amount_usd).toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">Bs. {convertToBS(Number(debt.amount_usd)).toFixed(2)}</p>
                 <Badge
                   variant="outline"
@@ -177,20 +327,33 @@ function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, convertToBS 
                 </Badge>
               </div>
               {showActions && debt.status === 'pending' && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
+                  {onAbono && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onAbono(debt)}
+                      className="h-8 gap-1.5 rounded-lg border-amber-500/30 hover:border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-medium"
+                    >
+                      <DollarSign className="h-3.5 w-3.5" />
+                      <span>Abonar</span>
+                    </Button>
+                  )}
                   <Button
-                    size="icon"
-                    variant="ghost"
+                    size="sm"
+                    variant="outline"
                     onClick={() => onMarkPaid(debt.id)}
-                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400 dark:hover:text-emerald-300"
+                    className="h-8 gap-1.5 rounded-lg border-emerald-500/30 hover:border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-medium"
                   >
-                    <Check className="h-4 w-4" />
+                    <Check className="h-3.5 w-3.5" />
+                    <span>Pago Completo</span>
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
                     onClick={() => onDelete(debt.id)}
-                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                    title="Eliminar Deuda"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
