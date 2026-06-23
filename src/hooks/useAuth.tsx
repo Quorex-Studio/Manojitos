@@ -27,9 +27,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = Boolean(user?.app_metadata?.is_super_admin);
 
   useEffect(() => {
+    // Timeout de seguridad: si la sesión no resuelve en 4s, liberar el loading.
+    // Necesario para iOS Safari que bloquea cookies de terceros y puede
+    // dejar getSession() pendiente indefinidamente.
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 4000);
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
+        clearTimeout(safetyTimer);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -37,13 +45,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        clearTimeout(safetyTimer);
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      })
+      .catch(() => {
+        // En iOS Safari con cookies bloqueadas, getSession puede fallar.
+        // Liberamos el loading para que la app sea usable (usuario no logueado).
+        clearTimeout(safetyTimer);
+        setLoading(false);
+      });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

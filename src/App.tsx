@@ -165,18 +165,16 @@ function LazyPage({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Redirige al dashboard si el admin ya está autenticado
+function AdminAuthRoute() {
+  const { user } = useAuth();
+  return user ? <Navigate to="/dashboard" replace /> : <Auth />;
+}
+
 // Rutas de la aplicación
 function AppRoutes() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
+  // Solo las rutas protegidas usan loading — las rutas públicas no esperan.
+  // Esto evita la pantalla de carga infinita en iOS Safari.
   return (
     <Routes>
       {/* ===== RUTAS PÚBLICAS (CLIENTE) ===== */}
@@ -202,7 +200,7 @@ function AppRoutes() {
       <Route path="/privacidad" element={<LazyPage><PrivacyPolicy /></LazyPage>} />
 
       {/* ===== RUTAS ADMIN ===== */}
-      <Route path="/auth" element={<LazyPage>{user ? <Navigate to="/dashboard" replace /> : <Auth />}</LazyPage>} />
+      <Route path="/auth" element={<LazyPage><AdminAuthRoute /></LazyPage>} />
       <Route path="/dashboard" element={<LazyPage><ProtectedRoute><Dashboard /></ProtectedRoute></LazyPage>} />
       <Route path="/products" element={<LazyPage><ProtectedRoute><Products /></ProtectedRoute></LazyPage>} />
       <Route path="/sales" element={<LazyPage><ProtectedRoute><Sales /></ProtectedRoute></LazyPage>} />

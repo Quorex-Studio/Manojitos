@@ -75,22 +75,22 @@ export function StoreHeader() {
           isScrolled ? 'h-14 md:h-16' : 'h-16 md:h-20'
         }`}>
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-2 min-w-0">
             <motion.div
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className="flex items-center gap-2.5"
+              className="flex items-center gap-2 min-w-0"
             >
               <img 
                 src={logoImage} 
                 alt="Manojitos" 
-                className={`rounded-full object-cover transition-all duration-500 ring-1 ring-gold/20 ${
-                  isScrolled ? 'h-8 w-8 md:h-9 md:w-9' : 'h-10 w-10 md:h-11 md:w-11'
+                className={`rounded-full object-cover flex-shrink-0 transition-all duration-500 ring-1 ring-gold/20 ${
+                  isScrolled ? 'h-7 w-7 md:h-9 md:w-9' : 'h-8 w-8 md:h-11 md:w-11'
                 }`}
               />
               <span className={`font-serif font-bold text-gradient-gold transition-all duration-500 ${
-                isScrolled ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'
+                isScrolled ? 'text-lg md:text-2xl' : 'text-xl md:text-3xl'
               }`}>
                 Manojitos
               </span>
@@ -117,7 +117,7 @@ export function StoreHeader() {
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center gap-1 md:gap-2">
+          <div className="flex items-center gap-0.5 md:gap-2">
             {/* Search - Desktop */}
             <motion.div 
               className="hidden md:block relative"
