@@ -5,7 +5,7 @@
  * Edge Function: `get-bcv-rate`
  * Returns: { rate, loading, lastUpdate, updateRate, convertToBS, convertFromBS, autoFetching, refetch }
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -79,12 +79,20 @@ export function useExchangeRate(currency: Currency = 'USD') {
   };
 
   // Trigger auto-fetch on mount if needed
-  if (data && !autoFetchAttempted.current[currency]) {
-    const hoursSince = (Date.now() - data.lastUpdate.getTime()) / (1000 * 60 * 60);
-    if (hoursSince >= 24 || !data.rate) {
-      autoFetchBCV();
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!autoFetchAttempted.current[currency]) {
+      if (!data || !data.rate) {
+        autoFetchBCV();
+      } else {
+        const hoursSince = (Date.now() - data.lastUpdate.getTime()) / (1000 * 60 * 60);
+        if (hoursSince >= 24) {
+          autoFetchBCV();
+        }
+      }
     }
-  }
+  }, [data, isLoading, currency]);
 
   const convertToBS = (amount: number) => rate ? amount * rate : 0;
   const convertFromBS = (bs: number) => rate ? bs / rate : 0;

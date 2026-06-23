@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { ShoppingBag, Search, Menu, X } from 'lucide-react';
+import { ShoppingBag, Search, Menu, X, Bell, User, LogOut, Settings, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
 import logoImage from '@/assets/logo.jpeg';
-import { Bell } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Header de la tienda — Editorial luxury frosted glass
 export function StoreHeader() {
@@ -21,10 +21,40 @@ export function StoreHeader() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
   const { getItemCount } = useCart();
-  const { user } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
+  const { unreadCount } = useCustomerNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const itemCount = getItemCount();
+
+  // Obtener nombre del usuario
+  const getUserName = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'Usuario';
+  };
+
+  // Obtener iniciales para el avatar
+  const getInitials = () => {
+    const name = getUserName();
+    return name.charAt(0).toUpperCase();
+  };
+
+  // Cerrar sesión
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success('Sesión cerrada correctamente');
+      setIsMenuOpen(false);
+      navigate('/');
+    } catch (error) {
+      toast.error('Error al cerrar sesión');
+    }
+  };
 
   // Detectar scroll para cambiar estilo del header
   useEffect(() => {
@@ -153,13 +183,21 @@ export function StoreHeader() {
             </Button>
 
             {/* Theme Toggle */}
-            <ThemeToggle />
+            <div className="hidden md:block">
+              <ThemeToggle />
+            </div>
 
             {/* Notification Bell — solo para clientes autenticados */}
-            {user && <CustomerNotificationBell />}
+            {user && (
+              <div className="hidden md:block">
+                <CustomerNotificationBell />
+              </div>
+            )}
 
             {/* User Menu */}
-            <UserMenu />
+            <div className="hidden md:block">
+              <UserMenu />
+            </div>
 
             {/* Cart con badge animado premium */}
             <Link to="/carrito" className="relative">
@@ -255,18 +293,18 @@ export function StoreHeader() {
               transition={{ duration: 0.3, ease: 'easeOut' }}
               className="md:hidden overflow-hidden border-t border-border/10"
             >
-              <div className="py-4 space-y-1">
+              <div className="py-4 space-y-1 px-2 max-h-[calc(100vh-5rem)] overflow-y-auto">
                 {navLinks.map((link, index) => (
                   <motion.div
                     key={link.to}
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: index * 0.08 }}
+                    transition={{ delay: index * 0.05 }}
                   >
                     <Link 
                       to={link.to}
                       onClick={() => setIsMenuOpen(false)}
-                      className="block py-3 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 active:scale-[0.98] text-sm tracking-wide"
+                      className="block py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 active:scale-[0.98] text-sm tracking-wide font-medium"
                     >
                       {link.label}
                     </Link>
@@ -275,18 +313,132 @@ export function StoreHeader() {
                 <motion.div
                   initial={{ x: -20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: navLinks.length * 0.08 }}
+                  transition={{ delay: navLinks.length * 0.05 }}
                 >
                   <Link 
                     to="/carrito"
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center justify-between py-3 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm tracking-wide"
+                    className="flex items-center justify-between py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm tracking-wide font-medium"
                   >
                     <span>Mi Carrito</span>
                     {itemCount > 0 && (
-                      <Badge className="bg-gold text-white text-[10px] rounded-full">{itemCount}</Badge>
+                      <Badge className="bg-gold text-white text-[10px] rounded-full px-1.5 h-5 flex items-center justify-center font-bold">{itemCount}</Badge>
                     )}
                   </Link>
+                </motion.div>
+
+                {user ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: (navLinks.length + 1) * 0.05 }}
+                    className="space-y-1 pt-2"
+                  >
+                    <hr className="my-2 border-border/10 mx-4" />
+                    
+                    {/* User profile info block */}
+                    <div className="px-4 py-3 flex items-center gap-3 bg-muted/20 rounded-2xl mb-2">
+                      <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-base flex-shrink-0">
+                        {getInitials()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-foreground truncate">{getUserName()}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                    </div>
+
+                    {/* User links */}
+                    {isAdmin && (
+                      <Link
+                        to="/dashboard"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center gap-3 py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm font-medium"
+                      >
+                        <LayoutDashboard className="h-4.5 w-4.5 text-muted-foreground/60" />
+                        <span>Panel Admin</span>
+                      </Link>
+                    )}
+                    
+                    <Link
+                      to="/cliente/perfil"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm font-medium"
+                    >
+                      <User className="h-4.5 w-4.5 text-muted-foreground/60" />
+                      <span>Mi Perfil</span>
+                    </Link>
+
+                    <Link
+                      to={isAdmin ? "/settings" : "/cliente/configuracion"}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm font-medium"
+                    >
+                      <Settings className="h-4.5 w-4.5 text-muted-foreground/60" />
+                      <span>Configuración</span>
+                    </Link>
+
+                    <Link
+                      to="/cliente/notificaciones"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center justify-between py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm font-medium"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Bell className="h-4.5 w-4.5 text-muted-foreground/60" />
+                        <span>Notificaciones</span>
+                      </div>
+                      {unreadCount > 0 && (
+                        <Badge className="bg-destructive text-white text-[10px] rounded-full px-1.5 h-5 min-w-5 flex items-center justify-center font-bold">
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </Link>
+
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center gap-3 py-2.5 px-4 text-destructive hover:bg-destructive/10 rounded-xl transition-all duration-300 text-sm font-medium w-full text-left"
+                    >
+                      <LogOut className="h-4.5 w-4.5" />
+                      <span>Cerrar sesión</span>
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: (navLinks.length + 1) * 0.05 }}
+                    className="pt-2"
+                  >
+                    <hr className="my-2 border-border/10 mx-4" />
+                    <div className="px-4 py-2">
+                      <Link
+                        to="/cliente/auth"
+                        state={{ from: location.pathname }}
+                        onClick={() => setIsMenuOpen(false)}
+                        className="w-full block"
+                      >
+                        <Button 
+                          variant="outline" 
+                          className="w-full flex items-center justify-center gap-2 border-primary/30 hover:bg-primary/10 rounded-xl h-10"
+                        >
+                          <User className="h-4 w-4" />
+                          <span>Iniciar sesión</span>
+                        </Button>
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: (navLinks.length + 2) * 0.05 }}
+                  className="space-y-1"
+                >
+                  <hr className="my-2 border-border/10 mx-4" />
+                  <div className="px-4 py-2.5 flex items-center justify-between bg-card/40 rounded-xl">
+                    <span className="text-sm text-foreground/80 font-medium">Modo de color</span>
+                    <ThemeToggle />
+                  </div>
                 </motion.div>
               </div>
             </motion.nav>

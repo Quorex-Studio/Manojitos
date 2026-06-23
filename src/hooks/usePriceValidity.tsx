@@ -7,7 +7,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useExchangeRate } from './useExchangeRate';
 
-const PRICE_VALIDITY_MINUTES = 30; // Precio válido por 30 minutos
+const PRICE_VALIDITY_MINUTES = 1440; // Precio válido por 24 horas (tasa de cambio diaria)
 
 export function usePriceValidity() {
   const { rate, loading, lastUpdate } = useExchangeRate();
@@ -37,13 +37,18 @@ export function usePriceValidity() {
     const minutesRemaining = Math.max(0, PRICE_VALIDITY_MINUTES - diffMinutes);
     
     let urgency: 'normal' | 'warning' | 'urgent' = 'normal';
-    let message = `Precio válido por ${minutesRemaining} min`;
+    let message = '';
     
-    if (minutesRemaining <= 5) {
+    if (minutesRemaining <= 10) {
       urgency = 'urgent';
-      message = `¡Precio válido por ${minutesRemaining} min!`;
-    } else if (minutesRemaining <= 10) {
+      message = `¡Tasa por expirar! (${minutesRemaining} min)`;
+    } else if (minutesRemaining <= 60) {
       urgency = 'warning';
+      message = `Tasa expira en ${minutesRemaining} min`;
+    } else {
+      const hours = Math.floor(minutesRemaining / 60);
+      const mins = minutesRemaining % 60;
+      message = `Tasa válida por ${hours}h${mins > 0 ? ` ${mins}m` : ''}`;
     }
 
     return {

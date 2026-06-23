@@ -132,102 +132,105 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
               />
             </div>
 
-            {/* Overlay slide-up con backdrop-blur */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: isHovered ? 1 : 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <motion.div
-                className="w-full p-4 space-y-3"
-                initial={{ y: 30, opacity: 0 }}
-                animate={{
-                  y: isHovered ? 0 : 30,
-                  opacity: isHovered ? 1 : 0
-                }}
-                transition={{ duration: 0.35, delay: 0.05 }}
+            {/* Eye overlay on Desktop Hover */}
+            <div className="absolute inset-0 bg-black/10 opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="rounded-full shadow-lg bg-background/95 hover:bg-background backdrop-blur-sm border-0 text-xs scale-90 md:group-hover:scale-100 transition-all duration-300 pointer-events-auto"
               >
-                {/* Product info in overlay */}
-                <div>
-                  <h3 className="font-serif text-white text-sm md:text-base font-medium line-clamp-2 leading-snug">
-                    {product.name}
-                  </h3>
-                  <p className="text-gold font-bold text-lg mt-1">
-                    ${product.price_usd.toFixed(2)}
-                  </p>
-                  {rate > 0 && (
-                    <p className="text-white/60 text-xs mt-0.5">
-                      Bs. {bsPrice.toFixed(2)}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-gold/90 hover:bg-gold text-white border-0 rounded-full text-xs h-9 btn-shimmer"
-                    onClick={handleAddToCart}
-                    disabled={!canAdd || isAdding}
-                  >
-                    <AnimatePresence mode="wait">
-                      {isAdding ? (
-                        <motion.div
-                          key="check"
-                          initial={{ scale: 0, rotate: -180 }}
-                          animate={{ scale: 1, rotate: 0 }}
-                          exit={{ scale: 0 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <Check className="h-4 w-4" />
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="bag"
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="flex items-center gap-1.5"
-                        >
-                          <ShoppingBag className="h-3.5 w-3.5" />
-                          <span>{inCart ? 'Agregar más' : 'Agregar'}</span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </Button>
-                  <Button
-                    size="icon"
-                    className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border-0 rounded-full h-9 w-9"
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </motion.div>
-            </motion.div>
+                <Eye className="h-3.5 w-3.5 mr-1.5" />
+                <span>Ver Detalle</span>
+              </Button>
+            </div>
           </div>
 
-          {/* Minimal info below image — only category + stock */}
-          <div className="p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={`w-1.5 h-1.5 rounded-full ${product.stock > 5 ? 'bg-primary' : product.stock > 0 ? 'bg-gold animate-pulse' : 'bg-destructive'
-                }`} />
-              <span className="text-[11px] text-muted-foreground/60 tracking-wide">
+          {/* Product details below image */}
+          <div className="p-3.5 space-y-2">
+            {/* Category + Stock status */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground/60 tracking-wider uppercase font-medium">
                 {product.category || 'General'}
               </span>
+              <div className="flex items-center gap-1.5">
+                <div className={`w-1.5 h-1.5 rounded-full ${
+                  product.stock > 5 ? 'bg-primary' : product.stock > 0 ? 'bg-gold animate-pulse' : 'bg-destructive'
+                }`} />
+                <span className="text-[10px] text-muted-foreground/50">
+                  {product.stock > 5 ? 'Disponible' : product.stock > 0 ? 'Poco stock' : 'Agotado'}
+                </span>
+              </div>
             </div>
-            <AnimatePresence>
-              {inCart && (
-                <motion.div
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                >
-                  <Badge variant="outline" className="text-[9px] border-gold/30 text-gold/80 h-5 px-1.5 rounded-full">
-                    {cartQuantity} en carrito
-                  </Badge>
-                </motion.div>
-              )}
-            </AnimatePresence>
+
+            {/* Product Name */}
+            <h3 className="font-serif text-foreground/90 text-sm font-medium line-clamp-1 group-hover:text-primary transition-colors duration-300">
+              {product.name}
+            </h3>
+
+            {/* Prices & Cart Indicator */}
+            <div className="flex items-baseline justify-between flex-wrap gap-1">
+              <div>
+                <span className="text-base font-bold text-gradient-gold">
+                  ${product.price_usd.toFixed(2)}
+                </span>
+                {rate > 0 && (
+                  <span className="text-[10px] text-muted-foreground/45 ml-1.5">
+                    ≈ {bsPrice.toFixed(2)} Bs.
+                  </span>
+                )}
+              </div>
+              
+              {/* In Cart Indicator */}
+              <AnimatePresence>
+                {inCart && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  >
+                    <Badge variant="outline" className="text-[9px] border-gold/30 text-gold/80 h-5 px-1.5 rounded-full">
+                      {cartQuantity} en carrito
+                    </Badge>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* CTA Button — Clean and always visible */}
+            <div className="pt-1.5">
+              <Button
+                size="sm"
+                className="w-full bg-gold/90 hover:bg-gold text-white border-0 rounded-full text-xs h-8.5 btn-shimmer"
+                onClick={handleAddToCart}
+                disabled={!canAdd || isAdding}
+              >
+                <AnimatePresence mode="wait">
+                  {isAdding ? (
+                    <motion.div
+                      key="check"
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex items-center justify-center"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="bag"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="flex items-center justify-center gap-1.5"
+                    >
+                      <ShoppingBag className="h-3 w-3" />
+                      <span>{inCart ? 'Agregar más' : 'Agregar'}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Button>
+            </div>
           </div>
         </motion.div>
       </Link>

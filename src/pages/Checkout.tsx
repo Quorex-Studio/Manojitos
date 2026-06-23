@@ -210,7 +210,7 @@ export default function Checkout() {
       const { valid, errors } = await validateStock(
         items.map(item => ({
           id: item.id,
-          name: item.name,
+          name: item.size ? `${item.name} (Talla: ${item.size})` : item.name,
           quantity: item.quantity,
           price_usd: item.price_usd
         }))
@@ -225,7 +225,7 @@ export default function Checkout() {
       const { error, saleIds } = await processCheckout(
         items.map(item => ({
           id: item.id,
-          name: item.name,
+          name: item.size ? `${item.name} (Talla: ${item.size})` : item.name,
           quantity: item.quantity,
           price_usd: item.price_usd
         })),
@@ -564,7 +564,7 @@ export default function Checkout() {
               {/* Items */}
               <div className="space-y-4 mb-6 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
                 {items.map((item) => (
-                  <div key={item.id} className="flex gap-4">
+                  <div key={`${item.id}-${item.size || ''}`} className="flex gap-4">
                     <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border border-border/50 flex-shrink-0 shadow-sm">
                       {item.image_url ? (
                         <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
@@ -576,6 +576,9 @@ export default function Checkout() {
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                       <p className="text-sm font-semibold text-foreground line-clamp-2 leading-tight">{item.name}</p>
+                      {item.size && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Talla: {item.size === 'Única' ? 'Única' : item.size}</p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-1">x{item.quantity} unidades</p>
                     </div>
                     <div className="flex flex-col justify-center text-right">

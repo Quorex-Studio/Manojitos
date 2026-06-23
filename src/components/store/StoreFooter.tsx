@@ -21,7 +21,9 @@ export function StoreFooter() {
             </p>
             <div className="flex gap-3 pt-2">
               <a 
-                href="#" 
+                href="https://www.instagram.com/manojitos.shop/" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-[#F5EDE8]/5 border border-[#F5EDE8]/10 flex items-center justify-center hover:bg-primary/20 hover:border-primary/30 transition-all duration-300"
               >
                 <Instagram className="h-4 w-4 text-[#F5EDE8]/70" />

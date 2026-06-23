@@ -20,12 +20,36 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useBrowsingHistory } from '@/hooks/useBrowsingHistory';
 import { toast } from '@/hooks/use-toast';
 
+// Helper function to resolve available sizes based on product name/category rules
+const getAvailableSizes = (name: string, category: string): string[] => {
+  const normName = name.toLowerCase();
+  const normCategory = (category || '').toLowerCase();
+  
+  const isJeans = normName.includes('jean') || normCategory.includes('jean') || normCategory.includes('pantalones');
+  const isShorts = normName.includes('short') || normCategory.includes('short');
+  const isTrajeBano = normName.includes('baño') || normName.includes('bano') || normCategory.includes('baño') || normCategory.includes('bano') || normCategory.includes('playa');
+  
+  if (isJeans || isShorts || isTrajeBano) {
+    return ['S', 'M', 'L', 'XL'];
+  }
+  
+  const isSetPlayero = normName.includes('set playero') || normName.includes('sets playeros') || normName.includes('playero') || normCategory.includes('set playero') || normCategory.includes('playero');
+  const isBody = normName.includes('body') || normName.includes('bodys') || normCategory.includes('body') || normCategory.includes('bodys');
+  const isCaballero = normName.includes('caballero') || normCategory.includes('caballero');
+  
+  if (isSetPlayero || isBody || isCaballero) {
+    return ['Única'];
+  }
+  
+  return ['Única'];
+};
+
 // Página de detalle de producto — Split layout editorial
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { products, getProductById, loading: productsLoading } = usePublicProducts();
-  const { addItem, isInCart, getItemQuantity } = useCart();
+  const { items, addItem, isInCart, getItemQuantity } = useCart();
   const { rate, convertToBS } = useExchangeRate();
   const { addToHistory, getRecentlyViewed } = useBrowsingHistory();
   
@@ -35,6 +59,7 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [imageZoomed, setImageZoomed] = useState(false);
+  const [selectedSize, setSelectedSize] = useState<string>('');
 
   // --- DERIVED / EFFECTS ---
   useEffect(() => {
@@ -63,12 +88,32 @@ export default function ProductDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const availableSizes = product ? getAvailableSizes(product.name, product.category || '') : [];
+  const isSizeRequired = availableSizes.length > 0 && availableSizes[0] !== 'Única';
+
+  // Initialize/reset selected size when product changes
+  useEffect(() => {
+    if (product) {
+      const sizes = getAvailableSizes(product.name, product.category || '');
+      if (sizes.length === 1 && sizes[0] === 'Única') {
+        setSelectedSize('Única');
+      } else {
+        setSelectedSize('');
+      }
+    }
+  }, [product]);
+
   const recentlyViewed = getRecentlyViewed(id, 4);
 
-  const inCart = product ? isInCart(product.id) : false;
-  const cartQuantity = product ? getItemQuantity(product.id) : 0;
-  const availableStock = product ? product.stock - cartQuantity : 0;
+  const totalInCart = product ? items
+    .filter(item => item.id === product.id)
+    .reduce((sum, item) => sum + item.quantity, 0) : 0;
+    
+  const availableStock = product ? product.stock - totalInCart : 0;
   const maxQuantity = Math.max(0, availableStock);
+
+  const inCart = product && selectedSize ? isInCart(product.id, selectedSize) : false;
+  const cartQuantity = product && selectedSize ? getItemQuantity(product.id, selectedSize) : 0;
 
   const relatedProducts = product 
     ? products
@@ -87,6 +132,15 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (!product || quantity <= 0 || quantity > maxQuantity) return;
+    
+    if (isSizeRequired && !selectedSize) {
+      toast({
+        title: 'Selecciona una talla',
+        description: 'Por favor, selecciona una talla antes de agregar al carrito.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsAdding(true);
 
@@ -96,14 +150,15 @@ export default function ProductDetail() {
       price_usd: product.price_usd,
       quantity: quantity,
       image_url: product.image_url,
-      stock: product.stock
+      stock: product.stock,
+      size: selectedSize
     };
 
     addItem(cartItem);
 
     toast({
       title: '¡Agregado al carrito!',
-      description: `${quantity} x ${product.name}`,
+      description: `${quantity} x ${product.name} ${selectedSize ? `(Talla: ${selectedSize})` : ''}`,
     });
 
     setTimeout(() => {
@@ -318,9 +373,9 @@ export default function ProductDetail() {
               </span>
             </div>
 
-            {inCart && (
+            {totalInCart > 0 && (
               <Badge variant="outline" className="border-gold/20 text-gold/80 bg-gold/5 rounded-full text-xs">
-                Tienes {cartQuantity} en tu carrito
+                Tienes {totalInCart} en tu carrito {selectedSize && selectedSize !== 'Única' ? `(Talla ${selectedSize}: ${cartQuantity})` : ''}
               </Badge>
             )}
 
@@ -335,6 +390,42 @@ export default function ProductDetail() {
                 </p>
               </div>
             )}
+
+            {/* Tallas Selector */}
+            {product.stock > 0 && availableSizes.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] text-muted-foreground/40 tracking-[0.1em] uppercase block">
+                    Tallas disponibles
+                  </label>
+                  {isSizeRequired && !selectedSize && (
+                    <span className="text-[10px] text-gold/80 tracking-wide animate-pulse">
+                      * Selección obligatoria
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {availableSizes.map((size) => {
+                    const isSelected = selectedSize === size;
+                    return (
+                      <button
+                        key={size}
+                        onClick={() => setSelectedSize(size)}
+                        className={`px-4 py-2 text-xs font-medium tracking-wide rounded-full border transition-all duration-300 ${
+                          isSelected
+                            ? 'bg-gold border-gold text-black shadow-md shadow-gold/25'
+                            : 'border-border/15 hover:border-gold/50 text-foreground/80 hover:text-foreground bg-card/40'
+                        }`}
+                      >
+                        {size === 'Única' ? 'Talla Única' : size}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="h-px bg-border/10" />
 
             {/* Quantity & Add to Cart */}
             {product.stock > 0 && maxQuantity > 0 && (

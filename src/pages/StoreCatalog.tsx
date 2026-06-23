@@ -64,6 +64,37 @@ export default function StoreCatalog() {
     setPriceRange([0, maxPrice]);
   }, [maxPrice]);
 
+  // Sincronizar URL con los cambios de búsqueda o categoría (debounced)
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (debouncedSearch.trim()) {
+      params.search = debouncedSearch;
+    }
+    if (selectedCategories.length > 0) {
+      params.category = selectedCategories[0];
+    }
+    
+    const currentSearch = searchParams.get('search') || '';
+    const currentCat = searchParams.get('category') || '';
+    if (currentSearch !== (params.search || '') || currentCat !== (params.category || '')) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [debouncedSearch, selectedCategories, setSearchParams, searchParams]);
+
+  // Sincronizar estado local cuando la URL cambia (ej: navegación del header o breadcrumb)
+  useEffect(() => {
+    const search = searchParams.get('search') || '';
+    const cat = searchParams.get('category');
+    const catArray = cat ? [cat] : [];
+
+    if (search !== searchQuery) {
+      setSearchQuery(search);
+    }
+    if (JSON.stringify(catArray) !== JSON.stringify(selectedCategories)) {
+      setSelectedCategories(catArray);
+    }
+  }, [searchParams]);
+
   // Filtrar y ordenar productos
   const filteredProducts = useMemo(() => {
     let result = [...products];
@@ -108,7 +139,7 @@ export default function StoreCatalog() {
     }
 
     return result;
-  }, [products, searchQuery, selectedCategories, priceRange, sortBy]);
+  }, [products, debouncedSearch, selectedCategories, priceRange, sortBy]);
 
   // --- HANDLERS ---
   // Manejar cambio de categoría

@@ -9,19 +9,20 @@ export interface CartItem {
   quantity: number;
   image_url: string | null;
   stock: number;
+  size?: string;
 }
 
 // Interfaz del contexto del carrito
 interface CartContextType {
   items: CartItem[];
   addItem: (product: CartItem) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeItem: (productId: string, size?: string) => void;
+  updateQuantity: (productId: string, quantity: number, size?: string) => void;
   clearCart: () => void;
   getItemCount: () => number;
   getSubtotal: () => number;
-  isInCart: (productId: string) => boolean;
-  getItemQuantity: (productId: string) => number;
+  isInCart: (productId: string, size?: string) => boolean;
+  getItemQuantity: (productId: string, size?: string) => number;
 }
 
 // Helper para obtener la clave de almacenamiento por usuario
@@ -77,12 +78,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Agregar producto al carrito
   const addItem = useCallback((product: CartItem) => {
     setItems(currentItems => {
-      const existingItem = currentItems.find(item => item.id === product.id);
+      const existingItem = currentItems.find(
+        item => item.id === product.id && item.size === product.size
+      );
 
       if (existingItem) {
         const newQuantity = Math.min(existingItem.quantity + product.quantity, product.stock);
         return currentItems.map(item =>
-          item.id === product.id ? { ...item, quantity: newQuantity } : item
+          (item.id === product.id && item.size === product.size)
+            ? { ...item, quantity: newQuantity }
+            : item
         );
       }
 
@@ -91,20 +96,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Eliminar producto del carrito
-  const removeItem = useCallback((productId: string) => {
-    setItems(currentItems => currentItems.filter(item => item.id !== productId));
+  const removeItem = useCallback((productId: string, size?: string) => {
+    setItems(currentItems => currentItems.filter(item => !(item.id === productId && item.size === size)));
   }, []);
 
   // Actualizar cantidad de un producto
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
+  const updateQuantity = useCallback((productId: string, quantity: number, size?: string) => {
     if (quantity <= 0) {
-      setItems(currentItems => currentItems.filter(item => item.id !== productId));
+      setItems(currentItems => currentItems.filter(item => !(item.id === productId && item.size === size)));
       return;
     }
 
     setItems(currentItems =>
       currentItems.map(item =>
-        item.id === productId ? { ...item, quantity: Math.min(quantity, item.stock) } : item
+        (item.id === productId && item.size === size) ? { ...item, quantity: Math.min(quantity, item.stock) } : item
       )
     );
   }, []);
@@ -125,13 +130,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   // Verificar si un producto está en el carrito
-  const isInCart = useCallback((productId: string) => {
-    return items.some(item => item.id === productId);
+  const isInCart = useCallback((productId: string, size?: string) => {
+    return items.some(item => item.id === productId && (!size || item.size === size));
   }, [items]);
 
   // Obtener cantidad de un producto en el carrito
-  const getItemQuantity = useCallback((productId: string) => {
-    const item = items.find(item => item.id === productId);
+  const getItemQuantity = useCallback((productId: string, size?: string) => {
+    const item = items.find(item => item.id === productId && (!size || item.size === size));
     return item ? item.quantity : 0;
   }, [items]);
 

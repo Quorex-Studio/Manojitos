@@ -93,7 +93,7 @@ export default function StoreFront() {
             {/* Giant headline — stagger word entrance */}
             <div className="overflow-hidden">
               <motion.h1
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-semibold leading-[0.9] tracking-tighter break-words hyphens-auto"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-semibold leading-[1.1] md:leading-[1.1] tracking-tighter break-words hyphens-auto"
                 variants={containerVariants}
                 initial="hidden"
                 animate="show"

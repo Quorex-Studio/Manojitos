@@ -43,6 +43,9 @@ export const PriceValidityBadge = forwardRef<HTMLDivElement, PriceValidityBadgeP
       if (validity.urgency === 'normal' || validity.minutesRemaining === 0) {
         return null;
       }
+      const label = validity.minutesRemaining >= 60 
+        ? `${Math.floor(validity.minutesRemaining / 60)}h`
+        : `${validity.minutesRemaining} min`;
       return (
         <div ref={ref} className={className}>
           <motion.div
@@ -51,7 +54,7 @@ export const PriceValidityBadge = forwardRef<HTMLDivElement, PriceValidityBadgeP
             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${urgencyStyles[validity.urgency]}`}
           >
             <UrgencyIcon className="h-2.5 w-2.5" />
-            <span>{validity.minutesRemaining}min</span>
+            <span>{label}</span>
           </motion.div>
         </div>
       );

@@ -83,7 +83,7 @@ export default function Cart() {
                   className="flex items-center gap-5 py-6 border-b border-border/10 group"
                 >
                   {/* Thumbnail */}
-                  <Link to={`/producto/${item.id}`}>
+                  <Link to={`/producto/${item.id}`} className="flex-shrink-0">
                     <div className="w-20 h-24 md:w-24 md:h-28 rounded-xl overflow-hidden bg-secondary flex-shrink-0 group-hover:shadow-lg transition-shadow duration-300">
                       {item.image_url ? (
                         <img src={item.image_url} alt={item.name} className="w-full h-full object-contain p-1" />
@@ -95,59 +95,72 @@ export default function Cart() {
                     </div>
                   </Link>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <Link to={`/producto/${item.id}`}>
-                      <h3 className="font-serif text-foreground/90 text-sm md:text-base font-medium truncate hover:text-primary transition-colors">
-                        {item.name}
-                      </h3>
-                    </Link>
-                    <p className="text-gold text-sm font-semibold mt-1">${item.price_usd.toFixed(2)}</p>
-                    
-                    {/* Quantity controls — pill */}
-                    <div className="flex items-center gap-3 mt-3">
-                      <div className="flex items-center border border-border/15 rounded-full bg-card/80 backdrop-blur-sm overflow-hidden">
+                  {/* Info & Subtotal Container */}
+                  <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    {/* Product Info & Controls */}
+                    <div className="min-w-0 space-y-2">
+                      <div>
+                        <Link to={`/producto/${item.id}`}>
+                          <h3 className="font-serif text-foreground/90 text-sm md:text-base font-medium truncate hover:text-primary transition-colors">
+                            {item.name}
+                          </h3>
+                        </Link>
+                        {item.size && (
+                          <span className="inline-block mt-1 text-[10px] bg-secondary/40 text-muted-foreground/60 border border-border/10 rounded-full px-2.5 py-0.5">
+                            Talla: {item.size === 'Única' ? 'Única' : item.size}
+                          </span>
+                        )}
+                        <p className="text-gold text-xs md:text-sm font-semibold mt-1.5">${item.price_usd.toFixed(2)}</p>
+                      </div>
+                      
+                      {/* Quantity controls — pill */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center border border-border/15 rounded-full bg-card/80 backdrop-blur-sm overflow-hidden">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-none hover:text-primary"
+                            onClick={() => item.quantity <= 1 ? removeItem(item.id, item.size) : updateQuantity(item.id, item.quantity - 1, item.size)}
+                          >
+                            {item.quantity <= 1 ? <Trash2 className="h-3.5 w-3.5 text-destructive/60" /> : <Minus className="h-3 w-3" />}
+                          </Button>
+                          <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-none"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1, item.size)}
+                            disabled={item.quantity >= item.stock}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-none hover:text-primary"
-                          onClick={() => item.quantity <= 1 ? removeItem(item.id) : updateQuantity(item.id, item.quantity - 1)}
+                          size="sm"
+                          className="text-muted-foreground/30 hover:text-destructive text-xs h-8 px-2"
+                          onClick={() => removeItem(item.id, item.size)}
                         >
-                          {item.quantity <= 1 ? <Trash2 className="h-3 w-3 text-destructive/60" /> : <Minus className="h-3 w-3" />}
-                        </Button>
-                        <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-none"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          disabled={item.quantity >= item.stock}
-                        >
-                          <Plus className="h-3 w-3" />
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Eliminar
                         </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground/30 hover:text-destructive text-xs h-8"
-                        onClick={() => removeItem(item.id)}
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Eliminar
-                      </Button>
                     </div>
-                  </div>
 
-                  {/* Line total */}
-                  <div className="text-right flex-shrink-0">
-                    <p className="font-serif text-lg md:text-xl font-semibold text-gradient-gold">
-                      ${(item.price_usd * item.quantity).toFixed(2)}
-                    </p>
-                    {rate > 0 && (
-                      <p className="text-xs text-muted-foreground/30 mt-0.5">
-                        Bs. {convertToBS(item.price_usd * item.quantity).toFixed(2)}
-                      </p>
-                    )}
+                    {/* Line total */}
+                    <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-start pt-2.5 sm:pt-0 border-t border-border/5 sm:border-t-0">
+                      <span className="text-[10px] text-muted-foreground/40 uppercase tracking-wider sm:hidden">Subtotal</span>
+                      <div className="text-right">
+                        <p className="font-serif text-base md:text-lg font-semibold text-gradient-gold">
+                          ${(item.price_usd * item.quantity).toFixed(2)}
+                        </p>
+                        {rate > 0 && (
+                          <p className="text-[10px] text-muted-foreground/35 mt-0.5">
+                            Bs. {convertToBS(item.price_usd * item.quantity).toFixed(2)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               ))}

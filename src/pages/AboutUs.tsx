@@ -153,9 +153,11 @@ export default function AboutUs() {
         >
           <h2 className="text-2xl font-serif font-semibold mb-6">Síguenos en Redes Sociales</h2>
           <div className="flex justify-center gap-4">
-            <Button variant="outline" size="lg" className="gap-2">
-              <Instagram className="h-5 w-5" />
-              Instagram
+            <Button variant="outline" size="lg" className="gap-2" asChild>
+              <a href="https://www.instagram.com/manojitos.shop/" target="_blank" rel="noopener noreferrer">
+                <Instagram className="h-5 w-5" />
+                Instagram
+              </a>
             </Button>
             <Button variant="outline" size="lg" className="gap-2">
               <Facebook className="h-5 w-5" />
@@ -163,7 +165,7 @@ export default function AboutUs() {
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            @manojitos_ve
+            @MANOJITOS.SHOP
           </p>
         </motion.section>
       </div>
