@@ -108,7 +108,7 @@ export function CustomerDashboard() {
       {/* Perfil Financiero del Cliente */}
       {hasCredit && credit && (
         <motion.div variants={item}>
-          <CreditFinancialProfile creditId={credit.id} compact />
+          <CreditFinancialProfile creditData={credit} compact />
         </motion.div>
       )}
 

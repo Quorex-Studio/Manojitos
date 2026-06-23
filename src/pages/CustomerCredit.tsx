@@ -219,7 +219,7 @@ export default function CustomerCredit() {
           </div>
 
           {/* Perfil Financiero */}
-          <CreditFinancialProfile creditId={credit.id} />
+          <CreditFinancialProfile creditData={credit} />
 
           {/* Tabs */}
           <Tabs defaultValue="transactions" className="space-y-4">

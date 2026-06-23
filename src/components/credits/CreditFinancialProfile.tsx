@@ -9,17 +9,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { useFinancialProfile, FinancialProfile } from '@/hooks/useFinancialProfile';
+import { useFinancialProfile, FinancialProfile, useFinancialProfileFromCredit } from '@/hooks/useFinancialProfile';
 
 interface CreditFinancialProfileProps {
-  creditId: string;
+  creditId?: string;
+  creditData?: any;
   compact?: boolean;
 }
 
-export function CreditFinancialProfile({ creditId, compact = false }: CreditFinancialProfileProps) {
-  const { profile, clientName, isLoading } = useFinancialProfile(creditId);
+export function CreditFinancialProfile({ creditId, creditData, compact = false }: CreditFinancialProfileProps) {
+  const profileFromProp = useFinancialProfileFromCredit(creditData || null);
+  const { profile: profileFromHook, clientName: nameFromHook, isLoading } = useFinancialProfile(creditId || '');
 
-  if (isLoading) {
+  const profile = creditData ? profileFromProp : profileFromHook;
+  const clientName = creditData ? (creditData.client_name || 'Mi Perfil') : nameFromHook;
+
+  if (isLoading && !creditData) {
     return (
       <Card className="glass-card">
         <CardContent className="p-4 flex items-center justify-center">
@@ -34,12 +39,12 @@ export function CreditFinancialProfile({ creditId, compact = false }: CreditFina
   }
   const getTrustBadgeColor = () => {
     switch (profile.trustLevel) {
-      case 'EXCELENTE': return 'bg-primary/10 text-white';
-      case 'BUENO': return 'bg-primary/10 text-white';
-      case 'REGULAR': return 'bg-gold/10 text-white';
-      case 'RIESGO': return 'bg-gold/20 text-white';
-      case 'CRITICO': return 'bg-destructive/10 text-white';
-      default: return 'bg-gray-500 text-white';
+      case 'EXCELENTE': return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 dark:bg-emerald-500/20';
+      case 'BUENO': return 'bg-green-500/10 text-green-700 dark:text-green-400 dark:bg-green-500/20';
+      case 'REGULAR': return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 dark:bg-amber-500/20';
+      case 'RIESGO': return 'bg-orange-500/10 text-orange-700 dark:text-orange-400 dark:bg-orange-500/20';
+      case 'CRITICO': return 'bg-red-500/10 text-red-700 dark:text-red-400 dark:bg-red-500/20';
+      default: return 'bg-gray-500/10 text-gray-700 dark:text-gray-400';
     }
   };
 
