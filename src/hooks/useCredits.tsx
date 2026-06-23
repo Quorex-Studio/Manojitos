@@ -640,3 +640,35 @@ export function useCreditReminders(creditId: string) {
     enabled: !!creditId,
   });
 }
+
+/**
+ * useAllCreditTransactions — Hook to fetch all credit transactions for admin view.
+ * Joins with credits table to include client_name.
+ * Returns: { transactions, isLoading }
+ */
+export interface CreditTransactionWithClient extends CreditTransaction {
+  client_name: string;
+}
+
+export function useAllCreditTransactions() {
+  const { user, isAdmin } = useAuth();
+
+  return useQuery({
+    queryKey: ['all-credit-transactions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('credit_transactions')
+        .select('*, credits(client_name)')
+        .order('created_at', { ascending: false })
+        .limit(500);
+
+      if (error) throw error;
+
+      return (data || []).map(tx => ({
+        ...tx,
+        client_name: (tx.credits as any)?.client_name || 'Desconocido',
+      })) as CreditTransactionWithClient[];
+    },
+    enabled: !!user && isAdmin,
+  });
+}

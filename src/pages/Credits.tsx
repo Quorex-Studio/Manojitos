@@ -23,6 +23,9 @@ import {
   Lock,
   Unlock,
   Bell,
+  TrendingDown,
+  TrendingUp,
+  Receipt,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -49,12 +52,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCredits, calculateCreditStatus } from '@/hooks/useCredits';
+import { useCredits, calculateCreditStatus, useCreditTransactions, useAllCreditTransactions } from '@/hooks/useCredits';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
 import { useAllCustomerProfiles } from '@/hooks/useCustomerProfile';
 import { cn } from '@/lib/utils';
 import { NotificationCenter, CreditReminderHistoryPanel } from '@/components/notifications/NotificationCenter';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Configuración de estados con colores
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -79,6 +83,7 @@ export default function Credits() {
   const { credits, isLoading, createCredit, updateCredit, toggleBlock, registerPayment, createReminder, stats } = useCredits();
   const { sendManualNotification } = useNotifications();
   const { data: customerProfiles = [], isLoading: isLoadingProfiles } = useAllCustomerProfiles();
+  const { data: allTransactions = [], isLoading: loadingTransactions } = useAllCreditTransactions();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -93,6 +98,10 @@ export default function Credits() {
   const [reminderType, setReminderType] = useState('3_DAYS_BEFORE');
   const [customMessage, setCustomMessage] = useState('');
   const [activeTab, setActiveTab] = useState('credits');
+
+  // --- Historial de abonos (todas las transacciones) ---
+  const [abonosSearch, setAbonosSearch] = useState('');
+  const [abonosTipoFilter, setAbonosTipoFilter] = useState('all');
   
   // Canales de notificación seleccionados
   const [selectedChannels, setSelectedChannels] = useState<('internal' | 'email' | 'sms')[]>(['internal', 'email']);
@@ -123,7 +132,20 @@ export default function Credits() {
     });
   }, [credits, searchTerm, statusFilter]);
 
-  // --- HANDLERS ---
+  // Filtrar abonos
+  const filteredAbonos = useMemo(() => {
+    return allTransactions.filter(tx => {
+      const matchesSearch = tx.client_name.toLowerCase().includes(abonosSearch.toLowerCase()) ||
+        (tx.description || '').toLowerCase().includes(abonosSearch.toLowerCase());
+      const matchesTipo = abonosTipoFilter === 'all' || tx.type === abonosTipoFilter;
+      return matchesSearch && matchesTipo;
+    });
+  }, [allTransactions, abonosSearch, abonosTipoFilter]);
+
+  // Total de abonos filtrados
+  const totalAbonos = filteredAbonos
+    .filter(tx => tx.type === 'ABONO')
+    .reduce((sum, tx) => sum + tx.amount, 0);
 
 
   // Manejar creación de crédito
@@ -463,8 +485,23 @@ export default function Credits() {
           </Card>
         </div>
 
-        {/* Filtros */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        {/* Tabs: Créditos | Abonos */}
+        <Tabs defaultValue="creditos" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2 max-w-xs">
+            <TabsTrigger value="creditos">
+              <CreditCard className="h-4 w-4 mr-2" />
+              Créditos
+            </TabsTrigger>
+            <TabsTrigger value="abonos">
+              <Receipt className="h-4 w-4 mr-2" />
+              Abonos
+            </TabsTrigger>
+          </TabsList>
+
+          {/* ====== TAB CRÉDITOS ====== */}
+          <TabsContent value="creditos" className="space-y-4">
+            {/* Filtros */}
+            <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -637,7 +674,133 @@ export default function Credits() {
               })}
             </AnimatePresence>
           </div>
-        )}
+          </TabsContent>
+
+          {/* ====== TAB ABONOS ====== */}
+          <TabsContent value="abonos" className="space-y-4">
+            {/* Filtros abonos */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por cliente o descripción..."
+                  value={abonosSearch}
+                  onChange={e => setAbonosSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={abonosTipoFilter} onValueChange={setAbonosTipoFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="ABONO">Abonos</SelectItem>
+                  <SelectItem value="CARGO">Cargos</SelectItem>
+                  <SelectItem value="COMPRA">Compras</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Resumen rápido */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-2xl font-bold">{filteredAbonos.length}</p>
+                  <p className="text-xs text-muted-foreground">Movimientos</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-2xl font-bold text-primary">${totalAbonos.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">Total abonado</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-2xl font-bold">
+                    {filteredAbonos.filter(tx => tx.type === 'ABONO').length}
+                  </p>
+                  <p className="text-xs text-muted-foreground">N° de abonos</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Tabla de transacciones */}
+            {loadingTransactions ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : filteredAbonos.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">No hay movimientos</h3>
+                  <p className="text-muted-foreground">
+                    {abonosSearch || abonosTipoFilter !== 'all'
+                      ? 'No se encontraron movimientos con los filtros aplicados'
+                      : 'Los abonos aparecerán aquí cuando se registren'}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Receipt className="h-4 w-4" />
+                    Historial de Movimientos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <ScrollArea className="h-[500px]">
+                    <div className="divide-y divide-border">
+                      {filteredAbonos.map(tx => (
+                        <div
+                          key={tx.id}
+                          className="flex items-center justify-between px-4 py-3 hover:bg-secondary/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={cn(
+                              'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                              tx.type === 'ABONO' ? 'bg-primary/10' : 'bg-destructive/10'
+                            )}>
+                              {tx.type === 'ABONO' ? (
+                                <TrendingDown className="h-4 w-4 text-primary" />
+                              ) : (
+                                <TrendingUp className="h-4 w-4 text-destructive" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-sm truncate">{tx.client_name}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {tx.description || tx.type}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(tx.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right ml-4 flex-shrink-0">
+                            <p className={cn(
+                              'font-bold',
+                              tx.type === 'ABONO' ? 'text-primary' : 'text-destructive'
+                            )}>
+                              {tx.type === 'ABONO' ? '-' : '+'}${tx.amount.toFixed(2)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Saldo: ${tx.new_balance.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
 
         {/* Modal de pago */}
         <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>

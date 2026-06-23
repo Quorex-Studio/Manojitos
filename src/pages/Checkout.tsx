@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Check, CreditCard, Truck, Package,
   User, Mail, Phone, MapPin, Loader2, ShoppingBag, Shield,
-  Copy, Smartphone, Landmark
+  Copy, Smartphone, Landmark, Wallet, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,9 +21,10 @@ import type { StockValidationError } from '@/hooks/useSales';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, X } from 'lucide-react';
+import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 
-// Métodos de pago disponibles
-const paymentMethods = [
+// Métodos de pago base (sin crédito — se agrega dinámicamente)
+const BASE_PAYMENT_METHODS = [
   { id: 'pago_movil', label: 'Pago Móvil', description: 'Pago instantáneo desde tu banco' },
   { id: 'zelle', label: 'Zelle', description: 'Transferencia en dólares' },
   { id: 'transferencia', label: 'Transferencia Bancaria', description: 'Transferencia nacional' },
@@ -148,11 +149,32 @@ export default function Checkout() {
   const { rate, convertToBS } = useExchangeRate();
   const { processCheckout, validateStock } = useSales();
   const { toast } = useToast();
+  const { credit, hasCredit, isLoading: creditLoading } = useCustomerCredit();
 
   const [step, setStep] = useState<'auth' | 'shipping' | 'payment' | 'confirm'>('shipping');
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [stockErrors, setStockErrors] = useState<StockValidationError[]>([]);
+
+  // Crédito disponible — calcular si puede usar crédito
+  const creditAvailable = hasCredit &&
+    credit &&
+    !credit.is_blocked &&
+    credit.calculatedStatus !== 'BLOQUEADO' &&
+    credit.calculatedStatus !== 'VENCIDO' &&
+    (credit.credit_limit - credit.current_balance) > 0;
+
+  // Lista de métodos de pago (con crédito si aplica)
+  const paymentMethods = creditAvailable
+    ? [
+        ...BASE_PAYMENT_METHODS,
+        {
+          id: 'credito',
+          label: 'Crédito (Fiado)',
+          description: `Cargo a tu línea de crédito — Disponible: $${(credit!.credit_limit - credit!.current_balance).toFixed(2)}`,
+        },
+      ]
+    : BASE_PAYMENT_METHODS;
 
   // Datos del formulario
   const [shippingData, setShippingData] = useState({
@@ -524,26 +546,86 @@ export default function Checkout() {
               </div>
 
               <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
-                {paymentMethods.map((method) => (
-                  <label
-                    key={method.id}
-                    className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${paymentMethod === method.id
-                      ? 'border-accent bg-accent/5 ring-1 ring-accent/30'
-                      : 'border-border bg-white/40 hover:bg-white/60'
+                {paymentMethods.map((method) => {
+                  const isCreditMethod = method.id === 'credito';
+                  return (
+                    <label
+                      key={method.id}
+                      className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
+                        paymentMethod === method.id
+                          ? isCreditMethod
+                            ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                            : 'border-accent bg-accent/5 ring-1 ring-accent/30'
+                          : 'border-border bg-white/40 hover:bg-white/60'
                       }`}
-                  >
-                    <RadioGroupItem value={method.id} id={method.id} className="mt-1" />
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground text-base">{method.label}</p>
-                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{method.description}</p>
-                    </div>
-                  </label>
-                ))}
+                    >
+                      <RadioGroupItem value={method.id} id={method.id} className="mt-1" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          {isCreditMethod && <Wallet className="h-4 w-4 text-primary" />}
+                          <p className="font-medium text-foreground text-base">{method.label}</p>
+                          {isCreditMethod && (
+                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Autorizado</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{method.description}</p>
+                        {isCreditMethod && credit && (
+                          <div className="mt-2 flex gap-4 text-xs">
+                            <span className="text-muted-foreground">Usado: <strong>${credit.current_balance.toFixed(2)}</strong></span>
+                            <span className="text-muted-foreground">Límite: <strong>${credit.credit_limit.toFixed(2)}</strong></span>
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
               </RadioGroup>
+
+              {/* Alerta si crédito bloqueado/vencido */}
+              {hasCredit && !creditAvailable && credit && (
+                <div className="mt-3 flex items-center gap-2 text-xs text-destructive bg-destructive/10 p-3 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                  <span>
+                    {credit.is_blocked || credit.calculatedStatus === 'BLOQUEADO'
+                      ? 'Tu crédito está bloqueado. Contacta con la tienda.'
+                      : credit.calculatedStatus === 'VENCIDO'
+                      ? 'Tu crédito está vencido. Ponlo al día para usarlo.'
+                      : 'No tienes crédito disponible.'}
+                  </span>
+                </div>
+              )}
 
               {/* Panel de instrucciones de pago */}
               <AnimatePresence mode="wait">
                 <PaymentInfoPanel method={paymentMethod} />
+                {paymentMethod === 'credito' && credit && (
+                  <motion.div
+                    key="credito-panel"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25 }}
+                    className="mt-5 rounded-xl border border-primary/30 bg-primary/5 p-5"
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <Wallet className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-bold text-primary uppercase tracking-wide">Pago con Crédito Autorizado</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      El monto del pedido se cargará a tu línea de crédito. El administrador procesará el cargo y podrás ver el movimiento en tu cuenta de crédito.
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                      <div className="bg-background/60 rounded-lg p-2 text-center">
+                        <p className="font-bold text-foreground">${credit.current_balance.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">Saldo actual</p>
+                      </div>
+                      <div className="bg-background/60 rounded-lg p-2 text-center">
+                        <p className="font-bold text-primary">${(credit.credit_limit - credit.current_balance).toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">Disponible</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </AnimatePresence>
 
               <div className="mt-6 flex items-center gap-2 text-xs text-muted-foreground bg-secondary/80 p-3 rounded-lg justify-center">
