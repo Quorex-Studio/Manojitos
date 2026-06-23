@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, Search, Check, Trash2, Phone, User } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useDebts } from '@/hooks/useDebts';
+import { useDebts, Debt } from '@/hooks/useDebts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,10 +38,95 @@ export default function Debts() {
     }
   };
 
-  const DebtCard = ({ debt, showActions = true }: { debt: typeof pendingDebts[0]; showActions?: boolean }) => (
+
+
+  // --- RENDER ---
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="page-header">Deudas</h1>
+          <p className="page-subtitle">
+            Total pendiente: <span className="text-gradient-gold font-bold">${totalPending.toFixed(2)}</span>
+          </p>
+        </div>
+
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por cliente..."
+            className="pl-10 input-glass rounded-xl"
+          />
+        </div>
+
+        <Tabs defaultValue="pending" className="space-y-4">
+          <TabsList className="glass-card p-1 rounded-xl">
+            <TabsTrigger value="pending" className="rounded-lg data-[state=active]:gradient-primary data-[state=active]:text-white">
+              Pendientes ({pendingDebts.length})
+            </TabsTrigger>
+            <TabsTrigger value="paid" className="rounded-lg data-[state=active]:gradient-primary data-[state=active]:text-white">
+              Pagadas ({paidDebts.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pending" className="space-y-3">
+            {filterDebts(pendingDebts).map((debt) => (
+              <DebtCard
+                key={debt.id}
+                debt={debt}
+                onMarkPaid={handleMarkPaid}
+                onDelete={handleDelete}
+                convertToBS={convertToBS}
+              />
+            ))}
+            {filterDebts(pendingDebts).length === 0 && (
+              <div className="text-center py-16">
+                <CreditCard className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-muted-foreground">No hay deudas pendientes</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="paid" className="space-y-3">
+            {filterDebts(paidDebts).map((debt) => (
+              <DebtCard
+                key={debt.id}
+                debt={debt}
+                showActions={false}
+                onMarkPaid={handleMarkPaid}
+                onDelete={handleDelete}
+                convertToBS={convertToBS}
+              />
+            ))}
+            {filterDebts(paidDebts).length === 0 && (
+              <div className="text-center py-16">
+                <Check className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-muted-foreground">No hay deudas pagadas</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AppLayout>
+  );
+}
+
+interface DebtCardProps {
+  debt: Debt;
+  showActions?: boolean;
+  onMarkPaid: (id: string) => void;
+  onDelete: (id: string) => void;
+  convertToBS: (usd: number) => number;
+}
+
+function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, convertToBS }: DebtCardProps) {
+  return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
     >
       <Card className="glass-card border-border/50">
         <CardContent className="p-4">
@@ -79,25 +164,33 @@ export default function Debts() {
               <div className="text-right">
                 <p className="font-bold text-gradient-gold">${Number(debt.amount_usd).toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">Bs. {convertToBS(Number(debt.amount_usd)).toFixed(2)}</p>
-                <Badge variant={debt.status === 'paid' ? 'default' : 'destructive'} className="mt-1">
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "mt-1 font-semibold border",
+                    debt.status === 'paid'
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                      : "bg-destructive/10 text-destructive border-destructive/20"
+                  )}
+                >
                   {debt.status === 'paid' ? 'Pagado' : 'Pendiente'}
                 </Badge>
               </div>
               {showActions && debt.status === 'pending' && (
-                <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-1">
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={() => handleMarkPaid(debt.id)}
-                    className="text-primary hover:text-primary/80 hover:bg-primary/10"
+                    onClick={() => onMarkPaid(debt.id)}
+                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400 dark:hover:text-emerald-300"
                   >
                     <Check className="h-4 w-4" />
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={() => handleDelete(debt.id)}
-                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => onDelete(debt.id)}
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -108,64 +201,5 @@ export default function Debts() {
         </CardContent>
       </Card>
     </motion.div>
-  );
-
-  // --- RENDER ---
-  return (
-    <AppLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="page-header">Deudas</h1>
-          <p className="page-subtitle">
-            Total pendiente: <span className="text-gradient-gold font-bold">${totalPending.toFixed(2)}</span>
-          </p>
-        </div>
-
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por cliente..."
-            className="pl-10 input-glass rounded-xl"
-          />
-        </div>
-
-        <Tabs defaultValue="pending" className="space-y-4">
-          <TabsList className="glass-card p-1 rounded-xl">
-            <TabsTrigger value="pending" className="rounded-lg data-[state=active]:gradient-primary">
-              Pendientes ({pendingDebts.length})
-            </TabsTrigger>
-            <TabsTrigger value="paid" className="rounded-lg data-[state=active]:gradient-primary">
-              Pagadas ({paidDebts.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="pending" className="space-y-3">
-            {filterDebts(pendingDebts).map((debt) => (
-              <DebtCard key={debt.id} debt={debt} />
-            ))}
-            {filterDebts(pendingDebts).length === 0 && (
-              <div className="text-center py-16">
-                <CreditCard className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">No hay deudas pendientes</p>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="paid" className="space-y-3">
-            {filterDebts(paidDebts).map((debt) => (
-              <DebtCard key={debt.id} debt={debt} showActions={false} />
-            ))}
-            {filterDebts(paidDebts).length === 0 && (
-              <div className="text-center py-16">
-                <Check className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">No hay deudas pagadas</p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-    </AppLayout>
   );
 }

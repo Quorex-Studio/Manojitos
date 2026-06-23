@@ -3,7 +3,7 @@
  * Tables: `debts`
  * Returns: { debts, pendingDebts, paidDebts, loading, addDebt, markAsPaid, deleteDebt }
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -71,6 +71,7 @@ export function useDebts() {
         toast({ title: 'Error', description: 'No se pudo registrar la deuda', variant: 'destructive' });
       } else {
         toast({ title: 'Éxito', description: 'Deuda registrada correctamente' });
+        fetchDebts();
       }
       return { data, error };
     } catch (validationError) {
@@ -90,6 +91,7 @@ export function useDebts() {
       toast({ title: 'Error', description: 'No se pudo actualizar la deuda', variant: 'destructive' });
     } else {
       toast({ title: 'Éxito', description: 'Deuda marcada como pagada' });
+      fetchDebts();
     }
     return { error };
   };
@@ -104,13 +106,16 @@ export function useDebts() {
       toast({ title: 'Error', description: 'No se pudo eliminar la deuda', variant: 'destructive' });
     } else {
       toast({ title: 'Éxito', description: 'Deuda eliminada' });
+      fetchDebts();
     }
     return { error };
   };
 
-  if (user) {
-    fetchDebts();
-  }
+  useEffect(() => {
+    if (user) {
+      fetchDebts();
+    }
+  }, [user]);
 
   const pendingDebts = debts.filter(d => d.status === 'pending');
   const paidDebts = debts.filter(d => d.status === 'paid');

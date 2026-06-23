@@ -165,7 +165,7 @@ export default function StoreFront() {
               variants={containerVariants}
               initial="hidden"
               whileInView="show"
-              viewport={{ once: true, margin: "-100px" }}
+              viewport={{ once: true, amount: 0.1 }}
               className="flex flex-wrap justify-center gap-3"
             >
               {categories.map((category) => (
@@ -228,7 +228,7 @@ export default function StoreFront() {
                   variants={containerVariants}
                   initial="hidden"
                   whileInView="show"
-                  viewport={{ once: true, margin: "-50px" }}
+                  viewport={{ once: true, amount: 0.05 }}
                   className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6"
                 >
                   {featuredProducts.map((product) => (

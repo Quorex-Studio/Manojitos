@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Truck, Search, Trash2, Check, Phone, Mail } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProviders } from '@/hooks/useProviders';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
@@ -197,10 +198,10 @@ export default function Providers() {
 
         <Tabs defaultValue="purchases" className="space-y-4">
           <TabsList className="glass-card p-1 rounded-xl">
-            <TabsTrigger value="purchases" className="rounded-lg data-[state=active]:gradient-primary">
+            <TabsTrigger value="purchases" className="rounded-lg data-[state=active]:gradient-primary data-[state=active]:text-white">
               Compras
             </TabsTrigger>
-            <TabsTrigger value="providers" className="rounded-lg data-[state=active]:gradient-primary">
+            <TabsTrigger value="providers" className="rounded-lg data-[state=active]:gradient-primary data-[state=active]:text-white">
               Proveedores ({providers.length})
             </TabsTrigger>
           </TabsList>
@@ -230,7 +231,15 @@ export default function Providers() {
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <p className="font-bold text-gradient-gold">${Number(purchase.amount_usd).toFixed(2)}</p>
-                          <Badge variant={purchase.status === 'paid' ? 'default' : 'destructive'}>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "font-semibold border",
+                              purchase.status === 'paid'
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                : "bg-destructive/10 text-destructive border-destructive/20"
+                            )}
+                          >
                             {purchase.status === 'paid' ? 'Pagado' : 'Pendiente'}
                           </Badge>
                         </div>
@@ -239,7 +248,7 @@ export default function Providers() {
                             size="icon"
                             variant="ghost"
                             onClick={() => markPurchaseAsPaid(purchase.id)}
-                            className="text-primary hover:text-primary/80 hover:bg-primary/10"
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400 dark:hover:text-emerald-300"
                           >
                             <Check className="h-4 w-4" />
                           </Button>
