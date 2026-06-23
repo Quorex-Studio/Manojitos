@@ -14,15 +14,44 @@ export function useCustomerCredit() {
 
   // Obtener el crédito del cliente actual
   const { data: credit, isLoading: loadingCredit } = useQuery({
-    queryKey: ['customer-credit', user?.id],
+    queryKey: ['customer-credit', user?.id, user?.email],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!user) return null;
+
+      // 1. Intentar buscar por client_user_id
+      let { data, error } = await supabase
         .from('credits')
         .select('*')
-        .eq('client_user_id', user!.id)
+        .eq('client_user_id', user.id)
         .maybeSingle();
 
       if (error) throw error;
+
+      // 2. Fallback: Si no se encuentra, buscar por email del usuario actual (si tiene)
+      if (!data && user.email) {
+        const { data: emailData, error: emailError } = await supabase
+          .from('credits')
+          .select('*')
+          .eq('client_email', user.email)
+          .maybeSingle();
+
+        if (emailError) throw emailError;
+        data = emailData;
+      }
+
+      // 3. Fallback adicional: Buscar por teléfono si está disponible en metadatos del usuario
+      const phone = user.user_metadata?.phone || user.phone;
+      if (!data && phone) {
+        const { data: phoneData, error: phoneError } = await supabase
+          .from('credits')
+          .select('*')
+          .eq('client_phone', phone)
+          .maybeSingle();
+
+        if (phoneError) throw phoneError;
+        data = phoneData;
+      }
+
       if (!data) return null;
 
       // Calcular estado y días

@@ -329,6 +329,71 @@ export function useCredits() {
     },
   });
 
+  // Registrar cargo a crédito (compra)
+  const registerCharge = useMutation({
+    mutationFn: async ({ creditId, amount, description, saleId }: {
+      creditId: string;
+      amount: number;
+      description?: string;
+      saleId?: string;
+    }) => {
+      if (!user) throw new Error('No autenticado');
+
+      // Obtener crédito actual
+      const { data: credit, error: fetchError } = await supabase
+        .from('credits')
+        .select('*')
+        .eq('id', creditId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const previousBalance = credit.current_balance;
+      const newBalance = previousBalance + amount;
+
+      // Actualizar contadores de compras
+      const newTotalPurchases = (credit.total_purchases || 0) + 1;
+
+      // Registrar transacción
+      const { error: transactionError } = await supabase
+        .from('credit_transactions')
+        .insert({
+          credit_id: creditId,
+          user_id: user.id,
+          type: 'CARGO',
+          amount,
+          previous_balance: previousBalance,
+          new_balance: newBalance,
+          description: description || 'Compra a crédito autorizada',
+          sale_id: saleId || null,
+        });
+
+      if (transactionError) throw transactionError;
+
+      // Actualizar crédito
+      const { data, error: updateError } = await supabase
+        .from('credits')
+        .update({
+          current_balance: newBalance,
+          total_purchases: newTotalPurchases,
+        })
+        .eq('id', creditId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
+      queryClient.invalidateQueries({ queryKey: ['credit-transactions'] });
+      toast.success('Cargo a crédito registrado');
+    },
+    onError: (error: Error) => {
+      toast.error(`Error al registrar cargo: ${error.message}`);
+    },
+  });
+
   // Crear recordatorio (legacy - usar useNotifications para nuevo sistema)
   const createReminder = useMutation({
     mutationFn: async ({ creditId, reminderType, message }: {
@@ -395,6 +460,7 @@ export function useCredits() {
     adjustCreditLimit,
     toggleBlock,
     registerPayment,
+    registerCharge,
     createReminder,
   };
 }

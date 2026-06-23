@@ -156,13 +156,16 @@ export default function Checkout() {
   const [orderComplete, setOrderComplete] = useState(false);
   const [stockErrors, setStockErrors] = useState<StockValidationError[]>([]);
 
+  const subtotal = getSubtotal();
+  const isEmpty = items.length === 0;
+
   // Crédito disponible — calcular si puede usar crédito
   const creditAvailable = hasCredit &&
     credit &&
     !credit.is_blocked &&
     credit.calculatedStatus !== 'BLOQUEADO' &&
     credit.calculatedStatus !== 'VENCIDO' &&
-    (credit.credit_limit - credit.current_balance) > 0;
+    (credit.credit_limit - credit.current_balance) >= subtotal;
 
   // Lista de métodos de pago (con crédito si aplica)
   const paymentMethods = creditAvailable
@@ -188,9 +191,6 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState('pago_movil');
 
   // --- DERIVED / EFFECTS ---
-
-  const subtotal = getSubtotal();
-  const isEmpty = items.length === 0;
 
   // Redirigir si no está autenticado
   useEffect(() => {

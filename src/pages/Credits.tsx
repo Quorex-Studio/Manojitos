@@ -59,6 +59,9 @@ import { useAllCustomerProfiles } from '@/hooks/useCustomerProfile';
 import { cn } from '@/lib/utils';
 import { NotificationCenter, CreditReminderHistoryPanel } from '@/components/notifications/NotificationCenter';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Configuración de estados con colores
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -85,6 +88,105 @@ export default function Credits() {
   const { data: customerProfiles = [], isLoading: isLoadingProfiles } = useAllCustomerProfiles();
   const { data: allTransactions = [], isLoading: loadingTransactions } = useAllCreditTransactions();
   
+  const queryClient = useQueryClient();
+
+  // Obtener todos los abonos reportados pendientes (órdenes con prefijo [ABONO_CREDITO])
+  const { data: reportedAbonos = [], isLoading: loadingReportedAbonos } = useQuery({
+    queryKey: ['admin-reported-abonos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .like('notes', '[ABONO_CREDITO]%')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const handleApproveReportedAbono = async (abonoOrder: any) => {
+    try {
+      // 1. Encontrar la cuenta de crédito correspondiente al cliente
+      let { data: targetCredit, error: creditError } = await supabase
+        .from('credits')
+        .select('*')
+        .eq('client_user_id', abonoOrder.customer_user_id)
+        .maybeSingle();
+
+      if (creditError) throw creditError;
+
+      // Fallback por email o teléfono si no tiene client_user_id
+      if (!targetCredit) {
+        if (abonoOrder.customer_email) {
+          const { data: emailData } = await supabase
+            .from('credits')
+            .select('*')
+            .eq('client_email', abonoOrder.customer_email)
+            .maybeSingle();
+          targetCredit = emailData;
+        }
+        if (!targetCredit && abonoOrder.customer_phone) {
+          const { data: phoneData } = await supabase
+            .from('credits')
+            .select('*')
+            .eq('client_phone', abonoOrder.customer_phone)
+            .maybeSingle();
+          targetCredit = phoneData;
+        }
+      }
+
+      if (!targetCredit) {
+        toast.error('No se encontró una cuenta de crédito activa para este cliente.');
+        return;
+      }
+
+      // 2. Registrar el abono en el crédito
+      await registerPayment.mutateAsync({
+        creditId: targetCredit.id,
+        amount: abonoOrder.total_usd,
+        description: `Abono reportado (Ref: ${abonoOrder.notes || 'N/A'})`,
+      });
+
+      // 3. Confirmar la orden de abono
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({
+          status: 'confirmed',
+          payment_status: 'paid'
+        })
+        .eq('id', abonoOrder.id);
+
+      if (orderError) throw orderError;
+
+      toast.success('Abono aprobado y aplicado correctamente.');
+      queryClient.invalidateQueries({ queryKey: ['admin-reported-abonos'] });
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
+    } catch (e: any) {
+      toast.error(`Error al aprobar abono: ${e.message}`);
+    }
+  };
+
+  const handleRejectReportedAbono = async (abonoOrderId: string) => {
+    try {
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({
+          status: 'cancelled',
+          payment_status: 'failed'
+        })
+        .eq('id', abonoOrderId);
+
+      if (orderError) throw orderError;
+
+      toast.success('Abono rechazado correctamente.');
+      queryClient.invalidateQueries({ queryKey: ['admin-reported-abonos'] });
+    } catch (e: any) {
+      toast.error(`Error al rechazar abono: ${e.message}`);
+    }
+  };
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -487,14 +589,23 @@ export default function Credits() {
 
         {/* Tabs: Créditos | Abonos */}
         <Tabs defaultValue="creditos" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 max-w-xs">
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="creditos">
               <CreditCard className="h-4 w-4 mr-2" />
               Créditos
             </TabsTrigger>
             <TabsTrigger value="abonos">
               <Receipt className="h-4 w-4 mr-2" />
-              Abonos
+              Historial de Abonos
+            </TabsTrigger>
+            <TabsTrigger value="reportados" className="relative">
+              <Clock className="h-4 w-4 mr-2" />
+              Abonos Reportados
+              {reportedAbonos.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white animate-pulse">
+                  {reportedAbonos.length}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -551,6 +662,13 @@ export default function Credits() {
                 const status = credit.calculatedStatus || 'ACTIVO';
                 const statusConfig = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.ACTIVO;
 
+                const matchingProfile = !credit.client_user_id
+                  ? customerProfiles.find(profile => 
+                      (credit.client_email && profile.email?.toLowerCase() === credit.client_email.toLowerCase()) ||
+                      (credit.client_phone && profile.phone === credit.client_phone)
+                    )
+                  : null;
+
                 return (
                   <motion.div
                     key={credit.id}
@@ -575,12 +693,21 @@ export default function Credits() {
                             )} />
                             
                             <div className="space-y-1">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center flex-wrap gap-2">
                                 <h3 className="font-semibold">{credit.client_name}</h3>
                                 <Badge variant="outline" className="text-xs">
                                   {statusConfig.icon}
                                   <span className="ml-1">{statusConfig.label}</span>
                                 </Badge>
+                                {credit.client_user_id ? (
+                                  <Badge variant="outline" className="text-xs border-green-500/30 text-green-500 bg-green-500/5">
+                                    Vinculado
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-500 bg-amber-500/5">
+                                    No Vinculado
+                                  </Badge>
+                                )}
                               </div>
                               
                               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -601,6 +728,29 @@ export default function Credits() {
                                   Corte día {credit.cut_off_day}
                                 </span>
                               </div>
+                              {matchingProfile && (
+                                <div className="mt-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="text-xs bg-gold/10 hover:bg-gold/20 text-gold border-gold/30 flex items-center gap-1 py-0.5 px-2 h-auto"
+                                    onClick={async () => {
+                                      try {
+                                        await updateCredit.mutateAsync({
+                                          id: credit.id,
+                                          updates: { client_user_id: matchingProfile.user_id }
+                                        });
+                                        toast.success(`Crédito vinculado exitosamente al usuario ${matchingProfile.full_name || matchingProfile.email}`);
+                                      } catch (e) {
+                                        toast.error("Error al vincular el crédito");
+                                      }
+                                    }}
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                    Vincular a {matchingProfile.full_name || matchingProfile.email}
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -674,7 +824,8 @@ export default function Credits() {
               })}
             </AnimatePresence>
           </div>
-          </TabsContent>
+        )}
+      </TabsContent>
 
           {/* ====== TAB ABONOS ====== */}
           <TabsContent value="abonos" className="space-y-4">
@@ -799,6 +950,89 @@ export default function Credits() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="reportados" className="space-y-4">
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-gold animate-pulse" />
+                  Abonos Reportados por Clientes
+                </CardTitle>
+                <CardDescription>
+                  Revisa y aprueba o rechaza los reportes de abono realizados por los clientes desde sus perfiles.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingReportedAbonos ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : reportedAbonos.length === 0 ? (
+                  <div className="py-12 text-center text-muted-foreground">
+                    No hay reportes de abonos pendientes de verificación.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reportedAbonos.map(abono => {
+                      const matchRef = abono.notes?.match(/Referencia:\s*([^\.]+)/i);
+                      const matchMethod = abono.notes?.match(/Método:\s*([^\.]+)/i);
+                      const refText = matchRef ? matchRef[1] : 'N/A';
+                      const methodText = matchMethod ? matchMethod[1] : abono.payment_method;
+
+                      return (
+                        <div
+                          key={abono.id}
+                          className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-border bg-secondary/30 gap-4"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-foreground">
+                                {abono.client_name}
+                              </h4>
+                              <Badge className="bg-gold/10 text-gold border border-gold/30 hover:bg-gold/15 text-[10px] px-2 py-0.5">
+                                Pendiente
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Monto Reportado: <span className="font-bold text-foreground">${abono.total_usd.toFixed(2)}</span>
+                            </p>
+                            <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                              <span>Método: <strong>{methodText.toUpperCase()}</strong></span>
+                              <span>Ref: <strong>{refText}</strong></span>
+                              <span>Fecha: <strong>{format(new Date(abono.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</strong></span>
+                            </div>
+                            {abono.customer_email && (
+                              <p className="text-[11px] text-muted-foreground">
+                                Email de contacto: {abono.customer_email} {abono.customer_phone && `• Tel: ${abono.customer_phone}`}
+                              </p>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-2 self-end md:self-center">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs border-destructive/30 hover:bg-destructive/10 text-destructive hover:text-destructive"
+                              onClick={() => handleRejectReportedAbono(abono.id)}
+                            >
+                              Rechazar
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="text-xs bg-primary text-white hover:bg-primary/95"
+                              onClick={() => handleApproveReportedAbono(abono)}
+                            >
+                              Aprobar y Aplicar
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 

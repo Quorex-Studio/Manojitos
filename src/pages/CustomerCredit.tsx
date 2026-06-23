@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -16,7 +17,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   Award,
-  History
+  History,
+  DollarSign,
+  Plus
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -27,10 +30,33 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CreditFinancialProfile } from '@/components/credits/CreditFinancialProfile';
 import { CustomerTimeline } from '@/components/credits/CustomerTimeline';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { useAuth } from '@/hooks/useAuth';
+import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const TRUST_CONFIG = {
@@ -51,6 +77,93 @@ export default function CustomerCredit() {
   // --- DERIVED ---
   const { user } = useAuth();
   const { credit, transactions, promises, hasCredit, isLoading } = useCustomerCredit();
+  const queryClient = useQueryClient();
+  const { rate } = useExchangeRate();
+
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('pago_movil');
+  const [reference, setReference] = useState('');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState('');
+
+  // Mutación para enviar el reporte de abono
+  const reportPayment = useMutation({
+    mutationFn: async () => {
+      if (!credit || !user) throw new Error('No hay sesión o cuenta activa');
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        throw new Error('El monto ingresado debe ser mayor a cero');
+      }
+      if (!reference && paymentMethod !== 'efectivo') {
+        throw new Error('La referencia es obligatoria para este método de pago');
+      }
+
+      // Crear la orden especial
+      const { data, error } = await supabase
+        .from('orders')
+        .insert({
+          user_id: credit.user_id || '00000000-0000-0000-0000-000000000000', // Asignar al administrador del local
+          customer_user_id: user.id,
+          customer_name: credit.client_name || user.email || 'Cliente',
+          customer_phone: credit.client_phone || '',
+          customer_email: user.email || '',
+          items: [
+            {
+              id: 'credit_payment',
+              name: 'Abono a Crédito',
+              quantity: 1,
+              price: amountNum,
+              price_usd: amountNum
+            }
+          ],
+          subtotal: amountNum,
+          discount: 0,
+          total_usd: amountNum,
+          total_bs: amountNum * (rate || 1),
+          status: 'pending',
+          payment_method: paymentMethod,
+          payment_status: 'pending',
+          notes: `[ABONO_CREDITO] Referencia: ${reference || 'Efectivo'}. Método: ${paymentMethod.toUpperCase()}. Fecha: ${paymentDate}. Notas: ${notes}`
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Abono reportado correctamente. En espera de verificación.');
+      setIsReportModalOpen(false);
+      // Limpiar campos
+      setAmount('');
+      setReference('');
+      setNotes('');
+      queryClient.invalidateQueries({ queryKey: ['customer-pending-abonos'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Error al reportar abono');
+    }
+  });
+
+  // Query para obtener los abonos pendientes
+  const { data: pendingAbonos = [] } = useQuery({
+    queryKey: ['customer-pending-abonos', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_user_id', user.id)
+        .like('notes', '[ABONO_CREDITO]%')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   // --- RENDER ---
 
@@ -144,16 +257,134 @@ export default function CustomerCredit() {
                     de ${credit.credit_limit.toFixed(2)} disponibles
                   </p>
                 </div>
-                <div className="text-right">
-                  <Badge className={cn(statusConfig.color, "text-white mb-2")}>
-                    {statusConfig.label}
-                  </Badge>
-                  {credit.next_due_date && (
-                    <p className="text-sm text-muted-foreground flex items-center justify-end gap-1">
-                      <Calendar className="h-4 w-4" />
-                      Vence: {format(new Date(credit.next_due_date), "dd MMM yyyy", { locale: es })}
-                    </p>
-                  )}
+                <div className="flex flex-col gap-3 items-start md:items-end justify-between">
+                  <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="w-full md:w-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary/95 hover:to-primary/75 text-white shadow-lg flex items-center gap-2 hover:scale-[1.02] transition-transform">
+                        <Plus className="h-4 w-4" />
+                        Reportar Abono
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="glass-card max-w-md bg-background/95 backdrop-blur-md border border-white/10 text-foreground">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
+                          <DollarSign className="h-5 w-5 text-primary animate-pulse" />
+                          Reportar Abono a Crédito
+                        </DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                          Registra un pago para amortizar tu saldo de crédito pendiente.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="amount">Monto del Abono (USD)</Label>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              id="amount"
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={amount}
+                              onChange={(e) => setAmount(e.target.value)}
+                              className="pl-9 bg-background/50"
+                            />
+                          </div>
+                          {amount && rate && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Equivalente a: <span className="font-semibold text-primary">{(parseFloat(amount) * rate).toFixed(2)} Bs.</span> (Tasa: {rate} Bs/$)
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="payment-method">Método de Pago</Label>
+                          <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                            <SelectTrigger className="bg-background/50">
+                              <SelectValue placeholder="Selecciona un método" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background/95 border-white/10">
+                              <SelectItem value="pago_movil">Pago Móvil</SelectItem>
+                              <SelectItem value="zelle">Zelle</SelectItem>
+                              <SelectItem value="transferencia">Transferencia Bancaria</SelectItem>
+                              <SelectItem value="efectivo">Efectivo en Tienda</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {paymentMethod !== 'efectivo' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="reference">Número de Referencia</Label>
+                            <Input
+                              id="reference"
+                              placeholder="Ej: 12345678"
+                              value={reference}
+                              onChange={(e) => setReference(e.target.value)}
+                              className="bg-background/50"
+                            />
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="payment-date">Fecha de Pago</Label>
+                          <Input
+                            id="payment-date"
+                            type="date"
+                            value={paymentDate}
+                            onChange={(e) => setPaymentDate(e.target.value)}
+                            className="bg-background/50"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="notes">Notas o Comentarios (Opcional)</Label>
+                          <Textarea
+                            id="notes"
+                            placeholder="Detalles adicionales del pago..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            rows={3}
+                            className="bg-background/50"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter className="gap-2">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setIsReportModalOpen(false)}
+                          disabled={reportPayment.isPending}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          onClick={() => reportPayment.mutate()}
+                          disabled={reportPayment.isPending}
+                          className="bg-primary text-white hover:bg-primary/90"
+                        >
+                          {reportPayment.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Enviando...
+                            </>
+                          ) : (
+                            'Enviar Reporte'
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  <div className="text-left md:text-right">
+                    <Badge className={cn(statusConfig.color, "text-white mb-2")}>
+                      {statusConfig.label}
+                    </Badge>
+                    {credit.next_due_date && (
+                      <p className="text-sm text-muted-foreground flex items-center justify-end gap-1">
+                        <Calendar className="h-4 w-4" />
+                        Vence: {format(new Date(credit.next_due_date), "dd MMM yyyy", { locale: es })}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="mt-4">
@@ -240,14 +471,54 @@ export default function CustomerCredit() {
                     Historial de Movimientos
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-6">
+                  {/* Abonos pendientes de verificación */}
+                  {pendingAbonos.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-gold flex items-center gap-2">
+                        <Clock className="h-4 w-4 animate-spin text-gold" />
+                        Abonos Pendientes de Verificación ({pendingAbonos.length})
+                      </h3>
+                      <div className="space-y-2 border-l-2 border-gold pl-3">
+                        {pendingAbonos.map(abono => {
+                          const matchRef = abono.notes?.match(/Referencia:\s*([^\.]+)/i);
+                          const matchMethod = abono.notes?.match(/Método:\s*([^\.]+)/i);
+                          const refText = matchRef ? matchRef[1] : 'N/A';
+                          const methodText = matchMethod ? matchMethod[1] : abono.payment_method;
+
+                          return (
+                            <div key={abono.id} className="flex justify-between items-center p-3 rounded-lg bg-gold/5 border border-gold/10">
+                              <div>
+                                <p className="font-medium text-sm">Abono a Crédito (Reportado)</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Ref: {refText} • Método: {methodText.toUpperCase()}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {format(new Date(abono.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
+                                </p>
+                              </div>
+                              <div className="text-right flex items-center gap-2">
+                                <span className="font-bold text-gold">${abono.total_usd.toFixed(2)}</span>
+                                <Badge variant="outline" className="text-gold border-gold/30 bg-gold/5 text-[10px] px-1.5 py-0.5">
+                                  Pendiente
+                                </Badge>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {transactions.length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">
                       No hay movimientos registrados
                     </p>
                   ) : (
-                    <ScrollArea className="h-[300px]">
-                      <div className="space-y-3">
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground">Historial de Transacciones</h3>
+                      <ScrollArea className="h-[300px]">
+                        <div className="space-y-3">
                         {transactions.map(tx => (
                           <div
                             key={tx.id}
@@ -281,6 +552,7 @@ export default function CustomerCredit() {
                         ))}
                       </div>
                     </ScrollArea>
+                  </div>
                   )}
                 </CardContent>
               </Card>

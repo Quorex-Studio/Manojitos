@@ -150,16 +150,91 @@ export default function Sales() {
     if (!confirm('¿Aprobar este pedido? Esto descontará el stock y registrará la venta.')) return;
 
     try {
+      // 1. Consultar la orden antes de aprobar para conocer sus detalles
+      const { data: approvedOrder, error: orderFetchError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (orderFetchError) throw orderFetchError;
+
+      // 2. Ejecutar la función RPC para confirmar y registrar venta
       const { error } = await supabase.rpc('confirm_order', { p_order_id: orderId });
       if (error) throw error;
 
       toast.success('Pedido aprobado y venta registrada correctamente 🩷');
+
+      // 3. Si el método es crédito, descontar/cargar a su cuenta de crédito
+      if (approvedOrder.payment_method === 'credito') {
+        // Encontrar cuenta de crédito por user_id, email, o teléfono
+        let { data: targetCredit, error: creditError } = await supabase
+          .from('credits')
+          .select('*')
+          .eq('client_user_id', approvedOrder.customer_user_id)
+          .maybeSingle();
+
+        if (!targetCredit) {
+          if (approvedOrder.customer_email) {
+            const { data: emailData } = await supabase
+              .from('credits')
+              .select('*')
+              .eq('client_email', approvedOrder.customer_email)
+              .maybeSingle();
+            targetCredit = emailData;
+          }
+          if (!targetCredit && approvedOrder.customer_phone) {
+            const { data: phoneData } = await supabase
+              .from('credits')
+              .select('*')
+              .eq('client_phone', approvedOrder.customer_phone)
+              .maybeSingle();
+            targetCredit = phoneData;
+          }
+        }
+
+        if (targetCredit) {
+          const previousBalance = targetCredit.current_balance;
+          const newBalance = previousBalance + approvedOrder.total_usd;
+
+          // Actualizar el balance
+          const { error: updateCreditErr } = await supabase
+            .from('credits')
+            .update({
+              current_balance: newBalance,
+              total_purchases: (targetCredit.total_purchases || 0) + 1
+            })
+            .eq('id', targetCredit.id);
+
+          if (updateCreditErr) throw updateCreditErr;
+
+          // Registrar la transacción de tipo cargo
+          const { error: txErr } = await supabase
+            .from('credit_transactions')
+            .insert({
+              credit_id: targetCredit.id,
+              user_id: approvedOrder.customer_user_id || targetCredit.user_id,
+              type: 'CARGO',
+              amount: approvedOrder.total_usd,
+              previous_balance: previousBalance,
+              new_balance: newBalance,
+              description: `Cargo por pedido aprobado #${orderId.substring(0, 8)}`,
+            });
+
+          if (txErr) throw txErr;
+
+          toast.success(`Cargo de $${approvedOrder.total_usd.toFixed(2)} aplicado a la línea de crédito de ${targetCredit.client_name}.`);
+        } else {
+          toast.warning('El pedido se aprobó con método Crédito, pero el cliente no posee una línea de crédito registrada.');
+        }
+      }
       
       // Invalidate queries to refresh UI
       refetchOrders();
       refetchSales();
       refetchProducts();
       queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
     } catch (err) {
       console.error('Error approving order:', err);
       toast.error(err instanceof Error ? err.message : 'Error al aprobar el pedido');
