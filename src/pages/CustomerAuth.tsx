@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, Loader2, ArrowLeft, ShoppingBag, Phone, FileText, MapPin, Camera, Navigation, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, Loader2, ArrowLeft, ShoppingBag, Phone, FileText, MapPin, Camera, Navigation, AlertCircle, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,10 +30,19 @@ export default function CustomerAuth() {
     locationCoords: ''
   });
 
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [dniFile, setDniFile] = useState<File | null>(null);
+  const [dniPreview, setDniPreview] = useState<string | null>(null);
+  const dniFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [faceFile, setFaceFile] = useState<File | null>(null);
+  const [facePreview, setFacePreview] = useState<string | null>(null);
+  const faceFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [verificationFile, setVerificationFile] = useState<File | null>(null);
+  const [verificationPreview, setVerificationPreview] = useState<string | null>(null);
+  const verificationFileInputRef = useRef<HTMLInputElement>(null);
+
   const [gettingGPS, setGettingGPS] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const redirectTo = searchParams.get('redirect') || '/';
 
@@ -52,21 +61,30 @@ export default function CustomerAuth() {
     }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleKycFileChange = (type: 'dni' | 'face' | 'verification', e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > 2 * 1024 * 1024) { // límite de 2MB
         toast({
           title: 'Archivo muy grande',
-          description: 'La foto de perfil debe ser menor a 2MB.',
+          description: 'La foto debe ser menor a 2MB.',
           variant: 'destructive'
         });
         return;
       }
-      setAvatarFile(file);
+      
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
+        if (type === 'dni') {
+          setDniFile(file);
+          setDniPreview(reader.result as string);
+        } else if (type === 'face') {
+          setFaceFile(file);
+          setFacePreview(reader.result as string);
+        } else if (type === 'verification') {
+          setVerificationFile(file);
+          setVerificationPreview(reader.result as string);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -147,30 +165,53 @@ export default function CustomerAuth() {
           return;
         }
 
-        // Subir foto de perfil si se seleccionó
-        let avatarUrl = '';
-        if (avatarFile) {
-          const fileExt = avatarFile.name.split('.').pop();
-          const fileName = `${Date.now()}_avatar.${fileExt}`;
+        // Verificar que se hayan cargado las 3 fotos obligatorias para el KYC
+        if (!dniFile || !faceFile || !verificationFile) {
+          toast({
+            title: 'Fotos de verificación obligatorias',
+            description: 'Para solicitar crédito debes cargar las 3 fotos: Cédula de identidad, Foto frontal de tu rostro y Foto sosteniendo tu cédula.',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Subir las 3 imágenes de verificación KYC
+        let dniPhotoUrl = '';
+        let facePhotoUrl = '';
+        let verificationPhotoUrl = '';
+
+        const uploadKycFile = async (file: File, prefix: string) => {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}_${prefix}.${fileExt}`;
           const { error: uploadError } = await supabase.storage
             .from('customer-avatars')
-            .upload(fileName, avatarFile);
+            .upload(fileName, file);
 
           if (uploadError) {
-            toast({
-              title: 'Error al subir la imagen',
-              description: 'No se pudo subir la foto de perfil. Por favor, inténtalo de nuevo.',
-              variant: 'destructive'
-            });
-            setLoading(false);
-            return;
+            throw uploadError;
           }
 
           const { data: { publicUrl } } = supabase.storage
             .from('customer-avatars')
             .getPublicUrl(fileName);
 
-          avatarUrl = publicUrl;
+          return publicUrl;
+        };
+
+        try {
+          dniPhotoUrl = await uploadKycFile(dniFile, 'dni');
+          facePhotoUrl = await uploadKycFile(faceFile, 'face');
+          verificationPhotoUrl = await uploadKycFile(verificationFile, 'verification');
+        } catch (uploadErr: any) {
+          console.error('Error uploading KYC documents:', uploadErr);
+          toast({
+            title: 'Error al subir documentos',
+            description: 'No se pudieron subir las fotos de verificación. Por favor, verifica tu conexión e inténtalo de nuevo.',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
         }
 
         const { error } = await signUp(
@@ -179,9 +220,12 @@ export default function CustomerAuth() {
           form.fullName, 
           form.phone,
           form.dni,
-          avatarUrl,
+          facePhotoUrl, // avatarUrl para compatibilidad
           form.address,
-          form.locationCoords
+          form.locationCoords,
+          dniPhotoUrl,
+          facePhotoUrl,
+          verificationPhotoUrl
         );
 
         if (error) {
@@ -262,39 +306,120 @@ export default function CustomerAuth() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
                 <>
-                  {/* Avatar Upload */}
-                  <div className="flex flex-col items-center mb-6">
-                    <Label className="mb-2 text-center text-sm font-medium">Foto de Perfil</Label>
-                    <div 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="relative w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/30 hover:border-accent flex items-center justify-center cursor-pointer transition-all duration-300 overflow-hidden group"
-                    >
-                      {avatarPreview ? (
-                        <img 
-                          src={avatarPreview} 
-                          alt="Previsualización" 
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-accent">
-                          <Camera className="h-8 w-8 mb-1" />
-                          <span className="text-[10px]">Subir foto</span>
-                        </div>
-                      )}
-                      {avatarPreview && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <Camera className="h-6 w-6 text-white" />
-                        </div>
-                      )}
+                  {/* KYC Verification Upload (3 Photos) */}
+                  <div className="flex flex-col space-y-4 mb-6">
+                    <div className="flex items-center gap-2 pb-2 border-b border-border">
+                      <ShieldAlert className="h-5 w-5 text-accent" />
+                      <div>
+                        <Label className="text-sm font-semibold block text-foreground">Verificación de Identidad (KYC)</Label>
+                        <span className="text-[11px] text-muted-foreground block">Obligatorio para solicitar financiamiento</span>
+                      </div>
                     </div>
-                    <input 
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    <p className="text-[11px] text-muted-foreground mt-1">Formatos permitidos: JPG, PNG. Máx 2MB</p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* Tarjeta 1: Cédula */}
+                      <div className="flex flex-col items-center">
+                        <span className="text-[11px] font-medium text-muted-foreground mb-1 text-center">1. Foto de Cédula</span>
+                        <div 
+                          onClick={() => dniFileInputRef.current?.click()}
+                          className="relative w-full aspect-[4/3] rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-accent flex items-center justify-center cursor-pointer transition-all duration-300 overflow-hidden group bg-muted/20"
+                        >
+                          {dniPreview ? (
+                            <img 
+                              src={dniPreview} 
+                              alt="Cédula" 
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center p-2 text-muted-foreground group-hover:text-accent text-center">
+                              <FileText className="h-6 w-6 mb-1 opacity-70" />
+                              <span className="text-[10px] leading-tight">Subir documento</span>
+                            </div>
+                          )}
+                          {dniPreview && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <Camera className="h-5 w-5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <input 
+                          type="file"
+                          ref={dniFileInputRef}
+                          onChange={(e) => handleKycFileChange('dni', e)}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                      </div>
+
+                      {/* Tarjeta 2: Cara */}
+                      <div className="flex flex-col items-center">
+                        <span className="text-[11px] font-medium text-muted-foreground mb-1 text-center">2. Foto de Rostro</span>
+                        <div 
+                          onClick={() => faceFileInputRef.current?.click()}
+                          className="relative w-full aspect-[4/3] rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-accent flex items-center justify-center cursor-pointer transition-all duration-300 overflow-hidden group bg-muted/20"
+                        >
+                          {facePreview ? (
+                            <img 
+                              src={facePreview} 
+                              alt="Rostro" 
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center p-2 text-muted-foreground group-hover:text-accent text-center">
+                              <User className="h-6 w-6 mb-1 opacity-70" />
+                              <span className="text-[10px] leading-tight">Subir selfie</span>
+                            </div>
+                          )}
+                          {facePreview && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <Camera className="h-5 w-5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <input 
+                          type="file"
+                          ref={faceFileInputRef}
+                          onChange={(e) => handleKycFileChange('face', e)}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                      </div>
+
+                      {/* Tarjeta 3: Cara con Cédula */}
+                      <div className="flex flex-col items-center">
+                        <span className="text-[11px] font-medium text-muted-foreground mb-1 text-center">3. Rostro + Cédula</span>
+                        <div 
+                          onClick={() => verificationFileInputRef.current?.click()}
+                          className="relative w-full aspect-[4/3] rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-accent flex items-center justify-center cursor-pointer transition-all duration-300 overflow-hidden group bg-muted/20"
+                        >
+                          {verificationPreview ? (
+                            <img 
+                              src={verificationPreview} 
+                              alt="Verificación" 
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center p-2 text-muted-foreground group-hover:text-accent text-center">
+                              <Camera className="h-6 w-6 mb-1 opacity-70" />
+                              <span className="text-[10px] leading-tight">Sosteniendo DNI</span>
+                            </div>
+                          )}
+                          {verificationPreview && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <Camera className="h-5 w-5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <input 
+                          type="file"
+                          ref={verificationFileInputRef}
+                          onChange={(e) => handleKycFileChange('verification', e)}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground text-center">Formatos: JPG, PNG. Máx 2MB por imagen. El rostro y la cédula deben ser legibles.</p>
                   </div>
 
                   <div>

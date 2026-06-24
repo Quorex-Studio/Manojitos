@@ -20,7 +20,10 @@ interface AuthContextType {
     dni?: string,
     avatarUrl?: string,
     address?: string,
-    locationCoords?: string
+    locationCoords?: string,
+    dniPhotoUrl?: string,
+    facePhotoUrl?: string,
+    verificationPhotoUrl?: string
   ) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -87,7 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dni?: string,
     avatarUrl?: string,
     address?: string,
-    locationCoords?: string
+    locationCoords?: string,
+    dniPhotoUrl?: string,
+    facePhotoUrl?: string,
+    verificationPhotoUrl?: string
   ) => {
     const redirectUrl = `${window.location.origin}/`;
     
@@ -102,7 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dni: dni,
           avatar_url: avatarUrl,
           address: address,
-          location_coords: locationCoords
+          location_coords: locationCoords,
+          dni_photo_url: dniPhotoUrl,
+          face_photo_url: facePhotoUrl,
+          verification_photo_url: verificationPhotoUrl
         }
       }
     });
