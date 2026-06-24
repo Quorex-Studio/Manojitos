@@ -92,7 +92,7 @@ export default function Debts() {
           <div>
             <p className="text-sm font-semibold text-foreground">💡 ¿Deudas vs Crédito?</p>
             <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">
-              Las <strong>Deudas</strong> corresponden a ventas manuales o físicas facturadas en partes. El <strong>Crédito</strong> (estilo Cashea) se gestiona de forma automatizada por cliente en la pestaña o sección de Clientes / Créditos.
+              Las <strong>Deudas</strong> corresponden a ventas manuales o físicas facturadas en partes. El <strong>Crédito</strong> (pago en cuotas) se gestiona de forma automatizada por cliente en la pestaña o sección de Clientes / Créditos.
             </p>
           </div>
         </div>

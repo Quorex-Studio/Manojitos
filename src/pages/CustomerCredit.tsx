@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Loader2,
   AlertTriangle,
+  AlertOctagon,
   CheckCircle2,
   Award,
   History,
@@ -225,7 +226,7 @@ export default function CustomerCredit() {
   const statusConfig = STATUS_CONFIG[credit.calculatedStatus || 'ACTIVO'];
   const usagePercent = (credit.current_balance / credit.credit_limit) * 100;
 
-  // Calcular las cuotas Cashea a partir de los cargos de financiamiento registrados
+  // Calcular las cuotas a partir de los cargos de financiamiento registrados
   const cuotasFinanciadas = transactions
     .filter(tx => tx.type === 'CARGO' && (tx.description?.includes('Cargo Financiamiento') || tx.description?.toLowerCase().includes('pedido')))
     .map(tx => {
@@ -267,6 +268,40 @@ export default function CustomerCredit() {
       };
     });
 
+  // Calcular cuotas vencidas y próximas a vencer para las notificaciones
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0); // Normalizar fecha a inicio del día
+
+  const cuotasAlertas = cuotasFinanciadas.flatMap(compra => 
+    compra.cuotas.map(cuota => {
+      let isPaid = false;
+      if (cuota.numero === 1) {
+        isPaid = true;
+      } else if (cuota.numero === 2) {
+        isPaid = credit.current_balance <= cuota.monto;
+      } else if (cuota.numero === 3) {
+        isPaid = credit.current_balance <= 0.01;
+      }
+      
+      const fechaVenc = new Date(cuota.fechaVencimiento);
+      fechaVenc.setHours(0, 0, 0, 0);
+      
+      // Diferencia en días
+      const diffTime = fechaVenc.getTime() - hoy.getTime();
+      const diasParaVencer = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      return {
+        ...cuota,
+        compraDescripcion: compra.descripcion || 'Compra Financiada',
+        isPaid,
+        diasParaVencer
+      };
+    })
+  );
+
+  const cuotasVencidas = cuotasAlertas.filter(c => !c.isPaid && c.diasParaVencer < 0);
+  const cuotasProximas = cuotasAlertas.filter(c => !c.isPaid && c.diasParaVencer >= 0 && c.diasParaVencer <= 3);
+
   return (
     <StoreLayout>
       <div className="container py-8 max-w-4xl">
@@ -287,6 +322,65 @@ export default function CustomerCredit() {
               <span className={cn("font-semibold", trustConfig.color)}>{trustConfig.label}</span>
             </div>
           </div>
+
+          {/* Banners de Notificación Llamativos */}
+          {cuotasVencidas.length > 0 && (
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="mb-6 p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-950 dark:text-red-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg animate-pulse"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-red-500/20 text-red-600 dark:text-red-400">
+                  <AlertOctagon className="h-6 w-6 animate-bounce" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm md:text-base text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                    ⚠️ CUOTA VENCIDA DETECTADA
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Tienes {cuotasVencidas.length} {cuotasVencidas.length === 1 ? 'cuota vencida' : 'cuotas vencidas'}. Por favor, realiza el abono correspondiente lo antes posible para mantener tu línea de crédito activa.
+                  </p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => setIsReportModalOpen(true)}
+                className="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-1.5 shadow-md flex-shrink-0"
+              >
+                <DollarSign className="h-4 w-4" />
+                Reportar Abono Ahora
+              </Button>
+            </motion.div>
+          )}
+
+          {cuotasProximas.length > 0 && cuotasVencidas.length === 0 && (
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-md"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm md:text-base text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                    📅 CUOTA PRÓXIMA A VENCER
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Tienes {cuotasProximas.length} {cuotasProximas.length === 1 ? 'cuota que vence' : 'cuotas que vencen'} pronto (en menos de {cuotasProximas[0].diasParaVencer === 0 ? 'hoy' : `${cuotasProximas[0].diasParaVencer} días`}). Evita la suspensión de tu financiamiento.
+                  </p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => setIsReportModalOpen(true)}
+                className="w-full md:w-auto bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-1.5 shadow-md flex-shrink-0"
+              >
+                <DollarSign className="h-4 w-4" />
+                Pagar Cuota
+              </Button>
+            </motion.div>
+          )}
 
           {/* Tarjeta principal */}
           <Card className="glass-card mb-6 overflow-hidden">
@@ -606,7 +700,7 @@ export default function CustomerCredit() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
-                    Cronograma de Cuotas (Estilo Cashea)
+                    Cronograma de Cuotas (Financiamiento Manojitos)
                   </CardTitle>
                   <CardDescription>
                     Visualiza el estado de tus cuotas quincenales para cada compra financiada.

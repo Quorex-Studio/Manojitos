@@ -988,7 +988,7 @@ export default function Credits() {
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <h4 className="font-semibold text-foreground">
-                                {abono.client_name}
+                                {abono.customer_name}
                               </h4>
                               <Badge className="bg-gold/10 text-gold border border-gold/30 hover:bg-gold/15 text-[10px] px-2 py-0.5">
                                 Pendiente

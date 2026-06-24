@@ -91,7 +91,7 @@ export default function StoreFront() {
             </motion.div>
 
             {/* Giant headline — stagger word entrance */}
-            <div className="overflow-hidden">
+            <div className="overflow-hidden py-4 -my-4">
               <motion.h1
                 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-semibold leading-[1.1] md:leading-[1.1] tracking-tighter break-words hyphens-auto"
                 variants={containerVariants}

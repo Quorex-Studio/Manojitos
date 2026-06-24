@@ -159,11 +159,11 @@ export default function Checkout() {
   const subtotal = getSubtotal();
   const isEmpty = items.length === 0;
 
-  // Estados del pago inicial Cashea
+  // Estados del pago inicial de financiamiento
   const [casheaMethod, setCasheaMethod] = useState('pago_movil');
   const [casheaRef, setCasheaRef] = useState('');
 
-  // Financiamiento Cashea
+  // Financiamiento Manojitos
   const montoFinanciado = subtotal * 0.50;
   const montoCuota = montoFinanciado / 3;
   const montoInicialTotal = (subtotal * 0.50) + montoCuota;
@@ -182,7 +182,7 @@ export default function Checkout() {
         ...BASE_PAYMENT_METHODS,
         {
           id: 'credito',
-          label: 'Crédito (Cashea - Pago en partes)',
+          label: 'Crédito Manojitos (Pago en partes)',
           description: `Crédito financia el 50%. Paga la Inicial + Cuota 1 hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales.`,
           disabled: !creditAvailable,
         },
@@ -255,7 +255,7 @@ export default function Checkout() {
       }
 
       const notesPrefix = paymentMethod === 'credito'
-        ? `[Inicial Cashea: $${montoInicialTotal.toFixed(2)} - Método: ${casheaMethod} - Ref: ${casheaRef || 'N/A'}] `
+        ? `[Inicial Crédito Manojitos: $${montoInicialTotal.toFixed(2)} - Método: ${casheaMethod} - Ref: ${casheaRef || 'N/A'}] `
         : '';
 
       const { error, saleIds } = await processCheckout(
@@ -639,7 +639,7 @@ export default function Checkout() {
                   >
                     <div className="flex items-center gap-2 pb-2 border-b border-primary/20">
                       <Wallet className="h-5 w-5 text-primary" />
-                      <p className="text-sm font-bold text-primary uppercase tracking-wide">Financiamiento Estilo Cashea</p>
+                      <p className="text-sm font-bold text-primary uppercase tracking-wide">Compra a Crédito Manojitos</p>
                     </div>
 
                     <div className="space-y-3 text-sm">
@@ -802,7 +802,7 @@ export default function Checkout() {
                 )}
               </div>
 
-              {/* Validación de pago inicial Cashea */}
+              {/* Validación de pago inicial de crédito */}
               {(() => {
                 const isCasheaValid = paymentMethod !== 'credito' || 
                   casheaMethod === 'efectivo_usd' || 

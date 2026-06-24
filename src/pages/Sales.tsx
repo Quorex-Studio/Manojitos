@@ -251,7 +251,7 @@ export default function Sales() {
 
           if (txAbonoErr) throw txAbonoErr;
 
-          toast.success(`Financiamiento Cashea aplicado a ${targetCredit.client_name}: Cargado $${montoFinanciado.toFixed(2)}, Abonado Cuota 1 $${montoCuota.toFixed(2)}. Saldo restante financiado: $${saldoDeudorNeto.toFixed(2)}.`);
+          toast.success(`Financiamiento Manojitos aplicado a ${targetCredit.client_name}: Cargado $${montoFinanciado.toFixed(2)}, Abonado Cuota 1 $${montoCuota.toFixed(2)}. Saldo restante financiado: $${saldoDeudorNeto.toFixed(2)}.`);
         } else {
           toast.warning('El pedido se aprobó con método Crédito, pero el cliente no posee una línea de crédito registrada.');
         }
