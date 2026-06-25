@@ -101,31 +101,56 @@ export default function CustomerAuth() {
     }
 
     setGettingGPS(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const coordsStr = `${latitude},${longitude}`;
-        setForm(prev => ({
-          ...prev,
-          locationCoords: coordsStr,
-          address: prev.address || `Ubicación GPS: ${coordsStr}`
-        }));
+
+    const successCallback = (position: any) => {
+      const { latitude, longitude } = position.coords;
+      const coordsStr = `${latitude},${longitude}`;
+      setForm(prev => ({
+        ...prev,
+        locationCoords: coordsStr,
+        address: prev.address || `Ubicación GPS: ${coordsStr}`
+      }));
+      setGettingGPS(false);
+      toast({
+        title: 'Ubicación obtenida',
+        description: 'Coordenadas GPS registradas con éxito.'
+      });
+    };
+
+    const errorCallbackLow = (error: any) => {
+      console.error('Low accuracy geolocation failed:', error);
+      setGettingGPS(false);
+      toast({
+        title: 'Error de ubicación',
+        description: 'No se pudo obtener la ubicación exacta. Por favor, escríbela o introduce las coordenadas manualmente.',
+        variant: 'destructive'
+      });
+    };
+
+    const errorCallbackHigh = (error: any) => {
+      if (error.code === 1) { // PERMISSION_DENIED
         setGettingGPS(false);
         toast({
-          title: 'Ubicación obtenida',
-          description: 'Coordenadas GPS registradas con éxito.'
-        });
-      },
-      (error) => {
-        console.error(error);
-        setGettingGPS(false);
-        toast({
-          title: 'Error de ubicación',
-          description: 'No se pudo obtener la ubicación exacta. Por favor, escríbela de forma manual.',
+          title: 'Permiso de ubicación denegado',
+          description: 'No se pudo acceder al GPS porque los permisos están desactivados en tu navegador. Por favor, escribe tu dirección o introduce las coordenadas manualmente.',
           variant: 'destructive'
         });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+        return;
+      }
+
+      console.warn('High accuracy geolocation failed, retrying with low accuracy...', error);
+      navigator.geolocation.getCurrentPosition(
+        successCallback,
+        errorCallbackLow,
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      );
+    };
+
+    // Intentar primero con alta precisión y un timeout más corto (5s)
+    navigator.geolocation.getCurrentPosition(
+      successCallback,
+      errorCallbackHigh,
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
   };
 
@@ -241,8 +266,25 @@ export default function CustomerAuth() {
         } else {
           toast({
             title: '¡Registro exitoso!',
-            description: 'Cuenta creada. Revisa tu correo o intenta iniciar sesión directamente.'
+            description: 'Cuenta creada y verificada automáticamente. Ya puedes iniciar sesión.'
           });
+          // Limpiar formulario excepto el email para facilitar el login, y cambiar a vista de login
+          setForm({
+            email: form.email,
+            password: '',
+            fullName: '',
+            phone: '',
+            dni: '',
+            address: '',
+            locationCoords: ''
+          });
+          setDniFile(null);
+          setDniPreview(null);
+          setFaceFile(null);
+          setFacePreview(null);
+          setVerificationFile(null);
+          setVerificationPreview(null);
+          setIsLogin(true);
         }
       }
     } catch (error) {
@@ -496,7 +538,7 @@ export default function CustomerAuth() {
                         onClick={handleGetLocation}
                         disabled={gettingGPS}
                         className="flex-shrink-0"
-                        title="Obtener coordenadas GPS"
+                        title="Obtener coordenadas GPS automáticamente"
                       >
                         {gettingGPS ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -505,11 +547,34 @@ export default function CustomerAuth() {
                         )}
                       </Button>
                     </div>
-                    {form.locationCoords && (
-                      <p className="text-[11px] text-emerald-500 mt-1 flex items-center gap-1">
-                        ✓ Coordenadas capturadas: {form.locationCoords}
+
+                    <div className="mt-3">
+                      <div className="flex justify-between items-center mb-1">
+                        <Label htmlFor="locationCoords" className="text-xs text-muted-foreground">
+                          Coordenadas GPS (Latitud, Longitud) <span className="text-[10px]">(Opcional)</span>
+                        </Label>
+                        <a
+                          href="https://www.google.com/maps"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-accent hover:underline flex items-center gap-0.5"
+                        >
+                          Buscar en Google Maps ↗
+                        </a>
+                      </div>
+                      <Input
+                        id="locationCoords"
+                        name="locationCoords"
+                        type="text"
+                        placeholder="Ej: 10.4806,-66.9036"
+                        value={form.locationCoords}
+                        onChange={handleInputChange}
+                        className="h-9 text-xs"
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Si falla la obtención automática, puedes buscar tu ubicación en Google Maps, hacer clic derecho (o mantener pulsado en móvil) y copiar las coordenadas.
                       </p>
-                    )}
+                    </div>
                   </div>
                 </>
               )}
