@@ -118,12 +118,75 @@ export default function CustomerAuth() {
     };
 
     const getIPLocation = async () => {
-      // Intentar primero con ipapi.co
+      console.log('Starting IP geolocation fallbacks...');
+
+      // 1. Intentar con ipwho.is (CORS y HTTPS gratuito)
       try {
-        const response = await fetch('https://ipapi.co/json/');
+        console.log('Querying ipwho.is...');
+        const response = await fetch('https://ipwho.is/');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.success && data.latitude && data.longitude) {
+            const coordsStr = `${data.latitude},${data.longitude}`;
+            setForm(prev => ({
+              ...prev,
+              locationCoords: coordsStr,
+              address: prev.address || `Ubicación estimada: ${data.city || ''}, ${data.region || ''}, ${data.country || ''}`.trim()
+            }));
+            setGettingGPS(false);
+            toast({
+              title: 'Ubicación aproximada obtenida',
+              description: 'Se usó tu dirección de red para estimar tu ubicación.'
+            });
+            console.log('ipwho.is geolocation succeeded:', coordsStr);
+            return;
+          } else {
+            console.log('ipwho.is returned success=false or missing coords:', data);
+          }
+        } else {
+          console.log('ipwho.is response status:', response.status);
+        }
+      } catch (err) {
+        console.log('ipwho.is query failed:', err);
+      }
+
+      // 2. Intentar con freeipapi.com (CORS y HTTPS gratuito)
+      try {
+        console.log('Querying freeipapi.com...');
+        const response = await fetch('https://freeipapi.com/api/json');
         if (response.ok) {
           const data = await response.json();
           if (data && data.latitude && data.longitude) {
+            const coordsStr = `${data.latitude},${data.longitude}`;
+            setForm(prev => ({
+              ...prev,
+              locationCoords: coordsStr,
+              address: prev.address || `Ubicación estimada: ${data.cityName || ''}, ${data.regionName || ''}, ${data.countryName || ''}`.trim()
+            }));
+            setGettingGPS(false);
+            toast({
+              title: 'Ubicación aproximada obtenida',
+              description: 'Se usó tu dirección de red para estimar tu ubicación.'
+            });
+            console.log('freeipapi.com geolocation succeeded:', coordsStr);
+            return;
+          } else {
+            console.log('freeipapi.com missing coordinates:', data);
+          }
+        } else {
+          console.log('freeipapi.com response status:', response.status);
+        }
+      } catch (err) {
+        console.log('freeipapi.com query failed:', err);
+      }
+
+      // 3. Intentar con ipapi.co (CORS y HTTPS gratuito)
+      try {
+        console.log('Querying ipapi.co...');
+        const response = await fetch('https://ipapi.co/json/');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && !data.error && data.latitude && data.longitude) {
             const coordsStr = `${data.latitude},${data.longitude}`;
             setForm(prev => ({
               ...prev,
@@ -135,38 +198,20 @@ export default function CustomerAuth() {
               title: 'Ubicación aproximada obtenida',
               description: 'Se usó tu dirección de red para estimar tu ubicación.'
             });
+            console.log('ipapi.co geolocation succeeded:', coordsStr);
             return;
+          } else {
+            console.log('ipapi.co returned error or missing coordinates:', data);
           }
+        } else {
+          console.log('ipapi.co response status:', response.status);
         }
       } catch (err) {
-        console.warn('ipapi.co failed, trying ip-api.com...', err);
-      }
-
-      // Si falla, intentar con ip-api.com
-      try {
-        const response = await fetch('https://ip-api.com/json/');
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.lat && data.lon) {
-            const coordsStr = `${data.lat},${data.lon}`;
-            setForm(prev => ({
-              ...prev,
-              locationCoords: coordsStr,
-              address: prev.address || `Ubicación estimada: ${data.city || ''}, ${data.regionName || ''}, ${data.country || ''}`.trim()
-            }));
-            setGettingGPS(false);
-            toast({
-              title: 'Ubicación aproximada obtenida',
-              description: 'Se usó tu dirección de red para estimar tu ubicación.'
-            });
-            return;
-          }
-        }
-      } catch (err) {
-        console.error('All IP geolocation fallbacks failed:', err);
+        console.log('ipapi.co query failed:', err);
       }
 
       // Si todo falla, mostrar error manual
+      console.log('All IP geolocation fallbacks failed.');
       setGettingGPS(false);
       toast({
         title: 'Error de ubicación',
