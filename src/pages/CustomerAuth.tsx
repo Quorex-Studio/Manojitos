@@ -117,14 +117,68 @@ export default function CustomerAuth() {
       });
     };
 
-    const errorCallbackLow = (error: any) => {
-      console.error('Low accuracy geolocation failed:', error);
+    const getIPLocation = async () => {
+      // Intentar primero con ipapi.co
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.latitude && data.longitude) {
+            const coordsStr = `${data.latitude},${data.longitude}`;
+            setForm(prev => ({
+              ...prev,
+              locationCoords: coordsStr,
+              address: prev.address || `Ubicación estimada: ${data.city || ''}, ${data.region || ''}, ${data.country_name || ''}`.trim()
+            }));
+            setGettingGPS(false);
+            toast({
+              title: 'Ubicación aproximada obtenida',
+              description: 'Se usó tu dirección de red para estimar tu ubicación.'
+            });
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('ipapi.co failed, trying ip-api.com...', err);
+      }
+
+      // Si falla, intentar con ip-api.com
+      try {
+        const response = await fetch('https://ip-api.com/json/');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.lat && data.lon) {
+            const coordsStr = `${data.lat},${data.lon}`;
+            setForm(prev => ({
+              ...prev,
+              locationCoords: coordsStr,
+              address: prev.address || `Ubicación estimada: ${data.city || ''}, ${data.regionName || ''}, ${data.country || ''}`.trim()
+            }));
+            setGettingGPS(false);
+            toast({
+              title: 'Ubicación aproximada obtenida',
+              description: 'Se usó tu dirección de red para estimar tu ubicación.'
+            });
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('All IP geolocation fallbacks failed:', err);
+      }
+
+      // Si todo falla, mostrar error manual
       setGettingGPS(false);
       toast({
         title: 'Error de ubicación',
         description: 'No se pudo obtener la ubicación exacta. Por favor, escríbela o introduce las coordenadas manualmente.',
         variant: 'destructive'
       });
+    };
+
+    const errorCallbackLow = (error: any) => {
+      console.error('Low accuracy geolocation failed:', error);
+      // Intentar geolocalización por IP como recurso automático final
+      getIPLocation();
     };
 
     const errorCallbackHigh = (error: any) => {
