@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Check, CreditCard, Truck, Package, Store,
   User, Mail, Phone, MapPin, Loader2, ShoppingBag, Shield,
-  Copy, Smartphone, Landmark, Wallet, AlertTriangle, Edit3
+  Copy, Smartphone, Landmark, Wallet, AlertTriangle, Edit3, Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, X } from 'lucide-react';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { useCustomerPaymentMethods } from '@/hooks/useCustomerPaymentMethods';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 // Métodos de pago base (sin crédito — se agrega dinámicamente)
 const BASE_PAYMENT_METHODS = [
@@ -204,10 +205,10 @@ export default function Checkout() {
     city: '',
     notes: ''
   });
-  const [paymentMethod, setPaymentMethod] = useState('pago_movil');
   const [isEditingPayment, setIsEditingPayment] = useState(true);
   const [isEditingShipping, setIsEditingShipping] = useState(true);
   const [isSelectingShipping, setIsSelectingShipping] = useState(false);
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
 
   // --- DERIVED / EFFECTS ---
@@ -641,6 +642,89 @@ export default function Checkout() {
                         <Edit3 className="h-4 w-4 mr-2" />
                         Editar {deliveryMethod === 'delivery' ? 'dirección' : 'datos'}
                       </Button>
+                      
+                      {deliveryMethod === 'delivery' && (
+                        <Dialog open={isAddingAddress} onOpenChange={setIsAddingAddress}>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={() => {
+                                setShippingData({ fullName: '', phone: '', address: '', city: '', email: '', notes: '' });
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Agregar una nueva dirección de entrega
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl font-bold">Agrega una dirección</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-2">
+                              <p className="font-semibold text-sm">Ingresa una nueva dirección de envío</p>
+                              
+                              <div className="bg-primary/5 p-3 rounded-lg border border-primary/20 mb-2 flex justify-between items-center">
+                                <p className="text-sm font-medium text-primary">Ahorra tiempo. Autocompletar tu ubicación actual.</p>
+                                <Button variant="outline" size="sm" className="shrink-0 bg-background">Autocompletar</Button>
+                              </div>
+                              
+                              <div className="space-y-4">
+                                <div>
+                                  <Label className="font-semibold">País o región</Label>
+                                  <div className="p-2 border rounded-md bg-muted/50 text-sm mt-1 font-medium">Venezuela</div>
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="modal-fullName" className="font-semibold">Nombre completo (nombre y apellido)</Label>
+                                  <Input id="modal-fullName" value={shippingData.fullName} onChange={(e) => setShippingData({...shippingData, fullName: e.target.value})} className="mt-1" />
+                                </div>
+
+                                <div>
+                                  <Label htmlFor="modal-phone" className="font-semibold">Número de teléfono</Label>
+                                  <Input id="modal-phone" value={shippingData.phone} onChange={(e) => setShippingData({...shippingData, phone: e.target.value})} className="mt-1" />
+                                  <p className="text-xs text-muted-foreground mt-1">Se puede utilizar para ayudar a la entrega</p>
+                                </div>
+
+                                <div>
+                                  <Label htmlFor="modal-address" className="font-semibold">Dirección</Label>
+                                  <Input id="modal-address" placeholder="Nombre de la calle, Depto., unidad, edificio, piso, etc." value={shippingData.address} onChange={(e) => setShippingData({...shippingData, address: e.target.value})} className="mt-1" />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor="modal-city" className="font-semibold">Ciudad</Label>
+                                    <Input id="modal-city" value={shippingData.city} onChange={(e) => setShippingData({...shippingData, city: e.target.value})} className="mt-1" />
+                                  </div>
+                                  <div>
+                                    <Label className="font-semibold">Estado</Label>
+                                    <div className="p-2 border rounded-md text-sm mt-1 text-muted-foreground bg-muted/30">Selecciona</div>
+                                  </div>
+                                </div>
+                                
+                                <div className="w-1/2 pr-2">
+                                  <Label htmlFor="modal-zip" className="font-semibold">Código Postal</Label>
+                                  <Input id="modal-zip" placeholder="" className="mt-1" />
+                                </div>
+
+                                <div>
+                                  <Label htmlFor="modal-notes" className="font-semibold">Instrucción de entrega (opc.)</Label>
+                                  <Textarea id="modal-notes" placeholder="Notas, preferencias y más" value={shippingData.notes} onChange={(e) => setShippingData({...shippingData, notes: e.target.value})} className="mt-1" />
+                                </div>
+                              </div>
+
+                              <Button className="w-full mt-4 h-12 shadow-md bg-[#FFD814] hover:bg-[#F7CA00] text-black border border-[#FCD200]" onClick={() => {
+                                setIsAddingAddress(false);
+                                setIsSelectingShipping(false);
+                                setIsEditingShipping(false);
+                              }}>
+                                Usar esta dirección
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+
                       <Button 
                         variant="default" 
                         className="w-full font-medium"
