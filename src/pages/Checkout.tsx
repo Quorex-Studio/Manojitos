@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Check, CreditCard, Truck, Package, Store,
   User, Mail, Phone, MapPin, Loader2, ShoppingBag, Shield,
-  Copy, Smartphone, Landmark, Wallet, AlertTriangle
+  Copy, Smartphone, Landmark, Wallet, AlertTriangle, Edit3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, X } from 'lucide-react';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
+import { useCustomerPaymentMethods } from '@/hooks/useCustomerPaymentMethods';
 
 // Métodos de pago base (sin crédito — se agrega dinámicamente)
 const BASE_PAYMENT_METHODS = [
@@ -151,6 +152,7 @@ export default function Checkout() {
   const { processCheckout, validateStock } = useSales();
   const { toast } = useToast();
   const { credit, hasCredit, isLoading: creditLoading } = useCustomerCredit();
+  const { preferredMethod, hasPaymentMethods, isLoading: methodsLoading } = useCustomerPaymentMethods();
 
   const [step, setStep] = useState<'auth' | 'shipping' | 'payment' | 'confirm'>('shipping');
   const [loading, setLoading] = useState(false);
@@ -203,9 +205,19 @@ export default function Checkout() {
     notes: ''
   });
   const [paymentMethod, setPaymentMethod] = useState('pago_movil');
+  const [isEditingPayment, setIsEditingPayment] = useState(true);
+  const [isEditingShipping, setIsEditingShipping] = useState(true);
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
 
   // --- DERIVED / EFFECTS ---
+
+  // Setear método de pago preferido
+  useEffect(() => {
+    if (!methodsLoading && hasPaymentMethods && preferredMethod) {
+      setPaymentMethod(preferredMethod.method_type);
+      setIsEditingPayment(false);
+    }
+  }, [methodsLoading, hasPaymentMethods, preferredMethod]);
 
   // Redirigir si no está autenticado
   useEffect(() => {
@@ -233,6 +245,11 @@ export default function Checkout() {
           address: prev.address || data.address || '',
           city: prev.city || data.city || ''
         }));
+        
+        // Iniciar en modo lectura si los datos básicos están
+        if (data.full_name && data.phone) {
+          setIsEditingShipping(false);
+        }
       }
     }
     loadProfile();
@@ -561,93 +578,146 @@ export default function Checkout() {
                 </label>
               </RadioGroup>
 
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="md:col-span-2">
-                  <Label htmlFor="fullName" className="text-base">Nombre Completo <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="fullName"
-                    name="fullName"
-                    placeholder="Ej: María Pérez"
-                    value={shippingData.fullName}
-                    onChange={handleInputChange}
-                    className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="phone" className="text-base">Teléfono <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    placeholder="0412-123-4567"
-                    value={shippingData.phone}
-                    onChange={handleInputChange}
-                    className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="email" className="text-base">Email (opcional)</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="tu@email.com"
-                    value={shippingData.email}
-                    onChange={handleInputChange}
-                    className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                  />
-                </div>
-
-                <AnimatePresence mode="popLayout">
-                  {deliveryMethod === 'delivery' && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                      animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
-                      exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                      className="md:col-span-2 grid gap-5 md:grid-cols-2"
-                    >
-                      <div className="md:col-span-2">
-                        <Label htmlFor="address" className="text-base">Dirección Exacta <span className="text-destructive">*</span></Label>
-                        <Input
-                          id="address"
-                          name="address"
-                          placeholder="Calle, número, punto de referencia..."
-                          value={shippingData.address}
-                          onChange={handleInputChange}
-                          className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                        />
-                      </div>
-
+              {!isEditingShipping ? (
+                <div className="p-4 rounded-xl border border-border bg-white/40 dark:bg-white/5 relative">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="absolute top-2 right-2 h-8 px-3 text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsEditingShipping(true)}
+                  >
+                    <Edit3 className="h-4 w-4 mr-1.5" />
+                    Editar
+                  </Button>
+                  <div className="space-y-4 pr-20">
+                    <div className="flex items-start gap-3">
+                      <User className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                       <div>
-                        <Label htmlFor="city" className="text-base">Ciudad <span className="text-destructive">*</span></Label>
-                        <Input
-                          id="city"
-                          name="city"
-                          placeholder="Tu ciudad"
-                          value={shippingData.city}
-                          onChange={handleInputChange}
-                          className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                        />
+                        <p className="font-medium text-foreground">{shippingData.fullName}</p>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="md:col-span-2">
-                  <Label htmlFor="notes" className="text-base">Notas / Instrucciones</Label>
-                  <Textarea
-                    id="notes"
-                    name="notes"
-                    placeholder="Ej: Dejar en portería, llamar al llegar..."
-                    value={shippingData.notes}
-                    onChange={handleInputChange}
-                    className="mt-2 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                    rows={3}
-                  />
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Phone className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">{shippingData.phone}</p>
+                      </div>
+                    </div>
+                    {shippingData.email && (
+                      <div className="flex items-start gap-3">
+                        <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">{shippingData.email}</p>
+                        </div>
+                      </div>
+                    )}
+                    {deliveryMethod === 'delivery' && (
+                      <div className="flex items-start gap-3">
+                        <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-foreground">{shippingData.address}</p>
+                          {shippingData.city && <p className="text-sm text-muted-foreground mt-0.5">{shippingData.city}</p>}
+                        </div>
+                      </div>
+                    )}
+                    {shippingData.notes && (
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-foreground italic">"{shippingData.notes}"</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <Label htmlFor="fullName" className="text-base">Nombre Completo <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="fullName"
+                      name="fullName"
+                      placeholder="Ej: María Pérez"
+                      value={shippingData.fullName}
+                      onChange={handleInputChange}
+                      className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="phone" className="text-base">Teléfono <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      placeholder="0412-123-4567"
+                      value={shippingData.phone}
+                      onChange={handleInputChange}
+                      className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="email" className="text-base">Email (opcional)</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      value={shippingData.email}
+                      onChange={handleInputChange}
+                      className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
+                    />
+                  </div>
+
+                  <AnimatePresence mode="popLayout">
+                    {deliveryMethod === 'delivery' && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                        animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                        exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                        className="md:col-span-2 grid gap-5 md:grid-cols-2"
+                      >
+                        <div className="md:col-span-2">
+                          <Label htmlFor="address" className="text-base">Dirección Exacta <span className="text-destructive">*</span></Label>
+                          <Input
+                            id="address"
+                            name="address"
+                            placeholder="Calle, número, punto de referencia..."
+                            value={shippingData.address}
+                            onChange={handleInputChange}
+                            className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="city" className="text-base">Ciudad <span className="text-destructive">*</span></Label>
+                          <Input
+                            id="city"
+                            name="city"
+                            placeholder="Tu ciudad"
+                            value={shippingData.city}
+                            onChange={handleInputChange}
+                            className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="md:col-span-2">
+                    <Label htmlFor="notes" className="text-base">Notas / Instrucciones</Label>
+                    <Textarea
+                      id="notes"
+                      name="notes"
+                      placeholder="Ej: Dejar en portería, llamar al llegar..."
+                      value={shippingData.notes}
+                      onChange={handleInputChange}
+                      className="mt-2 bg-white/50 dark:bg-white/5 dark:border-white/10"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              )}
             </motion.div>
 
             {/* Payment Method */}
@@ -667,7 +737,41 @@ export default function Checkout() {
                 </div>
               </div>
 
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
+              {!isEditingPayment && preferredMethod ? (
+                <div className="p-4 mt-2 rounded-xl border border-border bg-white/40 dark:bg-white/5 relative">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="absolute top-2 right-2 h-8 px-3 text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsEditingPayment(true)}
+                  >
+                    <Edit3 className="h-4 w-4 mr-1.5" />
+                    Cambiar
+                  </Button>
+                  <div className="space-y-2 pr-20">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="h-5 w-5 text-primary shrink-0" />
+                      <p className="font-medium text-foreground">
+                        {preferredMethod.alias || paymentMethods.find(m => m.id === preferredMethod.method_type)?.label || 'Método Guardado'}
+                      </p>
+                    </div>
+                    {preferredMethod.details?.bank_name && (
+                      <p className="text-sm text-muted-foreground ml-7 flex items-center gap-1">
+                        {preferredMethod.details.bank_name} 
+                        {preferredMethod.details.last_four && <span className="text-xs px-1.5 py-0.5 rounded-md bg-secondary text-secondary-foreground font-medium">•••• {preferredMethod.details.last_four}</span>}
+                      </p>
+                    )}
+                    {preferredMethod.details?.email && (
+                      <p className="text-sm text-muted-foreground ml-7">{preferredMethod.details.email}</p>
+                    )}
+                    {preferredMethod.details?.phone_number && (
+                      <p className="text-sm text-muted-foreground ml-7">{preferredMethod.details.phone_number}</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3 mt-4">
                 {paymentMethods.map((method) => {
                   const isCreditMethod = method.id === 'credito';
                   const isDisabled = (method as any).disabled;
@@ -731,7 +835,16 @@ export default function Checkout() {
                     </label>
                   );
                 })}
-              </RadioGroup>
+                  </RadioGroup>
+                  <div className="flex justify-end pt-2">
+                    <Link to="/cliente/metodos-pago">
+                      <Button variant="outline" size="sm" className="gap-2 text-primary hover:text-primary">
+                        Gestionar mis métodos
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
 
               {/* Panel de instrucciones de pago */}
               <AnimatePresence mode="wait">
