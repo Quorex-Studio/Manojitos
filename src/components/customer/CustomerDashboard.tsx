@@ -13,7 +13,9 @@ import {
   ShoppingBag,
   Clock,
   Sparkles,
-  MapPin
+  MapPin,
+  Shield,
+  Headphones
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,31 +55,30 @@ interface QuickLinkProps {
 
 function QuickLink({ to, icon, label, description, badge, badgeVariant = 'secondary', accent }: QuickLinkProps) {
   return (
-    <motion.div variants={item}>
-      <Link to={to}>
+    <motion.div variants={item} className="h-full">
+      <Link to={to} className="block h-full">
         <div className={cn(
-          "flex items-center gap-4 p-4 rounded-xl transition-all duration-300 group",
-          "bg-card/80 hover:bg-card/80 border border-transparent hover:border-primary/10",
-          "hover:shadow-[0_0_20px_hsl(var(--rose)/0.08)]",
-          accent && "border-primary/10 bg-primary/5"
+          "flex flex-col p-4 md:p-5 rounded-2xl h-full transition-all duration-300 group",
+          "bg-card/80 hover:bg-card border border-border/40 hover:border-primary/20",
+          "hover:shadow-md hover:-translate-y-0.5",
+          accent && "border-primary/20 bg-primary/5"
         )}>
-          <div className="p-2.5 rounded-xl bg-primary/5 text-primary/60 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
-            {icon}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-sm text-foreground/80 truncate tracking-wide">{label}</p>
-              {badge !== undefined && badge !== 0 && (
-                <Badge variant={badgeVariant} className="text-[9px] h-4 px-1.5 leading-none rounded-full">
-                  {badge}
-                </Badge>
-              )}
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-2.5 rounded-xl bg-primary/5 text-primary/70 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
+              {icon}
             </div>
-            {description && (
-              <p className="text-xs text-muted-foreground/75 dark:text-muted-foreground/40 truncate tracking-wide">{description}</p>
+            {badge !== undefined && badge !== 0 && (
+              <Badge variant={badgeVariant} className="text-[10px] px-2 h-5 rounded-full shadow-sm font-medium">
+                {badge}
+              </Badge>
             )}
           </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground/20 group-hover:text-primary/50 transition-all group-hover:translate-x-0.5" />
+          <div className="mt-auto">
+            <h3 className="font-medium text-[15px] text-foreground mb-1 group-hover:text-primary transition-colors tracking-tight line-clamp-1">{label}</h3>
+            {description && (
+              <p className="text-[13px] text-muted-foreground/80 leading-snug line-clamp-2">{description}</p>
+            )}
+          </div>
         </div>
       </Link>
     </motion.div>
@@ -151,59 +152,56 @@ export function CustomerDashboard() {
         </div>
       </motion.div>
 
-      {/* Grid de accesos rápidos — no rigid borders, glow on hover */}
-      <div className="space-y-1">
-        <QuickLink
-          to="/cliente/perfil"
-          icon={<MapPin className="h-4.5 w-4.5" />}
-          label="Dirección de Envío"
-          description="Datos personales y ubicación de entrega"
-        />
-
+      {/* Grid de accesos rápidos — Estilo Amazon */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         <QuickLink
           to="/cliente/pedidos"
-          icon={<Package className="h-4.5 w-4.5" />}
-          label="Mis Pedidos"
-          description={pendingOrders > 0 ? `${pendingOrders} en proceso` : 'Historial de compras'}
+          icon={<Package className="h-6 w-6" strokeWidth={1.5} />}
+          label="Tus pedidos"
+          description="Rastrear, devolver o ver historial"
           badge={pendingOrders > 0 ? pendingOrders : undefined}
           badgeVariant="default"
           accent={pendingOrders > 0}
         />
 
         <QuickLink
+          to="/cliente/configuracion"
+          icon={<Shield className="h-6 w-6" strokeWidth={1.5} />}
+          label="Inicio de sesión y seguridad"
+          description="Editar nombre, teléfono y contraseña"
+        />
+
+        <QuickLink
+          to="/cliente/perfil"
+          icon={<MapPin className="h-6 w-6" strokeWidth={1.5} />}
+          label="Tus Direcciones"
+          description="Editar, eliminar o establecer predeterminada"
+        />
+
+        <QuickLink
           to="/cliente/credito"
-          icon={<Wallet className="h-4.5 w-4.5" />}
-          label="Mi Crédito"
-          description={hasCredit ? `Saldo: $${credit?.current_balance?.toFixed(2)}` : 'Ver estado crediticio'}
+          icon={<Wallet className="h-6 w-6" strokeWidth={1.5} />}
+          label="Tus Pagos"
+          description="Ver transacciones y administrar saldo"
           badge={hasCredit ? credit?.status : undefined}
           badgeVariant={credit?.status === 'VENCIDO' ? 'destructive' : 'secondary'}
         />
 
         <QuickLink
           to="/cliente/favoritos"
-          icon={<Heart className="h-4.5 w-4.5" />}
-          label="Lista de Deseos"
-          description={wishlistCount > 0 ? `${wishlistCount} productos guardados` : 'Productos que te gustan'}
+          icon={<Heart className="h-6 w-6" strokeWidth={1.5} />}
+          label="Tus Listas"
+          description="Mira, modifica y comparte tus favoritos"
           badge={wishlistCount > 0 ? wishlistCount : undefined}
         />
 
         <QuickLink
           to="/cliente/notificaciones"
-          icon={<Bell className="h-4.5 w-4.5" />}
-          label="Notificaciones"
-          description="Avisos y recordatorios"
+          icon={<Headphones className="h-6 w-6" strokeWidth={1.5} />}
+          label="Servicio al Cliente"
+          description="Explorar opciones de ayuda o contáctanos"
           badge={unreadCount > 0 ? unreadCount : undefined}
           badgeVariant="destructive"
-          accent={unreadCount > 0}
-        />
-
-
-
-        <QuickLink
-          to="/cliente/configuracion"
-          icon={<Settings className="h-4.5 w-4.5" />}
-          label="Configuración"
-          description="Seguridad y preferencias"
         />
       </div>
 
