@@ -12,7 +12,8 @@ import {
   ChevronRight,
   ShoppingBag,
   Clock,
-  Sparkles
+  Sparkles,
+  MapPin
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -154,9 +155,9 @@ export function CustomerDashboard() {
       <div className="space-y-1">
         <QuickLink
           to="/cliente/perfil"
-          icon={<User className="h-4.5 w-4.5" />}
-          label="Mi Perfil"
-          description="Datos personales y dirección"
+          icon={<MapPin className="h-4.5 w-4.5" />}
+          label="Dirección de Envío"
+          description="Datos personales y ubicación de entrega"
         />
 
         <QuickLink
@@ -196,12 +197,7 @@ export function CustomerDashboard() {
           accent={unreadCount > 0}
         />
 
-        <QuickLink
-          to="/cliente/metodos-pago"
-          icon={<CreditCard className="h-4.5 w-4.5" />}
-          label="Métodos de Pago"
-          description="Gestiona tus métodos guardados"
-        />
+
 
         <QuickLink
           to="/cliente/configuracion"
