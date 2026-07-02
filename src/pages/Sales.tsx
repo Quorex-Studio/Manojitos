@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, ShoppingCart, Search, Trash2, Check, X, ClipboardList, User, Phone, Mail, DollarSign, Calendar } from 'lucide-react';
+import { Plus, ShoppingCart, Search, Trash2, Check, X, ClipboardList, User, Phone, Mail, DollarSign, Calendar, CreditCard, Landmark, FileText, MapPin } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
@@ -696,19 +696,43 @@ export default function Sales() {
                                 )}
                               </div>
                               
-                              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 space-y-2">
-                                <p className="text-xs text-foreground">
-                                  <span className="text-muted-foreground font-medium">Método Pago:</span> <span className="capitalize font-bold text-primary">{order.payment_method.replace('_', ' ')}</span>
-                                </p>
-                                {order.payment_method === 'pago_movil' && order.banco_origen && (
-                                  <p className="text-xs text-foreground">
-                                    <span className="text-muted-foreground font-medium">Banco:</span> <span className="font-semibold">{order.banco_origen}</span> <span className="mx-1 text-border">|</span> <span className="text-muted-foreground font-medium">Ref:</span> <span className="font-semibold text-accent">{order.numero_referencia}</span>
-                                  </p>
-                                )}
+                              <div className="bg-primary/10 border-2 border-primary/20 rounded-xl p-4 shadow-sm space-y-4">
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2 border-b border-primary/10 pb-2">
+                                    <CreditCard className="h-5 w-5 text-primary" />
+                                    <span className="text-sm text-foreground font-semibold uppercase tracking-wider">Información de Pago</span>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <p className="text-lg font-bold text-primary capitalize">
+                                      {order.payment_method.replace('_', ' ')}
+                                    </p>
+                                    {order.payment_method === 'pago_movil' && order.banco_origen && (
+                                      <div className="flex flex-col gap-2 mt-1 bg-background/50 p-3 rounded-lg border border-border/50">
+                                        <div className="flex items-center gap-2">
+                                          <Landmark className="h-4 w-4 text-muted-foreground" />
+                                          <span className="text-sm text-muted-foreground font-medium w-16">Banco:</span>
+                                          <span className="font-semibold text-foreground">{order.banco_origen}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <FileText className="h-4 w-4 text-muted-foreground" />
+                                          <span className="text-sm text-muted-foreground font-medium w-16">Referencia:</span>
+                                          <span className="font-bold text-accent bg-accent/10 px-2 py-0.5 rounded text-sm tracking-widest border border-accent/20">
+                                            {order.numero_referencia}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                
                                 {order.notes && (
-                                  <div className="mt-2 pt-2 border-t border-primary/10">
-                                    <p className="text-xs font-medium text-muted-foreground mb-1">Notas / Instrucciones:</p>
-                                    <p className="text-sm text-foreground italic bg-background/50 p-2 rounded-md border border-border/50">
+                                  <div className="pt-3 border-t border-primary/10">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <MapPin className="h-4 w-4 text-primary" />
+                                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notas / Dirección</p>
+                                    </div>
+                                    <p className="text-sm text-foreground bg-background/50 p-3 rounded-lg border border-border/50 leading-relaxed shadow-sm">
                                       {order.notes}
                                     </p>
                                   </div>
