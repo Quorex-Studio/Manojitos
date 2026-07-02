@@ -13,8 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { StoreLayout } from '@/components/store/StoreLayout';
-import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useSales } from '@/hooks/useSales';
 import type { StockValidationError } from '@/hooks/useSales';
@@ -159,9 +159,12 @@ export default function Checkout() {
   const subtotal = getSubtotal();
   const isEmpty = items.length === 0;
 
-  // Estados del pago inicial de financiamiento
   const [casheaMethod, setCasheaMethod] = useState('pago_movil');
   const [casheaRef, setCasheaRef] = useState('');
+
+  // Estados de pago móvil (método regular)
+  const [bancoOrigen, setBancoOrigen] = useState('');
+  const [numeroReferencia, setNumeroReferencia] = useState('');
 
   // Financiamiento Manojitos
   const montoFinanciado = subtotal * 0.50;
@@ -209,6 +212,30 @@ export default function Checkout() {
     }
   }, [user, authLoading, navigate]);
 
+  // Cargar perfil del cliente si existe
+  useEffect(() => {
+    async function loadProfile() {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from('customer_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data && !error) {
+        setShippingData(prev => ({
+          ...prev,
+          fullName: prev.fullName || data.full_name || '',
+          phone: prev.phone || data.phone || '',
+          email: prev.email || data.email || '',
+          address: prev.address || data.address || '',
+          city: prev.city || data.city || ''
+        }));
+      }
+    }
+    loadProfile();
+  }, [user]);
+
   // Redirigir si carrito vacío (y no hay orden completa)
   useEffect(() => {
     if (isEmpty && !orderComplete) {
@@ -254,6 +281,32 @@ export default function Checkout() {
         return;
       }
 
+      // Validar campos de pago móvil regular
+      if (paymentMethod === 'pago_movil') {
+        if (!bancoOrigen.trim() || !numeroReferencia.trim()) {
+          toast({
+            title: 'Datos incompletos',
+            description: 'Debe ingresar el banco de origen y número de referencia para procesar el pago móvil.',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Upsert a customer_profiles con los datos de envío
+      if (user) {
+        await supabase.from('customer_profiles').upsert({
+          user_id: user.id,
+          full_name: shippingData.fullName,
+          phone: shippingData.phone,
+          email: shippingData.email,
+          address: shippingData.address,
+          city: shippingData.city,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      }
+
       const notesPrefix = paymentMethod === 'credito'
         ? `[Inicial Crédito Manojitos: $${montoInicialTotal.toFixed(2)} - Método: ${casheaMethod} - Ref: ${casheaRef || 'N/A'}] `
         : '';
@@ -270,7 +323,9 @@ export default function Checkout() {
           client_name: shippingData.fullName,
           client_phone: shippingData.phone,
           notes: `${notesPrefix}Dirección: ${shippingData.address}, ${shippingData.city}. ${shippingData.notes || ''}`,
-          total_bs_rate: rate > 0 ? rate : undefined
+          total_bs_rate: rate > 0 ? rate : undefined,
+          banco_origen: paymentMethod === 'pago_movil' ? bancoOrigen : undefined,
+          numero_referencia: paymentMethod === 'pago_movil' ? numeroReferencia : undefined
         }
       );
 
@@ -628,6 +683,41 @@ export default function Checkout() {
               {/* Panel de instrucciones de pago */}
               <AnimatePresence mode="wait">
                 <PaymentInfoPanel method={paymentMethod} />
+
+                {paymentMethod === 'pago_movil' && (
+                  <motion.div
+                    key="pago_movil_form"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-4 p-5 rounded-xl border border-accent/20 bg-background/50 space-y-4"
+                  >
+                    <h4 className="text-sm font-semibold text-foreground">Confirmación de Pago</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="bancoOrigen" className="text-sm">Banco de Origen <span className="text-destructive">*</span></Label>
+                        <Input
+                          id="bancoOrigen"
+                          placeholder="Ej: Banesco"
+                          value={bancoOrigen}
+                          onChange={(e) => setBancoOrigen(e.target.value)}
+                          className="mt-1 bg-white/50"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="numeroReferencia" className="text-sm">N° de Referencia <span className="text-destructive">*</span></Label>
+                        <Input
+                          id="numeroReferencia"
+                          placeholder="Ej: 123456"
+                          value={numeroReferencia}
+                          onChange={(e) => setNumeroReferencia(e.target.value)}
+                          className="mt-1 bg-white/50"
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {paymentMethod === 'credito' && credit && (
                   <motion.div
                     key="credito-panel"

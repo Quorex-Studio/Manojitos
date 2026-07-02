@@ -698,6 +698,11 @@ export default function Sales() {
                               <p className="text-xs text-muted-foreground mt-1">
                                 Método Pago: <span className="capitalize font-medium">{order.payment_method}</span>
                               </p>
+                              {order.payment_method === 'pago_movil' && order.banco_origen && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Banco: <span className="font-medium">{order.banco_origen}</span> | Ref: <span className="font-medium">{order.numero_referencia}</span>
+                                </p>
+                              )}
                               {order.notes && (
                                 <p className="text-xs text-muted-foreground mt-1 italic">
                                   Nota: "{order.notes}"
