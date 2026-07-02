@@ -686,28 +686,34 @@ export default function Sales() {
                           </div>
 
                           {/* Order Footer & Actions */}
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2">
-                            <div className="text-left">
-                              <div className="flex items-baseline gap-2">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pt-2">
+                            <div className="text-left w-full sm:w-2/3">
+                              <div className="flex items-baseline gap-2 mb-3">
                                 <span className="text-xs text-muted-foreground">Total:</span>
                                 <span className="text-xl font-bold text-gradient-gold">${Number(order.total_usd).toFixed(2)}</span>
                                 {order.total_bs && (
-                                  <span className="text-sm text-muted-foreground font-medium">/ Bs. {Number(order.total_bs).toFixed(2)}</span>
+                                  <span className="text-sm text-muted-foreground font-medium">/ Bs. {new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(order.total_bs))}</span>
                                 )}
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Método Pago: <span className="capitalize font-medium">{order.payment_method}</span>
-                              </p>
-                              {order.payment_method === 'pago_movil' && order.banco_origen && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Banco: <span className="font-medium">{order.banco_origen}</span> | Ref: <span className="font-medium">{order.numero_referencia}</span>
+                              
+                              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 space-y-2">
+                                <p className="text-xs text-foreground">
+                                  <span className="text-muted-foreground font-medium">Método Pago:</span> <span className="capitalize font-bold text-primary">{order.payment_method.replace('_', ' ')}</span>
                                 </p>
-                              )}
-                              {order.notes && (
-                                <p className="text-xs text-muted-foreground mt-1 italic">
-                                  Nota: "{order.notes}"
-                                </p>
-                              )}
+                                {order.payment_method === 'pago_movil' && order.banco_origen && (
+                                  <p className="text-xs text-foreground">
+                                    <span className="text-muted-foreground font-medium">Banco:</span> <span className="font-semibold">{order.banco_origen}</span> <span className="mx-1 text-border">|</span> <span className="text-muted-foreground font-medium">Ref:</span> <span className="font-semibold text-accent">{order.numero_referencia}</span>
+                                  </p>
+                                )}
+                                {order.notes && (
+                                  <div className="mt-2 pt-2 border-t border-primary/10">
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">Notas / Instrucciones:</p>
+                                    <p className="text-sm text-foreground italic bg-background/50 p-2 rounded-md border border-border/50">
+                                      {order.notes}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
                             {order.status === 'pending' && (

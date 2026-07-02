@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, Check, CreditCard, Truck, Package,
+  ArrowLeft, Check, CreditCard, Truck, Package, Store,
   User, Mail, Phone, MapPin, Loader2, ShoppingBag, Shield,
   Copy, Smartphone, Landmark, Wallet, AlertTriangle
 } from 'lucide-react';
@@ -203,6 +203,7 @@ export default function Checkout() {
     notes: ''
   });
   const [paymentMethod, setPaymentMethod] = useState('pago_movil');
+  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
 
   // --- DERIVED / EFFECTS ---
 
@@ -255,8 +256,7 @@ export default function Checkout() {
   // Validar datos de envío
   const isShippingValid = shippingData.fullName.trim() &&
     shippingData.phone.trim() &&
-    shippingData.address.trim() &&
-    shippingData.city.trim();
+    (deliveryMethod === 'pickup' || (shippingData.address.trim() && shippingData.city.trim()));
 
   // Procesar pedido con checkout transaccional
   const handleSubmitOrder = async () => {
@@ -323,7 +323,7 @@ export default function Checkout() {
           payment_method: paymentMethod,
           client_name: shippingData.fullName,
           client_phone: shippingData.phone,
-          notes: `${notesPrefix}Dirección: ${shippingData.address}, ${shippingData.city}. ${shippingData.notes || ''}`,
+          notes: `${notesPrefix}[${deliveryMethod === 'pickup' ? 'RETIRO EN TIENDA' : 'DELIVERY'}] ${deliveryMethod === 'delivery' ? `Dirección: ${shippingData.address}, ${shippingData.city}. ` : ''}${shippingData.notes || ''}`,
           total_bs_rate: rate > 0 ? rate : undefined,
           banco_origen: paymentMethod === 'pago_movil' ? bancoOrigen : undefined,
           numero_referencia: paymentMethod === 'pago_movil' ? numeroReferencia : undefined
@@ -375,21 +375,43 @@ export default function Checkout() {
             </div>
 
             <h1 className="text-3xl font-serif font-bold text-foreground mb-4">
-              ¡Pedido Confirmado!
+              ¡Gracias por tu compra!
             </h1>
 
             <p className="text-muted-foreground mb-8">
-              Tu pedido ha sido registrado exitosamente. Por favor realiza tu pago usando los datos
-              de abajo y envíanos el comprobante al número de contacto.
+              Tu pedido ha sido registrado exitosamente. Hemos recibido tu solicitud.
             </p>
 
-            <div className="glass-card rounded-2xl p-6 mb-6 text-left">
-              <h3 className="font-semibold text-foreground mb-4">Datos del Pedido</h3>
-              <div className="space-y-2 text-sm">
-                <p><span className="text-muted-foreground">Nombre:</span> {shippingData.fullName}</p>
-                <p><span className="text-muted-foreground">Teléfono:</span> {shippingData.phone}</p>
-                <p><span className="text-muted-foreground">Dirección:</span> {shippingData.address}, {shippingData.city}</p>
-                <p><span className="text-muted-foreground">Método de Pago:</span> {paymentMethods.find(m => m.id === paymentMethod)?.label}</p>
+            <div className="glass-card rounded-2xl p-6 mb-6 text-left shadow-sm border border-border/60 bg-gradient-to-br from-background to-secondary/20">
+              <h3 className="font-semibold text-lg text-foreground mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
+                Resumen del Pedido
+              </h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                  <span className="text-muted-foreground">Nombre:</span>
+                  <span className="font-medium text-foreground">{shippingData.fullName}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                  <span className="text-muted-foreground">Teléfono:</span>
+                  <span className="font-medium text-foreground">{shippingData.phone}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                  <span className="text-muted-foreground">Tipo de Entrega:</span>
+                  <span className="font-medium text-foreground">
+                    {deliveryMethod === 'pickup' ? 'Retiro en Tienda' : 'Delivery'}
+                  </span>
+                </div>
+                {deliveryMethod === 'delivery' && (
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-muted-foreground">Dirección:</span>
+                    <span className="font-medium text-foreground text-right">{shippingData.address}, {shippingData.city}</span>
+                  </div>
+                )}
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                  <span className="text-muted-foreground">Método de Pago:</span>
+                  <span className="font-medium text-foreground">{paymentMethods.find(m => m.id === paymentMethod)?.label}</span>
+                </div>
               </div>
             </div>
 
@@ -397,18 +419,6 @@ export default function Checkout() {
             <AnimatePresence>
               <PaymentInfoPanel method={paymentMethod} />
             </AnimatePresence>
-
-            {/* Mensaje de envío de comprobante */}
-            {(paymentMethod === 'pago_movil' || paymentMethod === 'transferencia') && (
-              <div className="mt-4 mb-6 rounded-xl bg-primary/5 border border-primary/20 p-4 text-sm text-foreground">
-                <p className="font-semibold mb-1">📱 Último paso</p>
-                <p className="text-muted-foreground">
-                  Envía el comprobante de pago al número de contacto{' '}
-                  <span className="font-bold text-foreground">{PAYMENT_INFO.contacto}</span>{' '}
-                  indicando tu nombre y pedido para confirmar el despacho.
-                </p>
-              </div>
-            )}
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/tienda">
@@ -515,10 +525,41 @@ export default function Checkout() {
                   <Truck className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-lg text-foreground">Datos de Envío</h2>
-                  <p className="text-sm text-muted-foreground">¿A dónde enviamos tu pedido?</p>
+                  <h2 className="font-semibold text-lg text-foreground">Opciones de Entrega</h2>
+                  <p className="text-sm text-muted-foreground">¿Cómo deseas recibir tu pedido?</p>
                 </div>
               </div>
+
+              {/* Selector Retiro / Delivery */}
+              <RadioGroup
+                value={deliveryMethod}
+                onValueChange={(val: 'delivery' | 'pickup') => setDeliveryMethod(val)}
+                className="grid grid-cols-2 gap-4 mb-8"
+              >
+                <label
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all cursor-pointer ${
+                    deliveryMethod === 'delivery'
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                      : 'border-border bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
+                  }`}
+                >
+                  <RadioGroupItem value="delivery" className="sr-only" />
+                  <Truck className={`h-6 w-6 ${deliveryMethod === 'delivery' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className={`font-medium ${deliveryMethod === 'delivery' ? 'text-primary' : 'text-foreground'}`}>Delivery</span>
+                </label>
+
+                <label
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all cursor-pointer ${
+                    deliveryMethod === 'pickup'
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                      : 'border-border bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
+                  }`}
+                >
+                  <RadioGroupItem value="pickup" className="sr-only" />
+                  <Store className={`h-6 w-6 ${deliveryMethod === 'pickup' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className={`font-medium ${deliveryMethod === 'pickup' ? 'text-primary' : 'text-foreground'}`}>Retiro en Tienda</span>
+                </label>
+              </RadioGroup>
 
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="md:col-span-2">
@@ -559,29 +600,40 @@ export default function Checkout() {
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <Label htmlFor="address" className="text-base">Dirección Exacta <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    placeholder="Calle, número, punto de referencia..."
-                    value={shippingData.address}
-                    onChange={handleInputChange}
-                    className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                  />
-                </div>
+                <AnimatePresence mode="popLayout">
+                  {deliveryMethod === 'delivery' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                      animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                      exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                      className="md:col-span-2 grid gap-5 md:grid-cols-2"
+                    >
+                      <div className="md:col-span-2">
+                        <Label htmlFor="address" className="text-base">Dirección Exacta <span className="text-destructive">*</span></Label>
+                        <Input
+                          id="address"
+                          name="address"
+                          placeholder="Calle, número, punto de referencia..."
+                          value={shippingData.address}
+                          onChange={handleInputChange}
+                          className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
+                        />
+                      </div>
 
-                <div>
-                  <Label htmlFor="city" className="text-base">Ciudad <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    placeholder="Tu ciudad"
-                    value={shippingData.city}
-                    onChange={handleInputChange}
-                    className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                  />
-                </div>
+                      <div>
+                        <Label htmlFor="city" className="text-base">Ciudad <span className="text-destructive">*</span></Label>
+                        <Input
+                          id="city"
+                          name="city"
+                          placeholder="Tu ciudad"
+                          value={shippingData.city}
+                          onChange={handleInputChange}
+                          className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <div className="md:col-span-2">
                   <Label htmlFor="notes" className="text-base">Notas / Instrucciones</Label>
