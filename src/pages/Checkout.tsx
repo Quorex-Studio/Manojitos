@@ -205,6 +205,13 @@ export default function Checkout() {
     city: '',
     notes: ''
   });
+  const [newAddress, setNewAddress] = useState({
+    fullName: '',
+    phone: '',
+    address: '',
+    city: '',
+    notes: ''
+  });
   const [paymentMethod, setPaymentMethod] = useState('pago_movil');
   const [isEditingPayment, setIsEditingPayment] = useState(true);
   const [isEditingShipping, setIsEditingShipping] = useState(true);
@@ -651,7 +658,7 @@ export default function Checkout() {
                               variant="ghost" 
                               className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10"
                               onClick={() => {
-                                setShippingData({ fullName: '', phone: '', address: '', city: '', email: '', notes: '' });
+                                setNewAddress({ fullName: '', phone: '', address: '', city: '', notes: '' });
                               }}
                             >
                               <Plus className="h-4 w-4 mr-2" />
@@ -678,24 +685,24 @@ export default function Checkout() {
                                 
                                 <div>
                                   <Label htmlFor="modal-fullName" className="font-semibold">Nombre completo (nombre y apellido)</Label>
-                                  <Input id="modal-fullName" value={shippingData.fullName} onChange={(e) => setShippingData({...shippingData, fullName: e.target.value})} className="mt-1" />
+                                  <Input id="modal-fullName" value={newAddress.fullName} onChange={(e) => setNewAddress({...newAddress, fullName: e.target.value})} className="mt-1" />
                                 </div>
 
                                 <div>
                                   <Label htmlFor="modal-phone" className="font-semibold">Número de teléfono</Label>
-                                  <Input id="modal-phone" value={shippingData.phone} onChange={(e) => setShippingData({...shippingData, phone: e.target.value})} className="mt-1" />
+                                  <Input id="modal-phone" value={newAddress.phone} onChange={(e) => setNewAddress({...newAddress, phone: e.target.value})} className="mt-1" />
                                   <p className="text-xs text-muted-foreground mt-1">Se puede utilizar para ayudar a la entrega</p>
                                 </div>
 
                                 <div>
                                   <Label htmlFor="modal-address" className="font-semibold">Dirección</Label>
-                                  <Input id="modal-address" placeholder="Nombre de la calle, Depto., unidad, edificio, piso, etc." value={shippingData.address} onChange={(e) => setShippingData({...shippingData, address: e.target.value})} className="mt-1" />
+                                  <Input id="modal-address" placeholder="Nombre de la calle, Depto., unidad, edificio, piso, etc." value={newAddress.address} onChange={(e) => setNewAddress({...newAddress, address: e.target.value})} className="mt-1" />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <Label htmlFor="modal-city" className="font-semibold">Ciudad</Label>
-                                    <Input id="modal-city" value={shippingData.city} onChange={(e) => setShippingData({...shippingData, city: e.target.value})} className="mt-1" />
+                                    <Input id="modal-city" value={newAddress.city} onChange={(e) => setNewAddress({...newAddress, city: e.target.value})} className="mt-1" />
                                   </div>
                                   <div>
                                     <Label className="font-semibold">Estado</Label>
@@ -710,11 +717,12 @@ export default function Checkout() {
 
                                 <div>
                                   <Label htmlFor="modal-notes" className="font-semibold">Instrucción de entrega (opc.)</Label>
-                                  <Textarea id="modal-notes" placeholder="Notas, preferencias y más" value={shippingData.notes} onChange={(e) => setShippingData({...shippingData, notes: e.target.value})} className="mt-1" />
+                                  <Textarea id="modal-notes" placeholder="Notas, preferencias y más" value={newAddress.notes} onChange={(e) => setNewAddress({...newAddress, notes: e.target.value})} className="mt-1" />
                                 </div>
                               </div>
 
                               <Button className="w-full mt-4 h-12 shadow-md bg-[#FFD814] hover:bg-[#F7CA00] text-black border border-[#FCD200]" onClick={() => {
+                                setShippingData(prev => ({...prev, ...newAddress}));
                                 setIsAddingAddress(false);
                                 setIsSelectingShipping(false);
                                 setIsEditingShipping(false);
