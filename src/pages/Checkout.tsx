@@ -205,6 +205,7 @@ export default function Checkout() {
     city: '',
     notes: ''
   });
+  const [paymentMethod, setPaymentMethod] = useState('pago_movil');
   const [isEditingPayment, setIsEditingPayment] = useState(true);
   const [isEditingShipping, setIsEditingShipping] = useState(true);
   const [isSelectingShipping, setIsSelectingShipping] = useState(false);

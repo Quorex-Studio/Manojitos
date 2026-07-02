@@ -211,7 +211,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                       <span className="text-muted-foreground">
                         {item.quantity}x {item.product_name}
                       </span>
-                      <span>${item.total.toFixed(2)}</span>
+                      <span>${(item.total || 0).toFixed(2)}</span>
                     </div>
                   ))}
                   {order.items.length > 3 && (
@@ -249,7 +249,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                 {/* Total */}
                 <div className="flex justify-between items-center pt-3 border-t border-border">
                   <span className="font-medium">Total</span>
-                  <span className="text-xl font-bold">${order.total_usd.toFixed(2)}</span>
+                  <span className="text-xl font-bold">${(order.total_usd || 0).toFixed(2)}</span>
                 </div>
               </CardContent>
             </Card>

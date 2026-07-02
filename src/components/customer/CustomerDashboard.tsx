@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -19,6 +19,11 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PaymentReminderBanner } from '@/components/customer/PaymentReminderBanner';
 import { CreditFinancialProfile } from '@/components/credits/CreditFinancialProfile';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
@@ -44,7 +49,8 @@ const item = {
 };
 
 interface QuickLinkProps {
-  to: string;
+  to?: string;
+  onClick?: () => void;
   icon: React.ReactNode;
   label: string;
   description?: string;
@@ -53,34 +59,44 @@ interface QuickLinkProps {
   accent?: boolean;
 }
 
-function QuickLink({ to, icon, label, description, badge, badgeVariant = 'secondary', accent }: QuickLinkProps) {
+function QuickLink({ to, onClick, icon, label, description, badge, badgeVariant = 'secondary', accent }: QuickLinkProps) {
+  const content = (
+    <div className={cn(
+      "flex flex-col p-4 md:p-5 rounded-2xl h-full transition-all duration-300 group text-left w-full",
+      "bg-card/80 hover:bg-card border border-border/40 hover:border-primary/20",
+      "hover:shadow-md hover:-translate-y-0.5",
+      accent && "border-primary/20 bg-primary/5"
+    )}>
+      <div className="flex items-start justify-between mb-4">
+        <div className="p-2.5 rounded-xl bg-primary/5 text-primary/70 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
+          {icon}
+        </div>
+        {badge !== undefined && badge !== 0 && (
+          <Badge variant={badgeVariant} className="text-[10px] px-2 h-5 rounded-full shadow-sm font-medium">
+            {badge}
+          </Badge>
+        )}
+      </div>
+      <div className="mt-auto">
+        <h3 className="font-medium text-[15px] text-foreground mb-1 group-hover:text-primary transition-colors tracking-tight line-clamp-1">{label}</h3>
+        {description && (
+          <p className="text-[13px] text-muted-foreground/80 leading-snug line-clamp-2">{description}</p>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <motion.div variants={item} className="h-full">
-      <Link to={to} className="block h-full">
-        <div className={cn(
-          "flex flex-col p-4 md:p-5 rounded-2xl h-full transition-all duration-300 group",
-          "bg-card/80 hover:bg-card border border-border/40 hover:border-primary/20",
-          "hover:shadow-md hover:-translate-y-0.5",
-          accent && "border-primary/20 bg-primary/5"
-        )}>
-          <div className="flex items-start justify-between mb-4">
-            <div className="p-2.5 rounded-xl bg-primary/5 text-primary/70 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-              {icon}
-            </div>
-            {badge !== undefined && badge !== 0 && (
-              <Badge variant={badgeVariant} className="text-[10px] px-2 h-5 rounded-full shadow-sm font-medium">
-                {badge}
-              </Badge>
-            )}
-          </div>
-          <div className="mt-auto">
-            <h3 className="font-medium text-[15px] text-foreground mb-1 group-hover:text-primary transition-colors tracking-tight line-clamp-1">{label}</h3>
-            {description && (
-              <p className="text-[13px] text-muted-foreground/80 leading-snug line-clamp-2">{description}</p>
-            )}
-          </div>
-        </div>
-      </Link>
+      {to ? (
+        <Link to={to} className="block h-full">
+          {content}
+        </Link>
+      ) : (
+        <button type="button" onClick={onClick} className="block h-full w-full">
+          {content}
+        </button>
+      )}
     </motion.div>
   );
 }
@@ -91,6 +107,7 @@ export function CustomerDashboard() {
   const { credit, hasCredit } = useCustomerCredit();
   const { wishlist } = useWishlist();
   const { unreadCount } = useCustomerNotifications();
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
   const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'processing').length;
   const wishlistCount = wishlist.length;
@@ -172,10 +189,10 @@ export function CustomerDashboard() {
         />
 
         <QuickLink
-          to="/cliente/perfil"
           icon={<MapPin className="h-6 w-6" strokeWidth={1.5} />}
           label="Tus Direcciones"
           description="Editar, eliminar o establecer predeterminada"
+          onClick={() => setIsAddressModalOpen(true)}
         />
 
         <QuickLink
@@ -226,6 +243,123 @@ export function CustomerDashboard() {
           </Link>
         </div>
       </motion.div>
+
+      {/* Modal de Direcciones Estilo Amazon */}
+      <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
+        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
+          <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center">
+            <DialogTitle className="text-xl font-medium tracking-tight">Tus direcciones</DialogTitle>
+            <DialogDescription className="sr-only">Gestiona tus direcciones de envío</DialogDescription>
+          </div>
+          
+          <div className="p-6 max-h-[70vh] overflow-y-auto space-y-6">
+            
+            {/* Lista de direcciones guardadas (Simulado usando profile) */}
+            <div className="border border-primary/20 rounded-xl p-4 bg-primary/5 relative">
+              <Badge className="absolute -top-3 -right-2 bg-primary/20 text-primary hover:bg-primary/30 border-none shadow-none">Predeterminada</Badge>
+              <h3 className="font-medium text-base mb-1">{profile?.full_name || 'Tu Nombre'}</h3>
+              <p className="text-sm text-muted-foreground mb-1">Edo nueva esparta, municipio gomez, la vecindad</p>
+              <p className="text-sm text-muted-foreground mb-3">La Vecindad, Nueva Esparta, 6314, Venezuela</p>
+              <p className="text-sm text-muted-foreground mb-4">Número de teléfono: {profile?.phone || '04123574858'}</p>
+              <div className="flex gap-4 border-t border-primary/10 pt-3">
+                <button className="text-sm text-primary font-medium hover:underline focus:outline-none">Editar</button>
+                <button className="text-sm text-muted-foreground hover:text-destructive focus:outline-none transition-colors">Eliminar</button>
+              </div>
+            </div>
+
+            {/* Agregar Nueva Dirección */}
+            <div className="pt-2">
+              <h4 className="text-lg font-medium mb-4 flex items-center gap-2">
+                <div className="bg-primary/10 p-1.5 rounded-full"><MapPin className="h-4 w-4 text-primary" /></div>
+                Agregar una nueva dirección
+              </h4>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground/80">País o región</Label>
+                  <Select defaultValue="ve">
+                    <SelectTrigger className="bg-muted/20 border-border/50 focus:ring-primary/20">
+                      <SelectValue placeholder="Selecciona un país" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ve">Venezuela</SelectItem>
+                      <SelectItem value="us">Estados Unidos</SelectItem>
+                      <SelectItem value="co">Colombia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground/80">Nombre completo (nombre y apellido)</Label>
+                  <Input placeholder="Ej. Alex Pérez" className="bg-muted/20 border-border/50 focus:border-primary/30" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground/80">Número de teléfono</Label>
+                  <Input placeholder="+58 424 0000000" className="bg-muted/20 border-border/50 focus:border-primary/30" />
+                  <p className="text-[11px] text-muted-foreground">Se puede utilizar para ayudar a la entrega</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground/80">Dirección</Label>
+                  <Input placeholder="Nombre de la calle" className="mb-2 bg-muted/20 border-border/50 focus:border-primary/30" />
+                  <Input placeholder="Depto., unidad, edificio, piso, etc." className="bg-muted/20 border-border/50 focus:border-primary/30" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="font-semibold text-foreground/80">Ciudad</Label>
+                    <Input placeholder="Ciudad" className="bg-muted/20 border-border/50 focus:border-primary/30" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-semibold text-foreground/80">Estado</Label>
+                    <Select>
+                      <SelectTrigger className="bg-muted/20 border-border/50 focus:ring-primary/20">
+                        <SelectValue placeholder="Selecciona" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ne">Nueva Esparta</SelectItem>
+                        <SelectItem value="mi">Miranda</SelectItem>
+                        <SelectItem value="dc">Distrito Capital</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground/80">Código Postal</Label>
+                  <Input placeholder="Ej. 6301" className="bg-muted/20 border-border/50 focus:border-primary/30" />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="font-semibold text-foreground/80">Instrucción de entrega (opc.)</Label>
+                  <Input placeholder="Notas, preferencias y más" className="bg-muted/20 border-border/50 focus:border-primary/30" />
+                </div>
+                
+                <div className="pt-2 pb-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="rounded border-primary/30 text-primary focus:ring-primary/20 h-4 w-4 bg-muted/20" />
+                    <span className="text-sm font-medium">Marcar como dirección preferida</span>
+                  </label>
+                </div>
+
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-4 bg-muted/20 border-t border-border/40 flex justify-end gap-3 sticky bottom-0">
+            <Button variant="ghost" onClick={() => setIsAddressModalOpen(false)} className="hover:bg-muted/50">
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => setIsAddressModalOpen(false)}
+              className="bg-[#FFD814] hover:bg-[#F7CA00] text-black border border-[#FCD200] shadow-sm font-medium px-6"
+            >
+              Usar esta dirección
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
