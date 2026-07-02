@@ -529,7 +529,7 @@ export default function Checkout() {
                     placeholder="Ej: María Pérez"
                     value={shippingData.fullName}
                     onChange={handleInputChange}
-                    className="mt-2 h-11 bg-white/50"
+                    className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
                   />
                 </div>
 
@@ -542,7 +542,7 @@ export default function Checkout() {
                     placeholder="0412-123-4567"
                     value={shippingData.phone}
                     onChange={handleInputChange}
-                    className="mt-2 h-11 bg-white/50"
+                    className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
                   />
                 </div>
 
@@ -555,7 +555,7 @@ export default function Checkout() {
                     placeholder="tu@email.com"
                     value={shippingData.email}
                     onChange={handleInputChange}
-                    className="mt-2 h-11 bg-white/50"
+                    className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
                   />
                 </div>
 
@@ -567,7 +567,7 @@ export default function Checkout() {
                     placeholder="Calle, número, punto de referencia..."
                     value={shippingData.address}
                     onChange={handleInputChange}
-                    className="mt-2 h-11 bg-white/50"
+                    className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
                   />
                 </div>
 
@@ -579,7 +579,7 @@ export default function Checkout() {
                     placeholder="Tu ciudad"
                     value={shippingData.city}
                     onChange={handleInputChange}
-                    className="mt-2 h-11 bg-white/50"
+                    className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
                   />
                 </div>
 
@@ -591,7 +591,7 @@ export default function Checkout() {
                     placeholder="Ej: Dejar en portería, llamar al llegar..."
                     value={shippingData.notes}
                     onChange={handleInputChange}
-                    className="mt-2 bg-white/50"
+                    className="mt-2 bg-white/50 dark:bg-white/5 dark:border-white/10"
                     rows={3}
                   />
                 </div>
@@ -626,7 +626,7 @@ export default function Checkout() {
                       className={`flex items-start gap-4 p-4 rounded-xl border transition-all ${
                         isDisabled
                           ? 'opacity-60 cursor-not-allowed border-dashed bg-secondary/5'
-                          : 'cursor-pointer hover:shadow-md bg-white/40 hover:bg-white/60'
+                          : 'cursor-pointer hover:shadow-md bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
                       } ${
                         paymentMethod === method.id && !isDisabled
                           ? isCreditMethod
@@ -702,7 +702,7 @@ export default function Checkout() {
                           placeholder="Ej: Banesco"
                           value={bancoOrigen}
                           onChange={(e) => setBancoOrigen(e.target.value)}
-                          className="mt-1 bg-white/50"
+                          className="mt-1 bg-white/50 dark:bg-white/5 dark:border-white/10"
                         />
                       </div>
                       <div>
@@ -712,7 +712,7 @@ export default function Checkout() {
                           placeholder="Ej: 123456"
                           value={numeroReferencia}
                           onChange={(e) => setNumeroReferencia(e.target.value)}
-                          className="mt-1 bg-white/50"
+                          className="mt-1 bg-white/50 dark:bg-white/5 dark:border-white/10"
                         />
                       </div>
                     </div>
