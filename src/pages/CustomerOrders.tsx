@@ -167,11 +167,10 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {orders.map(order => {
         const statusConfig = ORDER_STATUS_LABELS[order.status] || ORDER_STATUS_LABELS.pending;
         const paymentConfig = PAYMENT_STATUS_LABELS[order.payment_status] || PAYMENT_STATUS_LABELS.pending;
-        const StatusIcon = STATUS_ICONS[order.status] || Package;
 
         return (
           <motion.div
@@ -179,80 +178,92 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Card className="glass-card overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-full", statusConfig.color.replace('bg-', 'bg-') + '/20')}>
-                      <StatusIcon className={cn("h-5 w-5", statusConfig.color.replace('bg-', 'text-'))} />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">Pedido #{order.id.slice(0, 8)}</CardTitle>
-                      <CardDescription>
-                        {format(new Date(order.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
-                      </CardDescription>
-                    </div>
+            <div className="border border-border/60 rounded-xl overflow-hidden bg-card/40">
+              
+              {/* Header - Amazon Style */}
+              <div className="bg-muted/40 px-4 md:px-6 py-3 border-b border-border/60 text-sm flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                <div className="flex flex-wrap gap-x-8 gap-y-2">
+                  <div>
+                    <p className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold mb-0.5">Pedido realizado</p>
+                    <p className="font-medium text-foreground/80">{format(new Date(order.created_at), "d 'de' MMMM 'de' yyyy", { locale: es })}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={cn(paymentConfig.color, "text-white")}>
-                      {paymentConfig.label}
-                    </Badge>
-                    <Badge className={cn(statusConfig.color, "text-white")}>
-                      {statusConfig.label}
-                    </Badge>
+                  <div>
+                    <p className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold mb-0.5">Total</p>
+                    <p className="font-medium text-foreground/80">${(order.total_usd || 0).toFixed(2)}</p>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {/* Items */}
-                <div className="space-y-2 mb-4">
-                  {order.items.slice(0, 3).map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {item.quantity}x {item.product_name}
-                      </span>
-                      <span>${(item.total || 0).toFixed(2)}</span>
-                    </div>
-                  ))}
-                  {order.items.length > 3 && (
-                    <p className="text-sm text-muted-foreground">
-                      +{order.items.length - 3} productos más
+                  <div>
+                    <p className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold mb-0.5">Enviar a</p>
+                    <p className="font-medium text-primary hover:underline cursor-pointer">
+                      {order.shipping_address ? 'Cliente' : 'Retiro en Tienda'}
                     </p>
-                  )}
-                </div>
-
-                {/* Shipping info */}
-                {order.shipping_address && (
-                  <div className="flex items-start gap-2 p-3 rounded-lg bg-secondary/80 mb-4">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <div className="text-sm">
-                      <p>{order.shipping_address}</p>
-                      {order.shipping_city && (
-                        <p className="text-muted-foreground">
-                          {order.shipping_city}, {order.shipping_state}
-                        </p>
-                      )}
-                    </div>
                   </div>
-                )}
-
-                {/* Tracking */}
-                {order.tracking_number && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 mb-4">
-                    <Truck className="h-4 w-4 text-primary" />
-                    <span className="text-sm">
-                      Número de seguimiento: <strong>{order.tracking_number}</strong>
-                    </span>
-                  </div>
-                )}
-
-                {/* Total */}
-                <div className="flex justify-between items-center pt-3 border-t border-border">
-                  <span className="font-medium">Total</span>
-                  <span className="text-xl font-bold">${(order.total_usd || 0).toFixed(2)}</span>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex flex-col md:items-end">
+                  <p className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold mb-0.5">Pedido n.º {order.id.slice(0, 8)}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-primary text-sm hover:underline cursor-pointer">Ver detalles del pedido</span>
+                    <span className="text-border/60">|</span>
+                    <span className="text-primary text-sm hover:underline cursor-pointer">Ver recibo</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="p-4 md:p-6">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  {statusConfig.label}
+                  <Badge className={cn(paymentConfig.color, "text-xs font-normal px-2 py-0 h-5")}>
+                    Pago: {paymentConfig.label}
+                  </Badge>
+                </h3>
+
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Items List */}
+                  <div className="flex-1 space-y-4">
+                    {order.items.slice(0, 3).map((item, idx) => (
+                      <div key={idx} className="flex gap-4 items-start">
+                        <div className="w-20 h-20 bg-muted/30 rounded-lg flex items-center justify-center border border-border/40 shrink-0">
+                          <ShoppingBag className="h-8 w-8 text-muted-foreground/30" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-primary hover:underline cursor-pointer line-clamp-2 leading-snug">
+                            {item.product_name || 'Producto sin nombre'}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Cantidad: {item.quantity}
+                          </p>
+                          <p className="text-sm font-semibold mt-1">
+                            ${(item.total || 0).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {order.items.length > 3 && (
+                      <div className="pt-2">
+                        <span className="text-sm text-primary hover:underline cursor-pointer">
+                          Ver {order.items.length - 3} artículos más
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2 md:w-64 shrink-0">
+                    <Button variant="default" className="w-full bg-[#FFD814] hover:bg-[#F7CA00] text-black border border-[#FCD200] shadow-sm">
+                      Rastrear paquete
+                    </Button>
+                    <Button variant="outline" className="w-full bg-background hover:bg-muted/50">
+                      Comprar de nuevo
+                    </Button>
+                    <Button variant="outline" className="w-full bg-background hover:bg-muted/50">
+                      Devolver o reemplazar productos
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </motion.div>
         );
       })}
