@@ -207,6 +207,7 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState('pago_movil');
   const [isEditingPayment, setIsEditingPayment] = useState(true);
   const [isEditingShipping, setIsEditingShipping] = useState(true);
+  const [isSelectingShipping, setIsSelectingShipping] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
 
   // --- DERIVED / EFFECTS ---
@@ -578,55 +579,76 @@ export default function Checkout() {
                 </label>
               </RadioGroup>
 
-              {!isEditingShipping ? (
+              {!isEditingShipping && !isSelectingShipping ? (
                 <div className="p-4 rounded-xl border border-border bg-white/40 dark:bg-white/5 relative">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="absolute top-2 right-2 h-8 px-3 text-muted-foreground hover:text-primary transition-colors"
-                    onClick={() => setIsEditingShipping(true)}
-                  >
-                    <Edit3 className="h-4 w-4 mr-1.5" />
-                    Editar
-                  </Button>
-                  <div className="space-y-4 pr-20">
-                    <div className="flex items-start gap-3">
-                      <User className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-foreground">{shippingData.fullName}</p>
+                  <div className="flex justify-between items-start mb-2">
+                    <p className="font-semibold text-foreground text-sm">
+                      {deliveryMethod === 'delivery' ? 'Entrega para ' : 'Retiro para '}{shippingData.fullName}
+                    </p>
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="h-auto p-0 text-primary hover:text-primary/80 transition-colors font-medium text-xs"
+                      onClick={() => setIsSelectingShipping(true)}
+                    >
+                      Cambiar
+                    </Button>
+                  </div>
+                  <div className="text-sm text-muted-foreground pr-10">
+                    {deliveryMethod === 'delivery' && shippingData.address ? (
+                      <p className="leading-relaxed">{shippingData.address}{shippingData.city ? `, ${shippingData.city}` : ''}</p>
+                    ) : (
+                      <p className="leading-relaxed">Retiro en Tienda - {shippingData.phone}</p>
+                    )}
+                  </div>
+                </div>
+              ) : isSelectingShipping ? (
+                <div className="border border-border rounded-xl bg-white/40 dark:bg-white/5 overflow-hidden">
+                  <div className="bg-secondary/30 px-4 py-3 border-b border-border">
+                    <h3 className="font-semibold text-foreground">
+                      {deliveryMethod === 'delivery' ? 'Selecciona una dirección de entrega' : 'Selecciona los datos de retiro'}
+                    </h3>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm font-medium text-foreground mb-3">
+                      {deliveryMethod === 'delivery' ? 'Direcciones de entrega (1)' : 'Datos de retiro (1)'}
+                    </p>
+                    <div className="border border-primary bg-primary/5 rounded-lg p-3 relative">
+                      <div className="absolute top-3.5 left-3">
+                        <div className="h-3.5 w-3.5 rounded-full border-[3px] border-primary bg-background"></div>
+                      </div>
+                      <div className="ml-7 space-y-1">
+                        <p className="font-semibold text-foreground text-sm">{shippingData.fullName}</p>
+                        {deliveryMethod === 'delivery' && shippingData.address && (
+                          <p className="text-sm text-muted-foreground leading-relaxed">{shippingData.address}{shippingData.city ? `, ${shippingData.city}` : ''}</p>
+                        )}
+                        <p className="text-sm text-muted-foreground">Número de teléfono: {shippingData.phone}</p>
+                        {shippingData.notes && (
+                          <p className="text-sm text-muted-foreground italic mt-1">"{shippingData.notes}"</p>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <Phone className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">{shippingData.phone}</p>
-                      </div>
+                    
+                    <div className="mt-4 flex flex-col gap-2">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={() => {
+                          setIsSelectingShipping(false);
+                          setIsEditingShipping(true);
+                        }}
+                      >
+                        <Edit3 className="h-4 w-4 mr-2" />
+                        Editar {deliveryMethod === 'delivery' ? 'dirección' : 'datos'}
+                      </Button>
+                      <Button 
+                        variant="default" 
+                        className="w-full font-medium"
+                        onClick={() => setIsSelectingShipping(false)}
+                      >
+                        {deliveryMethod === 'delivery' ? 'Entregar a esta dirección' : 'Usar estos datos para retirar'}
+                      </Button>
                     </div>
-                    {shippingData.email && (
-                      <div className="flex items-start gap-3">
-                        <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">{shippingData.email}</p>
-                        </div>
-                      </div>
-                    )}
-                    {deliveryMethod === 'delivery' && (
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm text-foreground">{shippingData.address}</p>
-                          {shippingData.city && <p className="text-sm text-muted-foreground mt-0.5">{shippingData.city}</p>}
-                        </div>
-                      </div>
-                    )}
-                    {shippingData.notes && (
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm text-foreground italic">"{shippingData.notes}"</p>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               ) : (
