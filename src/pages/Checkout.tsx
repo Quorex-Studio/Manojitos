@@ -557,8 +557,7 @@ export default function Checkout() {
                 </div>
               </div>
 
-              {!isSelectingShipping ? (
-                <div className="p-4 rounded-xl border border-border bg-white/40 dark:bg-white/5 relative">
+              <div className="p-4 rounded-xl border border-border bg-white/40 dark:bg-white/5 relative">
                   <div className="flex justify-between items-start mb-2">
                     <p className="font-semibold text-foreground text-sm">
                       {deliveryMethod === 'delivery' ? 'Entrega para ' : 'Retiro para '}{shippingData.fullName || 'Nuevo Cliente'}
@@ -709,7 +708,6 @@ export default function Checkout() {
                     )}
                   </div>
                 </div>
-              )}
             </motion.div>
 
             {/* Payment Method */}
