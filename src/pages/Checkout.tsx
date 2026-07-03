@@ -882,16 +882,35 @@ export default function Checkout() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="bancoOrigen" className="text-sm">Banco de Origen <span className="text-destructive">*</span></Label>
-                        <Input
+                        <select
                           id="bancoOrigen"
-                          placeholder="Ej: Banesco"
                           value={bancoOrigen}
                           onChange={(e) => setBancoOrigen(e.target.value)}
-                          className="mt-1 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                        />
+                          className="mt-1 flex h-10 w-full rounded-md border border-input bg-white/50 dark:bg-white/5 dark:border-white/10 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Selecciona un banco</option>
+                          <option value="Banesco">Banesco</option>
+                          <option value="Banco de Venezuela">Banco de Venezuela</option>
+                          <option value="Banco Mercantil">Banco Mercantil</option>
+                          <option value="Banco Provincial">Banco Provincial</option>
+                          <option value="Bancamiga">Bancamiga</option>
+                          <option value="BNC">BNC (Banco Nacional de Crédito)</option>
+                          <option value="Bancaribe">Bancaribe</option>
+                          <option value="Banco del Tesoro">Banco del Tesoro</option>
+                          <option value="Banco Bicentenario">Banco Bicentenario</option>
+                          <option value="Banco Exterior">Banco Exterior</option>
+                          <option value="Banplus">Banplus</option>
+                          <option value="Banco Plaza">Banco Plaza</option>
+                          <option value="Banco Activo">Banco Activo</option>
+                          <option value="100% Banco">100% Banco</option>
+                          <option value="Banco Caroní">Banco Caroní</option>
+                          <option value="Banco Sofitasa">Banco Sofitasa</option>
+                          <option value="Banco Venezolano de Crédito">Banco Venezolano de Crédito</option>
+                          <option value="Mi Banco">Mi Banco</option>
+                        </select>
                       </div>
                       <div>
-                        <Label htmlFor="numeroReferencia" className="text-sm">N° de Referencia <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="numeroReferencia" className="text-sm">N° de Referencia (Completa o últimos 6 dígitos) <span className="text-destructive">*</span></Label>
                         <Input
                           id="numeroReferencia"
                           placeholder="Ej: 123456"
