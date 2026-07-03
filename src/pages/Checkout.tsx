@@ -886,27 +886,27 @@ export default function Checkout() {
                           id="bancoOrigen"
                           value={bancoOrigen}
                           onChange={(e) => setBancoOrigen(e.target.value)}
-                          className="mt-1 flex h-10 w-full rounded-md border border-input bg-white/50 dark:bg-white/5 dark:border-white/10 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-900 dark:text-foreground"
                         >
-                          <option value="">Selecciona un banco</option>
-                          <option value="Banesco">Banesco</option>
-                          <option value="Banco de Venezuela">Banco de Venezuela</option>
-                          <option value="Banco Mercantil">Banco Mercantil</option>
-                          <option value="Banco Provincial">Banco Provincial</option>
-                          <option value="Bancamiga">Bancamiga</option>
-                          <option value="BNC">BNC (Banco Nacional de Crédito)</option>
-                          <option value="Bancaribe">Bancaribe</option>
-                          <option value="Banco del Tesoro">Banco del Tesoro</option>
-                          <option value="Banco Bicentenario">Banco Bicentenario</option>
-                          <option value="Banco Exterior">Banco Exterior</option>
-                          <option value="Banplus">Banplus</option>
-                          <option value="Banco Plaza">Banco Plaza</option>
-                          <option value="Banco Activo">Banco Activo</option>
-                          <option value="100% Banco">100% Banco</option>
-                          <option value="Banco Caroní">Banco Caroní</option>
-                          <option value="Banco Sofitasa">Banco Sofitasa</option>
-                          <option value="Banco Venezolano de Crédito">Banco Venezolano de Crédito</option>
-                          <option value="Mi Banco">Mi Banco</option>
+                          <option value="" className="dark:bg-zinc-900">Selecciona un banco</option>
+                          <option value="Banesco" className="dark:bg-zinc-900">Banesco</option>
+                          <option value="Banco de Venezuela" className="dark:bg-zinc-900">Banco de Venezuela</option>
+                          <option value="Banco Mercantil" className="dark:bg-zinc-900">Banco Mercantil</option>
+                          <option value="Banco Provincial" className="dark:bg-zinc-900">Banco Provincial</option>
+                          <option value="Bancamiga" className="dark:bg-zinc-900">Bancamiga</option>
+                          <option value="BNC" className="dark:bg-zinc-900">BNC (Banco Nacional de Crédito)</option>
+                          <option value="Bancaribe" className="dark:bg-zinc-900">Bancaribe</option>
+                          <option value="Banco del Tesoro" className="dark:bg-zinc-900">Banco del Tesoro</option>
+                          <option value="Banco Bicentenario" className="dark:bg-zinc-900">Banco Bicentenario</option>
+                          <option value="Banco Exterior" className="dark:bg-zinc-900">Banco Exterior</option>
+                          <option value="Banplus" className="dark:bg-zinc-900">Banplus</option>
+                          <option value="Banco Plaza" className="dark:bg-zinc-900">Banco Plaza</option>
+                          <option value="Banco Activo" className="dark:bg-zinc-900">Banco Activo</option>
+                          <option value="100% Banco" className="dark:bg-zinc-900">100% Banco</option>
+                          <option value="Banco Caroní" className="dark:bg-zinc-900">Banco Caroní</option>
+                          <option value="Banco Sofitasa" className="dark:bg-zinc-900">Banco Sofitasa</option>
+                          <option value="Banco Venezolano de Crédito" className="dark:bg-zinc-900">Banco Venezolano de Crédito</option>
+                          <option value="Mi Banco" className="dark:bg-zinc-900">Mi Banco</option>
                         </select>
                       </div>
                       <div>
