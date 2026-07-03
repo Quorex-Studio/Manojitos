@@ -213,7 +213,7 @@ export default function Checkout() {
     notes: ''
   });
   const [paymentMethod, setPaymentMethod] = useState('pago_movil');
-  const [isEditingPayment, setIsEditingPayment] = useState(true);
+  const [isEditingPayment, setIsEditingPayment] = useState(false);
   const [isEditingShipping, setIsEditingShipping] = useState(true);
   const [isSelectingShipping, setIsSelectingShipping] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
@@ -557,279 +557,156 @@ export default function Checkout() {
                 </div>
               </div>
 
-              {/* Selector Retiro / Delivery */}
-              <RadioGroup
-                value={deliveryMethod}
-                onValueChange={(val: 'delivery' | 'pickup') => setDeliveryMethod(val)}
-                className="grid grid-cols-2 gap-4 mb-8"
-              >
-                <label
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all cursor-pointer ${
-                    deliveryMethod === 'delivery'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                      : 'border-border bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
-                  }`}
-                >
-                  <RadioGroupItem value="delivery" className="sr-only" />
-                  <Truck className={`h-6 w-6 ${deliveryMethod === 'delivery' ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <span className={`font-medium ${deliveryMethod === 'delivery' ? 'text-primary' : 'text-foreground'}`}>Delivery</span>
-                </label>
-
-                <label
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all cursor-pointer ${
-                    deliveryMethod === 'pickup'
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                      : 'border-border bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
-                  }`}
-                >
-                  <RadioGroupItem value="pickup" className="sr-only" />
-                  <Store className={`h-6 w-6 ${deliveryMethod === 'pickup' ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <span className={`font-medium ${deliveryMethod === 'pickup' ? 'text-primary' : 'text-foreground'}`}>Retiro en Tienda</span>
-                </label>
-              </RadioGroup>
-
-              {!isEditingShipping && !isSelectingShipping ? (
+              {!isSelectingShipping ? (
                 <div className="p-4 rounded-xl border border-border bg-white/40 dark:bg-white/5 relative">
                   <div className="flex justify-between items-start mb-2">
                     <p className="font-semibold text-foreground text-sm">
-                      {deliveryMethod === 'delivery' ? 'Entrega para ' : 'Retiro para '}{shippingData.fullName}
+                      {deliveryMethod === 'delivery' ? 'Entrega para ' : 'Retiro para '}{shippingData.fullName || 'Nuevo Cliente'}
                     </p>
-                    <Button 
-                      variant="link" 
-                      size="sm" 
-                      className="h-auto p-0 text-primary hover:text-primary/80 transition-colors font-medium text-xs"
-                      onClick={() => setIsSelectingShipping(true)}
-                    >
-                      Cambiar
-                    </Button>
+                    <Dialog open={isSelectingShipping} onOpenChange={setIsSelectingShipping}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-auto p-0 text-primary hover:text-primary/80 transition-colors font-medium text-xs"
+                        >
+                          Cambiar
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[550px] max-h-[85vh] overflow-y-auto rounded-2xl p-0">
+                        <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center sticky top-0 z-10 backdrop-blur-md">
+                          <DialogTitle className="text-xl font-medium tracking-tight">Opciones de Entrega</DialogTitle>
+                        </div>
+                        <div className="p-6">
+                          {/* Selector Retiro / Delivery */}
+                          <RadioGroup
+                            value={deliveryMethod}
+                            onValueChange={(val: 'delivery' | 'pickup') => setDeliveryMethod(val)}
+                            className="grid grid-cols-2 gap-4 mb-6"
+                          >
+                            <label
+                              className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all cursor-pointer ${
+                                deliveryMethod === 'delivery'
+                                  ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                                  : 'border-border bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
+                              }`}
+                            >
+                              <RadioGroupItem value="delivery" className="sr-only" />
+                              <Truck className={`h-6 w-6 ${deliveryMethod === 'delivery' ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <span className={`font-medium ${deliveryMethod === 'delivery' ? 'text-primary' : 'text-foreground'}`}>Delivery</span>
+                            </label>
+
+                            <label
+                              className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all cursor-pointer ${
+                                deliveryMethod === 'pickup'
+                                  ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                                  : 'border-border bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
+                              }`}
+                            >
+                              <RadioGroupItem value="pickup" className="sr-only" />
+                              <Store className={`h-6 w-6 ${deliveryMethod === 'pickup' ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <span className={`font-medium ${deliveryMethod === 'pickup' ? 'text-primary' : 'text-foreground'}`}>Retiro en Tienda</span>
+                            </label>
+                          </RadioGroup>
+
+                          {/* Formularios de datos integrados en el modal */}
+                          <div className="space-y-4">
+                            <h3 className="font-medium text-foreground mb-3">
+                              {deliveryMethod === 'delivery' ? 'Ingresa tus datos de envío' : 'Ingresa tus datos de retiro'}
+                            </h3>
+                            
+                            <div className="grid gap-4">
+                              <div>
+                                <Label htmlFor="modal-fullName" className="text-sm">Nombre Completo <span className="text-destructive">*</span></Label>
+                                <Input
+                                  id="modal-fullName"
+                                  placeholder="Ej: María Pérez"
+                                  value={shippingData.fullName}
+                                  onChange={handleInputChange}
+                                  name="fullName"
+                                  className="mt-1"
+                                />
+                              </div>
+
+                              <div>
+                                <Label htmlFor="modal-phone" className="text-sm">Teléfono <span className="text-destructive">*</span></Label>
+                                <Input
+                                  id="modal-phone"
+                                  type="tel"
+                                  placeholder="0412-123-4567"
+                                  value={shippingData.phone}
+                                  onChange={handleInputChange}
+                                  name="phone"
+                                  className="mt-1"
+                                />
+                              </div>
+
+                              <AnimatePresence mode="popLayout">
+                                {deliveryMethod === 'delivery' && (
+                                  <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="grid gap-4 overflow-hidden"
+                                  >
+                                    <div>
+                                      <Label htmlFor="modal-address" className="text-sm">Dirección Exacta <span className="text-destructive">*</span></Label>
+                                      <Input
+                                        id="modal-address"
+                                        placeholder="Calle, número, punto de referencia..."
+                                        value={shippingData.address}
+                                        onChange={handleInputChange}
+                                        name="address"
+                                        className="mt-1"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <Label htmlFor="modal-city" className="text-sm">Ciudad <span className="text-destructive">*</span></Label>
+                                      <Input
+                                        id="modal-city"
+                                        placeholder="Tu ciudad"
+                                        value={shippingData.city}
+                                        onChange={handleInputChange}
+                                        name="city"
+                                        className="mt-1"
+                                      />
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+
+                              <div>
+                                <Label htmlFor="modal-notes" className="text-sm">Notas / Instrucciones</Label>
+                                <Textarea
+                                  id="modal-notes"
+                                  placeholder="Ej: Dejar en portería..."
+                                  value={shippingData.notes}
+                                  onChange={handleInputChange}
+                                  name="notes"
+                                  className="mt-1"
+                                  rows={2}
+                                />
+                              </div>
+                            </div>
+                            
+                            <Button 
+                              className="w-full mt-4 h-11 bg-[#FFD814] hover:bg-[#F7CA00] text-black font-medium"
+                              onClick={() => setIsSelectingShipping(false)}
+                            >
+                              Guardar y continuar
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                   <div className="text-sm text-muted-foreground pr-10">
                     {deliveryMethod === 'delivery' && shippingData.address ? (
                       <p className="leading-relaxed">{shippingData.address}{shippingData.city ? `, ${shippingData.city}` : ''}</p>
                     ) : (
-                      <p className="leading-relaxed">Retiro en Tienda - {shippingData.phone}</p>
+                      <p className="leading-relaxed">Retiro en Tienda - {shippingData.phone || 'Sin número'}</p>
                     )}
-                  </div>
-                </div>
-              ) : isSelectingShipping ? (
-                <div className="border border-border rounded-xl bg-white/40 dark:bg-white/5 overflow-hidden">
-                  <div className="bg-secondary/30 px-4 py-3 border-b border-border">
-                    <h3 className="font-semibold text-foreground">
-                      {deliveryMethod === 'delivery' ? 'Selecciona una dirección de entrega' : 'Selecciona los datos de retiro'}
-                    </h3>
-                  </div>
-                  <div className="p-4">
-                    <p className="text-sm font-medium text-foreground mb-3">
-                      {deliveryMethod === 'delivery' ? 'Direcciones de entrega (1)' : 'Datos de retiro (1)'}
-                    </p>
-                    <div className="border border-primary bg-primary/5 rounded-lg p-3 relative">
-                      <div className="absolute top-3.5 left-3">
-                        <div className="h-3.5 w-3.5 rounded-full border-[3px] border-primary bg-background"></div>
-                      </div>
-                      <div className="ml-7 space-y-1">
-                        <p className="font-semibold text-foreground text-sm">{shippingData.fullName}</p>
-                        {deliveryMethod === 'delivery' && shippingData.address && (
-                          <p className="text-sm text-muted-foreground leading-relaxed">{shippingData.address}{shippingData.city ? `, ${shippingData.city}` : ''}</p>
-                        )}
-                        <p className="text-sm text-muted-foreground">Número de teléfono: {shippingData.phone}</p>
-                        {shippingData.notes && (
-                          <p className="text-sm text-muted-foreground italic mt-1">"{shippingData.notes}"</p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4 flex flex-col gap-2">
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10"
-                        onClick={() => {
-                          setIsSelectingShipping(false);
-                          setIsEditingShipping(true);
-                        }}
-                      >
-                        <Edit3 className="h-4 w-4 mr-2" />
-                        Editar {deliveryMethod === 'delivery' ? 'dirección' : 'datos'}
-                      </Button>
-                      
-                      {deliveryMethod === 'delivery' && (
-                        <Dialog open={isAddingAddress} onOpenChange={setIsAddingAddress}>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10"
-                              onClick={() => {
-                                setNewAddress({ fullName: '', phone: '', address: '', city: '', notes: '' });
-                              }}
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Agregar una nueva dirección de entrega
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle className="text-xl font-bold">Agrega una dirección</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-2">
-                              <p className="font-semibold text-sm">Ingresa una nueva dirección de envío</p>
-                              
-                              <div className="bg-primary/5 p-3 rounded-lg border border-primary/20 mb-2 flex justify-between items-center">
-                                <p className="text-sm font-medium text-primary">Ahorra tiempo. Autocompletar tu ubicación actual.</p>
-                                <Button variant="outline" size="sm" className="shrink-0 bg-background">Autocompletar</Button>
-                              </div>
-                              
-                              <div className="space-y-4">
-                                <div>
-                                  <Label className="font-semibold">País o región</Label>
-                                  <div className="p-2 border rounded-md bg-muted/50 text-sm mt-1 font-medium">Venezuela</div>
-                                </div>
-                                
-                                <div>
-                                  <Label htmlFor="modal-fullName" className="font-semibold">Nombre completo (nombre y apellido)</Label>
-                                  <Input id="modal-fullName" value={newAddress.fullName} onChange={(e) => setNewAddress({...newAddress, fullName: e.target.value})} className="mt-1" />
-                                </div>
-
-                                <div>
-                                  <Label htmlFor="modal-phone" className="font-semibold">Número de teléfono</Label>
-                                  <Input id="modal-phone" value={newAddress.phone} onChange={(e) => setNewAddress({...newAddress, phone: e.target.value})} className="mt-1" />
-                                  <p className="text-xs text-muted-foreground mt-1">Se puede utilizar para ayudar a la entrega</p>
-                                </div>
-
-                                <div>
-                                  <Label htmlFor="modal-address" className="font-semibold">Dirección</Label>
-                                  <Input id="modal-address" placeholder="Nombre de la calle, Depto., unidad, edificio, piso, etc." value={newAddress.address} onChange={(e) => setNewAddress({...newAddress, address: e.target.value})} className="mt-1" />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <Label htmlFor="modal-city" className="font-semibold">Ciudad</Label>
-                                    <Input id="modal-city" value={newAddress.city} onChange={(e) => setNewAddress({...newAddress, city: e.target.value})} className="mt-1" />
-                                  </div>
-                                  <div>
-                                    <Label className="font-semibold">Estado</Label>
-                                    <div className="p-2 border rounded-md text-sm mt-1 text-muted-foreground bg-muted/30">Selecciona</div>
-                                  </div>
-                                </div>
-                                
-                                <div className="w-1/2 pr-2">
-                                  <Label htmlFor="modal-zip" className="font-semibold">Código Postal</Label>
-                                  <Input id="modal-zip" placeholder="" className="mt-1" />
-                                </div>
-
-                                <div>
-                                  <Label htmlFor="modal-notes" className="font-semibold">Instrucción de entrega (opc.)</Label>
-                                  <Textarea id="modal-notes" placeholder="Notas, preferencias y más" value={newAddress.notes} onChange={(e) => setNewAddress({...newAddress, notes: e.target.value})} className="mt-1" />
-                                </div>
-                              </div>
-
-                              <Button className="w-full mt-4 h-12 shadow-md bg-[#FFD814] hover:bg-[#F7CA00] text-black border border-[#FCD200]" onClick={() => {
-                                setShippingData(prev => ({...prev, ...newAddress}));
-                                setIsAddingAddress(false);
-                                setIsSelectingShipping(false);
-                                setIsEditingShipping(false);
-                              }}>
-                                Usar esta dirección
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      )}
-
-                      <Button 
-                        variant="default" 
-                        className="w-full font-medium"
-                        onClick={() => setIsSelectingShipping(false)}
-                      >
-                        {deliveryMethod === 'delivery' ? 'Entregar a esta dirección' : 'Usar estos datos para retirar'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid gap-5 md:grid-cols-2">
-                  <div className="md:col-span-2">
-                    <Label htmlFor="fullName" className="text-base">Nombre Completo <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="fullName"
-                      name="fullName"
-                      placeholder="Ej: María Pérez"
-                      value={shippingData.fullName}
-                      onChange={handleInputChange}
-                      className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="phone" className="text-base">Teléfono <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="0412-123-4567"
-                      value={shippingData.phone}
-                      onChange={handleInputChange}
-                      className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="email" className="text-base">Email (opcional)</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="tu@email.com"
-                      value={shippingData.email}
-                      onChange={handleInputChange}
-                      className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                    />
-                  </div>
-
-                  <AnimatePresence mode="popLayout">
-                    {deliveryMethod === 'delivery' && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                        animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
-                        exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                        className="md:col-span-2 grid gap-5 md:grid-cols-2"
-                      >
-                        <div className="md:col-span-2">
-                          <Label htmlFor="address" className="text-base">Dirección Exacta <span className="text-destructive">*</span></Label>
-                          <Input
-                            id="address"
-                            name="address"
-                            placeholder="Calle, número, punto de referencia..."
-                            value={shippingData.address}
-                            onChange={handleInputChange}
-                            className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="city" className="text-base">Ciudad <span className="text-destructive">*</span></Label>
-                          <Input
-                            id="city"
-                            name="city"
-                            placeholder="Tu ciudad"
-                            value={shippingData.city}
-                            onChange={handleInputChange}
-                            className="mt-2 h-11 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <div className="md:col-span-2">
-                    <Label htmlFor="notes" className="text-base">Notas / Instrucciones</Label>
-                    <Textarea
-                      id="notes"
-                      name="notes"
-                      placeholder="Ej: Dejar en portería, llamar al llegar..."
-                      value={shippingData.notes}
-                      onChange={handleInputChange}
-                      className="mt-2 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                      rows={3}
-                    />
                   </div>
                 </div>
               )}
@@ -852,7 +729,112 @@ export default function Checkout() {
                 </div>
               </div>
 
-              {!isEditingPayment && preferredMethod ? (
+              {!preferredMethod ? (
+                <div className="bg-primary/5 rounded-xl border border-primary/20 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-semibold text-primary">Forma de Pago</span>
+                    <div className="h-3.5 w-3.5 rounded-full border-[3px] border-primary bg-background"></div>
+                  </div>
+                  <div className="ml-7 space-y-1">
+                    <p className="font-semibold text-foreground text-sm">
+                      {paymentMethods.find(m => m.id === paymentMethod)?.label || 'Pago Móvil'}
+                    </p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {paymentMethods.find(m => m.id === paymentMethod)?.description}
+                    </p>
+                  </div>
+                  
+                  <div className="mt-4 flex flex-col gap-2">
+                    <Dialog open={isEditingPayment} onOpenChange={setIsEditingPayment}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10"
+                        >
+                          <Edit3 className="h-4 w-4 mr-2" />
+                          Cambiar método de pago
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto rounded-2xl bg-background border border-border/40 shadow-2xl p-0">
+                        <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center">
+                          <DialogTitle className="text-xl font-medium tracking-tight">Método de Pago</DialogTitle>
+                        </div>
+                        <div className="p-6">
+                          <p className="text-sm text-muted-foreground mb-4">Selecciona tu forma de pago preferida</p>
+                          <RadioGroup value={paymentMethod} onValueChange={(val) => {
+                            setPaymentMethod(val);
+                            setIsEditingPayment(false);
+                          }} className="space-y-3">
+                            {paymentMethods.map((method) => {
+                              const isCreditMethod = method.id === 'credito';
+                              const isDisabled = (method as any).disabled;
+                              
+                              return (
+                                <label
+                                  key={method.id}
+                                  className={`flex items-start gap-4 p-4 rounded-xl border transition-all ${
+                                    isDisabled
+                                      ? 'opacity-60 cursor-not-allowed border-dashed bg-secondary/5'
+                                      : 'cursor-pointer hover:shadow-md bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
+                                  } ${
+                                    paymentMethod === method.id && !isDisabled
+                                      ? isCreditMethod
+                                        ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                                        : 'border-accent bg-accent/5 ring-1 ring-accent/30'
+                                      : isDisabled ? '' : 'border-border'
+                                  }`}
+                                >
+                                  <RadioGroupItem 
+                                    value={method.id} 
+                                    id={method.id} 
+                                    className="mt-1" 
+                                    disabled={isDisabled}
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      {isCreditMethod && <Wallet className="h-4 w-4 text-primary" />}
+                                      <p className="font-medium text-foreground text-base">{method.label}</p>
+                                      {isCreditMethod && (
+                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                          isDisabled 
+                                            ? 'bg-destructive/10 text-destructive' 
+                                            : 'bg-primary/10 text-primary'
+                                        }`}>
+                                          {isDisabled ? 'No Disponible' : 'Autorizado'}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{method.description}</p>
+                                    
+                                    {isCreditMethod && credit && (
+                                      <div className="mt-2 flex flex-col gap-1 text-xs">
+                                        <div className="flex gap-4">
+                                          <span className="text-muted-foreground">Usado: <strong>${credit.current_balance.toFixed(2)}</strong></span>
+                                          <span className="text-muted-foreground">Límite: <strong>${credit.credit_limit.toFixed(2)}</strong></span>
+                                          <span className="text-muted-foreground">Disponible: <strong>${(credit.credit_limit - credit.current_balance).toFixed(2)}</strong></span>
+                                        </div>
+                                        {isDisabled && (
+                                          <p className="text-destructive font-semibold mt-1">
+                                            {credit.is_blocked || credit.calculatedStatus === 'BLOQUEADO'
+                                              ? '⚠️ Tu crédito está bloqueado temporalmente.'
+                                              : credit.calculatedStatus === 'VENCIDO'
+                                              ? '⚠️ Tienes cuotas vencidas. Pon al día tu cuenta.'
+                                              : `⚠️ El monto financiado ($${montoFinanciado.toFixed(2)}) supera tu saldo disponible ($${(credit.credit_limit - credit.current_balance).toFixed(2)}).`}
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </RadioGroup>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              ) : (
                 <div className="p-4 mt-2 rounded-xl border border-border bg-white/40 dark:bg-white/5 relative">
                   <Button 
                     variant="ghost" 
@@ -882,81 +864,6 @@ export default function Checkout() {
                     {preferredMethod.details?.phone_number && (
                       <p className="text-sm text-muted-foreground ml-7">{preferredMethod.details.phone_number}</p>
                     )}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3 mt-4">
-                {paymentMethods.map((method) => {
-                  const isCreditMethod = method.id === 'credito';
-                  const isDisabled = (method as any).disabled;
-                  
-                  return (
-                    <label
-                      key={method.id}
-                      className={`flex items-start gap-4 p-4 rounded-xl border transition-all ${
-                        isDisabled
-                          ? 'opacity-60 cursor-not-allowed border-dashed bg-secondary/5'
-                          : 'cursor-pointer hover:shadow-md bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
-                      } ${
-                        paymentMethod === method.id && !isDisabled
-                          ? isCreditMethod
-                            ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
-                            : 'border-accent bg-accent/5 ring-1 ring-accent/30'
-                          : isDisabled ? '' : 'border-border'
-                      }`}
-                    >
-                      <RadioGroupItem 
-                        value={method.id} 
-                        id={method.id} 
-                        className="mt-1" 
-                        disabled={isDisabled}
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          {isCreditMethod && <Wallet className="h-4 w-4 text-primary" />}
-                          <p className="font-medium text-foreground text-base">{method.label}</p>
-                          {isCreditMethod && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                              isDisabled 
-                                ? 'bg-destructive/10 text-destructive' 
-                                : 'bg-primary/10 text-primary'
-                            }`}>
-                              {isDisabled ? 'No Disponible' : 'Autorizado'}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{method.description}</p>
-                        
-                        {isCreditMethod && credit && (
-                          <div className="mt-2 flex flex-col gap-1 text-xs">
-                            <div className="flex gap-4">
-                              <span className="text-muted-foreground">Usado: <strong>${credit.current_balance.toFixed(2)}</strong></span>
-                              <span className="text-muted-foreground">Límite: <strong>${credit.credit_limit.toFixed(2)}</strong></span>
-                              <span className="text-muted-foreground">Disponible: <strong>${(credit.credit_limit - credit.current_balance).toFixed(2)}</strong></span>
-                            </div>
-                            {isDisabled && (
-                              <p className="text-destructive font-semibold mt-1">
-                                {credit.is_blocked || credit.calculatedStatus === 'BLOQUEADO'
-                                  ? '⚠️ Tu crédito está bloqueado temporalmente.'
-                                  : credit.calculatedStatus === 'VENCIDO'
-                                  ? '⚠️ Tienes cuotas vencidas. Pon al día tu cuenta.'
-                                  : `⚠️ El monto financiado ($${montoFinanciado.toFixed(2)}) supera tu saldo disponible ($${(credit.credit_limit - credit.current_balance).toFixed(2)}).`}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </label>
-                  );
-                })}
-                  </RadioGroup>
-                  <div className="flex justify-end pt-2">
-                    <Link to="/cliente/metodos-pago">
-                      <Button variant="outline" size="sm" className="gap-2 text-primary hover:text-primary">
-                        Gestionar mis métodos
-                      </Button>
-                    </Link>
                   </div>
                 </div>
               )}

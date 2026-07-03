@@ -13,12 +13,15 @@ import {
   MapPin
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
+import { useState } from 'react';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useCustomerOrders } from '@/hooks/useCustomerOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -149,6 +152,8 @@ export default function CustomerOrders() {
 }
 
 function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['orders'] }) {
+  const [trackingOrder, setTrackingOrder] = useState<string | null>(null);
+
   if (orders.length === 0) {
     return (
       <Card className="glass-card">
@@ -250,13 +255,25 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
 
                   {/* Action Buttons */}
                   <div className="flex flex-col gap-2 md:w-64 shrink-0">
-                    <Button variant="default" className="w-full bg-[#FFD814] hover:bg-[#F7CA00] text-black border border-[#FCD200] shadow-sm">
+                    <Button 
+                      variant="default" 
+                      onClick={() => setTrackingOrder(order.id)}
+                      className="w-full bg-[#FFD814] hover:bg-[#F7CA00] text-black border border-[#FCD200] shadow-sm"
+                    >
                       Rastrear paquete
                     </Button>
-                    <Button variant="outline" className="w-full bg-background hover:bg-muted/50">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => toast.info('La función de volver a comprar estará disponible pronto.')}
+                      className="w-full bg-background hover:bg-muted/50"
+                    >
                       Comprar de nuevo
                     </Button>
-                    <Button variant="outline" className="w-full bg-background hover:bg-muted/50">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => toast.info('El portal de devoluciones está en desarrollo.')}
+                      className="w-full bg-background hover:bg-muted/50"
+                    >
                       Devolver o reemplazar productos
                     </Button>
                   </div>
@@ -267,6 +284,60 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
           </motion.div>
         );
       })}
+      {/* Tracking Modal */}
+      <Dialog open={!!trackingOrder} onOpenChange={(open) => !open && setTrackingOrder(null)}>
+        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
+          <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center">
+            <DialogTitle className="text-xl font-medium tracking-tight">Rastreo de Paquete</DialogTitle>
+          </div>
+          <div className="p-6">
+            <p className="text-sm font-medium text-foreground mb-6">
+              Pedido n.º {trackingOrder?.slice(0, 8)}
+            </p>
+            
+            <div className="relative pl-6 border-l-2 border-primary/20 space-y-8 pb-4">
+              <div className="relative">
+                <div className="absolute -left-[35px] bg-primary rounded-full p-1.5 shadow-[0_0_0_4px_hsl(var(--background))]">
+                  <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <h4 className="font-semibold text-sm">Pedido Confirmado</h4>
+                <p className="text-xs text-muted-foreground mt-1">Hemos recibido tu pedido correctamente.</p>
+              </div>
+              
+              <div className="relative">
+                <div className="absolute -left-[35px] bg-primary rounded-full p-1.5 shadow-[0_0_0_4px_hsl(var(--background))]">
+                  <Package className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <h4 className="font-semibold text-sm">En Preparación</h4>
+                <p className="text-xs text-muted-foreground mt-1">Tu pedido está siendo empaquetado en nuestra tienda.</p>
+              </div>
+
+              <div className="relative">
+                <div className="absolute -left-[35px] bg-muted rounded-full p-1.5 shadow-[0_0_0_4px_hsl(var(--background))] border border-border">
+                  <Truck className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <h4 className="font-semibold text-sm text-muted-foreground">En Camino</h4>
+                <p className="text-xs text-muted-foreground mt-1">Pronto será recolectado por el repartidor.</p>
+              </div>
+
+              <div className="relative">
+                <div className="absolute -left-[35px] bg-muted rounded-full p-1.5 shadow-[0_0_0_4px_hsl(var(--background))] border border-border">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <h4 className="font-semibold text-sm text-muted-foreground">Entregado</h4>
+                <p className="text-xs text-muted-foreground mt-1">Esperando confirmación de entrega.</p>
+              </div>
+            </div>
+            
+            <Button 
+              className="w-full mt-6 bg-[#FFD814] hover:bg-[#F7CA00] text-black font-medium"
+              onClick={() => setTrackingOrder(null)}
+            >
+              Cerrar Detalles
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
