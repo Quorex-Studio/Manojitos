@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -53,7 +53,7 @@ const PAYMENT_INFO = {
 };
 
 // Componente interno: Panel con datos de pago
-function PaymentInfoPanel({ method }: { method: string }) {
+const PaymentInfoPanel = memo(function PaymentInfoPanel({ method }: { method: string }) {
   const [copied, setCopied] = useState<string | null>(null);
 
   const copy = (text: string, label: string) => {
@@ -176,15 +176,15 @@ export default function Checkout() {
   const montoInicialTotal = (subtotal * 0.50) + montoCuota;
 
   // Crédito disponible — calcular si puede usar crédito (se financia el 50%)
-  const creditAvailable = hasCredit &&
+  const creditAvailable = useMemo(() => hasCredit &&
     credit &&
     !credit.is_blocked &&
     credit.calculatedStatus !== 'BLOQUEADO' &&
     credit.calculatedStatus !== 'VENCIDO' &&
-    (credit.credit_limit - credit.current_balance) >= montoFinanciado;
+    (credit.credit_limit - credit.current_balance) >= montoFinanciado, [hasCredit, credit, montoFinanciado]);
 
   // Lista de métodos de pago (con crédito si el usuario posee una cuenta)
-  const paymentMethods = hasCredit
+  const paymentMethods = useMemo(() => hasCredit
     ? [
         ...BASE_PAYMENT_METHODS,
         {
@@ -194,7 +194,7 @@ export default function Checkout() {
           disabled: !creditAvailable,
         },
       ]
-    : BASE_PAYMENT_METHODS;
+    : BASE_PAYMENT_METHODS, [hasCredit, creditAvailable, montoInicialTotal]);
 
   // Datos del formulario
   const [shippingData, setShippingData] = useState({
@@ -273,12 +273,12 @@ export default function Checkout() {
   }, [isEmpty, orderComplete, navigate]);
 
   // Manejar cambios en el formulario
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setShippingData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
     }));
-  };
+  }, []);
 
   // Validar datos de envío
   const isShippingValid = shippingData.fullName.trim() &&
@@ -442,10 +442,7 @@ export default function Checkout() {
               </div>
             </div>
 
-            {/* Panel de datos de pago en confirmación */}
-            <AnimatePresence>
-              <PaymentInfoPanel method={paymentMethod} />
-            </AnimatePresence>
+
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/tienda">
