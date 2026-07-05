@@ -19,6 +19,7 @@ export default function CustomerAuth() {
   const { user, signIn, signUp, loading: authLoading } = useAuth();
   
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     email: '',
@@ -30,17 +31,6 @@ export default function CustomerAuth() {
     locationCoords: ''
   });
 
-  const [dniFile, setDniFile] = useState<File | null>(null);
-  const [dniPreview, setDniPreview] = useState<string | null>(null);
-  const dniFileInputRef = useRef<HTMLInputElement>(null);
-
-  const [faceFile, setFaceFile] = useState<File | null>(null);
-  const [facePreview, setFacePreview] = useState<string | null>(null);
-  const faceFileInputRef = useRef<HTMLInputElement>(null);
-
-  const [verificationFile, setVerificationFile] = useState<File | null>(null);
-  const [verificationPreview, setVerificationPreview] = useState<string | null>(null);
-  const verificationFileInputRef = useRef<HTMLInputElement>(null);
 
   const [gettingGPS, setGettingGPS] = useState(false);
 
@@ -61,34 +51,6 @@ export default function CustomerAuth() {
     }));
   };
 
-  const handleKycFileChange = (type: 'dni' | 'face' | 'verification', e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.size > 2 * 1024 * 1024) { // límite de 2MB
-        toast({
-          title: 'Archivo muy grande',
-          description: 'La foto debe ser menor a 2MB.',
-          variant: 'destructive'
-        });
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (type === 'dni') {
-          setDniFile(file);
-          setDniPreview(reader.result as string);
-        } else if (type === 'face') {
-          setFaceFile(file);
-          setFacePreview(reader.result as string);
-        } else if (type === 'verification') {
-          setVerificationFile(file);
-          setVerificationPreview(reader.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
@@ -253,6 +215,41 @@ export default function CustomerAuth() {
     );
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.email) {
+      toast({
+        title: 'Email requerido',
+        description: 'Por favor, ingresa tu correo electrónico para recuperar tu contraseña.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(form.email, {
+        redirectTo: `${window.location.origin}/cliente/recuperar`,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Correo enviado',
+        description: 'Revisa tu bandeja de entrada o spam para restablecer tu contraseña.'
+      });
+      setIsForgotPassword(false);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'No se pudo enviar el correo de recuperación.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Manejar envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,67 +286,15 @@ export default function CustomerAuth() {
           return;
         }
 
-        // Verificar que se hayan cargado las 3 fotos obligatorias para el KYC
-        if (!dniFile || !faceFile || !verificationFile) {
-          toast({
-            title: 'Fotos de verificación obligatorias',
-            description: 'Para solicitar crédito debes cargar las 3 fotos: Cédula de identidad, Foto frontal de tu rostro y Foto sosteniendo tu cédula.',
-            variant: 'destructive'
-          });
-          setLoading(false);
-          return;
-        }
-
-        // Subir las 3 imágenes de verificación KYC
-        let dniPhotoUrl = '';
-        let facePhotoUrl = '';
-        let verificationPhotoUrl = '';
-
-        const uploadKycFile = async (file: File, prefix: string) => {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Date.now()}_${prefix}.${fileExt}`;
-          const { error: uploadError } = await supabase.storage
-            .from('customer-avatars')
-            .upload(fileName, file);
-
-          if (uploadError) {
-            throw uploadError;
-          }
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('customer-avatars')
-            .getPublicUrl(fileName);
-
-          return publicUrl;
-        };
-
-        try {
-          dniPhotoUrl = await uploadKycFile(dniFile, 'dni');
-          facePhotoUrl = await uploadKycFile(faceFile, 'face');
-          verificationPhotoUrl = await uploadKycFile(verificationFile, 'verification');
-        } catch (uploadErr: any) {
-          console.error('Error uploading KYC documents:', uploadErr);
-          toast({
-            title: 'Error al subir documentos',
-            description: 'No se pudieron subir las fotos de verificación. Por favor, verifica tu conexión e inténtalo de nuevo.',
-            variant: 'destructive'
-          });
-          setLoading(false);
-          return;
-        }
-
         const { error } = await signUp(
           form.email, 
           form.password, 
           form.fullName, 
           form.phone,
           form.dni,
-          facePhotoUrl, // avatarUrl para compatibilidad
+          undefined, // avatarUrl
           form.address,
-          form.locationCoords,
-          dniPhotoUrl,
-          facePhotoUrl,
-          verificationPhotoUrl
+          form.locationCoords
         );
 
         if (error) {
@@ -377,12 +322,7 @@ export default function CustomerAuth() {
             address: '',
             locationCoords: ''
           });
-          setDniFile(null);
-          setDniPreview(null);
-          setFaceFile(null);
-          setFacePreview(null);
-          setVerificationFile(null);
-          setVerificationPreview(null);
+
           setIsLogin(true);
         }
       }
@@ -434,134 +374,21 @@ export default function CustomerAuth() {
                 <ShoppingBag className="h-8 w-8 text-accent" />
               </div>
               <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground">
-                {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+                {isForgotPassword ? 'Recuperar Clave' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
               </h1>
               <p className="text-muted-foreground mt-2">
-                {isLogin 
+                {isForgotPassword 
+                  ? 'Te enviaremos un enlace a tu correo'
+                  : isLogin 
                   ? 'Ingresa tus datos para continuar' 
                   : 'Regístrate para completar tu compra'}
               </p>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
+            <form onSubmit={isForgotPassword ? handleResetPassword : handleSubmit} className="space-y-4">
+              {!isLogin && !isForgotPassword && (
                 <>
-                  {/* KYC Verification Upload (3 Photos) */}
-                  <div className="flex flex-col space-y-4 mb-6">
-                    <div className="flex items-center gap-2 pb-2 border-b border-border">
-                      <ShieldAlert className="h-5 w-5 text-accent" />
-                      <div>
-                        <Label className="text-sm font-semibold block text-foreground">Verificación de Identidad (KYC)</Label>
-                        <span className="text-[11px] text-muted-foreground block">Obligatorio para solicitar financiamiento</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {/* Tarjeta 1: Cédula */}
-                      <div className="flex flex-col items-center">
-                        <span className="text-[11px] font-medium text-muted-foreground mb-1 text-center">1. Foto de Cédula</span>
-                        <div 
-                          onClick={() => dniFileInputRef.current?.click()}
-                          className="relative w-full aspect-[4/3] rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-accent flex items-center justify-center cursor-pointer transition-all duration-300 overflow-hidden group bg-muted/20"
-                        >
-                          {dniPreview ? (
-                            <img 
-                              src={dniPreview} 
-                              alt="Cédula" 
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center p-2 text-muted-foreground group-hover:text-accent text-center">
-                              <FileText className="h-6 w-6 mb-1 opacity-70" />
-                              <span className="text-[10px] leading-tight">Subir documento</span>
-                            </div>
-                          )}
-                          {dniPreview && (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                              <Camera className="h-5 w-5 text-white" />
-                            </div>
-                          )}
-                        </div>
-                        <input 
-                          type="file"
-                          ref={dniFileInputRef}
-                          onChange={(e) => handleKycFileChange('dni', e)}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                      </div>
-
-                      {/* Tarjeta 2: Cara */}
-                      <div className="flex flex-col items-center">
-                        <span className="text-[11px] font-medium text-muted-foreground mb-1 text-center">2. Foto de Rostro</span>
-                        <div 
-                          onClick={() => faceFileInputRef.current?.click()}
-                          className="relative w-full aspect-[4/3] rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-accent flex items-center justify-center cursor-pointer transition-all duration-300 overflow-hidden group bg-muted/20"
-                        >
-                          {facePreview ? (
-                            <img 
-                              src={facePreview} 
-                              alt="Rostro" 
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center p-2 text-muted-foreground group-hover:text-accent text-center">
-                              <User className="h-6 w-6 mb-1 opacity-70" />
-                              <span className="text-[10px] leading-tight">Subir selfie</span>
-                            </div>
-                          )}
-                          {facePreview && (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                              <Camera className="h-5 w-5 text-white" />
-                            </div>
-                          )}
-                        </div>
-                        <input 
-                          type="file"
-                          ref={faceFileInputRef}
-                          onChange={(e) => handleKycFileChange('face', e)}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                      </div>
-
-                      {/* Tarjeta 3: Cara con Cédula */}
-                      <div className="flex flex-col items-center">
-                        <span className="text-[11px] font-medium text-muted-foreground mb-1 text-center">3. Rostro + Cédula</span>
-                        <div 
-                          onClick={() => verificationFileInputRef.current?.click()}
-                          className="relative w-full aspect-[4/3] rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-accent flex items-center justify-center cursor-pointer transition-all duration-300 overflow-hidden group bg-muted/20"
-                        >
-                          {verificationPreview ? (
-                            <img 
-                              src={verificationPreview} 
-                              alt="Verificación" 
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center p-2 text-muted-foreground group-hover:text-accent text-center">
-                              <Camera className="h-6 w-6 mb-1 opacity-70" />
-                              <span className="text-[10px] leading-tight">Sosteniendo DNI</span>
-                            </div>
-                          )}
-                          {verificationPreview && (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                              <Camera className="h-5 w-5 text-white" />
-                            </div>
-                          )}
-                        </div>
-                        <input 
-                          type="file"
-                          ref={verificationFileInputRef}
-                          onChange={(e) => handleKycFileChange('verification', e)}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground text-center">Formatos: JPG, PNG. Máx 2MB por imagen. El rostro y la cédula deben ser legibles.</p>
-                  </div>
 
                   <div>
                     <Label htmlFor="fullName">Nombre Completo</Label>
@@ -711,12 +538,26 @@ export default function CustomerAuth() {
                   />
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 </div>
-                {!isLogin && (
+                {!isLogin && !isForgotPassword && (
                   <p className="text-xs text-muted-foreground mt-1">
                     Mínimo 6 caracteres
                   </p>
                 )}
               </div>
+
+
+              {isLogin && !isForgotPassword && (
+                <div className="flex justify-end mt-1">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="text-xs text-accent h-auto p-0"
+                    onClick={() => setIsForgotPassword(true)}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Button>
+                </div>
+              )}
 
               <Button 
                 type="submit" 
@@ -727,10 +568,10 @@ export default function CustomerAuth() {
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {isLogin ? 'Iniciando sesión...' : 'Creando cuenta...'}
+                    {isForgotPassword ? 'Enviando...' : isLogin ? 'Iniciando sesión...' : 'Creando cuenta...'}
                   </>
                 ) : (
-                  isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'
+                  isForgotPassword ? 'Enviar enlace de recuperación' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'
                 )}
               </Button>
             </form>
@@ -739,16 +580,32 @@ export default function CustomerAuth() {
 
             {/* Toggle */}
             <div className="text-center">
-              <p className="text-muted-foreground text-sm">
-                {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
-              </p>
-              <Button
-                variant="link"
-                className="text-accent font-medium"
-                onClick={() => setIsLogin(!isLogin)}
-              >
-                {isLogin ? 'Crear una cuenta' : 'Iniciar sesión'}
-              </Button>
+              {isForgotPassword ? (
+                <Button
+                  variant="link"
+                  className="text-muted-foreground font-medium"
+                  onClick={() => setIsForgotPassword(false)}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Volver a iniciar sesión
+                </Button>
+              ) : (
+                <>
+                  <p className="text-muted-foreground text-sm">
+                    {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
+                  </p>
+                  <Button
+                    variant="link"
+                    className="text-accent font-medium"
+                    onClick={() => {
+                      setIsLogin(!isLogin);
+                      setIsForgotPassword(false);
+                    }}
+                  >
+                    {isLogin ? 'Crear una cuenta' : 'Iniciar sesión'}
+                  </Button>
+                </>
+              )}
             </div>
           </motion.div>
 

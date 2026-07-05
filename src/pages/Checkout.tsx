@@ -141,7 +141,7 @@ const PaymentInfoPanel = memo(function PaymentInfoPanel({ method }: { method: st
       </div>
     </motion.div>
   );
-}
+});
 
 // Página de checkout
 export default function Checkout() {

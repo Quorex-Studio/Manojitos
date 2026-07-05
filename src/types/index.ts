@@ -22,6 +22,10 @@ export interface CustomerProfile {
   state: string | null;
   zip_code: string | null;
   notes: string | null;
+  dni_photo_url: string | null;
+  face_photo_url: string | null;
+  verification_photo_url: string | null;
+  kyc_status: 'pending' | 'approved' | 'rejected' | 'none';
   notification_preferences: {
     email: boolean;
     sms: boolean;

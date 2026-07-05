@@ -21,6 +21,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const ImportProducts = lazy(() => import("./pages/ImportProducts"));
 const Credits = lazy(() => import("./pages/Credits"));
 const BusinessRules = lazy(() => import("./pages/BusinessRules"));
+const Customers = lazy(() => import("./pages/Customers"));
 
 // Customer Pages - Lazy loaded
 const StoreFront = lazy(() => import("./pages/StoreFront"));
@@ -36,6 +37,7 @@ const CustomerWishlist = lazy(() => import("./pages/CustomerWishlist"));
 const CustomerNotifications = lazy(() => import("./pages/CustomerNotifications"));
 const CustomerSettings = lazy(() => import("./pages/CustomerSettings"));
 const CustomerPaymentMethods = lazy(() => import("./pages/CustomerPaymentMethods"));
+const CustomerResetPassword = lazy(() => import("./pages/CustomerResetPassword"));
 
 // Info Pages - Lazy loaded
 const AboutUs = lazy(() => import("./pages/AboutUs"));
@@ -184,6 +186,7 @@ function AppRoutes() {
       <Route path="/carrito" element={<LazyPage><Cart /></LazyPage>} />
       <Route path="/checkout" element={<LazyPage><Checkout /></LazyPage>} />
       <Route path="/cliente/auth" element={<LazyPage><CustomerAuth /></LazyPage>} />
+      <Route path="/cliente/recuperar" element={<LazyPage><CustomerResetPassword /></LazyPage>} />
       <Route path="/cliente/perfil" element={<LazyPage><CustomerProtectedRoute><CustomerProfile /></CustomerProtectedRoute></LazyPage>} />
       <Route path="/cliente/credito" element={<LazyPage><CustomerProtectedRoute><CustomerCredit /></CustomerProtectedRoute></LazyPage>} />
       <Route path="/cliente/pedidos" element={<LazyPage><CustomerProtectedRoute><CustomerOrders /></CustomerProtectedRoute></LazyPage>} />
@@ -202,6 +205,7 @@ function AppRoutes() {
       {/* ===== RUTAS ADMIN ===== */}
       <Route path="/auth" element={<LazyPage><AdminAuthRoute /></LazyPage>} />
       <Route path="/dashboard" element={<LazyPage><ProtectedRoute><Dashboard /></ProtectedRoute></LazyPage>} />
+      <Route path="/dashboard/clientes" element={<LazyPage><ProtectedRoute><Customers /></ProtectedRoute></LazyPage>} />
       <Route path="/products" element={<LazyPage><ProtectedRoute><Products /></ProtectedRoute></LazyPage>} />
       <Route path="/sales" element={<LazyPage><ProtectedRoute><Sales /></ProtectedRoute></LazyPage>} />
       <Route path="/debts" element={<LazyPage><ProtectedRoute><Debts /></ProtectedRoute></LazyPage>} />

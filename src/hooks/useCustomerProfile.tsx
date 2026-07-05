@@ -124,12 +124,49 @@ export function useCustomerProfile() {
     },
   });
 
+  // Actualizar documentos KYC
+  const updateKycDocuments = useMutation({
+    mutationFn: async (urls: { dni_photo_url: string; face_photo_url: string; verification_photo_url: string }) => {
+      if (!user) throw new Error('No autenticado');
+
+      const { data, error } = await supabase
+        .from('customer_profiles')
+        .update({
+          dni_photo_url: urls.dni_photo_url,
+          face_photo_url: urls.face_photo_url,
+          verification_photo_url: urls.verification_photo_url,
+          kyc_status: 'pending'
+        })
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer-profile'] });
+      toast({
+        title: 'Documentos guardados',
+        description: 'Tus fotos de verificación se han actualizado correctamente.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'No se pudieron guardar los documentos',
+        variant: 'destructive',
+      });
+    }
+  });
+
   return {
     profile,
     isLoading,
+    hasProfile: !!profile,
     upsertProfile,
     updateNotificationPreferences,
-    hasProfile: !!profile,
+    updateKycDocuments,
   };
 }
 

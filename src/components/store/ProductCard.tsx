@@ -97,6 +97,7 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
               <motion.img
                 src={product.image_url}
                 alt={product.name}
+                loading="lazy"
                 className="w-full h-full object-contain p-2"
                 animate={{
                   scale: isHovered ? 1.05 : 1

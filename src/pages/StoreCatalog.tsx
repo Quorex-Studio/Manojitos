@@ -50,6 +50,7 @@ export default function StoreCatalog() {
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(12); // Paginación simple
 
   // --- DERIVED / EFFECTS ---
 
@@ -158,6 +159,11 @@ export default function StoreCatalog() {
     setPriceRange([0, maxPrice]);
     setSortBy('newest');
     setSearchParams({});
+    setVisibleCount(12);
+  };
+
+  const handleLoadMore = () => {
+    setVisibleCount(prev => prev + 12);
   };
 
   const hasActiveFilters = searchQuery || selectedCategories.length > 0 || priceRange[0] > 0 || priceRange[1] < maxPrice;
@@ -376,13 +382,27 @@ export default function StoreCatalog() {
                 ))}
               </div>
             ) : filteredProducts.length > 0 ? (
-              <div className={`grid gap-5 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-                <AnimatePresence mode="popLayout">
-                  {filteredProducts.map((product, index) => (
-                    <ProductCard key={product.id} product={product} index={index} allProducts={products} />
-                  ))}
-                </AnimatePresence>
-              </div>
+              <>
+                <div className={`grid gap-5 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                  <AnimatePresence mode="popLayout">
+                    {filteredProducts.slice(0, visibleCount).map((product, index) => (
+                      <ProductCard key={product.id} product={product} index={index} allProducts={products} />
+                    ))}
+                  </AnimatePresence>
+                </div>
+                
+                {visibleCount < filteredProducts.length && (
+                  <div className="flex justify-center mt-12 mb-8">
+                    <Button 
+                      variant="outline" 
+                      className="rounded-full px-8 border-border/20 hover:border-primary/50 text-sm tracking-wide"
+                      onClick={handleLoadMore}
+                    >
+                      Cargar más productos
+                    </Button>
+                  </div>
+                )}
+              </>
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}

@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  User, 
-  Wallet, 
-  Package, 
-  Heart, 
-  Bell, 
-  Settings, 
+import {
+  User,
+  Wallet,
+  Package,
+  Heart,
+  Bell,
+  Settings,
   CreditCard,
   ChevronRight,
   ShoppingBag,
@@ -59,7 +59,7 @@ interface QuickLinkProps {
   accent?: boolean;
 }
 
-function QuickLink({ to, onClick, icon, label, description, badge, badgeVariant = 'secondary', accent }: QuickLinkProps) {
+const QuickLink = memo(function QuickLink({ to, onClick, icon, label, description, badge, badgeVariant = 'secondary', accent }: QuickLinkProps) {
   const content = (
     <div className={cn(
       "flex flex-col p-4 md:p-5 rounded-2xl h-full transition-all duration-300 group text-left w-full",
@@ -99,7 +99,7 @@ function QuickLink({ to, onClick, icon, label, description, badge, badgeVariant 
       )}
     </motion.div>
   );
-}
+});
 
 export function CustomerDashboard() {
   const { profile, hasProfile } = useCustomerProfile();
@@ -110,6 +110,10 @@ export function CustomerDashboard() {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+
+  const openSecurityModal = useCallback(() => setIsSecurityModalOpen(true), []);
+  const openAddressModal = useCallback(() => setIsAddressModalOpen(true), []);
+  const openSupportModal = useCallback(() => setIsSupportModalOpen(true), []);
 
   const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'processing').length;
   const wishlistCount = wishlist.length;
@@ -134,8 +138,8 @@ export function CustomerDashboard() {
       )}
 
       {/* Bienvenida Hero — editorial con gradient sutil */}
-      <motion.div 
-        variants={item} 
+      <motion.div
+        variants={item}
         className="relative overflow-hidden rounded-2xl p-7 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/8"
       >
         <div className="relative z-10">
@@ -144,8 +148,8 @@ export function CustomerDashboard() {
             <span className="text-[10px] font-bold tracking-[0.15em] uppercase">Área Exclusiva</span>
           </div>
           <h2 className="text-2xl md:text-3xl font-serif font-medium text-foreground tracking-tight">
-            {hasProfile && profile?.full_name 
-              ? `Hola, ${profile.full_name.split(' ')[0]}` 
+            {hasProfile && profile?.full_name
+              ? `Hola, ${profile.full_name.split(' ')[0]}`
               : 'Bienvenido'}
           </h2>
           <p className="text-sm text-muted-foreground/75 dark:text-muted-foreground/40 max-w-[250px] tracking-wide mt-1">
@@ -187,14 +191,14 @@ export function CustomerDashboard() {
           icon={<Shield className="h-6 w-6" strokeWidth={1.5} />}
           label="Inicio de sesión y seguridad"
           description="Editar nombre, teléfono y contraseña"
-          onClick={() => setIsSecurityModalOpen(true)}
+          onClick={openSecurityModal}
         />
 
         <QuickLink
           icon={<MapPin className="h-6 w-6" strokeWidth={1.5} />}
           label="Tus Direcciones"
           description="Editar, eliminar o establecer predeterminada"
-          onClick={() => setIsAddressModalOpen(true)}
+          onClick={openAddressModal}
         />
 
         <QuickLink
@@ -220,7 +224,7 @@ export function CustomerDashboard() {
           description="Explorar opciones de ayuda o contáctanos"
           badge={unreadCount > 0 ? unreadCount : undefined}
           badgeVariant="destructive"
-          onClick={() => setIsSupportModalOpen(true)}
+          onClick={openSupportModal}
         />
       </div>
 
@@ -253,9 +257,9 @@ export function CustomerDashboard() {
             <DialogTitle className="text-xl font-medium tracking-tight">Tus direcciones</DialogTitle>
             <DialogDescription className="sr-only">Gestiona tus direcciones de envío</DialogDescription>
           </div>
-          
+
           <div className="p-6 max-h-[70vh] overflow-y-auto space-y-6">
-            
+
             {/* Lista de direcciones guardadas (Simulado usando profile) */}
             <div className="border border-primary/20 rounded-xl p-4 bg-primary/5 relative">
               <Badge className="absolute -top-3 -right-2 bg-primary/20 text-primary hover:bg-primary/30 border-none shadow-none">Predeterminada</Badge>
@@ -275,7 +279,7 @@ export function CustomerDashboard() {
                 <div className="bg-primary/10 p-1.5 rounded-full"><MapPin className="h-4 w-4 text-primary" /></div>
                 Agregar una nueva dirección
               </h4>
-              
+
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="font-semibold text-foreground/80">País o región</Label>
@@ -327,17 +331,17 @@ export function CustomerDashboard() {
                     </Select>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="font-semibold text-foreground/80">Código Postal</Label>
                   <Input placeholder="Ej. 6301" className="bg-muted/20 border-border/50 focus:border-primary/30" />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="font-semibold text-foreground/80">Instrucción de entrega (opc.)</Label>
                   <Input placeholder="Notas, preferencias y más" className="bg-muted/20 border-border/50 focus:border-primary/30" />
                 </div>
-                
+
                 <div className="pt-2 pb-1">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="rounded border-primary/30 text-primary focus:ring-primary/20 h-4 w-4 bg-muted/20" />
@@ -348,12 +352,12 @@ export function CustomerDashboard() {
               </div>
             </div>
           </div>
-          
+
           <div className="p-4 bg-muted/20 border-t border-border/40 flex justify-end gap-3 sticky bottom-0">
             <Button variant="ghost" onClick={() => setIsAddressModalOpen(false)} className="hover:bg-muted/50">
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={() => setIsAddressModalOpen(false)}
               className="bg-[#FFD814] hover:bg-[#F7CA00] text-black border border-[#FCD200] shadow-sm font-medium px-6"
             >
@@ -396,7 +400,7 @@ export function CustomerDashboard() {
             <Button variant="ghost" onClick={() => setIsSecurityModalOpen(false)} className="hover:bg-muted/50">
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={() => setIsSecurityModalOpen(false)}
               className="bg-[#FFD814] hover:bg-[#F7CA00] text-black border border-[#FCD200] shadow-sm font-medium px-6"
             >

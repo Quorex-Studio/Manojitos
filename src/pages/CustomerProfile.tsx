@@ -3,8 +3,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { User, Phone, Mail, MapPin, Save, Loader2, ArrowLeft, Camera } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Save, Loader2, ArrowLeft, Camera, ShieldCheck, Upload, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,8 +39,27 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 export default function CustomerProfile() {
   // --- STATE ---
   const { user } = useAuth();
-  const { profile, isLoading, upsertProfile, hasProfile } = useCustomerProfile();
+  const { profile, isLoading, upsertProfile, hasProfile, updateKycDocuments } = useCustomerProfile();
   const { purchases, totalSpent, totalPurchases, isLoading: purchasesLoading } = useCustomerPurchaseHistory();
+  const { toast } = useToast();
+
+  // --- KYC STATE ---
+  const [kycFiles, setKycFiles] = useState<{
+    dni: File | null;
+    face: File | null;
+    verification: File | null;
+  }>({ dni: null, face: null, verification: null });
+  
+  const [kycPreviews, setKycPreviews] = useState<{
+    dni: string | null;
+    face: string | null;
+    verification: string | null;
+  }>({
+    dni: null,
+    face: null,
+    verification: null
+  });
+  const [kycUploading, setKycUploading] = useState(false);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -65,6 +86,11 @@ export default function CustomerProfile() {
         state: profile.state || '',
         zip_code: profile.zip_code || '',
       });
+      setKycPreviews({
+        dni: profile.dni_photo_url || null,
+        face: profile.face_photo_url || null,
+        verification: profile.verification_photo_url || null
+      });
     }
   }, [profile, form]);
 
@@ -75,6 +101,92 @@ export default function CustomerProfile() {
   const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const handleKycFileChange = (type: 'dni' | 'face' | 'verification', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Límite de 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Archivo muy grande',
+        description: 'El tamaño máximo permitido es de 5MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setKycFiles(prev => ({ ...prev, [type]: file }));
+    
+    // Crear preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setKycPreviews(prev => ({ ...prev, [type]: e.target?.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleKycSubmit = async () => {
+    if (!user) return;
+    
+    if (!kycPreviews.dni || !kycPreviews.face || !kycPreviews.verification) {
+      toast({
+        title: 'Faltan documentos',
+        description: 'Debes subir los 3 documentos para la verificación KYC.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setKycUploading(true);
+    try {
+      const urlsToSave = {
+        dni_photo_url: profile?.dni_photo_url || '',
+        face_photo_url: profile?.face_photo_url || '',
+        verification_photo_url: profile?.verification_photo_url || '',
+      };
+
+      const uploadTasks = [];
+
+      for (const [type, file] of Object.entries(kycFiles) as [keyof typeof kycFiles, File | null][]) {
+        if (file) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}_${type}.${fileExt}`;
+          const filePath = `${user.id}/${fileName}`;
+
+          uploadTasks.push(
+            supabase.storage
+              .from('customer-avatars')
+              .upload(filePath, file, { upsert: true })
+              .then(({ data, error }) => {
+                if (error) throw error;
+                const { data: { publicUrl } } = supabase.storage
+                  .from('customer-avatars')
+                  .getPublicUrl(filePath);
+                urlsToSave[`${type}_photo_url` as keyof typeof urlsToSave] = publicUrl;
+              })
+          );
+        }
+      }
+
+      await Promise.all(uploadTasks);
+
+      await updateKycDocuments.mutateAsync(urlsToSave);
+      
+      // Limpiar archivos una vez subidos
+      setKycFiles({ dni: null, face: null, verification: null });
+
+    } catch (error: any) {
+      console.error('Error uploading KYC:', error);
+      toast({
+        title: 'Error de subida',
+        description: error.message || 'No se pudieron subir los documentos. Intenta de nuevo.',
+        variant: 'destructive'
+      });
+    } finally {
+      setKycUploading(false);
+    }
   };
 
   // --- RENDER ---
@@ -143,9 +255,15 @@ export default function CustomerProfile() {
           </div>
 
           <Tabs defaultValue="dashboard" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-3 p-1 bg-card/80 backdrop-blur-sm border border-border/10 rounded-full h-11">
+            <TabsList className="grid w-full grid-cols-4 p-1 bg-card/80 backdrop-blur-sm border border-border/10 rounded-full h-11">
               <TabsTrigger value="dashboard" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Inicio</TabsTrigger>
               <TabsTrigger value="profile" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Perfil</TabsTrigger>
+              <TabsTrigger value="kyc" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-1 items-center">
+                KYC
+                {profile?.dni_photo_url && profile?.face_photo_url && profile?.verification_photo_url && (
+                  <CheckCircle2 className="w-3 h-3 text-green-500 ml-1" />
+                )}
+              </TabsTrigger>
               <TabsTrigger value="purchases" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Compras</TabsTrigger>
             </TabsList>
 
@@ -272,6 +390,146 @@ export default function CustomerProfile() {
                       Guardar Cambios
                     </Button>
                   </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Tab: Verificación KYC */}
+            <TabsContent value="kyc">
+              <Card className="bg-card/80 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.06)]">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-serif tracking-tight">
+                    <ShieldCheck className="h-4.5 w-4.5 text-primary/70" />
+                    Verificación de Identidad (KYC)
+                  </CardTitle>
+                  <CardDescription className="text-muted-foreground/75 dark:text-muted-foreground/40 text-sm tracking-wide">
+                    Sube tus documentos para poder realizar compras en nuestra plataforma. El tamaño máximo por archivo es de 5MB.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  
+                  {/* Banner de Estado KYC */}
+                  {profile?.kyc_status === 'approved' && (
+                    <div className="bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 p-4 rounded-lg flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-sm">¡Documentos Aprobados!</p>
+                        <p className="text-xs opacity-90">Tu verificación de identidad ha sido completada exitosamente. Ya puedes solicitar créditos.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {profile?.kyc_status === 'pending' && (
+                    <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-700 dark:text-yellow-400 p-4 rounded-lg flex items-center gap-3">
+                      <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin" />
+                      <div>
+                        <p className="font-medium text-sm">En Revisión</p>
+                        <p className="text-xs opacity-90">Tus documentos están siendo revisados por nuestro equipo. Te notificaremos pronto.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {profile?.kyc_status === 'rejected' && (
+                    <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-lg flex items-center gap-3">
+                      <User className="h-5 w-5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-sm">Documentos Rechazados</p>
+                        <p className="text-xs opacity-90">Por favor, vuelve a subir los documentos asegurándote de que sean legibles y cumplan con los requisitos.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DNI */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Cédula de Identidad (Frente)</Label>
+                    <div className="flex items-center gap-4">
+                      <div className="h-24 w-32 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center bg-muted/20 overflow-hidden relative">
+                        {kycPreviews.dni ? (
+                          <img src={kycPreviews.dni} alt="Cédula" className="object-cover w-full h-full" />
+                        ) : (
+                          <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                        )}
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                          onChange={(e) => handleKycFileChange('dni', e)}
+                          disabled={profile?.kyc_status === 'pending' || profile?.kyc_status === 'approved'}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-xs text-muted-foreground">Sube una foto clara de tu cédula por el frente.</p>
+                        {kycFiles.dni && <p className="text-xs text-primary font-medium">Archivo seleccionado: {kycFiles.dni.name}</p>}
+                        {profile?.dni_photo_url && !kycFiles.dni && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Documento actual</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rostro */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Foto de tu rostro (Selfie)</Label>
+                    <div className="flex items-center gap-4">
+                      <div className="h-24 w-24 rounded-full border-2 border-dashed border-border/50 flex items-center justify-center bg-muted/20 overflow-hidden relative">
+                        {kycPreviews.face ? (
+                          <img src={kycPreviews.face} alt="Selfie" className="object-cover w-full h-full" />
+                        ) : (
+                          <User className="h-8 w-8 text-muted-foreground/40" />
+                        )}
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                          onChange={(e) => handleKycFileChange('face', e)}
+                          disabled={profile?.kyc_status === 'pending' || profile?.kyc_status === 'approved'}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-xs text-muted-foreground">Sube una selfie donde tu rostro se vea claramente.</p>
+                        {kycFiles.face && <p className="text-xs text-primary font-medium">Archivo seleccionado: {kycFiles.face.name}</p>}
+                        {profile?.face_photo_url && !kycFiles.face && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Documento actual</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Verificación */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Sosteniendo tu cédula</Label>
+                    <div className="flex items-center gap-4">
+                      <div className="h-24 w-32 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center bg-muted/20 overflow-hidden relative">
+                        {kycPreviews.verification ? (
+                          <img src={kycPreviews.verification} alt="Verificación" className="object-cover w-full h-full" />
+                        ) : (
+                          <ShieldCheck className="h-8 w-8 text-muted-foreground/40" />
+                        )}
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                          onChange={(e) => handleKycFileChange('verification', e)}
+                          disabled={profile?.kyc_status === 'pending' || profile?.kyc_status === 'approved'}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-xs text-muted-foreground">Sube una foto tuya sosteniendo tu cédula cerca de tu rostro.</p>
+                        {kycFiles.verification && <p className="text-xs text-primary font-medium">Archivo seleccionado: {kycFiles.verification.name}</p>}
+                        {profile?.verification_photo_url && !kycFiles.verification && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Documento actual</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {profile?.kyc_status !== 'pending' && profile?.kyc_status !== 'approved' && (
+                    <Button 
+                      onClick={handleKycSubmit}
+                      disabled={kycUploading || (!kycFiles.dni && !kycFiles.face && !kycFiles.verification)}
+                      className="w-full btn-gold rounded-full h-12 mt-4"
+                    >
+                      {kycUploading ? (
+                        <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Subiendo...</>
+                      ) : (
+                        <><Upload className="h-4 w-4 mr-2" /> Enviar Documentos KYC</>
+                      )}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

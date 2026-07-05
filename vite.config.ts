@@ -40,15 +40,7 @@ export default defineConfig(({ mode }: { mode: string }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              if (id.includes('framer-motion')) return 'vendor-framer';
-              if (id.includes('@supabase/supabase-js')) return 'vendor-supabase';
-              if (id.includes('react-router')) return 'vendor-router';
-              if (id.includes('@tanstack/react-query')) return 'vendor-query';
-              if (id.includes('recharts')) return 'vendor-recharts';
-              if (id.includes('date-fns')) return 'vendor-date-fns';
-              if (id.includes('zod')) return 'vendor-zod';
-              if (id.includes('lucide-react')) return 'vendor-lucide';
-              if (id.includes('radix-ui')) return 'vendor-radix';
+              return 'vendor'; // Agrupar todas las dependencias en un solo chunk mejora el tiempo de build
             }
           },
         }
