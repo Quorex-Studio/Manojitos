@@ -159,6 +159,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [stockErrors, setStockErrors] = useState<StockValidationError[]>([]);
+  const [kycCompleted, setKycCompleted] = useState(false);
 
   const subtotal = getSubtotal();
   const isEmpty = items.length === 0;
@@ -255,6 +256,12 @@ export default function Checkout() {
           address: prev.address || data.address || '',
           city: prev.city || data.city || ''
         }));
+        
+        if (data.dni_photo_url && data.face_photo_url && data.verification_photo_url) {
+          setKycCompleted(true);
+        } else {
+          setKycCompleted(false);
+        }
         
         // Iniciar en modo lectura si los datos básicos están
         if (data.full_name && data.phone) {
@@ -1094,19 +1101,21 @@ export default function Checkout() {
                 )}
               </div>
 
-              {/* Validación de pago inicial de crédito */}
+              {/* Validación de pago inicial de crédito y KYC */}
               {(() => {
                 const isCasheaValid = paymentMethod !== 'credito' || 
                   casheaMethod === 'efectivo_usd' || 
                   casheaMethod === 'efectivo_bs' || 
                   casheaRef.trim() !== '';
 
+                const isKycValid = paymentMethod !== 'credito' || kycCompleted;
+
                 return (
                   <>
                     <Button
                       size="lg"
                       className="w-full btn-gold h-14 text-base mt-6 shadow-xl"
-                      disabled={!isShippingValid || !isCasheaValid || loading}
+                      disabled={!isShippingValid || !isCasheaValid || !isKycValid || loading}
                       onClick={handleSubmitOrder}
                     >
                       {loading ? (
@@ -1121,6 +1130,21 @@ export default function Checkout() {
                         </>
                       )}
                     </Button>
+
+                    {!isKycValid && (
+                      <div className="mt-4 p-4 bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 text-sm rounded-xl flex flex-col items-center justify-center gap-2 text-center">
+                        <div className="flex items-center gap-2 font-medium">
+                          <Shield className="h-4 w-4" />
+                          Verificación KYC Requerida
+                        </div>
+                        <p className="text-xs opacity-90">Por seguridad, debes completar tu verificación de identidad para poder realizar compras.</p>
+                        <Link to="/cliente/perfil">
+                          <Button variant="outline" size="sm" className="mt-2 text-xs border-orange-500/30 hover:bg-orange-500/10">
+                            Completar Verificación
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
 
                     {!isShippingValid && (
                       <div className="mt-4 p-3 bg-destructive/10 text-destructive text-xs rounded-lg text-center flex items-center justify-center gap-2">
