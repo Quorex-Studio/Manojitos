@@ -310,20 +310,23 @@ export default function CustomerAuth() {
         } else {
           toast({
             title: '¡Registro exitoso!',
-            description: 'Cuenta creada y verificada automáticamente. Ya puedes iniciar sesión.'
+            description: 'Tu cuenta ha sido creada. Iniciando sesión...'
           });
-          // Limpiar formulario excepto el email para facilitar el login, y cambiar a vista de login
-          setForm({
-            email: form.email,
-            password: '',
-            fullName: '',
-            phone: '',
-            dni: '',
-            address: '',
-            locationCoords: ''
-          });
+          
+          // Send Welcome Email via Edge Function
+          try {
+            await supabase.functions.invoke('send-email', {
+              body: { action: 'welcome', email: form.email }
+            });
+          } catch (fnError) {
+            console.error('Error enviando correo de bienvenida:', fnError);
+          }
 
-          setIsLogin(true);
+          // If email confirmation is off, Supabase will log the user in automatically,
+          // which will trigger the Auth context to redirect to Home.
+          // However, we can also manually navigate if needed, but useAuth does it.
+          // In case it doesn't navigate automatically, we can navigate here:
+          setTimeout(() => navigate(redirectTo), 1000);
         }
       }
     } catch (error) {

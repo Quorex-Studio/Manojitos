@@ -294,6 +294,25 @@ export function useSales() {
       if (data?.success) {
         toast({ title: 'Éxito', description: 'Pedido procesado correctamente' });
         invalidateSales();
+
+        // Send checkout confirmation email
+        try {
+          await supabase.functions.invoke('send-email', {
+            body: { 
+              action: 'checkout', 
+              email: user.email, 
+              data: {
+                client_name: checkoutData.client_name,
+                payment_method: checkoutData.payment_method,
+                total_usd: data.total_usd,
+                notes: checkoutData.notes
+              }
+            }
+          });
+        } catch (fnError) {
+          console.error('Error enviando recibo de compra:', fnError);
+        }
+
         return { error: null, saleIds: data.sale_ids };
       } else {
         throw new Error('La transacción no se pudo completar');

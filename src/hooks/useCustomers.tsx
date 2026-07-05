@@ -58,12 +58,35 @@ export function useCustomers() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast({
         title: 'Estado actualizado',
         description: `El estado KYC ha sido marcado como ${variables.status === 'approved' ? 'Aprobado' : variables.status === 'rejected' ? 'Rechazado' : 'Pendiente'}.`,
       });
+
+      // Send email notification if approved or rejected
+      if (variables.status === 'approved' || variables.status === 'rejected') {
+        const action = variables.status === 'approved' ? 'kyc_approved' : 'kyc_rejected';
+        
+        // Find user email from current state
+        const customers = queryClient.getQueryData(['customers']) as CustomerProfile[] || [];
+        const customer = customers.find(c => c.user_id === variables.userId);
+        
+        if (customer && customer.email) {
+          try {
+            await supabase.functions.invoke('send-email', {
+              body: {
+                action,
+                email: customer.email,
+                data: { client_name: customer.full_name }
+              }
+            });
+          } catch (fnError) {
+            console.error('Error enviando correo de KYC:', fnError);
+          }
+        }
+      }
     },
     onError: (error: any) => {
       toast({
