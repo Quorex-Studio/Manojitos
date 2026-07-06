@@ -100,10 +100,10 @@ export default function Customers() {
             <Users className="h-7 w-7 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+            <h1 className="page-header">
               Directorio de Clientes
             </h1>
-            <p className="text-muted-foreground mt-1 flex items-center gap-2">
+            <p className="page-subtitle mt-1 flex items-center gap-2">
               <ShieldAlert className="w-4 h-4" />
               Gestiona identidades y niveles de acceso a crédito (KYC)
             </p>
@@ -112,7 +112,7 @@ export default function Customers() {
       </div>
 
       {/* Filters Section */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center bg-card/40 backdrop-blur-md p-5 rounded-2xl border border-white/5 shadow-xl">
+      <div className="flex flex-col sm:flex-row gap-4 items-center glass-card p-5 rounded-2xl">
         <div className="relative flex-1 w-full group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -121,14 +121,14 @@ export default function Customers() {
             placeholder="Buscar por nombre, teléfono o cédula..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-11 h-12 bg-black/20 border-white/10 text-white placeholder:text-muted-foreground focus-visible:ring-primary/50 focus-visible:border-primary/50 rounded-xl transition-all"
+            className="pl-11 h-12 input-glass rounded-xl"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[220px] h-12 bg-black/20 border-white/10 rounded-xl focus:ring-primary/50">
+          <SelectTrigger className="w-full sm:w-[220px] h-12 input-glass rounded-xl">
             <SelectValue placeholder="Filtrar por Estado KYC" />
           </SelectTrigger>
-          <SelectContent className="rounded-xl border-white/10 bg-zinc-950/95 backdrop-blur-xl">
+          <SelectContent className="rounded-xl glass-card border-border/50">
             <SelectItem value="all">Todos los estados</SelectItem>
             <SelectItem value="pending">Pendientes de revisión</SelectItem>
             <SelectItem value="approved">Aprobados</SelectItem>
@@ -139,10 +139,10 @@ export default function Customers() {
       </div>
 
       {/* Table Section */}
-      <div className="rounded-2xl border border-white/5 bg-card/20 backdrop-blur-sm overflow-hidden shadow-2xl">
+      <div className="glass-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-black/40 border-b border-white/5">
+            <TableHeader className="bg-muted/30 border-b border-border/30">
               <TableRow className="border-none hover:bg-transparent">
                 <TableHead className="font-semibold text-muted-foreground py-4 pl-6">Cliente</TableHead>
                 <TableHead className="font-semibold text-muted-foreground py-4">Contacto</TableHead>
@@ -159,26 +159,26 @@ export default function Customers() {
                       <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-2">
                         <Users className="h-8 w-8 text-white/20" />
                       </div>
-                      <p className="text-lg font-medium text-white/60">No se encontraron clientes</p>
+                      <p className="text-lg font-medium text-foreground/60">No se encontraron clientes</p>
                       <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredCustomers.map((customer) => (
-                  <TableRow key={customer.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
+                  <TableRow key={customer.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
                     <TableCell className="pl-6 py-4">
                       <div className="flex items-center gap-4">
-                        <Avatar className="h-12 w-12 border-2 border-white/10 shadow-lg group-hover:border-primary/50 transition-colors">
+                        <Avatar className="h-12 w-12 border-2 border-border/50 shadow-lg group-hover:border-primary/50 transition-colors">
                           <AvatarImage src={customer.face_photo_url || ''} alt={customer.full_name} className="object-cover" />
-                          <AvatarFallback className="bg-gradient-to-br from-zinc-800 to-zinc-900 text-primary font-semibold text-lg">
+                          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
                             {customer.full_name?.substring(0, 2).toUpperCase() || 'CL'}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-semibold text-white/90 group-hover:text-primary transition-colors">{customer.full_name}</div>
+                          <div className="font-semibold text-foreground/90 group-hover:text-primary transition-colors">{customer.full_name}</div>
                           <div className="text-sm text-muted-foreground font-mono mt-0.5 flex items-center gap-1.5">
-                            <span className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[9px]">ID</span>
+                            <span className="w-4 h-4 rounded-full bg-muted flex items-center justify-center text-[9px]">ID</span>
                             {customer.dni || 'N/A'}
                           </div>
                         </div>
@@ -186,7 +186,7 @@ export default function Customers() {
                     </TableCell>
                     <TableCell className="py-4">
                       <div className="space-y-1.5">
-                        <div className="text-sm text-white/80 flex items-center gap-2">
+                        <div className="text-sm text-foreground/80 flex items-center gap-2">
                           <Phone className="w-3.5 h-3.5 text-muted-foreground" />
                           {customer.phone}
                         </div>
@@ -212,13 +212,13 @@ export default function Customers() {
                             variant="ghost" 
                             size="sm"
                             onClick={() => setSelectedCustomer(customer)}
-                            className="text-white/60 hover:text-primary hover:bg-primary/10 rounded-full px-4"
+                            className="text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full px-4"
                           >
                             Evaluar
                             <ChevronRight className="h-4 w-4 ml-1" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[700px] bg-zinc-950/95 backdrop-blur-2xl border-white/10 text-foreground p-0 overflow-hidden shadow-2xl rounded-2xl">
+                        <DialogContent className="sm:max-w-[700px] glass-card text-foreground p-0 overflow-hidden shadow-2xl rounded-2xl border-border/50">
                           {selectedCustomer && (
                             <>
                               {/* Modal Header Profile */}
@@ -227,13 +227,13 @@ export default function Customers() {
                                   <div className="flex items-center gap-5">
                                     <Avatar className="h-20 w-20 border-2 border-primary/20 shadow-xl shadow-primary/5">
                                       <AvatarImage src={selectedCustomer.face_photo_url || ''} alt={selectedCustomer.full_name} className="object-cover" />
-                                      <AvatarFallback className="bg-zinc-900 text-primary text-2xl font-bold">
+                                      <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
                                         {selectedCustomer.full_name?.substring(0, 2).toUpperCase() || 'CL'}
                                       </AvatarFallback>
                                     </Avatar>
                                     <div>
-                                      <DialogTitle className="text-2xl font-bold text-white mb-1">{selectedCustomer.full_name}</DialogTitle>
-                                      <DialogDescription className="text-base text-white/60">
+                                      <DialogTitle className="text-2xl font-bold text-foreground mb-1">{selectedCustomer.full_name}</DialogTitle>
+                                      <DialogDescription className="text-base text-muted-foreground">
                                         Evaluación de Identidad y Riesgo
                                       </DialogDescription>
                                       <div className="mt-3">
@@ -241,7 +241,7 @@ export default function Customers() {
                                       </div>
                                     </div>
                                   </div>
-                                  <div className="p-3 bg-white/5 rounded-full border border-white/10 shadow-inner">
+                                  <div className="p-3 bg-background/50 rounded-full border border-border/50 shadow-inner">
                                     {getStatusIcon(selectedCustomer.kyc_status)}
                                   </div>
                                 </div>
@@ -250,29 +250,29 @@ export default function Customers() {
                               <div className="p-8 space-y-8">
                                 {/* Contact Info Cards */}
                                 <div className="grid grid-cols-2 gap-4">
-                                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex items-center gap-4">
-                                    <div className="bg-white/5 p-3 rounded-lg text-primary">
+                                  <div className="bg-background/40 border border-border/50 rounded-xl p-4 flex items-center gap-4">
+                                    <div className="bg-primary/10 p-3 rounded-lg text-primary">
                                       <FileText className="w-5 h-5" />
                                     </div>
                                     <div>
                                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Documento C.I</p>
-                                      <p className="font-semibold text-white font-mono mt-0.5">{selectedCustomer.dni || 'No provisto'}</p>
+                                      <p className="font-semibold text-foreground font-mono mt-0.5">{selectedCustomer.dni || 'No provisto'}</p>
                                     </div>
                                   </div>
-                                  <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex items-center gap-4">
-                                    <div className="bg-white/5 p-3 rounded-lg text-primary">
+                                  <div className="bg-background/40 border border-border/50 rounded-xl p-4 flex items-center gap-4">
+                                    <div className="bg-primary/10 p-3 rounded-lg text-primary">
                                       <Phone className="w-5 h-5" />
                                     </div>
                                     <div>
                                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Teléfono</p>
-                                      <p className="font-semibold text-white mt-0.5">{selectedCustomer.phone}</p>
+                                      <p className="font-semibold text-foreground mt-0.5">{selectedCustomer.phone}</p>
                                     </div>
                                   </div>
                                 </div>
 
                                 {/* KYC Photos */}
                                 <div className="space-y-4">
-                                  <h4 className="font-semibold flex items-center text-white/90">
+                                  <h4 className="font-semibold flex items-center text-foreground/90">
                                     <ImageIcon className="h-5 w-5 mr-2 text-primary" />
                                     Evidencia de Veridad (KYC)
                                   </h4>
@@ -287,19 +287,19 @@ export default function Customers() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                       <div className="space-y-3">
                                         <div className="flex items-center justify-between">
-                                          <p className="text-sm font-medium text-white/80">Cédula de Identidad</p>
+                                          <p className="text-sm font-medium text-foreground/80">Cédula de Identidad</p>
                                         </div>
                                         {selectedCustomer.dni_photo_url ? (
-                                          <a href={selectedCustomer.dni_photo_url} target="_blank" rel="noopener noreferrer" className="block relative aspect-video rounded-xl overflow-hidden border border-white/10 bg-black/50 group shadow-lg">
+                                          <a href={selectedCustomer.dni_photo_url} target="_blank" rel="noopener noreferrer" className="block relative aspect-video rounded-xl overflow-hidden border border-border/50 bg-background/50 group shadow-lg">
                                             <img src={selectedCustomer.dni_photo_url} alt="Cédula" className="object-cover w-full h-full transition-all duration-500 group-hover:scale-110 group-hover:opacity-50" />
                                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                              <span className="bg-black/80 backdrop-blur-sm text-white text-xs font-semibold px-4 py-2 rounded-full flex items-center gap-2">
+                                              <span className="bg-background/80 backdrop-blur-sm text-foreground text-xs font-semibold px-4 py-2 rounded-full flex items-center gap-2">
                                                 <Search className="w-3.5 h-3.5" /> Ampliar
                                               </span>
                                             </div>
                                           </a>
                                         ) : (
-                                          <div className="aspect-video rounded-xl border border-dashed border-white/10 bg-white/[0.02] flex flex-col items-center justify-center text-muted-foreground gap-2">
+                                          <div className="aspect-video rounded-xl border border-dashed border-border/50 bg-background/20 flex flex-col items-center justify-center text-muted-foreground gap-2">
                                             <FileText className="w-6 h-6 opacity-20" />
                                             <span className="text-xs">Falta documento</span>
                                           </div>
@@ -307,18 +307,18 @@ export default function Customers() {
                                       </div>
                                       
                                       <div className="space-y-3">
-                                        <p className="text-sm font-medium text-white/80">Selfie con Documento</p>
+                                        <p className="text-sm font-medium text-foreground/80">Selfie con Documento</p>
                                         {selectedCustomer.verification_photo_url ? (
-                                          <a href={selectedCustomer.verification_photo_url} target="_blank" rel="noopener noreferrer" className="block relative aspect-video rounded-xl overflow-hidden border border-white/10 bg-black/50 group shadow-lg">
+                                          <a href={selectedCustomer.verification_photo_url} target="_blank" rel="noopener noreferrer" className="block relative aspect-video rounded-xl overflow-hidden border border-border/50 bg-background/50 group shadow-lg">
                                             <img src={selectedCustomer.verification_photo_url} alt="Verificación" className="object-cover w-full h-full transition-all duration-500 group-hover:scale-110 group-hover:opacity-50" />
                                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                              <span className="bg-black/80 backdrop-blur-sm text-white text-xs font-semibold px-4 py-2 rounded-full flex items-center gap-2">
+                                              <span className="bg-background/80 backdrop-blur-sm text-foreground text-xs font-semibold px-4 py-2 rounded-full flex items-center gap-2">
                                                 <Search className="w-3.5 h-3.5" /> Ampliar
                                               </span>
                                             </div>
                                           </a>
                                         ) : (
-                                          <div className="aspect-video rounded-xl border border-dashed border-white/10 bg-white/[0.02] flex flex-col items-center justify-center text-muted-foreground gap-2">
+                                          <div className="aspect-video rounded-xl border border-dashed border-border/50 bg-background/20 flex flex-col items-center justify-center text-muted-foreground gap-2">
                                             <ImageIcon className="w-6 h-6 opacity-20" />
                                             <span className="text-xs">Falta documento</span>
                                           </div>
@@ -329,7 +329,7 @@ export default function Customers() {
                                 </div>
 
                                 {/* Action Buttons */}
-                                <div className="flex flex-wrap gap-3 pt-6 border-t border-white/5">
+                                <div className="flex flex-wrap gap-3 pt-6 border-t border-border/30">
                                   {selectedCustomer.kyc_status !== 'rejected' && (
                                     <Button 
                                       variant="outline" 
