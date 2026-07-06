@@ -308,18 +308,7 @@ export default function CustomerAuth() {
             variant: 'destructive'
           });
         } else {
-          toast({
-            title: '¡Registro exitoso!',
-            description: 'Tu cuenta ha sido creada. Iniciando sesión...'
-          });
-          
-
-
-          // If email confirmation is off, Supabase will log the user in automatically,
-          // which will trigger the Auth context to redirect to Home.
-          // However, we can also manually navigate if needed, but useAuth does it.
-          // In case it doesn't navigate automatically, we can navigate here:
-          setTimeout(() => navigate(redirectTo), 1000);
+          toast({ title: '¡Registro exitoso!', description: 'Por favor, revisa tu bandeja de entrada (o carpeta de spam) y haz clic en el enlace para confirmar tu cuenta.', duration: 8000 }); setIsLogin(true);
         }
       }
     } catch (error) {
@@ -614,3 +603,4 @@ export default function CustomerAuth() {
     </StoreLayout>
   );
 }
+
