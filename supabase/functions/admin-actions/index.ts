@@ -38,14 +38,8 @@ serve(async (req) => {
       })
     }
 
-    // Verificar si el usuario que llama es admin real
-    const { data: adminProfile } = await supabaseClient
-      .from('profiles')
-      .select('role')
-      .eq('id', adminUser.id)
-      .single()
-
-    if (adminProfile?.role !== 'admin') {
+    // Verificar si el usuario que llama es admin real (usando app_metadata en lugar de tabla profiles)
+    if (adminUser?.app_metadata?.is_super_admin !== true) {
       return new Response(JSON.stringify({ error: 'No autorizado. Se requiere rol de admin.' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
