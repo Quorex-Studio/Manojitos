@@ -60,6 +60,7 @@ export default function CustomerProfile() {
     verification: null
   });
   const [kycUploading, setKycUploading] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -125,6 +126,63 @@ export default function CustomerProfile() {
       setKycPreviews(prev => ({ ...prev, [type]: e.target?.result as string }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Archivo muy grande',
+        description: 'El tamaño máximo permitido es de 5MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_avatar.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('customer-avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('customer-avatars')
+        .getPublicUrl(filePath);
+
+      // Update the profile with the new avatar_url
+      await supabase
+        .from('customer_profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('user_id', user.id);
+
+      // Refresh data
+      upsertProfile.mutate({
+        ...form.getValues(),
+        // Trigger a refetch indirectly or rely on queryClient invalidate in upsertProfile
+      });
+      
+      toast({
+        title: 'Foto actualizada',
+        description: 'Tu foto de perfil se ha guardado correctamente.',
+      });
+    } catch (error: any) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo subir la foto de perfil.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const handleKycSubmit = async () => {
@@ -230,17 +288,32 @@ export default function CustomerProfile() {
               </Button>
             </Link>
             <div className="flex items-center gap-5">
-              <div className="relative">
+              <div className="relative group">
                 <Avatar className="h-16 w-16 border-2 border-primary/20 ring-2 ring-primary/10 ring-offset-2 ring-offset-background">
-                  <AvatarImage src={undefined} />
+                  <AvatarImage src={profile?.avatar_url || undefined} />
                   <AvatarFallback className="text-lg bg-primary/10 text-primary font-serif">
                     {getInitials(profile?.full_name)}
                   </AvatarFallback>
                 </Avatar>
+                <div className="absolute inset-0 bg-background/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onClick={() => document.getElementById('avatarUpload')?.click()}>
+                  {isUploadingAvatar ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <Camera className="h-5 w-5 text-primary" />
+                  )}
+                </div>
+                <Input 
+                  id="avatarUpload" 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handleAvatarUpload}
+                  disabled={isUploadingAvatar}
+                />
                 <Button 
                   size="icon" 
                   variant="secondary" 
-                  className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-card border border-border/20"
+                  className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-card border border-border/20 pointer-events-none"
                 >
                   <Camera className="h-3.5 w-3.5" />
                 </Button>
