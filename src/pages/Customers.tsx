@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useCustomers, CustomerProfile } from '@/hooks/useCustomers';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -22,11 +23,13 @@ import {
 } from "@/components/ui/dialog";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { UserCheck, UserX, Loader2, Search, FileText, Image as ImageIcon, Users, Mail, Phone, Calendar, ShieldAlert, CheckCircle2, Clock, XCircle, ChevronRight } from 'lucide-react';
+import { UserCheck, UserX, Loader2, Search, FileText, Image as ImageIcon, Users, Mail, Phone, Calendar, ShieldAlert, CheckCircle2, Clock, XCircle, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 
 export default function Customers() {
+  const navigate = useNavigate();
   const { customers, isLoading, updateKycStatus } = useCustomers();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -91,11 +94,23 @@ export default function Customers() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative">
-        <div className="absolute -top-10 -left-10 w-40 h-40 bg-primary/20 rounded-full blur-[80px] pointer-events-none" />
-        <div className="relative z-10 flex items-center gap-4">
+    <AppLayout>
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative">
+          <div className="absolute -top-10 -left-10 w-40 h-40 bg-primary/20 rounded-full blur-[80px] pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col gap-4">
+            <Button 
+              variant="ghost" 
+              className="w-fit text-muted-foreground hover:text-foreground pl-0 group"
+              onClick={() => navigate('/dashboard')}
+            >
+              <ChevronLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+              Volver al Dashboard
+            </Button>
+            
+            <div className="flex items-center gap-4">
           <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center shadow-lg shadow-primary/5">
             <Users className="h-7 w-7 text-primary" />
           </div>
@@ -107,11 +122,12 @@ export default function Customers() {
               <ShieldAlert className="w-4 h-4" />
               Gestiona identidades y niveles de acceso a crédito (KYC)
             </p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Filters Section */}
+        {/* Filters Section */}
       <div className="flex flex-col sm:flex-row gap-4 items-center glass-card p-5 rounded-2xl">
         <div className="relative flex-1 w-full group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -379,5 +395,6 @@ export default function Customers() {
         </div>
       </div>
     </div>
+    </AppLayout>
   );
 }
