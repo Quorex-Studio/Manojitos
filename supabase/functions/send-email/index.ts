@@ -39,7 +39,7 @@ serve(async (req) => {
     const body = JSON.parse(rawBody);
 
     const configuredWebhookSecret = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
-    const isWebhook = body.user && body.email_action_type;
+    const isWebhook = body.user && body.email_data;
 
     let email = "";
     let subject = "";
@@ -58,7 +58,8 @@ serve(async (req) => {
         throw new Error("Invalid webhook signature");
       }
 
-      const { user, email_action_type, token_hash, redirect_to, site_url } = body;
+      const { user, email_data } = body;
+      const { email_action_type, token_hash, redirect_to, site_url } = email_data;
       email = user.email;
       
       // Construir el enlace de verificación nativo de Supabase usando concatenacion segura
@@ -163,8 +164,15 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Function Error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
     return new Response(
-      JSON.stringify({ success: false, error: String(error) }),
+      JSON.stringify({ 
+        error: {
+          http_code: 400,
+          message: errorMessage
+        } 
+      }),
       {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

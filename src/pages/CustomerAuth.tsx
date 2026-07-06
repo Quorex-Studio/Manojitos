@@ -286,6 +286,38 @@ export default function CustomerAuth() {
           return;
         }
 
+        // Validar unicidad antes de intentar registrar
+        try {
+          const { data, error: rpcError } = await supabase.rpc('check_unique_customer_data', {
+            p_phone: form.phone,
+            p_dni: form.dni,
+            p_email: form.email
+          });
+
+          if (rpcError) {
+            console.error('Error checking unique data:', rpcError);
+          } else if (data) {
+            const result = data as any;
+            if (result.email_taken) {
+              toast({ title: 'Error', description: 'El correo ya está registrado. Inicia sesión.', variant: 'destructive' });
+              setLoading(false);
+              return;
+            }
+            if (result.dni_taken) {
+              toast({ title: 'Error', description: 'La cédula (DNI) ya está registrada.', variant: 'destructive' });
+              setLoading(false);
+              return;
+            }
+            if (result.phone_taken) {
+              toast({ title: 'Error', description: 'El número de teléfono ya está registrado.', variant: 'destructive' });
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (checkError) {
+          console.error('Error during validation:', checkError);
+        }
+
         const { error } = await signUp(
           form.email, 
           form.password, 

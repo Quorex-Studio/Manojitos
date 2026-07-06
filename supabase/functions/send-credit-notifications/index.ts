@@ -227,9 +227,11 @@ async function sendEmailNotification(
     return { success: false, error: "Client has no email" };
   }
 
+  const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "Manojitos <onboarding@resend.dev>";
+
   try {
     const { error } = await resend.emails.send({
-      from: "Manojitos <onboarding@resend.dev>",
+      from: fromEmail,
       to: [credit.client_email],
       subject: title,
       html: `
@@ -250,7 +252,7 @@ async function sendEmailNotification(
 
     if (error) {
       console.error("Error sending email:", error);
-      return { success: false, error: String(error) };
+      return { success: false, error: error.message || JSON.stringify(error) };
     }
 
     console.log(`Email sent to ${credit.client_email}`);
