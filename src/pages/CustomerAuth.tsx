@@ -313,14 +313,7 @@ export default function CustomerAuth() {
             description: 'Tu cuenta ha sido creada. Iniciando sesión...'
           });
           
-          // Send Welcome Email via Edge Function
-          try {
-            await supabase.functions.invoke('send-email', {
-              body: { action: 'welcome', email: form.email }
-            });
-          } catch (fnError) {
-            console.error('Error enviando correo de bienvenida:', fnError);
-          }
+
 
           // If email confirmation is off, Supabase will log the user in automatically,
           // which will trigger the Auth context to redirect to Home.
