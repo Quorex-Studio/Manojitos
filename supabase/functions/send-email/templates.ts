@@ -1,4 +1,4 @@
-export const createWelcomeEmail = () => `
+export const createWelcomeEmail = (link?: string) => `
 <div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #c4607a 0%, #a04961 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">¡Bienvenido a Manojitos!</h1>
@@ -8,6 +8,13 @@ export const createWelcomeEmail = () => `
     <p style="color: #555; line-height: 1.6; font-size: 16px;">
       Tu cuenta ha sido creada exitosamente. Ya puedes acceder a nuestra plataforma, completar tu perfil KYC (si deseas crédito) y realizar tus compras.
     </p>
+    ${link ? `
+    <div style="text-align: center; margin: 35px 0;">
+      <a href="${link}" style="background-color: #c4607a; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
+        Confirmar mi correo electrónico
+      </a>
+    </div>
+    ` : ''}
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
       <p style="color: #888; font-size: 13px;">Este es un mensaje automático, por favor no respondas a este correo.</p>
     </div>

@@ -86,9 +86,8 @@ serve(async (req) => {
           break;
         case "signup":
           // Si el usuario deja "Confirm email" activado, Supabase mandará "signup".
-          // Como ya tenemos welcome en el front, podemos enviar welcome aquí también si prefieren.
-          subject = "¡Bienvenido a Manojitos!";
-          html = createWelcomeEmail();
+          subject = "Confirma tu correo y ¡Bienvenido a Manojitos!";
+          html = createWelcomeEmail(link);
           break;
         default:
           console.log("Unhandled email action type: " + email_action_type);
