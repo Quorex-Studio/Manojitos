@@ -632,22 +632,31 @@ export default function Customers() {
                                         <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                                           <KeyRound className="w-4 h-4" /> Forzar Cambio de Clave
                                         </h4>
-                                        <div className="flex gap-2">
+                                        <form 
+                                          className="flex gap-2"
+                                          onSubmit={(e) => {
+                                            e.preventDefault();
+                                            handleAdminAction('change_password', selectedCustomer.user_id);
+                                          }}
+                                        >
+                                          {/* Hidden input to prevent autofill heuristics from targeting the search bar */}
+                                          <input type="text" autoComplete="username" style={{ display: 'none' }} />
                                           <Input 
                                             placeholder="Nueva clave" 
                                             type="password" 
+                                            autoComplete="new-password"
                                             value={adminPassword}
                                             onChange={(e) => setAdminPassword(e.target.value)}
                                             className="input-glass border-border/50"
                                           />
                                           <Button 
+                                            type="submit"
                                             variant="secondary" 
-                                            onClick={() => handleAdminAction('change_password', selectedCustomer.user_id)}
                                             disabled={isProcessingAction}
                                           >
                                             Actualizar
                                           </Button>
-                                        </div>
+                                        </form>
                                       </div>
 
                                       {/* Suspensión */}
