@@ -33,7 +33,7 @@ import { UserCheck, UserX, Loader2, Search, FileText, Image as ImageIcon, Users,
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
 // --- Customer History Component ---
