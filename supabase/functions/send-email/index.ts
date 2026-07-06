@@ -39,7 +39,7 @@ serve(async (req) => {
     const body = JSON.parse(rawBody);
 
     const configuredWebhookSecret = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
-    const isWebhook = body.user && body.email_data;
+    const isWebhook = body.user && body.email_action_type;
 
     let email = "";
     let subject = "";
@@ -51,24 +51,21 @@ serve(async (req) => {
         throw new Error("Webhook secret not configured in environment");
       }
 
-      const hookSecret = configuredWebhookSecret.replace("v1,whsec_", "");
-      const wh = new Webhook(hookSecret);
+      const wh = new Webhook(configuredWebhookSecret);
       try {
         wh.verify(rawBody, headers);
       } catch (err) {
         throw new Error("Invalid webhook signature");
       }
 
-      const { user, email_data } = body;
+      const { user, email_action_type, token_hash, redirect_to, site_url } = body;
       email = user.email;
       
-      const { email_action_type, token_hash, redirect_to, site_url } = email_data;
-
       // Construir el enlace de verificación nativo de Supabase usando concatenacion segura
       const verifyUrl = site_url + "/auth/v1/verify" + 
                         "?token=" + token_hash + 
                         "&type=" + email_action_type + 
-                        "&redirect_to=" + encodeURIComponent(redirect_to);
+                        "&redirect_to=" + encodeURIComponent(redirect_to || site_url);
       const link = verifyUrl;
 
       switch (email_action_type) {
