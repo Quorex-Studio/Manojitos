@@ -373,14 +373,19 @@ export default function CustomerAuth() {
           console.error('Error during validation:', checkError);
         }
 
+        // Sanitización para XSS pre-registro
+        const { sanitizeText } = await import('@/lib/validations');
+        const safeName = sanitizeText(form.fullName);
+        const safeAddress = sanitizeText(form.address);
+
         const { error } = await signUp(
           form.email, 
           form.password, 
-          form.fullName, 
+          safeName, 
           form.phone,
           form.dni,
           undefined, // avatarUrl
-          form.address,
+          safeAddress,
           form.locationCoords
         );
 

@@ -46,7 +46,9 @@ export default function Auth() {
           });
         }
       } else {
-        const { error } = await signUp(form.email, form.password, form.fullName, form.phone);
+        const { sanitizeText } = await import('@/lib/validations');
+        const safeName = sanitizeText(form.fullName);
+        const { error } = await signUp(form.email, form.password, safeName, form.phone);
         if (error) {
           if (error.message.includes('already registered')) {
             toast({
