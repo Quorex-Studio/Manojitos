@@ -18,13 +18,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useSales } from '@/hooks/useSales';
-import type { StockValidationError } from '@/hooks/useSales';
+import type { StockValidationError } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, X } from 'lucide-react';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { useCustomerPaymentMethods } from '@/hooks/useCustomerPaymentMethods';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { sanitizeText } from '@/lib/validations';
 
 // Métodos de pago base (sin crédito — se agrega dinámicamente)
 const BASE_PAYMENT_METHODS = [
@@ -281,9 +282,13 @@ export default function Checkout() {
 
   // Manejar cambios en el formulario
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const value = (e.target.name === 'fullName' || e.target.name === 'address' || e.target.name === 'city' || e.target.name === 'notes')
+      ? sanitizeText(e.target.value)
+      : e.target.value;
+      
     setShippingData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: value
     }));
   }, []);
 
@@ -919,7 +924,7 @@ export default function Checkout() {
                           id="numeroReferencia"
                           placeholder="Ej: 123456"
                           value={numeroReferencia}
-                          onChange={(e) => setNumeroReferencia(e.target.value)}
+                          onChange={(e) => setNumeroReferencia(sanitizeText(e.target.value))}
                           className="mt-1 bg-white/50 dark:bg-white/5 dark:border-white/10"
                         />
                       </div>
@@ -1002,7 +1007,7 @@ export default function Checkout() {
                                 id="casheaRef"
                                 placeholder="Ej: 123456"
                                 value={casheaRef}
-                                onChange={(e) => setCasheaRef(e.target.value)}
+                                onChange={(e) => setCasheaRef(sanitizeText(e.target.value))}
                                 className="mt-1 h-9 text-xs"
                               />
                             </div>

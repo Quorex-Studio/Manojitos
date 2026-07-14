@@ -22,15 +22,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { CustomerDashboard } from '@/components/customer/CustomerDashboard';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { sanitizeText } from '@/lib/validations';
 
 const profileSchema = z.object({
-  full_name: z.string().min(2, 'Nombre muy corto').max(100).optional(),
-  phone: z.string().min(10, 'Teléfono inválido').max(20),
+  dni: z.string().min(4, 'DNI muy corto').max(20).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  full_name: z.string().min(2, 'Nombre muy corto').max(100).optional().transform(val => val ? sanitizeText(val) : val),
+  phone: z.string().regex(/^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').transform(sanitizeText),
   email: z.string().email('Email inválido').optional().nullable(),
-  address: z.string().max(200).optional().nullable(),
-  city: z.string().max(100).optional().nullable(),
-  state: z.string().max(100).optional().nullable(),
-  zip_code: z.string().max(20).optional().nullable(),
+  address: z.string().max(200).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  city: z.string().max(100).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  state: z.string().max(100).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  zip_code: z.string().max(20).optional().nullable().transform(val => val ? sanitizeText(val) : val),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -65,6 +67,7 @@ export default function CustomerProfile() {
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
+      dni: '',
       full_name: '',
       phone: '',
       email: '',
@@ -79,6 +82,7 @@ export default function CustomerProfile() {
   useEffect(() => {
     if (profile) {
       form.reset({
+        dni: profile.dni || '',
         full_name: profile.full_name || '',
         phone: profile.phone || '',
         email: profile.email || '',
@@ -361,6 +365,19 @@ export default function CustomerProfile() {
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
+                        <Label htmlFor="dni" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">DNI / Cédula</Label>
+                        <Input
+                          id="dni"
+                          placeholder="Ej: V-12345678"
+                          className="bg-card/80 border-border/15 focus:border-primary/30 uppercase"
+                          {...form.register('dni')}
+                        />
+                        {form.formState.errors.dni && (
+                          <p className="text-sm text-destructive">{form.formState.errors.dni.message}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
                         <Label htmlFor="full_name" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Nombre completo</Label>
                         <Input
                           id="full_name"
@@ -382,6 +399,14 @@ export default function CustomerProfile() {
                             placeholder="+58 412 1234567"
                             className="pl-10 bg-card/80 border-border/15 focus:border-primary/30"
                             {...form.register('phone')}
+                            onChange={(e) => {
+                              let val = e.target.value.replace(/[^\d+]/g, '');
+                              if (val && !val.startsWith('+')) val = '+' + val;
+                              if (val.length > 13) val = val.substring(0, 13);
+                              form.setValue('phone', val, { shouldValidate: true });
+                            }}
+                            pattern="^\+58(?:412|414|424|416|426|2\d{2})\d{7}$"
+                            title="Debe ser un celular venezolano o teléfono fijo válido con +58"
                           />
                         </div>
                         {form.formState.errors.phone && (
@@ -481,6 +506,16 @@ export default function CustomerProfile() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   
+                  {!profile?.dni && (
+                    <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-lg flex items-center gap-3">
+                      <ShieldCheck className="h-5 w-5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-sm">Falta DNI en tu Perfil</p>
+                        <p className="text-xs opacity-90">Por favor, guarda tu DNI / Cédula en la pestaña "Perfil" antes de subir tus documentos KYC para poder vincularlos correctamente.</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Banner de Estado KYC */}
                   {profile?.kyc_status === 'approved' && (
                     <div className="bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 p-4 rounded-lg flex items-center gap-3">
@@ -593,7 +628,7 @@ export default function CustomerProfile() {
                   {profile?.kyc_status !== 'pending' && profile?.kyc_status !== 'approved' && (
                     <Button 
                       onClick={handleKycSubmit}
-                      disabled={kycUploading || (!kycFiles.dni && !kycFiles.face && !kycFiles.verification)}
+                      disabled={kycUploading || (!kycFiles.dni && !kycFiles.face && !kycFiles.verification) || !profile?.dni}
                       className="w-full btn-gold rounded-full h-12 mt-4"
                     >
                       {kycUploading ? (

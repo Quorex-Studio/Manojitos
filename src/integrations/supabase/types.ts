@@ -389,11 +389,15 @@ export type Database = {
       customer_profiles: {
         Row: {
           address: string | null
+          avatar_url: string | null
           city: string | null
           created_at: string
+          dni_photo_url: string | null
           email: string | null
+          face_photo_url: string | null
           full_name: string | null
           id: string
+          kyc_status: string | null
           notes: string | null
           notification_preferences: Json | null
           phone: string
@@ -401,15 +405,20 @@ export type Database = {
           state: string | null
           updated_at: string
           user_id: string
+          verification_photo_url: string | null
           zip_code: string | null
         }
         Insert: {
           address?: string | null
+          avatar_url?: string | null
           city?: string | null
           created_at?: string
+          dni_photo_url?: string | null
           email?: string | null
+          face_photo_url?: string | null
           full_name?: string | null
           id?: string
+          kyc_status?: string | null
           notes?: string | null
           notification_preferences?: Json | null
           phone: string
@@ -417,15 +426,20 @@ export type Database = {
           state?: string | null
           updated_at?: string
           user_id: string
+          verification_photo_url?: string | null
           zip_code?: string | null
         }
         Update: {
           address?: string | null
+          avatar_url?: string | null
           city?: string | null
           created_at?: string
+          dni_photo_url?: string | null
           email?: string | null
+          face_photo_url?: string | null
           full_name?: string | null
           id?: string
+          kyc_status?: string | null
           notes?: string | null
           notification_preferences?: Json | null
           phone?: string
@@ -433,6 +447,7 @@ export type Database = {
           state?: string | null
           updated_at?: string
           user_id?: string
+          verification_photo_url?: string | null
           zip_code?: string | null
         }
         Relationships: []
@@ -671,6 +686,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          banco_origen: string | null
           created_at: string
           customer_email: string | null
           customer_name: string
@@ -680,6 +696,7 @@ export type Database = {
           id: string
           items: Json
           notes: string | null
+          numero_referencia: string | null
           payment_method: string | null
           payment_status: string
           shipping_address: string | null
@@ -694,6 +711,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          banco_origen?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name: string
@@ -703,6 +721,7 @@ export type Database = {
           id?: string
           items?: Json
           notes?: string | null
+          numero_referencia?: string | null
           payment_method?: string | null
           payment_status?: string
           shipping_address?: string | null
@@ -717,6 +736,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          banco_origen?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name?: string
@@ -726,6 +746,7 @@ export type Database = {
           id?: string
           items?: Json
           notes?: string | null
+          numero_referencia?: string | null
           payment_method?: string | null
           payment_status?: string
           shipping_address?: string | null
@@ -1099,6 +1120,20 @@ export type Database = {
         }
         Returns: string
       }
+      check_unique_customer_data: {
+        Args: {
+          p_email?: string
+          p_phone?: string
+          p_exclude_user_id?: string
+        }
+        Returns: boolean
+      }
+      confirm_order: {
+        Args: {
+          p_order_id: string
+        }
+        Returns: void
+      }
       process_checkout: {
         Args: {
           client_name: string
@@ -1107,8 +1142,17 @@ export type Database = {
           notes?: string
           payment_method: string
           total_bs_rate?: number
+          p_banco_origen?: string
+          p_numero_referencia?: string
         }
         Returns: Json
+      }
+      reject_order: {
+        Args: {
+          p_order_id: string
+          p_notes?: string
+        }
+        Returns: void
       }
     }
     Enums: {

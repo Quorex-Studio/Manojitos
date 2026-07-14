@@ -13,6 +13,7 @@ export interface Profile {
 export interface CustomerProfile {
   id: string;
   user_id: string;
+  dni: string | null;
   full_name: string | null;
   phone: string;
   phone_verified: boolean;
@@ -22,6 +23,7 @@ export interface CustomerProfile {
   state: string | null;
   zip_code: string | null;
   notes: string | null;
+  avatar_url: string | null;
   dni_photo_url: string | null;
   face_photo_url: string | null;
   verification_photo_url: string | null;
@@ -86,6 +88,8 @@ export interface Sale {
   created_at: string;
 }
 
+export type SaleInput = Omit<Sale, 'id' | 'user_id' | 'created_at' | 'status'> & { status?: SaleStatus };
+
 export interface OrderItem {
   product_id: string;
   product_name: string;
@@ -109,6 +113,8 @@ export interface Order {
   total_bs: number | null;
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   payment_method: string | null;
+  banco_origen: string | null;
+  numero_referencia: string | null;
   payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
   shipping_address: string | null;
   shipping_city: string | null;
@@ -132,6 +138,8 @@ export interface CheckoutData {
   client_phone: string;
   notes?: string;
   total_bs_rate?: number;
+  banco_origen?: string;
+  numero_referencia?: string;
 }
 
 export interface CheckoutResponse {

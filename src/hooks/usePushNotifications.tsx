@@ -83,7 +83,6 @@ export function usePushNotifications() {
       icon: options?.icon || '/favicon.ico',
       badge: '/favicon.ico',
       tag: options?.tag || 'manojitos',
-      renotify: true,
       data: { url: options?.url || '/' },
     };
 

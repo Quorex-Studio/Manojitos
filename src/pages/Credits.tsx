@@ -978,7 +978,7 @@ export default function Credits() {
                       const matchRef = abono.notes?.match(/Referencia:\s*([^\.]+)/i);
                       const matchMethod = abono.notes?.match(/Método:\s*([^\.]+)/i);
                       const refText = matchRef ? matchRef[1] : 'N/A';
-                      const methodText = matchMethod ? matchMethod[1] : abono.payment_method;
+                      const methodText = matchMethod ? matchMethod[1] : (abono.payment_method || 'N/A');
 
                       return (
                         <div

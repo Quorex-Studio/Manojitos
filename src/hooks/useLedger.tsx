@@ -48,10 +48,10 @@ export function useLedger() {
         p_user_id: user.id,
         p_entry_type: input.entry_type,
         p_amount_usd: input.amount_usd,
-        p_amount_bs: input.amount_bs || null,
+        p_amount_bs: input.amount_bs || 0,
         p_reference_type: input.reference_type,
-        p_reference_id: input.reference_id || null,
-        p_description: input.description || null,
+        p_reference_id: input.reference_id || '',
+        p_description: input.description || '',
         p_metadata: (input.metadata || {}) as Json,
       });
       if (error) throw error;
@@ -92,9 +92,9 @@ export function useLedger() {
         p_user_id: user.id,
         p_entry_type: reversalType,
         p_amount_usd: original.amount_usd,
-        p_amount_bs: original.amount_bs,
+        p_amount_bs: original.amount_bs ?? 0,
         p_reference_type: 'reversal',
-        p_reference_id: original.reference_id,
+        p_reference_id: original.reference_id ?? '',
         p_description: `Reverso: ${reason}`,
         p_metadata: { reversed_entry_id: entryId, reason },
       });

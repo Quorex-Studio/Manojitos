@@ -24,7 +24,7 @@ export type ProductInput = z.infer<typeof productSchema>;
 // Debt validation schema
 export const debtSchema = z.object({
   client_name: z.string().min(1, 'El nombre del cliente es requerido').max(200).transform(sanitizeText),
-  client_phone: z.string().max(50).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  client_phone: z.string().regex(/^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : val),
   amount_usd: z.number().positive('El monto debe ser mayor a 0').max(1000000),
   amount_bs: z.number().nonnegative().max(100000000).optional().nullable(),
   status: z.enum(['pending', 'paid']).default('pending'),
@@ -38,7 +38,7 @@ export type DebtInput = z.infer<typeof debtSchema>;
 export const creditSchema = z.object({
   client_name: z.string().min(1, 'El nombre del cliente es requerido').max(200).transform(sanitizeText),
   client_email: z.string().email('Email inválido').optional().nullable().or(z.literal('')),
-  client_phone: z.string().max(50).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  client_phone: z.string().regex(/^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : val),
   client_user_id: z.string().uuid().optional().nullable(),
   credit_limit: z.number().nonnegative('El límite no puede ser negativo').max(1000000),
   current_balance: z.number().nonnegative().default(0),
@@ -78,7 +78,7 @@ export const saleSchema = z.object({
   total_bs: z.number().nonnegative().optional().nullable(),
   payment_method: z.string().min(1).max(50),
   client_name: z.string().max(200).optional().nullable().transform(val => val ? sanitizeText(val) : val),
-  client_phone: z.string().max(50).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  client_phone: z.string().regex(/^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : val),
   is_credit: z.boolean().default(false),
   notes: z.string().max(1000).optional().nullable().transform(val => val ? sanitizeText(val) : val),
   status: z.enum(SALE_STATUSES).default('pending'),
@@ -89,7 +89,7 @@ export type SaleInput = z.infer<typeof saleSchema>;
 // Provider validation schema
 export const providerSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(200).transform(sanitizeText),
-  phone: z.string().max(50).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  phone: z.string().regex(/^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : val),
   email: z.string().email('Email inválido').max(255).optional().nullable().or(z.literal('')),
   notes: z.string().max(2000).optional().nullable().transform(val => val ? sanitizeText(val) : val),
 });

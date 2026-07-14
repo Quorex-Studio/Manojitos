@@ -45,9 +45,29 @@ export default function CustomerAuth() {
 
   // --- HANDLERS ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    let finalValue = value;
+    
+    // Auto-formateo en tiempo real
+    if (name === 'dni') {
+      finalValue = value.toUpperCase().trim();
+      // Sugerir guión si solo meten números después de la letra
+      if (/^[VJEG]\d/.test(finalValue)) {
+        finalValue = finalValue.charAt(0) + '-' + finalValue.substring(1);
+      }
+    } else if (name === 'phone') {
+      finalValue = value.trim();
+      // Auto prefijo venezolano si empieza por 0
+      if (finalValue.startsWith('0')) {
+        finalValue = '+58' + finalValue.substring(1);
+      } else if (finalValue.length > 0 && !finalValue.startsWith('+') && finalValue.startsWith('58')) {
+        finalValue = '+' + finalValue;
+      }
+    }
+
     setForm(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: finalValue
     }));
   };
 
@@ -286,6 +306,41 @@ export default function CustomerAuth() {
           return;
         }
 
+        // Validación estricta DNI
+        const dniRegex = /^[VJEG]-\d{7,9}$/;
+        if (!dniRegex.test(form.dni)) {
+          toast({
+            title: 'Formato de Cédula Inválido',
+            description: 'Debe usar el formato V-12345678, E-12345678, J-123456789 o G-12345678',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Validación estricta Teléfono
+        const phoneRegex = /^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/;
+        if (!phoneRegex.test(form.phone)) {
+          toast({
+            title: 'Formato de Teléfono Inválido',
+            description: 'Debe usar el formato +58 seguido del operador y número (Ej: +584121234567)',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Validación estricta de Dirección
+        if (form.address.trim().length < 10) {
+          toast({
+            title: 'Dirección muy corta',
+            description: 'Por favor proporciona una dirección más específica (mínimo 10 caracteres)',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+
         // Validar unicidad antes de intentar registrar
         try {
           const { data, error: rpcError } = await supabase.rpc('check_unique_customer_data', {
@@ -432,17 +487,22 @@ export default function CustomerAuth() {
                           id="phone"
                           name="phone"
                           type="tel"
-                          placeholder="+58 412 1234567"
+                          placeholder="+584121234567"
                           value={form.phone}
                           onChange={handleInputChange}
                           className="pl-10"
                           required={!isLogin}
+                          pattern="^\+58(?:412|414|424|416|426|2\d{2})\d{7}$"
+                          title="Formato: +584121234567"
                         />
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Formato: +584121234567
+                      </p>
                     </div>
                     <div>
-                      <Label htmlFor="dni">Cédula de Identidad</Label>
+                      <Label htmlFor="dni">Cédula o RIF</Label>
                       <div className="relative mt-1">
                         <Input
                           id="dni"
@@ -453,9 +513,14 @@ export default function CustomerAuth() {
                           onChange={handleInputChange}
                           className="pl-10"
                           required={!isLogin}
+                          pattern="^[VJEG]-\d{7,9}$"
+                          title="Formato: V-12345678, J-123456789"
                         />
                         <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Formato: V-12345678
+                      </p>
                     </div>
                   </div>
 

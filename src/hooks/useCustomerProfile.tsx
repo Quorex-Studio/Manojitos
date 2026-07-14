@@ -13,16 +13,19 @@ import { toast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import type { Json } from '@/integrations/supabase/types';
 import type { CustomerProfile } from '@/types';
+import { sanitizeText } from '@/lib/validations';
+
 // Schema de validación para perfil de cliente
 const customerProfileSchema = z.object({
-  full_name: z.string().min(2, 'Nombre muy corto').max(100).optional(),
-  phone: z.string().min(10, 'Teléfono inválido').max(20),
+  dni: z.string().min(4, 'DNI muy corto').max(20).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  full_name: z.string().min(2, 'Nombre muy corto').max(100).optional().transform(val => val ? sanitizeText(val) : val),
+  phone: z.string().min(10, 'Teléfono inválido').max(20).transform(sanitizeText),
   email: z.string().email('Email inválido').optional().nullable(),
-  address: z.string().max(200).optional().nullable(),
-  city: z.string().max(100).optional().nullable(),
-  state: z.string().max(100).optional().nullable(),
-  zip_code: z.string().max(20).optional().nullable(),
-  notes: z.string().max(500).optional().nullable(),
+  address: z.string().max(200).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  city: z.string().max(100).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  state: z.string().max(100).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  zip_code: z.string().max(20).optional().nullable().transform(val => val ? sanitizeText(val) : val),
+  notes: z.string().max(500).optional().nullable().transform(val => val ? sanitizeText(val) : val),
   notification_preferences: z.object({
     email: z.boolean(),
     sms: z.boolean(),
@@ -63,6 +66,7 @@ export function useCustomerProfile() {
 
       const insertData = {
         user_id: user.id,
+        dni: validated.dni,
         full_name: validated.full_name,
         phone: validated.phone,
         email: validated.email,

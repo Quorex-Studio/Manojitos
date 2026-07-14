@@ -47,7 +47,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { useBusinessRules, BusinessRuleInput, RuleType } from '@/hooks/useBusinessRules';
+import { useBusinessRules } from '@/hooks/useBusinessRules';
+import type { BusinessRuleInput, RuleType } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
 const RULE_TYPES: { value: RuleType; label: string; description: string }[] = [
