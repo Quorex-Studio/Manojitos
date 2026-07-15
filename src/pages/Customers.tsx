@@ -357,8 +357,8 @@ export default function Customers() {
       </div>
 
       {/* Table Section */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="glass-card rounded-2xl overflow-x-auto">
+        <div>
           <Table>
             <TableHeader className="bg-muted/30 border-b border-border/30">
               <TableRow className="border-none hover:bg-transparent">

@@ -18,8 +18,7 @@ import type { PublicProduct } from '@/types';
 import { useCart, CartItem } from '@/contexts/CartContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useBrowsingHistory } from '@/hooks/useBrowsingHistory';
-import { toast } from '@/hooks/use-toast';
-
+import { toast } from 'sonner';
 // Helper function to resolve available sizes based on product name/category rules
 const getAvailableSizes = (name: string, category: string): string[] => {
   const normName = name.toLowerCase();
@@ -134,10 +133,8 @@ export default function ProductDetail() {
     if (!product || quantity <= 0 || quantity > maxQuantity) return;
     
     if (isSizeRequired && !selectedSize) {
-      toast({
-        title: 'Selecciona una talla',
+      toast.error('Selecciona una talla', {
         description: 'Por favor, selecciona una talla antes de agregar al carrito.',
-        variant: 'destructive',
       });
       return;
     }
@@ -156,9 +153,9 @@ export default function ProductDetail() {
 
     addItem(cartItem);
 
-    toast({
-      title: '¡Agregado al carrito!',
+    toast.success('¡Agregado al carrito!', {
       description: `${quantity} x ${product.name} ${selectedSize ? `(Talla: ${selectedSize})` : ''}`,
+      icon: <Check className="h-4 w-4 text-green-500" />
     });
 
     setTimeout(() => {
@@ -168,19 +165,35 @@ export default function ProductDetail() {
   };
 
   const handleShare = async () => {
+    const url = window.location.href;
+    
+    // First try the native share API
     if (navigator.share && product) {
       try {
         await navigator.share({
           title: product.name,
-          text: product.description || 'Mira este producto',
-          url: window.location.href,
+          text: product.description || 'Mira este increíble producto en Manojitos',
+          url: url,
         });
+        toast.success('Compartido con éxito');
+        return;
       } catch (err) {
-        // User cancelled
+        // Fallback if user cancels or API fails
+        console.log('Share API cancelled or failed', err);
       }
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast({ title: 'Enlace copiado', description: 'El enlace del producto ha sido copiado' });
+    }
+    
+    // Fallback to clipboard
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('¡Enlace copiado!', {
+        description: 'El enlace del producto ha sido copiado al portapapeles.',
+        icon: <Share2 className="h-4 w-4 text-gold" />
+      });
+    } catch (clipboardErr) {
+      toast.error('Error al copiar el enlace', {
+        description: 'No pudimos copiar el enlace automáticamente.'
+      });
     }
   };
 

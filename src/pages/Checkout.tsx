@@ -177,6 +177,8 @@ export default function Checkout() {
   const montoCuota = montoFinanciado / 3;
   const montoInicialTotal = (subtotal * 0.50) + montoCuota;
 
+  const isCreditBlocked = hasCredit && credit && (credit.calculatedStatus === 'VENCIDO' || credit.is_blocked);
+
   // Crédito disponible — calcular si puede usar crédito (se financia el 50%)
   const creditAvailable = useMemo(() => hasCredit &&
     credit &&
@@ -238,6 +240,18 @@ export default function Checkout() {
     }
   }, [user, authLoading, navigate]);
 
+  // Redirigir si está bloqueado por mora
+  useEffect(() => {
+    if (!creditLoading && isCreditBlocked) {
+      toast({
+        title: "Acción bloqueada",
+        description: "Tienes cuotas vencidas. No puedes realizar nuevas compras.",
+        variant: "destructive"
+      });
+      navigate('/carrito');
+    }
+  }, [creditLoading, isCreditBlocked, navigate, toast]);
+
   // Cargar perfil del cliente si existe
   useEffect(() => {
     async function loadProfile() {
@@ -298,6 +312,15 @@ export default function Checkout() {
   // Procesar pedido con checkout transaccional
   const handleSubmitOrder = async () => {
     if (!user) return;
+
+    if (isCreditBlocked) {
+      toast({
+        title: 'Acción Bloqueada',
+        description: 'No puedes realizar nuevas compras mientras tengas cuotas vencidas.',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     setLoading(true);
     setStockErrors([]);
@@ -1115,10 +1138,16 @@ export default function Checkout() {
 
                 return (
                   <>
+                    {isCreditBlocked && (
+                      <div className="mt-4 mb-2 p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm rounded-xl flex items-center justify-center gap-2 text-center font-medium">
+                        <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                        Tienes cuotas vencidas. Por favor regulariza tu pago.
+                      </div>
+                    )}
                     <Button
                       size="lg"
-                      className="w-full btn-gold h-14 text-base mt-6 shadow-xl"
-                      disabled={!isShippingValid || !isCasheaValid || !isKycValid || loading}
+                      className="w-full btn-gold h-14 text-base mt-2 shadow-xl"
+                      disabled={!isShippingValid || !isCasheaValid || !isKycValid || isCreditBlocked || loading}
                       onClick={handleSubmitOrder}
                     >
                       {loading ? (

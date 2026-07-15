@@ -127,8 +127,8 @@ export default function Settings() {
               </div>
 
               <div className="p-4 rounded-xl bg-secondary/80">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
                     <p className="text-sm text-muted-foreground">Tasa {selectedCurrency} actual</p>
                     <p className="text-3xl font-bold text-gradient-gold">
                       {rate > 0 ? `Bs. ${rate.toFixed(2)}` : 'No configurada'}
@@ -145,7 +145,7 @@ export default function Settings() {
                     variant="outline"
                     onClick={handleFetchRate}
                     disabled={fetchingRate}
-                    className="rounded-xl gap-2"
+                    className="rounded-xl gap-2 shrink-0"
                   >
                     {fetchingRate ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -157,17 +157,17 @@ export default function Settings() {
                 </div>
               </div>
 
-              <form onSubmit={handleUpdateRate} className="flex gap-2">
+              <form onSubmit={handleUpdateRate} className="flex flex-wrap gap-2">
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
                   value={newRate}
-                  onChange={(e) => setNewRate(e.target.value)}
+                  onChange={(e) => setNewRate(e.target.value.replace(/[^0-9.]/g, ''))}
                   placeholder={`Nueva tasa ${selectedCurrency} en Bs.`}
-                  className="input-glass rounded-xl"
+                  className="input-glass rounded-xl min-w-0 flex-1"
                 />
-                <Button type="submit" disabled={loading || !newRate} className="btn-gold rounded-xl">
+                <Button type="submit" disabled={loading || !newRate} className="btn-gold rounded-xl shrink-0">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Actualizar'}
                 </Button>
               </form>

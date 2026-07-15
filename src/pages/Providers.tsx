@@ -81,7 +81,7 @@ export default function Providers() {
             </p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Dialog open={isProviderOpen} onOpenChange={setIsProviderOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="rounded-xl gap-2">
@@ -217,7 +217,7 @@ export default function Providers() {
               >
                 <Card className="glass-card border-border/50">
                   <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div className="flex items-center gap-4">
                         <div className={`p-2 rounded-lg ${purchase.status === 'paid' ? 'bg-primary/20' : 'gradient-gold'}`}>
                           <Truck className={`h-5 w-5 ${purchase.status === 'paid' ? 'text-primary' : 'text-accent-foreground'}`} />

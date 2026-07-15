@@ -72,11 +72,17 @@ serve(async (req) => {
         throw new Error("Webhook secret not configured in environment");
       }
 
-      const wh = new Webhook(configuredWebhookSecret);
-      try {
-        wh.verify(rawBody, headers);
-      } catch (err) {
-        throw new Error("Invalid webhook signature");
+      // Supabase Auth Hooks NO usan el protocolo standardwebhooks.
+      // Se debe validar mediante un header personalizado (ej. x-webhook-secret) o el Authorization header.
+      const customHeader = req.headers.get("x-webhook-secret");
+      const authHeader = req.headers.get("authorization");
+
+      const isValid = 
+        customHeader === configuredWebhookSecret || 
+        authHeader === `Bearer ${configuredWebhookSecret}`;
+
+      if (!isValid) {
+        throw new Error("Acceso denegado: Firma de webhook inválida. Asegúrate de enviar el header 'x-webhook-secret' en Supabase Auth Hooks.");
       }
 
       const { user, email_data } = body;

@@ -466,206 +466,240 @@ export default function CustomerAuth() {
               </p>
             </div>
 
-            {/* Form */}
-            <form onSubmit={isForgotPassword ? handleResetPassword : handleSubmit} className="space-y-4">
-              {!isLogin && !isForgotPassword && (
-                <>
-
-                  <div>
-                    <Label htmlFor="fullName">Nombre Completo</Label>
-                    <div className="relative mt-1">
-                      <Input
-                        id="fullName"
-                        name="fullName"
-                        type="text"
-                        placeholder="Tu nombre y apellido"
-                        value={form.fullName}
-                        onChange={handleInputChange}
-                        className="pl-10"
-                        required={!isLogin}
-                      />
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    </div>
+            {isForgotPassword ? (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div>
+                  <Label htmlFor="reset-email">Email</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="reset-email"
+                      name="email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      value={form.email}
+                      onChange={handleInputChange}
+                      className="pl-10"
+                      required
+                    />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="phone">Teléfono</Label>
-                      <div className="relative mt-1">
-                        <Input
-                          id="phone"
-                          name="phone"
-                          type="tel"
-                          placeholder="+584121234567"
-                          value={form.phone}
-                          onChange={handleInputChange}
-                          className="pl-10"
-                          required={!isLogin}
-                          pattern="^\+58(?:412|414|424|416|426|2\d{2})\d{7}$"
-                          title="Formato: +584121234567"
-                        />
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Formato: +584121234567
-                      </p>
-                    </div>
-                    <div>
-                      <Label htmlFor="dni">Cédula o RIF</Label>
-                      <div className="relative mt-1">
-                        <Input
-                          id="dni"
-                          name="dni"
-                          type="text"
-                          placeholder="V-12345678"
-                          value={form.dni}
-                          onChange={handleInputChange}
-                          className="pl-10"
-                          required={!isLogin}
-                          pattern="^[VJEGP]-\d{7,9}$"
-                          title="Formato: V-12345678, J-123456789"
-                        />
-                        <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Formato: V-12345678
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="address">Ubicación / Dirección exacta</Label>
-                    <div className="flex gap-2 mt-1">
-                      <div className="relative flex-1">
-                        <Input
-                          id="address"
-                          name="address"
-                          type="text"
-                          placeholder="Calle, Urbanización, Local, Punto de referencia"
-                          value={form.address}
-                          onChange={handleInputChange}
-                          className="pl-10 text-ellipsis"
-                          required={!isLogin}
-                        />
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleGetLocation}
-                        disabled={gettingGPS}
-                        className="flex-shrink-0"
-                        title="Obtener coordenadas GPS automáticamente"
-                      >
-                        {gettingGPS ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Navigation className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-
-                    <div className="mt-3">
-                      <div className="flex justify-between items-center mb-1">
-                        <Label htmlFor="locationCoords" className="text-xs text-muted-foreground">
-                          Coordenadas GPS (Latitud, Longitud) <span className="text-[10px]">(Opcional)</span>
-                        </Label>
-                        <a
-                          href="https://www.google.com/maps"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[10px] text-accent hover:underline flex items-center gap-0.5"
-                        >
-                          Buscar en Google Maps ↗
-                        </a>
-                      </div>
-                      <Input
-                        id="locationCoords"
-                        name="locationCoords"
-                        type="text"
-                        placeholder="Ej: 10.4806,-66.9036"
-                        value={form.locationCoords}
-                        onChange={handleInputChange}
-                        className="h-9 text-xs"
-                      />
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Si falla la obtención automática, puedes buscar tu ubicación en Google Maps, hacer clic derecho (o mantener pulsado en móvil) y copiar las coordenadas.
-                      </p>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <div className="relative mt-1">
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="tu@email.com"
-                    value={form.email}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    required
-                  />
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 </div>
-              </div>
 
-              <div>
-                <Label htmlFor="password">Contraseña</Label>
-                <div className="relative mt-1">
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={form.password}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    required
-                    minLength={6}
-                  />
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                </div>
-                {!isLogin && !isForgotPassword && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Mínimo 6 caracteres
-                  </p>
-                )}
-              </div>
-
-
-              {isLogin && !isForgotPassword && (
-                <div className="flex justify-end mt-1">
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="text-xs text-accent h-auto p-0"
-                    onClick={() => setIsForgotPassword(true)}
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </Button>
-                </div>
-              )}
-
-              <Button 
-                type="submit" 
-                size="lg" 
-                className="w-full btn-gold mt-6"
-                disabled={loading}
-              >
-                {loading ? (
+                <Button 
+                  type="submit" 
+                  size="lg" 
+                  className="w-full btn-gold mt-6"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    'Enviar enlace de recuperación'
+                  )}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {!isLogin && (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {isForgotPassword ? 'Enviando...' : isLogin ? 'Iniciando sesión...' : 'Creando cuenta...'}
+                    <div>
+                      <Label htmlFor="fullName">Nombre Completo</Label>
+                      <div className="relative mt-1">
+                        <Input
+                          id="fullName"
+                          name="fullName"
+                          type="text"
+                          placeholder="Tu nombre y apellido"
+                          value={form.fullName}
+                          onChange={handleInputChange}
+                          className="pl-10"
+                          required
+                        />
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="phone">Teléfono</Label>
+                        <div className="relative mt-1">
+                          <Input
+                            id="phone"
+                            name="phone"
+                            type="tel"
+                            placeholder="+584121234567"
+                            value={form.phone}
+                            onChange={handleInputChange}
+                            className="pl-10"
+                            required
+                            pattern="^\+58(?:412|414|424|416|426|2\d{2})\d{7}$"
+                            title="Formato: +584121234567"
+                          />
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Formato: +584121234567
+                        </p>
+                      </div>
+                      <div>
+                        <Label htmlFor="dni">Cédula o RIF</Label>
+                        <div className="relative mt-1">
+                          <Input
+                            id="dni"
+                            name="dni"
+                            type="text"
+                            placeholder="V-12345678"
+                            value={form.dni}
+                            onChange={handleInputChange}
+                            className="pl-10"
+                            required
+                            pattern="^[VJEGP]-\d{7,9}$"
+                            title="Formato: V-12345678, J-123456789"
+                          />
+                          <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Formato: V-12345678
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="address">Ubicación / Dirección exacta</Label>
+                      <div className="flex gap-2 mt-1">
+                        <div className="relative flex-1">
+                          <Input
+                            id="address"
+                            name="address"
+                            type="text"
+                            placeholder="Calle, Urbanización, Local, Punto de referencia"
+                            value={form.address}
+                            onChange={handleInputChange}
+                            className="pl-10 text-ellipsis"
+                            required
+                          />
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleGetLocation}
+                          disabled={gettingGPS}
+                          className="flex-shrink-0"
+                          title="Obtener coordenadas GPS automáticamente"
+                        >
+                          {gettingGPS ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Navigation className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+
+                      <div className="mt-3">
+                        <div className="flex justify-between items-center mb-1">
+                          <Label htmlFor="locationCoords" className="text-xs text-muted-foreground">
+                            Coordenadas GPS (Latitud, Longitud) <span className="text-[10px]">(Opcional)</span>
+                          </Label>
+                          <a
+                            href="https://www.google.com/maps"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-accent hover:underline flex items-center gap-0.5"
+                          >
+                            Buscar en Google Maps ↗
+                          </a>
+                        </div>
+                        <Input
+                          id="locationCoords"
+                          name="locationCoords"
+                          type="text"
+                          placeholder="Ej: 10.4806,-66.9036"
+                          value={form.locationCoords}
+                          onChange={handleInputChange}
+                          className="h-9 text-xs"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Si falla la obtención automática, puedes buscar tu ubicación en Google Maps, hacer clic derecho (o mantener pulsado en móvil) y copiar las coordenadas.
+                        </p>
+                      </div>
+                    </div>
                   </>
-                ) : (
-                  isForgotPassword ? 'Enviar enlace de recuperación' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'
                 )}
-              </Button>
-            </form>
+
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      value={form.email}
+                      onChange={handleInputChange}
+                      className="pl-10"
+                      required
+                    />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="password">Contraseña</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={form.password}
+                      onChange={handleInputChange}
+                      className="pl-10"
+                      required
+                      minLength={6}
+                    />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
+                  {!isLogin && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Mínimo 6 caracteres
+                    </p>
+                  )}
+                </div>
+
+                {isLogin && (
+                  <div className="flex justify-end mt-1">
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="text-xs text-accent h-auto p-0"
+                      onClick={() => setIsForgotPassword(true)}
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </Button>
+                  </div>
+                )}
+
+                <Button 
+                  type="submit" 
+                  size="lg" 
+                  className="w-full btn-gold mt-6"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {isLogin ? 'Iniciando sesión...' : 'Creando cuenta...'}
+                    </>
+                  ) : (
+                    isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'
+                  )}
+                </Button>
+              </form>
+            )}
 
             <Separator className="my-6" />
 

@@ -549,7 +549,7 @@ export default function Credits() {
         </div>
 
         {/* Estadísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
           <Card>
             <CardContent className="pt-4">
               <p className="text-2xl font-bold">{stats.total}</p>
@@ -619,12 +619,12 @@ export default function Credits() {
             <Input
               placeholder="Buscar por nombre, teléfono o email..."
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s@.+\-]/g, ''))}
               className="pl-10"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
@@ -837,7 +837,7 @@ export default function Credits() {
                 <Input
                   placeholder="Buscar por cliente o descripción..."
                   value={abonosSearch}
-                  onChange={e => setAbonosSearch(e.target.value)}
+                  onChange={e => setAbonosSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s@.+\-]/g, ''))}
                   className="pl-10"
                 />
               </div>

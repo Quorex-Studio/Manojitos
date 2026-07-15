@@ -46,9 +46,8 @@ export function usePriceValidity() {
       urgency = 'warning';
       message = `Tasa expira en ${minutesRemaining} min`;
     } else {
-      const hours = Math.floor(minutesRemaining / 60);
-      const mins = minutesRemaining % 60;
-      message = `Tasa válida por ${hours}h${mins > 0 ? ` ${mins}m` : ''}`;
+      // El usuario pidió quitar el mensaje de "Tasa válida por Xh Xm"
+      message = '';
     }
 
     return {

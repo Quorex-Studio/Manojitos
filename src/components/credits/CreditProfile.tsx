@@ -288,7 +288,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
                     <Input
                       type="number"
                       value={newLimit}
-                      onChange={e => setNewLimit(e.target.value)}
+                      onChange={e => setNewLimit(e.target.value.replace(/[^0-9.]/g, ''))}
                       className="w-24 h-8"
                     />
                     <Button size="sm" variant="ghost" onClick={handleSaveLimit}>
@@ -580,7 +580,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
               <Input
                 type="number"
                 value={promiseData.amount}
-                onChange={e => setPromiseData(p => ({ ...p, amount: e.target.value }))}
+                onChange={e => setPromiseData(p => ({ ...p, amount: e.target.value.replace(/[^0-9.]/g, '') }))}
                 placeholder="0.00"
               />
             </div>
@@ -596,7 +596,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
               <Label>Notas (opcional)</Label>
               <Input
                 value={promiseData.notes}
-                onChange={e => setPromiseData(p => ({ ...p, notes: e.target.value }))}
+                onChange={e => setPromiseData(p => ({ ...p, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s.,;()\-]/g, '') }))}
                 placeholder="Observaciones..."
               />
             </div>

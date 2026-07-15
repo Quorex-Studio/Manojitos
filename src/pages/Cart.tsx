@@ -1,18 +1,23 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Package, ArrowLeft, Sparkles } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Package, ArrowLeft, Sparkles, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { useCart } from '@/contexts/CartContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 
 // Carrito de compras — Luxury receipt layout
 export default function Cart() {
   const { items, removeItem, updateQuantity, getSubtotal, getItemCount, clearCart } = useCart();
   const { rate, convertToBS } = useExchangeRate();
+  const { credit, hasCredit } = useCustomerCredit();
 
   const total = getSubtotal();
   const itemCount = getItemCount();
+
+  const isOverdue = hasCredit && credit && (credit.calculatedStatus === 'VENCIDO' || credit.is_blocked);
+
 
   if (items.length === 0) {
     return (
@@ -204,12 +209,33 @@ export default function Cart() {
                 </div>
               </div>
 
-              <Link to="/checkout" className="block mt-8">
-                <Button size="lg" className="w-full btn-gold btn-shimmer rounded-full h-13 text-base">
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Proceder al Pago
-                </Button>
-              </Link>
+              {isOverdue ? (
+                <div className="mt-8 space-y-3">
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex gap-3 items-start">
+                    <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-red-500">
+                        Acción Bloqueada
+                      </p>
+                      <p className="text-xs text-red-400">
+                        Tienes pagos pendientes en tu crédito. No puedes realizar nuevas compras hasta regularizar tu cuenta.
+                      </p>
+                    </div>
+                  </div>
+                  <Link to="/cliente/credito" className="block">
+                    <Button size="lg" className="w-full bg-red-500 hover:bg-red-600 text-white rounded-full h-13 text-base">
+                      Pagar Cuota Vencida
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <Link to="/checkout" className="block mt-8">
+                  <Button size="lg" className="w-full btn-gold btn-shimmer rounded-full h-13 text-base">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Proceder al Pago
+                  </Button>
+                </Link>
+              )}
 
               <Link to="/tienda" className="block mt-3">
                 <Button variant="ghost" className="w-full text-muted-foreground/40 hover:text-foreground rounded-full text-sm h-10">

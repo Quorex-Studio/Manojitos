@@ -1,6 +1,6 @@
 // Componente de validez de precio con soporte para forwardRef
 import { forwardRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Clock, Zap, AlertTriangle } from 'lucide-react';
 import { usePriceValidity } from '@/hooks/usePriceValidity';
 
@@ -65,7 +65,6 @@ export const PriceValidityBadge = forwardRef<HTMLDivElement, PriceValidityBadgeP
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-1"
         >
           {showRate && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -73,18 +72,6 @@ export const PriceValidityBadge = forwardRef<HTMLDivElement, PriceValidityBadgeP
               <span>Tasa BCV: <strong className="text-foreground">{formattedRate}</strong></span>
             </div>
           )}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={validity.urgency}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${urgencyStyles[validity.urgency]}`}
-            >
-              <UrgencyIcon className="h-3 w-3" />
-              <span>{validity.message}</span>
-            </motion.div>
-          </AnimatePresence>
         </motion.div>
       </div>
     );
