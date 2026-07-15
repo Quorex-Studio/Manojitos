@@ -75,13 +75,14 @@ export default function Products() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const { sanitizeText } = await import('@/lib/validations');
     const productData = {
-      name: form.name,
-      description: form.description || null,
+      name: sanitizeText(form.name),
+      description: form.description ? sanitizeText(form.description) : null,
       price_usd: Number(form.price_usd),
       stock: Number(form.stock),
-      category: form.category || null,
-      image_url: form.image_url || null
+      category: form.category ? sanitizeText(form.category) : null,
+      image_url: form.image_url ? sanitizeText(form.image_url) : null
     };
 
     if (editingProduct) {
@@ -128,7 +129,7 @@ export default function Products() {
                   <Label>Nombre *</Label>
                   <Input
                     value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    onChange={(e) => setForm({ ...form, name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s]/g, '') })}
                     placeholder="Nombre del producto"
                     className="input-glass rounded-xl"
                     required
@@ -138,7 +139,7 @@ export default function Products() {
                   <Label>Descripción</Label>
                   <Textarea
                     value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    onChange={(e) => setForm({ ...form, description: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '') })}
                     placeholder="Descripción opcional"
                     className="input-glass rounded-xl resize-none"
                     rows={3}
@@ -152,7 +153,7 @@ export default function Products() {
                       step="0.01"
                       min="0"
                       value={form.price_usd}
-                      onChange={(e) => setForm({ ...form, price_usd: e.target.value })}
+                      onChange={(e) => setForm({ ...form, price_usd: e.target.value.replace(/[^0-9.]/g, '') })}
                       placeholder="0.00"
                       className="input-glass rounded-xl"
                       required
@@ -164,7 +165,7 @@ export default function Products() {
                       type="number"
                       min="0"
                       value={form.stock}
-                      onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                      onChange={(e) => setForm({ ...form, stock: e.target.value.replace(/[^0-9]/g, '') })}
                       placeholder="0"
                       className="input-glass rounded-xl"
                       required
@@ -175,7 +176,7 @@ export default function Products() {
                   <Label>Categoría</Label>
                   <Input
                     value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    onChange={(e) => setForm({ ...form, category: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s,]/g, '') })}
                     placeholder="Ej: Accesorios, Ropa..."
                     className="input-glass rounded-xl"
                   />
@@ -203,7 +204,7 @@ export default function Products() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s-]/g, ''))}
             placeholder="Buscar productos..."
             className="pl-10 input-glass rounded-xl"
           />

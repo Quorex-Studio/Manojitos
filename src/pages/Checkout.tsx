@@ -282,9 +282,7 @@ export default function Checkout() {
 
   // Manejar cambios en el formulario
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const value = (e.target.name === 'fullName' || e.target.name === 'address' || e.target.name === 'city' || e.target.name === 'notes')
-      ? sanitizeText(e.target.value)
-      : e.target.value;
+    const value = sanitizeText(e.target.value);
       
     setShippingData(prev => ({
       ...prev,
@@ -348,7 +346,7 @@ export default function Checkout() {
       }
 
       const notesPrefix = paymentMethod === 'credito'
-        ? `[Inicial Crédito Manojitos: $${montoInicialTotal.toFixed(2)} - Método: ${casheaMethod} - Ref: ${casheaRef || 'N/A'}] `
+        ? `[Inicial Crédito Manojitos: $${montoInicialTotal.toFixed(2)} - Método: ${sanitizeText(casheaMethod)} - Ref: ${casheaRef ? sanitizeText(casheaRef) : 'N/A'}] `
         : '';
 
       const { error, saleIds } = await processCheckout(
@@ -359,13 +357,13 @@ export default function Checkout() {
           price_usd: item.price_usd
         })),
         {
-          payment_method: paymentMethod,
+          payment_method: sanitizeText(paymentMethod),
           client_name: shippingData.fullName,
           client_phone: shippingData.phone,
           notes: `${notesPrefix}[${deliveryMethod === 'pickup' ? 'RETIRO EN TIENDA' : 'DELIVERY'}] ${deliveryMethod === 'delivery' ? `Dirección: ${shippingData.address}, ${shippingData.city}. ` : ''}${shippingData.notes || ''}`,
           total_bs_rate: rate > 0 ? rate : undefined,
-          banco_origen: paymentMethod === 'pago_movil' ? bancoOrigen : undefined,
-          numero_referencia: paymentMethod === 'pago_movil' ? numeroReferencia : undefined
+          banco_origen: paymentMethod === 'pago_movil' ? sanitizeText(bancoOrigen) : undefined,
+          numero_referencia: paymentMethod === 'pago_movil' ? sanitizeText(numeroReferencia) : undefined
         }
       );
 

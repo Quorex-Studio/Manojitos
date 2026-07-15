@@ -338,7 +338,7 @@ export default function Customers() {
           <Input
             placeholder="Buscar por nombre, teléfono o cédula..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\-]/g, ''))}
             className="pl-11 h-12 input-glass rounded-xl"
           />
         </div>

@@ -29,6 +29,31 @@ export default function Auth() {
   }, [user, authLoading, navigate]);
 
   // --- HANDLERS ---
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    let finalValue = value;
+    
+    // Auto-formateo en tiempo real
+    if (id === 'fullName') {
+      finalValue = finalValue.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+    } else if (id === 'email') {
+      finalValue = finalValue.replace(/[^a-zA-Z0-9@._\-+]/g, '');
+    } else if (id === 'phone') {
+      finalValue = finalValue.replace(/[^\+0-9\-\(\)]/g, '').trim();
+      // Auto prefijo venezolano si empieza por 0
+      if (finalValue.startsWith('0')) {
+        finalValue = '+58' + finalValue.substring(1);
+      } else if (finalValue.length > 0 && !finalValue.startsWith('+') && finalValue.startsWith('58')) {
+        finalValue = '+' + finalValue;
+      }
+    }
+
+    setForm(prev => ({
+      ...prev,
+      [id]: finalValue
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -153,7 +178,7 @@ export default function Auth() {
                         type="text"
                         placeholder="Tu nombre"
                         value={form.fullName}
-                        onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                        onChange={handleInputChange}
                         className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/20"
                       />
                     </div>
@@ -167,7 +192,7 @@ export default function Auth() {
                         type="tel"
                         placeholder="+58 412 1234567"
                         value={form.phone}
-                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        onChange={handleInputChange}
                         className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/20"
                       />
                     </div>
@@ -186,7 +211,7 @@ export default function Auth() {
                     type="email"
                     placeholder="tu@email.com"
                     value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    onChange={handleInputChange}
                     className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/20"
                     required
                   />
@@ -202,7 +227,7 @@ export default function Auth() {
                     type="password"
                     placeholder="••••••••"
                     value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    onChange={handleInputChange}
                     className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/20"
                     required
                     minLength={6}

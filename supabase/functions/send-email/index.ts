@@ -23,6 +23,9 @@ const resend = resendApiKey ? new Resend(resendApiKey) : null;
 // Allow override from env, or default to Resend's testing domain for onboarding
 const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "Manojitos <onboarding@resend.dev>";
 
+const rateLimitMap = new Map<string, number[]>();
+const MAX_REQUESTS_PER_MINUTE = 5;
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
@@ -40,6 +43,24 @@ serve(async (req) => {
 
     const configuredWebhookSecret = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
     const isWebhook = body.user && body.email_data;
+
+    // Rate Limiting Logic (In-Memory per isolate)
+    const clientIp = req.headers.get("x-forwarded-for") || "unknown";
+    const rateLimitKey = isWebhook ? `webhook-${clientIp}` : `manual-${clientIp}`;
+    
+    const now = Date.now();
+    const requestTimes = rateLimitMap.get(rateLimitKey) || [];
+    const recentRequests = requestTimes.filter(time => now - time < 60000);
+    
+    if (recentRequests.length >= MAX_REQUESTS_PER_MINUTE) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again in a minute." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    recentRequests.push(now);
+    rateLimitMap.set(rateLimitKey, recentRequests);
 
     let email = "";
     let subject = "";

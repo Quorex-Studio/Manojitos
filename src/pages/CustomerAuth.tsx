@@ -49,14 +49,18 @@ export default function CustomerAuth() {
     let finalValue = value;
     
     // Auto-formateo en tiempo real
-    if (name === 'dni') {
-      finalValue = value.toUpperCase().trim();
+    if (name === 'fullName') {
+      finalValue = finalValue.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+    } else if (name === 'email') {
+      finalValue = finalValue.replace(/[^a-zA-Z0-9@._\-+]/g, '');
+    } else if (name === 'dni') {
+      finalValue = finalValue.replace(/[^vVeEjJgGpP0-9\-]/g, '').toUpperCase().trim();
       // Sugerir guión si solo meten números después de la letra
-      if (/^[VJEG]\d/.test(finalValue)) {
+      if (/^[VJEGP]\d/.test(finalValue)) {
         finalValue = finalValue.charAt(0) + '-' + finalValue.substring(1);
       }
     } else if (name === 'phone') {
-      finalValue = value.trim();
+      finalValue = finalValue.replace(/[^\+0-9\-\(\)]/g, '').trim();
       // Auto prefijo venezolano si empieza por 0
       if (finalValue.startsWith('0')) {
         finalValue = '+58' + finalValue.substring(1);
@@ -307,11 +311,11 @@ export default function CustomerAuth() {
         }
 
         // Validación estricta DNI
-        const dniRegex = /^[VJEG]-\d{7,9}$/;
+        const dniRegex = /^[VJEGP]-\d{7,9}$/;
         if (!dniRegex.test(form.dni)) {
           toast({
             title: 'Formato de Cédula Inválido',
-            description: 'Debe usar el formato V-12345678, E-12345678, J-123456789 o G-12345678',
+            description: 'Debe usar el formato V-12345678, E-12345678, J-123456789, G-12345678 o P-12345678',
             variant: 'destructive'
           });
           setLoading(false);
@@ -518,7 +522,7 @@ export default function CustomerAuth() {
                           onChange={handleInputChange}
                           className="pl-10"
                           required={!isLogin}
-                          pattern="^[VJEG]-\d{7,9}$"
+                          pattern="^[VJEGP]-\d{7,9}$"
                           title="Formato: V-12345678, J-123456789"
                         />
                         <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

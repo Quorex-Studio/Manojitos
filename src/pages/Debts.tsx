@@ -101,7 +101,7 @@ export default function Debts() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, ''))}
             placeholder="Buscar por cliente..."
             className="pl-10 input-glass rounded-xl"
           />
@@ -191,7 +191,7 @@ export default function Debts() {
                     min="0.01"
                     max={selectedDebt.amount_usd}
                     value={abonoAmount}
-                    onChange={(e) => setAbonoAmount(e.target.value)}
+                    onChange={(e) => setAbonoAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                     placeholder="0.00"
                     className="pl-7 input-glass rounded-xl font-semibold text-lg"
                   />
@@ -208,7 +208,7 @@ export default function Debts() {
                 <Input
                   id="abono-notes"
                   value={abonoNotes}
-                  onChange={(e) => setAbonoNotes(e.target.value)}
+                  onChange={(e) => setAbonoNotes(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, ''))}
                   placeholder="Ej: Pago Móvil ref: 123456, Efectivo, etc."
                   className="input-glass rounded-xl"
                 />

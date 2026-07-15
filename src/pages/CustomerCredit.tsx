@@ -59,6 +59,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { sanitizeText } from '@/lib/validations';
 
 const TRUST_CONFIG = {
   CONFIABLE: { icon: Shield, color: 'text-primary', bg: 'bg-primary/10', label: 'Confiable' },
@@ -125,7 +126,7 @@ export default function CustomerCredit() {
           status: 'pending',
           payment_method: paymentMethod,
           payment_status: 'pending',
-          notes: `[ABONO_CREDITO] Referencia: ${reference || 'Efectivo'}. Método: ${paymentMethod.toUpperCase()}. Fecha: ${paymentDate}. Notas: ${notes}`
+          notes: `[ABONO_CREDITO] Referencia: ${reference ? sanitizeText(reference) : 'Efectivo'}. Método: ${paymentMethod.toUpperCase()}. Fecha: ${paymentDate}. Notas: ${notes ? sanitizeText(notes) : ''}`
         })
         .select()
         .single();
@@ -422,7 +423,7 @@ export default function CustomerCredit() {
                               step="0.01"
                               placeholder="0.00"
                               value={amount}
-                              onChange={(e) => setAmount(e.target.value)}
+                              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                               className="pl-9 bg-background/50"
                             />
                           </div>
@@ -455,7 +456,7 @@ export default function CustomerCredit() {
                               id="reference"
                               placeholder="Ej: 12345678"
                               value={reference}
-                              onChange={(e) => setReference(e.target.value)}
+                              onChange={(e) => setReference(e.target.value.replace(/[^a-zA-Z0-9\s\-]/g, ''))}
                               className="bg-background/50"
                             />
                           </div>
@@ -478,7 +479,7 @@ export default function CustomerCredit() {
                             id="notes"
                             placeholder="Detalles adicionales del pago..."
                             value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
+                            onChange={(e) => setNotes(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, ''))}
                             rows={3}
                             className="bg-background/50"
                           />

@@ -62,6 +62,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { sanitizeText } from '@/lib/validations';
 
 // Configuración de estados con colores
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -253,13 +254,13 @@ export default function Credits() {
   // Manejar creación de crédito
   const handleCreateCredit = async () => {
     await createCredit.mutateAsync({
-      client_name: newCredit.client_name,
-      client_phone: newCredit.client_phone || null,
-      client_email: newCredit.client_email || null,
+      client_name: sanitizeText(newCredit.client_name),
+      client_phone: newCredit.client_phone ? sanitizeText(newCredit.client_phone) : null,
+      client_email: newCredit.client_email ? sanitizeText(newCredit.client_email) : null,
       client_user_id: creationMode === 'registered' ? selectedProfileId || null : null,
       credit_limit: parseFloat(newCredit.credit_limit) || 0,
       cut_off_day: parseInt(newCredit.cut_off_day),
-      notes: newCredit.notes || null,
+      notes: newCredit.notes ? sanitizeText(newCredit.notes) : null,
     });
     setIsCreateOpen(false);
     setNewCredit({
@@ -281,7 +282,7 @@ export default function Credits() {
     await registerPayment.mutateAsync({
       creditId: selectedCredit,
       amount: parseFloat(paymentAmount),
-      description: paymentDescription || undefined,
+      description: paymentDescription ? sanitizeText(paymentDescription) : undefined,
     });
     
     setIsPaymentOpen(false);
@@ -306,7 +307,7 @@ export default function Credits() {
     const credit = credits.find(c => c.id === selectedCredit);
     if (!credit) return;
 
-    const message = customMessage || generateReminderMessage(credit);
+    const message = customMessage ? sanitizeText(customMessage) : generateReminderMessage(credit);
     
     // Enviar a través del edge function
     await sendManualNotification.mutateAsync({

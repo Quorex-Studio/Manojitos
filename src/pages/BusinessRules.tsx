@@ -50,6 +50,7 @@ import {
 import { useBusinessRules } from '@/hooks/useBusinessRules';
 import type { BusinessRuleInput, RuleType } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { sanitizeText } from '@/lib/validations';
 
 const RULE_TYPES: { value: RuleType; label: string; description: string }[] = [
   { value: 'credit_block', label: 'Bloqueo de Crédito', description: 'Bloquea crédito automáticamente' },
@@ -118,10 +119,17 @@ export default function BusinessRules() {
       return;
     }
 
+    const sanitizedData = {
+      ...formData,
+      rule_name: formData.rule_name ? sanitizeText(formData.rule_name) : formData.rule_name,
+      rule_key: formData.rule_key ? sanitizeText(formData.rule_key) : formData.rule_key,
+      description: formData.description ? sanitizeText(formData.description) : formData.description,
+    };
+
     if (selectedRule) {
-      updateRule.mutate({ id: selectedRule, ...formData as BusinessRuleInput });
+      updateRule.mutate({ id: selectedRule, ...sanitizedData as BusinessRuleInput });
     } else {
-      createRule.mutate(formData as BusinessRuleInput);
+      createRule.mutate(sanitizedData as BusinessRuleInput);
     }
     setIsDialogOpen(false);
   };

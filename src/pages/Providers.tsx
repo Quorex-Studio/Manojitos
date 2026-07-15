@@ -35,11 +35,12 @@ export default function Providers() {
   // --- HANDLERS ---
   const handleAddProvider = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { sanitizeText } = await import('@/lib/validations');
     const { error } = await addProvider({
-      name: providerForm.name,
-      phone: providerForm.phone || null,
-      email: providerForm.email || null,
-      notes: providerForm.notes || null
+      name: sanitizeText(providerForm.name),
+      phone: providerForm.phone ? sanitizeText(providerForm.phone) : null,
+      email: providerForm.email ? sanitizeText(providerForm.email) : null,
+      notes: providerForm.notes ? sanitizeText(providerForm.notes) : null
     });
     if (!error) {
       setIsProviderOpen(false);
@@ -52,13 +53,14 @@ export default function Providers() {
     const provider = providers.find(p => p.id === purchaseForm.provider_id);
     if (!provider) return;
     
+    const { sanitizeText } = await import('@/lib/validations');
     const { error } = await addPurchase({
       provider_id: purchaseForm.provider_id,
       provider_name: provider.name,
       amount_usd: Number(purchaseForm.amount_usd),
       amount_bs: convertToBS(Number(purchaseForm.amount_usd)),
       status: 'pending',
-      notes: purchaseForm.notes || null,
+      notes: purchaseForm.notes ? sanitizeText(purchaseForm.notes) : null,
       purchase_date: purchaseForm.purchase_date
     });
     if (!error) {
@@ -96,7 +98,7 @@ export default function Providers() {
                     <Label>Nombre *</Label>
                     <Input
                       value={providerForm.name}
-                      onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value })}
+                      onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s]/g, '') })}
                       className="input-glass rounded-xl"
                       required
                     />
@@ -105,7 +107,7 @@ export default function Providers() {
                     <Label>Teléfono</Label>
                     <Input
                       value={providerForm.phone}
-                      onChange={(e) => setProviderForm({ ...providerForm, phone: e.target.value })}
+                      onChange={(e) => setProviderForm({ ...providerForm, phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '') })}
                       className="input-glass rounded-xl"
                     />
                   </div>
@@ -114,7 +116,7 @@ export default function Providers() {
                     <Input
                       type="email"
                       value={providerForm.email}
-                      onChange={(e) => setProviderForm({ ...providerForm, email: e.target.value })}
+                      onChange={(e) => setProviderForm({ ...providerForm, email: e.target.value.replace(/[^a-zA-Z0-9@._\-+]/g, '') })}
                       className="input-glass rounded-xl"
                     />
                   </div>
@@ -122,7 +124,7 @@ export default function Providers() {
                     <Label>Notas</Label>
                     <Textarea
                       value={providerForm.notes}
-                      onChange={(e) => setProviderForm({ ...providerForm, notes: e.target.value })}
+                      onChange={(e) => setProviderForm({ ...providerForm, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '') })}
                       className="input-glass rounded-xl resize-none"
                       rows={2}
                     />
@@ -164,7 +166,7 @@ export default function Providers() {
                       step="0.01"
                       min="0"
                       value={purchaseForm.amount_usd}
-                      onChange={(e) => setPurchaseForm({ ...purchaseForm, amount_usd: e.target.value })}
+                      onChange={(e) => setPurchaseForm({ ...purchaseForm, amount_usd: e.target.value.replace(/[^0-9.]/g, '') })}
                       className="input-glass rounded-xl"
                       required
                     />
@@ -182,7 +184,7 @@ export default function Providers() {
                     <Label>Notas</Label>
                     <Textarea
                       value={purchaseForm.notes}
-                      onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value })}
+                      onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '') })}
                       className="input-glass rounded-xl resize-none"
                       rows={2}
                     />

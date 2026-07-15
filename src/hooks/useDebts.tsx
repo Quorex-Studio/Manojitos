@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-import { debtSchema, validateInput } from '@/lib/validations';
+import { debtSchema, validateInput, sanitizeText } from '@/lib/validations';
 
 export interface Debt {
   id: string;
@@ -100,38 +100,19 @@ export function useDebts() {
     const debt = debts.find(d => d.id === id);
     if (!debt) return { error: new Error('Deuda no encontrada') };
 
-    const newAmountUsd = Math.max(0, Number(debt.amount_usd) - amount);
-    let newAmountBs = debt.amount_bs;
-    if (rate && newAmountBs) {
-      newAmountBs = Math.max(0, Number(debt.amount_bs) - (amount * rate));
-    } else if (rate) {
-      newAmountBs = newAmountUsd * rate;
-    }
+    const cleanNotes = notes ? sanitizeText(notes) : null;
 
-    const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const abonoLog = `\n[Abono: $${amount.toFixed(2)} - ${notes || 'Sin referencia'} - ${dateStr}]`;
-    const newNotes = debt.notes ? `${debt.notes}${abonoLog}` : abonoLog.trim();
-
-    const isPaid = newAmountUsd <= 0;
-    const updateData: any = {
-      amount_usd: newAmountUsd,
-      amount_bs: newAmountBs,
-      notes: newNotes,
-    };
-
-    if (isPaid) {
-      updateData.status = 'paid';
-      updateData.paid_at = new Date().toISOString();
-    }
-
-    const { error } = await supabase
-      .from('debts')
-      .update(updateData)
-      .eq('id', id);
+    const { data, error } = await supabase.rpc('rpc_register_abono', {
+      p_debt_id: id,
+      p_amount: amount,
+      p_notes: cleanNotes,
+      p_rate: rate || null
+    });
 
     if (error) {
-      toast.error('No se pudo registrar el abono');
+      toast.error(error.message || 'No se pudo registrar el abono');
     } else {
+      const isPaid = data?.status === 'paid';
       toast.success(isPaid ? 'Abono registrado. Deuda totalmente pagada! 🩷' : `Abono de $${amount.toFixed(2)} registrado.`);
       fetchDebts();
     }

@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { sanitizeText } from '@/lib/validations';
 
 // Interfaz para un producto parseado del Excel
 interface ParsedProduct {
@@ -109,13 +110,13 @@ export default function ImportProducts() {
     });
 
     // Extraer valores
-    const nombre_producto = String(mappedRow.nombre_producto || '').trim();
-    const descripcion = String(mappedRow.descripcion || '').trim();
+    const nombre_producto = sanitizeText(String(mappedRow.nombre_producto || '').trim());
+    const descripcion = sanitizeText(String(mappedRow.descripcion || '').trim());
     const precioRaw = mappedRow.precio;
     const stockRaw = mappedRow.stock;
-    const categoria = String(mappedRow.categoria || '').trim();
-    const proveedor = mappedRow.proveedor ? String(mappedRow.proveedor).trim() : undefined;
-    const sku = mappedRow.sku ? String(mappedRow.sku).trim() : undefined;
+    const categoria = sanitizeText(String(mappedRow.categoria || '').trim());
+    const proveedor = mappedRow.proveedor ? sanitizeText(String(mappedRow.proveedor).trim()) : undefined;
+    const sku = mappedRow.sku ? sanitizeText(String(mappedRow.sku).trim()) : undefined;
 
     // Validar nombre (obligatorio)
     if (!nombre_producto) {

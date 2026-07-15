@@ -104,6 +104,8 @@ export default function Sales() {
     e.preventDefault();
     if (!selectedProduct) return;
 
+    const { sanitizeText } = await import('@/lib/validations');
+
     const saleData = {
       product_id: form.product_id,
       product_name: selectedProduct.name,
@@ -112,10 +114,10 @@ export default function Sales() {
       total_usd: totalUSD,
       total_bs: totalBS,
       payment_method: form.is_credit ? 'credito' : form.payment_method,
-      client_name: form.client_name || null,
-      client_phone: form.client_phone || null,
+      client_name: form.client_name ? sanitizeText(form.client_name) : null,
+      client_phone: form.client_phone ? sanitizeText(form.client_phone) : null,
       is_credit: form.is_credit,
-      notes: form.notes || null
+      notes: form.notes ? sanitizeText(form.notes) : null
     };
 
     const { data, error } = await addSale(saleData);
@@ -123,12 +125,12 @@ export default function Sales() {
     if (!error && form.is_credit && form.client_name) {
       await addDebt({
         sale_id: data?.id || null,
-        client_name: form.client_name,
-        client_phone: form.client_phone || null,
+        client_name: sanitizeText(form.client_name),
+        client_phone: form.client_phone ? sanitizeText(form.client_phone) : null,
         amount_usd: totalUSD,
         amount_bs: totalBS,
         status: 'pending',
-        notes: form.notes || null
+        notes: form.notes ? sanitizeText(form.notes) : null
       });
     }
 
@@ -380,7 +382,7 @@ export default function Sales() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => setSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s-]/g, ''))}
                   placeholder="Buscar ventas..."
                   className="pl-10 input-glass rounded-xl"
                 />
@@ -421,7 +423,7 @@ export default function Sales() {
                         min="1"
                         max={selectedProduct?.stock || 999}
                         value={form.quantity}
-                        onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                        onChange={(e) => setForm({ ...form, quantity: e.target.value.replace(/[^0-9]/g, '') })}
                         className="input-glass rounded-xl"
                         required
                       />
@@ -472,7 +474,7 @@ export default function Sales() {
                           <Label>Nombre del cliente *</Label>
                           <Input
                             value={form.client_name}
-                            onChange={(e) => setForm({ ...form, client_name: e.target.value })}
+                            onChange={(e) => setForm({ ...form, client_name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '') })}
                             placeholder="Nombre del cliente"
                             className="input-glass rounded-xl"
                             required={form.is_credit}
@@ -482,7 +484,7 @@ export default function Sales() {
                           <Label>Teléfono</Label>
                           <Input
                             value={form.client_phone}
-                            onChange={(e) => setForm({ ...form, client_phone: e.target.value })}
+                            onChange={(e) => setForm({ ...form, client_phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '') })}
                             placeholder="Teléfono de contacto"
                             className="input-glass rounded-xl"
                           />
@@ -494,7 +496,7 @@ export default function Sales() {
                       <Label>Notas</Label>
                       <Textarea
                         value={form.notes}
-                        onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                        onChange={(e) => setForm({ ...form, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '') })}
                         placeholder="Observaciones..."
                         className="input-glass rounded-xl resize-none"
                         rows={2}
@@ -578,7 +580,7 @@ export default function Sales() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   value={orderSearch}
-                  onChange={(e) => setOrderSearch(e.target.value)}
+                  onChange={(e) => setOrderSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s-@.]/g, ''))}
                   placeholder="Buscar por cliente o ID de pedido..."
                   className="pl-10 input-glass rounded-xl"
                 />

@@ -261,61 +261,21 @@ export function useCredits() {
 
       if (fetchError) throw fetchError;
 
-      const previousBalance = credit.current_balance;
-      const newBalance = Math.max(0, previousBalance - amount);
-
       // Calcular si el pago es puntual
       const paymentIsOnTime = isOnTime ?? (credit.next_due_date
         ? new Date() <= new Date(credit.next_due_date)
         : true);
 
-      // Actualizar contadores de pagos
-      const newTotalPurchases = (credit.total_purchases || 0);
-      const newTotalPaidOnTime = (credit.total_paid_on_time || 0) + (paymentIsOnTime ? 1 : 0);
-      const newTotalPaidLate = (credit.total_paid_late || 0) + (paymentIsOnTime ? 0 : 1);
-      const newConsecutiveLate = paymentIsOnTime ? 0 : (credit.consecutive_late_payments || 0) + 1;
+      // Usar RPC atómico para evitar double-spending
+      const { data, error } = await supabase.rpc('rpc_register_credit_payment', {
+        p_credit_id: creditId,
+        p_user_id: user.id,
+        p_amount: amount,
+        p_description: description || 'Pago registrado',
+        p_is_on_time: paymentIsOnTime
+      });
 
-      // Calcular nuevo score
-      let newScore = credit.trust_score || 100;
-      if (paymentIsOnTime) {
-        newScore = Math.min(100, newScore + 5);
-      } else {
-        newScore = Math.max(0, newScore - 10 - (newConsecutiveLate * 5));
-      }
-
-      // Registrar transacción
-      const { error: transactionError } = await supabase
-        .from('credit_transactions')
-        .insert({
-          credit_id: creditId,
-          user_id: user.id,
-          type: 'ABONO',
-          amount,
-          previous_balance: previousBalance,
-          new_balance: newBalance,
-          description: description || 'Pago registrado',
-        });
-
-      if (transactionError) throw transactionError;
-
-      // Actualizar crédito con score
-      const { data, error: updateError } = await supabase
-        .from('credits')
-        .update({
-          current_balance: newBalance,
-          last_payment_date: new Date().toISOString(),
-          is_blocked: newBalance > 0 ? credit.is_blocked : false,
-          trust_score: newScore,
-          total_paid_on_time: newTotalPaidOnTime,
-          total_paid_late: newTotalPaidLate,
-          consecutive_late_payments: newConsecutiveLate,
-          last_late_date: paymentIsOnTime ? credit.last_late_date : new Date().toISOString(),
-        })
-        .eq('id', creditId)
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
@@ -339,49 +299,16 @@ export function useCredits() {
     }) => {
       if (!user) throw new Error('No autenticado');
 
-      // Obtener crédito actual
-      const { data: credit, error: fetchError } = await supabase
-        .from('credits')
-        .select('*')
-        .eq('id', creditId)
-        .single();
+      // Usar RPC atómico para evitar double-spending
+      const { data, error } = await supabase.rpc('rpc_register_credit_charge', {
+        p_credit_id: creditId,
+        p_user_id: user.id,
+        p_amount: amount,
+        p_description: description || 'Compra a crédito autorizada',
+        p_sale_id: saleId || null
+      });
 
-      if (fetchError) throw fetchError;
-
-      const previousBalance = credit.current_balance;
-      const newBalance = previousBalance + amount;
-
-      // Actualizar contadores de compras
-      const newTotalPurchases = (credit.total_purchases || 0) + 1;
-
-      // Registrar transacción
-      const { error: transactionError } = await supabase
-        .from('credit_transactions')
-        .insert({
-          credit_id: creditId,
-          user_id: user.id,
-          type: 'CARGO',
-          amount,
-          previous_balance: previousBalance,
-          new_balance: newBalance,
-          description: description || 'Compra a crédito autorizada',
-          sale_id: saleId || null,
-        });
-
-      if (transactionError) throw transactionError;
-
-      // Actualizar crédito
-      const { data, error: updateError } = await supabase
-        .from('credits')
-        .update({
-          current_balance: newBalance,
-          total_purchases: newTotalPurchases,
-        })
-        .eq('id', creditId)
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
