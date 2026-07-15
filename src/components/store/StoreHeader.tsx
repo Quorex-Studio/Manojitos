@@ -160,7 +160,7 @@ export function StoreHeader() {
                   type="text"
                   placeholder="Buscar..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s]/g, ''))}
+                  onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, ''))}
                   className="w-44 lg:w-56 pl-9 pr-4 h-9 bg-card/80 backdrop-blur-sm border-border/30 rounded-full text-sm focus:w-64 focus:border-primary/30 transition-all duration-400"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
@@ -272,7 +272,7 @@ export function StoreHeader() {
                     type="text"
                     placeholder="Buscar productos..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s]/g, ''))}
+                    onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, ''))}
                     className="w-full pl-10 pr-4 h-11 bg-card/80 backdrop-blur-sm border-border/30 rounded-full"
                     autoFocus
                   />

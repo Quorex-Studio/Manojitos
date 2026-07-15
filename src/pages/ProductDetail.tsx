@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
   ArrowLeft, ShoppingBag, Minus, Plus, Check, Package, 
-  Truck, Shield, Share2, Heart, ChevronLeft, ChevronRight 
+  Truck, Shield, Heart, ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +11,6 @@ import { Separator } from '@/components/ui/separator';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/store/ProductCard';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
-import { PriceValidityBadge } from '@/components/store/PriceValidityBadge';
 import { usePublicProducts } from '@/hooks/usePublicProducts';
 import type { PublicProduct } from '@/types';
 import { useCart, CartItem } from '@/contexts/CartContext';
@@ -164,39 +162,6 @@ export default function ProductDetail() {
     }, 500);
   };
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    
-    // First try the native share API
-    if (navigator.share && product) {
-      try {
-        await navigator.share({
-          title: product.name,
-          text: product.description || 'Mira este increíble producto en Manojitos',
-          url: url,
-        });
-        toast.success('Compartido con éxito');
-        return;
-      } catch (err) {
-        // Fallback if user cancels or API fails
-        console.log('Share API cancelled or failed', err);
-      }
-    }
-    
-    // Fallback to clipboard
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success('¡Enlace copiado!', {
-        description: 'El enlace del producto ha sido copiado al portapapeles.',
-        icon: <Share2 className="h-4 w-4 text-gold" />
-      });
-    } catch (clipboardErr) {
-      toast.error('Error al copiar el enlace', {
-        description: 'No pudimos copiar el enlace automáticamente.'
-      });
-    }
-  };
-
   // --- RENDER ---
   if (loading) {
     return (
@@ -326,16 +291,6 @@ export default function ProductDetail() {
               />
             </div>
 
-            {/* Share + Fav */}
-            <div className="absolute top-4 right-4 flex flex-col gap-2">
-              <Button
-                variant="secondary"
-                size="icon"
-                className="bg-background/80 backdrop-blur-md rounded-full border border-border/10 hover:bg-background/80"
-                onClick={handleShare}
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
             </div>
           </motion.div>
 
@@ -363,10 +318,9 @@ export default function ProductDetail() {
               </span>
               {rate > 0 && (
                 <p className="text-sm text-muted-foreground/40 tracking-wide">
-                  Bs. {convertToBS(product.price_usd).toFixed(2)}
+                  Bs. {formatBS(convertToBS(product.price_usd))}
                 </p>
               )}
-              <PriceValidityBadge />
             </div>
 
             {/* Stock Status — pulsing dot */}

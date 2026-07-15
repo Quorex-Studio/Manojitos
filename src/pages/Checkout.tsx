@@ -651,7 +651,7 @@ export default function Checkout() {
                                   id="modal-fullName"
                                   placeholder="Ej: María Pérez"
                                   value={shippingData.fullName}
-                                  onChange={handleInputChange}
+                                  onChange={(e) => setShippingData(prev => ({...prev, fullName: e.target.value.replace(/[^A-Za-zÁ-Úá-úñÑ\s]/g, '').slice(0, 50)}))}
                                   name="fullName"
                                   className="mt-1"
                                 />
@@ -664,7 +664,7 @@ export default function Checkout() {
                                   type="tel"
                                   placeholder="0412-123-4567"
                                   value={shippingData.phone}
-                                  onChange={handleInputChange}
+                                  onChange={(e) => setShippingData(prev => ({...prev, phone: e.target.value.replace(/[^0-9+-\s()]/g, '').slice(0, 20)}))}
                                   name="phone"
                                   className="mt-1"
                                 />
@@ -684,7 +684,7 @@ export default function Checkout() {
                                         id="modal-address"
                                         placeholder="Calle, número, punto de referencia..."
                                         value={shippingData.address}
-                                        onChange={handleInputChange}
+                                        onChange={(e) => setShippingData(prev => ({...prev, address: e.target.value.replace(/[^A-Za-z0-9Á-Úá-úñÑ\s.,#-]/g, '').slice(0, 100)}))}
                                         name="address"
                                         className="mt-1"
                                       />
@@ -696,7 +696,7 @@ export default function Checkout() {
                                         id="modal-city"
                                         placeholder="Tu ciudad"
                                         value={shippingData.city}
-                                        onChange={handleInputChange}
+                                        onChange={(e) => setShippingData(prev => ({...prev, city: e.target.value.replace(/[^A-Za-zÁ-Úá-úñÑ\s]/g, '').slice(0, 50)}))}
                                         name="city"
                                         className="mt-1"
                                       />
@@ -711,7 +711,7 @@ export default function Checkout() {
                                   id="modal-notes"
                                   placeholder="Ej: Dejar en portería..."
                                   value={shippingData.notes}
-                                  onChange={handleInputChange}
+                                  onChange={(e) => setShippingData(prev => ({...prev, notes: e.target.value.replace(/[^A-Za-z0-9Á-Úá-úñÑ\s.,()!-]/g, '').slice(0, 200)}))}
                                   name="notes"
                                   className="mt-1"
                                   rows={2}
@@ -945,7 +945,7 @@ export default function Checkout() {
                           id="numeroReferencia"
                           placeholder="Ej: 123456"
                           value={numeroReferencia}
-                          onChange={(e) => setNumeroReferencia(sanitizeText(e.target.value))}
+                          onChange={(e) => setNumeroReferencia(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 20))}
                           className="mt-1 bg-white/50 dark:bg-white/5 dark:border-white/10"
                         />
                       </div>
@@ -975,7 +975,7 @@ export default function Checkout() {
                         </div>
                         {rate > 0 && (
                           <div className="text-right text-xs text-muted-foreground font-medium">
-                            ≈ Bs. {convertToBS(montoInicialTotal).toFixed(2)}
+                            ≈ Bs. {formatBS(convertToBS())}
                           </div>
                         )}
                         <p className="text-[11px] text-muted-foreground leading-normal mt-1 border-t border-border/40 pt-1.5">
@@ -1028,7 +1028,7 @@ export default function Checkout() {
                                 id="casheaRef"
                                 placeholder="Ej: 123456"
                                 value={casheaRef}
-                                onChange={(e) => setCasheaRef(sanitizeText(e.target.value))}
+                                onChange={(e) => setCasheaRef(e.target.value.replace(/[^A-Za-z0-9+-\s()]/g, '').slice(0, 20))}
                                 className="mt-1 h-9 text-xs"
                               />
                             </div>
@@ -1122,7 +1122,7 @@ export default function Checkout() {
                 </div>
                 {rate > 0 && (
                   <p className="text-right text-muted-foreground text-sm">
-                    ≈ Bs. {convertToBS(subtotal).toFixed(2)}
+                    ≈ Bs. {formatBS(convertToBS())}
                   </p>
                 )}
               </div>
@@ -1147,7 +1147,7 @@ export default function Checkout() {
                     <Button
                       size="lg"
                       className="w-full btn-gold h-14 text-base mt-2 shadow-xl"
-                      disabled={!isShippingValid || !isCasheaValid || !isKycValid || isCreditBlocked || loading}
+                      disabled={!isShippingValid || !isCasheaValid || !isKycValid || isCreditBlocked || creditLoading || loading}
                       onClick={handleSubmitOrder}
                     >
                       {loading ? (

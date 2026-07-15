@@ -9,8 +9,6 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { toast } from 'sonner';
 import { PublicProduct } from '@/hooks/usePublicProducts';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
-import { PriceValidityBadge } from '@/components/store/PriceValidityBadge';
-
 interface ProductCardProps {
   product: PublicProduct;
   index?: number;
@@ -176,7 +174,7 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
                 </span>
                 {rate > 0 && (
                   <span className="text-[10px] text-muted-foreground/45 ml-1.5">
-                    ≈ {bsPrice.toFixed(2)} Bs.
+                    ≈ {formatBS(bsPrice)} Bs.
                   </span>
                 )}
               </div>

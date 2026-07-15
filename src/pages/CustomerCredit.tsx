@@ -58,6 +58,7 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { formatBS } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { sanitizeText } from '@/lib/validations';
 
@@ -269,39 +270,9 @@ export default function CustomerCredit() {
       };
     });
 
-  // Calcular cuotas vencidas y próximas a vencer para las notificaciones
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0); // Normalizar fecha a inicio del día
-
-  const cuotasAlertas = cuotasFinanciadas.flatMap(compra => 
-    compra.cuotas.map(cuota => {
-      let isPaid = false;
-      if (cuota.numero === 1) {
-        isPaid = true;
-      } else if (cuota.numero === 2) {
-        isPaid = credit.current_balance <= cuota.monto;
-      } else if (cuota.numero === 3) {
-        isPaid = credit.current_balance <= 0.01;
-      }
-      
-      const fechaVenc = new Date(cuota.fechaVencimiento);
-      fechaVenc.setHours(0, 0, 0, 0);
-      
-      // Diferencia en días
-      const diffTime = fechaVenc.getTime() - hoy.getTime();
-      const diasParaVencer = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      return {
-        ...cuota,
-        compraDescripcion: compra.descripcion || 'Compra Financiada',
-        isPaid,
-        diasParaVencer
-      };
-    })
-  );
-
-  const cuotasVencidas = cuotasAlertas.filter(c => !c.isPaid && c.diasParaVencer < 0);
-  const cuotasProximas = cuotasAlertas.filter(c => !c.isPaid && c.diasParaVencer >= 0 && c.diasParaVencer <= 3);
+  const hasOverdue = credit.daysOverdue && credit.daysOverdue > 0;
+  const hasUpcoming = credit.daysUntilDue !== null && credit.daysUntilDue !== undefined && credit.daysUntilDue >= 0 && credit.daysUntilDue <= 3 && credit.current_balance > 0;
+  const hasPendingPayments = pendingAbonos.length > 0;
 
   return (
     <StoreLayout>
@@ -325,7 +296,7 @@ export default function CustomerCredit() {
           </div>
 
           {/* Banners de Notificación Llamativos */}
-          {cuotasVencidas.length > 0 && (
+          {hasOverdue && !hasPendingPayments && (
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -340,7 +311,7 @@ export default function CustomerCredit() {
                     ⚠️ CUOTA VENCIDA DETECTADA
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Tienes {cuotasVencidas.length} {cuotasVencidas.length === 1 ? 'cuota vencida' : 'cuotas vencidas'}. Por favor, realiza el abono correspondiente lo antes posible para mantener tu línea de crédito activa.
+                    Tienes cuotas vencidas (Retraso de {credit.daysOverdue} días). Por favor, realiza el abono correspondiente lo antes posible para mantener tu línea de crédito activa.
                   </p>
                 </div>
               </div>
@@ -354,7 +325,29 @@ export default function CustomerCredit() {
             </motion.div>
           )}
 
-          {cuotasProximas.length > 0 && cuotasVencidas.length === 0 && (
+          {hasOverdue && hasPendingPayments && (
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="mb-6 p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-950 dark:text-blue-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-md"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                  <CheckCircle2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm md:text-base text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                    ⏳ PAGO EN VERIFICACIÓN
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Hemos recibido tu reporte de pago y estamos verificándolo. Tu estado de mora se actualizará pronto.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {hasUpcoming && !hasOverdue && !hasPendingPayments && (
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -369,7 +362,7 @@ export default function CustomerCredit() {
                     📅 CUOTA PRÓXIMA A VENCER
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Tienes {cuotasProximas.length} {cuotasProximas.length === 1 ? 'cuota que vence' : 'cuotas que vencen'} pronto (en menos de {cuotasProximas[0].diasParaVencer === 0 ? 'hoy' : `${cuotasProximas[0].diasParaVencer} días`}). Evita la suspensión de tu financiamiento.
+                    Tienes una cuota que vence en {credit.daysUntilDue === 0 ? 'hoy' : `${credit.daysUntilDue} días`}. Evita la suspensión de tu financiamiento.
                   </p>
                 </div>
               </div>
@@ -419,17 +412,24 @@ export default function CustomerCredit() {
                             <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
                               id="amount"
-                              type="number"
-                              step="0.01"
+                              type="text"
+                              inputMode="decimal"
                               placeholder="0.00"
                               value={amount}
-                              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                              onChange={(e) => {
+                                let val = e.target.value.replace(/[^0-9.]/g, '');
+                                const parts = val.split('.');
+                                if (parts.length > 2) {
+                                  val = parts[0] + '.' + parts.slice(1).join('');
+                                }
+                                setAmount(val);
+                              }}
                               className="pl-9 bg-background/50"
                             />
                           </div>
                           {amount && rate && (
                             <p className="text-xs text-muted-foreground mt-1">
-                              Equivalente a: <span className="font-semibold text-primary">{(parseFloat(amount) * rate).toFixed(2)} Bs.</span> (Tasa: {rate} Bs/$)
+                              Equivalente a: <span className="font-semibold text-primary">Bs. {formatBS(parseFloat(amount) * rate)}</span> (Tasa: {rate} Bs/$)
                             </p>
                           )}
                         </div>
@@ -456,7 +456,7 @@ export default function CustomerCredit() {
                               id="reference"
                               placeholder="Ej: 12345678"
                               value={reference}
-                              onChange={(e) => setReference(e.target.value.replace(/[^a-zA-Z0-9\s\-]/g, ''))}
+                              onChange={(e) => setReference(e.target.value.replace(/[^A-Za-z0-9]/g, ''))}
                               className="bg-background/50"
                             />
                           </div>

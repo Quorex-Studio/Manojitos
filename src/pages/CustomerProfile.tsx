@@ -371,6 +371,10 @@ export default function CustomerProfile() {
                           placeholder="Ej: V-12345678"
                           className="bg-card/80 border-border/15 focus:border-primary/30 uppercase"
                           {...form.register('dni')}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^A-Za-z0-9-]/g, '').toUpperCase().slice(0, 20);
+                            form.setValue('dni', val, { shouldValidate: true });
+                          }}
                         />
                         {form.formState.errors.dni && (
                           <p className="text-sm text-destructive">{form.formState.errors.dni.message}</p>
@@ -384,6 +388,10 @@ export default function CustomerProfile() {
                           placeholder="Tu nombre"
                           className="bg-card/80 border-border/15 focus:border-primary/30"
                           {...form.register('full_name')}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^A-Za-zÁ-Úá-úñÑ\s]/g, '').slice(0, 100);
+                            form.setValue('full_name', val, { shouldValidate: true });
+                          }}
                         />
                         {form.formState.errors.full_name && (
                           <p className="text-sm text-destructive">{form.formState.errors.full_name.message}</p>
@@ -424,6 +432,10 @@ export default function CustomerProfile() {
                             placeholder="tu@email.com"
                             className="pl-10 bg-card/80 border-border/15 focus:border-primary/30"
                             {...form.register('email')}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^a-zA-Z0-9@._-]/g, '').slice(0, 100);
+                              form.setValue('email', val, { shouldValidate: true });
+                            }}
                           />
                         </div>
                         {form.formState.errors.email && (
@@ -438,6 +450,10 @@ export default function CustomerProfile() {
                           placeholder="Tu ciudad"
                           className="bg-card/80 border-border/15 focus:border-primary/30"
                           {...form.register('city')}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^A-Za-zÁ-Úá-úñÑ\s]/g, '').slice(0, 100);
+                            form.setValue('city', val, { shouldValidate: true });
+                          }}
                         />
                       </div>
 
@@ -448,6 +464,10 @@ export default function CustomerProfile() {
                           placeholder="Tu estado"
                           className="bg-card/80 border-border/15 focus:border-primary/30"
                           {...form.register('state')}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^A-Za-zÁ-Úá-úñÑ\s]/g, '').slice(0, 100);
+                            form.setValue('state', val, { shouldValidate: true });
+                          }}
                         />
                       </div>
 
@@ -458,6 +478,10 @@ export default function CustomerProfile() {
                           placeholder="1234"
                           className="bg-card/80 border-border/15 focus:border-primary/30"
                           {...form.register('zip_code')}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^A-Za-z0-9-]/g, '').slice(0, 20);
+                            form.setValue('zip_code', val, { shouldValidate: true });
+                          }}
                         />
                       </div>
                     </div>
@@ -471,6 +495,10 @@ export default function CustomerProfile() {
                           placeholder="Calle, número, urbanización, punto de referencia..."
                           className="pl-10 min-h-[80px] bg-card/80 border-border/15 focus:border-primary/30"
                           {...form.register('address')}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^A-Za-z0-9Á-Úá-úñÑ\s.,#-]/g, '').slice(0, 200);
+                            form.setValue('address', val, { shouldValidate: true });
+                          }}
                         />
                       </div>
                     </div>

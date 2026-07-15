@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
+import { cn, formatBS } from '@/lib/utils';
 
 export default function Debts() {
   // --- STATE ---
@@ -176,7 +176,7 @@ export default function Debts() {
                 </p>
                 <p className="flex justify-between text-xs text-muted-foreground">
                   <span>Equivalente en Bs:</span>
-                  <span>Bs. {convertToBS(Number(selectedDebt.amount_usd)).toFixed(2)}</span>
+                  <span>Bs. {formatBS(convertToBS(Number(selectedDebt.amount_usd)))}</span>
                 </p>
               </div>
 
@@ -198,7 +198,7 @@ export default function Debts() {
                 </div>
                 {abonoAmount && !isNaN(Number(abonoAmount)) && (
                   <p className="text-xs text-muted-foreground pl-1">
-                    Equivalente en Bs: Bs. {convertToBS(Number(abonoAmount)).toFixed(2)}
+                    Equivalente en Bs: Bs. {formatBS(convertToBS(Number(abonoAmount)))}
                   </p>
                 )}
               </div>
@@ -313,7 +313,7 @@ function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, onAbono, con
             <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 pt-3 md:pt-0 border-border/30">
               <div className="text-right">
                 <p className="font-bold text-gradient-gold text-lg">${Number(debt.amount_usd).toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground">Bs. {convertToBS(Number(debt.amount_usd)).toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">Bs. {formatBS(convertToBS(Number(debt.amount_usd)))}</p>
                 <Badge
                   variant="outline"
                   className={cn(

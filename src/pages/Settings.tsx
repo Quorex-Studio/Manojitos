@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatBS } from '@/lib/utils';
 
 export default function Settings() {
   // --- STATE ---
@@ -131,7 +132,7 @@ export default function Settings() {
                   <div className="min-w-0">
                     <p className="text-sm text-muted-foreground">Tasa {selectedCurrency} actual</p>
                     <p className="text-3xl font-bold text-gradient-gold">
-                      {rate > 0 ? `Bs. ${rate.toFixed(2)}` : 'No configurada'}
+                      {rate > 0 ? `Bs. ${formatBS(rate)}` : 'No configurada'}
                     </p>
                     {lastUpdate && (
                       <p className="text-xs text-muted-foreground mt-1">
@@ -157,7 +158,7 @@ export default function Settings() {
                 </div>
               </div>
 
-              <form onSubmit={handleUpdateRate} className="flex flex-wrap gap-2">
+              <form onSubmit={handleUpdateRate} className="hidden flex-wrap gap-2">
                 <Input
                   type="number"
                   step="0.01"

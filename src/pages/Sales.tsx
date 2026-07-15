@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { formatBS } from '@/lib/utils';
 
 const paymentMethods = [
   { value: 'efectivo_usd', label: 'Efectivo USD' },
@@ -382,7 +383,7 @@ export default function Sales() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   value={search}
-                  onChange={(e) => setSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s-]/g, ''))}
+                  onChange={(e) => setSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50))}
                   placeholder="Buscar ventas..."
                   className="pl-10 input-glass rounded-xl"
                 />
@@ -423,7 +424,7 @@ export default function Sales() {
                         min="1"
                         max={selectedProduct?.stock || 999}
                         value={form.quantity}
-                        onChange={(e) => setForm({ ...form, quantity: e.target.value.replace(/[^0-9]/g, '') })}
+                        onChange={(e) => setForm({ ...form, quantity: e.target.value.replace(/[^0-9]/g, '').slice(0, 4) })}
                         className="input-glass rounded-xl"
                         required
                       />
@@ -438,7 +439,7 @@ export default function Sales() {
                         {rate > 0 && (
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Total Bs:</span>
-                            <span className="font-medium">Bs. {totalBS.toFixed(2)}</span>
+                            <span className="font-medium">Bs. {formatBS(totalBS)}</span>
                           </div>
                         )}
                       </div>
@@ -474,7 +475,7 @@ export default function Sales() {
                           <Label>Nombre del cliente *</Label>
                           <Input
                             value={form.client_name}
-                            onChange={(e) => setForm({ ...form, client_name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '') })}
+                            onChange={(e) => setForm({ ...form, client_name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50) })}
                             placeholder="Nombre del cliente"
                             className="input-glass rounded-xl"
                             required={form.is_credit}
@@ -484,7 +485,7 @@ export default function Sales() {
                           <Label>Teléfono</Label>
                           <Input
                             value={form.client_phone}
-                            onChange={(e) => setForm({ ...form, client_phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '') })}
+                            onChange={(e) => setForm({ ...form, client_phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '').slice(0, 20) })}
                             placeholder="Teléfono de contacto"
                             className="input-glass rounded-xl"
                           />
@@ -496,7 +497,7 @@ export default function Sales() {
                       <Label>Notas</Label>
                       <Textarea
                         value={form.notes}
-                        onChange={(e) => setForm({ ...form, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '') })}
+                        onChange={(e) => setForm({ ...form, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '').slice(0, 200) })}
                         placeholder="Observaciones..."
                         className="input-glass rounded-xl resize-none"
                         rows={2}
@@ -580,7 +581,7 @@ export default function Sales() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   value={orderSearch}
-                  onChange={(e) => setOrderSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s-@.]/g, ''))}
+                  onChange={(e) => setOrderSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s@.]/g, '').slice(0, 50))}
                   placeholder="Buscar por cliente o ID de pedido..."
                   className="pl-10 input-glass rounded-xl"
                 />
@@ -694,7 +695,7 @@ export default function Sales() {
                                 <span className="text-xs text-muted-foreground">Total:</span>
                                 <span className="text-xl font-bold text-gradient-gold">${Number(order.total_usd).toFixed(2)}</span>
                                 {order.total_bs && (
-                                  <span className="text-sm text-muted-foreground font-medium">/ Bs. {new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(order.total_bs))}</span>
+                                  <span className="text-sm text-muted-foreground font-medium">/ Bs. {formatBS(Number(order.total_bs))}</span>
                                 )}
                               </div>
                               

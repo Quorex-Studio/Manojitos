@@ -12,6 +12,13 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+export function formatBS(amount: number): string {
+  return new Intl.NumberFormat('es-VE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+}
+
 // Tasa de cambio aproximada para fines de visualización si no hay API
 // En un entorno real, esto vendría de un contexto o API
 export const ESTIMATED_RATE = 45.00;

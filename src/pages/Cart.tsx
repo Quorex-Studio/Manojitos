@@ -11,7 +11,7 @@ import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 export default function Cart() {
   const { items, removeItem, updateQuantity, getSubtotal, getItemCount, clearCart } = useCart();
   const { rate, convertToBS } = useExchangeRate();
-  const { credit, hasCredit } = useCustomerCredit();
+  const { credit, hasCredit, isLoading: creditLoading } = useCustomerCredit();
 
   const total = getSubtotal();
   const itemCount = getItemCount();
@@ -161,7 +161,7 @@ export default function Cart() {
                         </p>
                         {rate > 0 && (
                           <p className="text-[10px] text-muted-foreground/35 mt-0.5">
-                            Bs. {convertToBS(item.price_usd * item.quantity).toFixed(2)}
+                            Bs. {formatBS(convertToBS())}
                           </p>
                         )}
                       </div>
@@ -202,7 +202,7 @@ export default function Cart() {
                     </span>
                     {rate > 0 && (
                       <p className="text-xs text-muted-foreground/30 mt-1">
-                        Bs. {convertToBS(total).toFixed(2)}
+                        Bs. {formatBS(convertToBS())}
                       </p>
                     )}
                   </div>
@@ -229,10 +229,10 @@ export default function Cart() {
                   </Link>
                 </div>
               ) : (
-                <Link to="/checkout" className="block mt-8">
-                  <Button size="lg" className="w-full btn-gold btn-shimmer rounded-full h-13 text-base">
+                <Link to="/checkout" className="block mt-8" onClick={(e) => creditLoading && e.preventDefault()}>
+                  <Button size="lg" className="w-full btn-gold btn-shimmer rounded-full h-13 text-base" disabled={creditLoading}>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Proceder al Pago
+                    {creditLoading ? 'Verificando...' : 'Proceder al Pago'}
                   </Button>
                 </Link>
               )}

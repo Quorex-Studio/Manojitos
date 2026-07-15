@@ -676,7 +676,10 @@ export default function CustomerAuth() {
                       type="button"
                       variant="link"
                       className="text-xs text-accent h-auto p-0"
-                      onClick={() => setIsForgotPassword(true)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsForgotPassword(true);
+                      }}
                     >
                       ¿Olvidaste tu contraseña?
                     </Button>

@@ -52,16 +52,18 @@ export default function Reports() {
     const headers = ['Fecha', 'Producto', 'Cantidad', 'Precio Unit.', 'Total USD', 'Método Pago', 'Cliente'];
     const rows = filteredSales.map(s => [
       new Date(s.created_at).toLocaleDateString('es'),
-      s.product_name,
+      `"${s.product_name.replace(/"/g, '""')}"`,
       s.quantity,
-      Number(s.unit_price_usd).toFixed(2),
-      Number(s.total_usd).toFixed(2),
-      s.is_credit ? 'Crédito' : s.payment_method,
-      s.client_name || '-'
+      Number(s.unit_price_usd).toFixed(2).replace('.', ','),
+      Number(s.total_usd).toFixed(2).replace('.', ','),
+      s.is_credit ? 'Crédito' : s.payment_method.replace('_', ' '),
+      `"${(s.client_name || '-').replace(/"/g, '""')}"`
     ]);
     
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // In LATAM/Spain, Excel uses `;` as the default column separator.
+    const csvContent = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    // Add BOM (\uFEFF) for Excel to recognize UTF-8 encoding correctly
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `reporte_ventas_${startDate}_${endDate}.csv`;
@@ -136,7 +138,7 @@ export default function Reports() {
           <StatCard
             title="Total Ventas"
             value={`$${stats.totalUSD.toFixed(2)}`}
-            subtitle={`Bs. ${convertToBS(stats.totalUSD).toFixed(2)}`}
+            subtitle={`Bs. ${formatBS(convertToBS())}`}
             icon={<DollarSign className="h-6 w-6" />}
             variant="gold"
           />

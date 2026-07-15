@@ -259,7 +259,7 @@ export default function StoreCatalog() {
               type="text"
               placeholder="Buscar productos..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s]/g, ''))}
+              onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, ''))}
               className="pl-10 h-11 bg-card/80 backdrop-blur-sm border-border/15 rounded-full text-sm focus:border-primary/30 transition-all duration-300"
             />
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
