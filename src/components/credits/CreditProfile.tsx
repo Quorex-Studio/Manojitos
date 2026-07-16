@@ -176,6 +176,9 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
   const { data: transactions = [], isLoading: loadingTx } = useCreditTransactions(credit.id);
   const { promises, isLoading: loadingPromises, fulfillPromise, breakPromise } = usePaymentPromises(credit.id);
   
+  // Fecha de hoy (YYYY-MM-DD) como límite máximo para el campo de fecha
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const [isEditingLimit, setIsEditingLimit] = useState(false);
   const [newLimit, setNewLimit] = useState(credit.credit_limit.toString());
   const [isPromiseOpen, setIsPromiseOpen] = useState(false);
@@ -199,6 +202,10 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
 
   const handleCreatePromise = () => {
     if (promiseData.amount && promiseData.date) {
+      // Validación: la fecha comprometida no puede ser futura
+      if (promiseData.date > todayStr) {
+        return; // El campo ya muestra el error visual; no se envía
+      }
       onCreatePromise?.({
         promisedAmount: parseFloat(promiseData.amount),
         promisedDate: promiseData.date,
@@ -589,8 +596,19 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
               <Input
                 type="date"
                 value={promiseData.date}
-                onChange={e => setPromiseData(p => ({ ...p, date: e.target.value }))}
+                max={todayStr}
+                onChange={e => {
+                  // Ignorar selecciones futuras (doble protección)
+                  if (e.target.value <= todayStr) {
+                    setPromiseData(p => ({ ...p, date: e.target.value }));
+                  }
+                }}
               />
+              {promiseData.date > todayStr && (
+                <p className="text-xs text-destructive">
+                  La fecha de pago no puede ser una fecha futura.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Notas (opcional)</Label>
