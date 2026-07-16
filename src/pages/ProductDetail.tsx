@@ -169,7 +169,7 @@ export default function ProductDetail() {
     return (
       <StoreLayout>
         <div className="container mx-auto px-4 py-8">
-          <div className="grid md:grid-cols-[55%_45%] gap-8 lg:gap-14">
+          <div className="grid md:grid-cols-[5.5fr_4.5fr] gap-8 lg:gap-14">
             <div className="aspect-[3/4] rounded-2xl skeleton-shimmer" />
             <div className="space-y-5 py-4">
               <div className="h-3 w-1/3 rounded-full skeleton-shimmer" />
@@ -242,7 +242,7 @@ export default function ProductDetail() {
         </Button>
 
         {/* Product Section — Split layout 55% / 45% */}
-        <div className="grid md:grid-cols-[55%_45%] gap-8 lg:gap-14">
+        <div className="grid md:grid-cols-[5.5fr_4.5fr] gap-8 lg:gap-14">
           {/* Image — with zoom on hover */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
