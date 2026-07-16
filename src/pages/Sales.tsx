@@ -291,11 +291,19 @@ export default function Sales() {
           const newBalance = Math.max(0, previousBalance - abonoAmount);
 
           // Actualizar el balance de la línea de crédito
+          const creditUpdate: Record<string, unknown> = {
+            current_balance: newBalance,
+            last_payment_date: new Date().toISOString(),
+          };
+
+          // Si el saldo queda en 0, limpiar la fecha de vencimiento para desbloquear al cliente
+          if (newBalance === 0) {
+            creditUpdate.next_due_date = null;
+          }
+
           const { error: updateCreditErr } = await supabase
             .from('credits')
-            .update({
-              current_balance: newBalance
-            })
+            .update(creditUpdate)
             .eq('id', targetCredit.id);
 
           if (updateCreditErr) throw updateCreditErr;
@@ -327,6 +335,8 @@ export default function Sales() {
       refetchProducts();
       queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
       queryClient.invalidateQueries({ queryKey: ['credits'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-credit'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-pending-payments'] });
     } catch (err) {
       console.error('Error approving order:', err);
       toast.error(err instanceof Error ? err.message : 'Error al aprobar el pedido');
