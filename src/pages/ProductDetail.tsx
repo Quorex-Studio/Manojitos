@@ -18,6 +18,7 @@ import { useCart, CartItem } from '@/contexts/CartContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useBrowsingHistory } from '@/hooks/useBrowsingHistory';
 import { toast } from 'sonner';
+import { formatBS } from '@/lib/utils';
 // Helper function to resolve available sizes based on product name/category rules
 const getAvailableSizes = (name: string, category: string): string[] => {
   const normName = name.toLowerCase();

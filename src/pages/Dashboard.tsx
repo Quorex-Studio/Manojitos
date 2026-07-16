@@ -19,6 +19,7 @@ import { useDebts } from '@/hooks/useDebts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { formatBS } from '@/lib/utils';
 
 // Dashboard admin — Premium editorial
 export default function Dashboard() {

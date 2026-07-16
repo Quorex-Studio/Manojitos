@@ -9,6 +9,7 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { toast } from 'sonner';
 import { PublicProduct } from '@/hooks/usePublicProducts';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
+import { formatBS } from '@/lib/utils';
 interface ProductCardProps {
   product: PublicProduct;
   index?: number;

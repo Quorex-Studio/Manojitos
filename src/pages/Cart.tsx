@@ -6,6 +6,7 @@ import { StoreLayout } from '@/components/store/StoreLayout';
 import { useCart } from '@/contexts/CartContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
+import { formatBS } from '@/lib/utils';
 
 // Carrito de compras — Luxury receipt layout
 export default function Cart() {

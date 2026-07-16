@@ -26,6 +26,7 @@ import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { useCustomerPaymentMethods } from '@/hooks/useCustomerPaymentMethods';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { sanitizeText } from '@/lib/validations';
+import { formatBS } from '@/lib/utils';
 
 // Métodos de pago base (sin crédito — se agrega dinámicamente)
 const BASE_PAYMENT_METHODS = [
