@@ -158,7 +158,8 @@ export default function Settings() {
                 </div>
               </div>
 
-              <form onSubmit={handleUpdateRate} className="hidden flex-wrap gap-2">
+              {/* Formulario de actualización manual oculto por petición
+              <form onSubmit={handleUpdateRate} className="flex flex-wrap gap-2 mt-4">
                 <Input
                   type="number"
                   step="0.01"
@@ -172,6 +173,7 @@ export default function Settings() {
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Actualizar'}
                 </Button>
               </form>
+              */}
             </CardContent>
           </Card>
         </motion.div>

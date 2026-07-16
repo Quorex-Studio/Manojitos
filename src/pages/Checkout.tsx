@@ -153,7 +153,7 @@ export default function Checkout() {
   const { rate, convertToBS } = useExchangeRate();
   const { processCheckout, validateStock } = useSales();
   const { toast } = useToast();
-  const { credit, hasCredit, isLoading: creditLoading } = useCustomerCredit();
+  const { credit, hasCredit, hasPendingPayments, isLoading: creditLoading } = useCustomerCredit();
   const { preferredMethod, hasPaymentMethods, isLoading: methodsLoading } = useCustomerPaymentMethods();
 
   const [step, setStep] = useState<'auth' | 'shipping' | 'payment' | 'confirm'>('shipping');
@@ -177,15 +177,16 @@ export default function Checkout() {
   const montoCuota = montoFinanciado / 3;
   const montoInicialTotal = (subtotal * 0.50) + montoCuota;
 
-  const isCreditBlocked = hasCredit && credit && (credit.calculatedStatus === 'VENCIDO' || credit.is_blocked);
+  const isCreditBlocked = hasCredit && credit && (credit.calculatedStatus === 'VENCIDO' || credit.is_blocked || hasPendingPayments);
 
   // Crédito disponible — calcular si puede usar crédito (se financia el 50%)
   const creditAvailable = useMemo(() => hasCredit &&
     credit &&
     !credit.is_blocked &&
+    !hasPendingPayments &&
     credit.calculatedStatus !== 'BLOQUEADO' &&
     credit.calculatedStatus !== 'VENCIDO' &&
-    (credit.credit_limit - credit.current_balance) >= montoFinanciado, [hasCredit, credit, montoFinanciado]);
+    (credit.credit_limit - credit.current_balance) >= montoFinanciado, [hasCredit, credit, hasPendingPayments, montoFinanciado]);
 
   // Lista de métodos de pago (con crédito si el usuario posee una cuenta)
   const paymentMethods = useMemo(() => hasCredit
@@ -245,12 +246,14 @@ export default function Checkout() {
     if (!creditLoading && isCreditBlocked) {
       toast({
         title: "Acción bloqueada",
-        description: "Tienes cuotas vencidas. No puedes realizar nuevas compras.",
+        description: hasPendingPayments 
+          ? "Tienes un pago en verificación. No puedes realizar nuevas compras hasta que se apruebe." 
+          : "Tienes cuotas vencidas. No puedes realizar nuevas compras.",
         variant: "destructive"
       });
       navigate('/carrito');
     }
-  }, [creditLoading, isCreditBlocked, navigate, toast]);
+  }, [creditLoading, isCreditBlocked, hasPendingPayments, navigate, toast]);
 
   // Cargar perfil del cliente si existe
   useEffect(() => {
@@ -316,7 +319,7 @@ export default function Checkout() {
     if (isCreditBlocked) {
       toast({
         title: 'Acción Bloqueada',
-        description: 'No puedes realizar nuevas compras mientras tengas cuotas vencidas.',
+        description: hasPendingPayments ? 'Tienes un pago en verificación. No puedes realizar nuevas compras hasta que se apruebe.' : 'No puedes realizar nuevas compras mientras tengas cuotas vencidas.',
         variant: 'destructive'
       });
       return;
@@ -975,7 +978,7 @@ export default function Checkout() {
                         </div>
                         {rate > 0 && (
                           <div className="text-right text-xs text-muted-foreground font-medium">
-                            ≈ Bs. {formatBS(convertToBS())}
+                            ≈ Bs. {formatBS(convertToBS(montoInicialTotal))}
                           </div>
                         )}
                         <p className="text-[11px] text-muted-foreground leading-normal mt-1 border-t border-border/40 pt-1.5">
@@ -1122,7 +1125,7 @@ export default function Checkout() {
                 </div>
                 {rate > 0 && (
                   <p className="text-right text-muted-foreground text-sm">
-                    ≈ Bs. {formatBS(convertToBS())}
+                    ≈ Bs. {formatBS(convertToBS(subtotal))}
                   </p>
                 )}
               </div>
@@ -1139,9 +1142,9 @@ export default function Checkout() {
                 return (
                   <>
                     {isCreditBlocked && (
-                      <div className="mt-4 mb-2 p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm rounded-xl flex items-center justify-center gap-2 text-center font-medium">
+                      <div className={`mt-4 mb-2 p-3 border text-sm rounded-xl flex items-center justify-center gap-2 text-center font-medium ${hasPendingPayments ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' : 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'}`}>
                         <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                        Tienes cuotas vencidas. Por favor regulariza tu pago.
+                        {hasPendingPayments ? 'Tienes un pago en verificación. No puedes realizar nuevas compras hasta que se apruebe.' : 'Tienes cuotas vencidas. Por favor regulariza tu pago.'}
                       </div>
                     )}
                     <Button

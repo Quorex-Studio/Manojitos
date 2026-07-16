@@ -161,7 +161,7 @@ export default function Cart() {
                         </p>
                         {rate > 0 && (
                           <p className="text-[10px] text-muted-foreground/35 mt-0.5">
-                            Bs. {formatBS(convertToBS())}
+                            Bs. {formatBS(convertToBS(item.price_usd * item.quantity))}
                           </p>
                         )}
                       </div>
@@ -202,7 +202,7 @@ export default function Cart() {
                     </span>
                     {rate > 0 && (
                       <p className="text-xs text-muted-foreground/30 mt-1">
-                        Bs. {formatBS(convertToBS())}
+                        Bs. {formatBS(convertToBS(total))}
                       </p>
                     )}
                   </div>

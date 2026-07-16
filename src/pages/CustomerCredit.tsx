@@ -79,7 +79,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 export default function CustomerCredit() {
   // --- DERIVED ---
   const { user } = useAuth();
-  const { credit, transactions, promises, hasCredit, isLoading } = useCustomerCredit();
+  const { credit, transactions, promises, hasCredit, hasPendingPayments, isLoading } = useCustomerCredit();
   const queryClient = useQueryClient();
   const { rate } = useExchangeRate();
 

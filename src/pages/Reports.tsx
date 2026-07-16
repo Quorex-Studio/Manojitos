@@ -61,7 +61,8 @@ export default function Reports() {
     ]);
     
     // In LATAM/Spain, Excel uses `;` as the default column separator.
-    const csvContent = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    // Explicitly tell Excel to use semicolon by adding sep=; at the top
+    const csvContent = "sep=;\r\n" + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\r\n');
     // Add BOM (\uFEFF) for Excel to recognize UTF-8 encoding correctly
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -138,7 +139,7 @@ export default function Reports() {
           <StatCard
             title="Total Ventas"
             value={`$${stats.totalUSD.toFixed(2)}`}
-            subtitle={`Bs. ${formatBS(convertToBS())}`}
+            subtitle={`Bs. ${formatBS(convertToBS(stats.totalUSD))}`}
             icon={<DollarSign className="h-6 w-6" />}
             variant="gold"
           />

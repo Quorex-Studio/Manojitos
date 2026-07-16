@@ -125,11 +125,31 @@ export function useCustomerCredit() {
     enabled: !!credit?.id,
   });
 
+  // Check if there are any pending payment verification orders
+  const { data: pendingPayments = [], isLoading: loadingPendingPayments } = useQuery({
+    queryKey: ['customer-pending-payments', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_user_id', user.id)
+        .like('notes', '[ABONO_CREDITO]%')
+        .eq('status', 'pending');
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   return {
     credit,
     transactions,
     promises,
+    pendingPayments,
+    hasPendingPayments: pendingPayments.length > 0,
     hasCredit: !!credit,
-    isLoading: loadingCredit || loadingTransactions || loadingPromises,
+    isLoading: loadingCredit || loadingTransactions || loadingPromises || loadingPendingPayments,
   };
 }
