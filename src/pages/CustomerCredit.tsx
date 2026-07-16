@@ -83,11 +83,14 @@ export default function CustomerCredit() {
   const queryClient = useQueryClient();
   const { rate } = useExchangeRate();
 
+  // Fecha de hoy como tope máximo (se recalcula cada render, no se queda fija)
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('pago_movil');
   const [reference, setReference] = useState('');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentDate, setPaymentDate] = useState(todayStr);
   const [notes, setNotes] = useState('');
 
   // Mutación para enviar el reporte de abono
@@ -97,6 +100,11 @@ export default function CustomerCredit() {
       const amountNum = parseFloat(amount);
       if (isNaN(amountNum) || amountNum <= 0) {
         throw new Error('El monto ingresado debe ser mayor a cero');
+      }
+      // Validación: la fecha de pago no puede ser futura
+      const today = new Date().toISOString().split('T')[0];
+      if (paymentDate > today) {
+        throw new Error('La fecha de pago no puede ser una fecha futura');
       }
       if (!reference && paymentMethod !== 'efectivo') {
         throw new Error('La referencia es obligatoria para este método de pago');
@@ -467,9 +475,20 @@ export default function CustomerCredit() {
                             id="payment-date"
                             type="date"
                             value={paymentDate}
-                            onChange={(e) => setPaymentDate(e.target.value)}
+                            max={todayStr}
+                            onChange={(e) => {
+                              // Doble protección: ignorar si el valor supera hoy
+                              if (e.target.value <= todayStr) {
+                                setPaymentDate(e.target.value);
+                              }
+                            }}
                             className="bg-background/50"
                           />
+                          {paymentDate > todayStr && (
+                            <p className="text-xs text-destructive">
+                              La fecha de pago no puede ser una fecha futura.
+                            </p>
+                          )}
                         </div>
 
                         <div className="space-y-2">
