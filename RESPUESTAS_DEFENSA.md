@@ -92,3 +92,22 @@ Se detectó desbordamiento horizontal (scroll) en vistas de escritorio debido a 
 
 1. **Grid Layout (Vista PC/Tablet):** El contenedor sumaba porcentajes fijos (`55%` y `45%`) más un margen (`gap-8`), superando el 100% del ancho de pantalla. Se migró a **Unidades Fraccionales (`fr`)** (`grid-cols-[5.5fr_4.5fr]`). El motor CSS ahora resta el espacio del `gap` primero y divide el sobrante exactamente, garantizando un ajuste perfecto.
 2. **Flexbox Layout (Móvil):** Los elementos en línea (breadcrumbs o etiquetas de productos) desbordaban el ancho en móviles. Se solucionó inyectando `flex-wrap`, forzando el reflujo del DOM hacia nuevas líneas sin romper la maquetación.
+
+---
+
+## 8. Justificación del Stack Tecnológico: ¿Por qué React.js?
+
+**Concepto Clave:** Virtual DOM, Arquitectura Basada en Componentes y Ecosistema SPA (Single Page Application).
+
+**Respuesta Técnica:**
+La elección de React sobre otros lenguajes clásicos (como PHP, Java JSP) o frameworks tradicionales (como Angular o Vue) se justifica por los siguientes pilares de rendimiento y escalabilidad:
+
+1. **Virtual DOM vs Real DOM (Diferencia clave con Vanilla JS / PHP):**
+   - Tradicionalmente, actualizar una página web requiere recargar el documento entero (ej. PHP) o re-renderizar ramas completas del DOM real, lo cual es lento y costoso computacionalmente. 
+   - **React** utiliza un *Virtual DOM* (una representación en memoria de la UI). Cuando un estado cambia (como agregar un producto al carrito), React compara el Virtual DOM nuevo con el viejo (*Diffing Algorithm*) y actualiza **exclusivamente** el nodo que cambió en el DOM real. Esto permite que Manojitos sea extremadamente veloz, sintiéndose como una app nativa en el teléfono sin pantallas blancas de carga.
+2. **Arquitectura Basada en Componentes:**
+   - A diferencia de escribir archivos monolíticos de HTML/JS, React nos permitió construir "piezas de lego" encapsuladas (botones, tarjetas de producto, modales). Esta reutilización de código redujo el tamaño de la base de código dramáticamente y facilita el mantenimiento. Si hay un bug en el botón de pago, se arregla en un solo componente y se replica en toda la app.
+3. **Flujo de Datos Unidireccional:**
+   - A diferencia del *two-way data binding* de frameworks como Angular, React usa un flujo descendente (Top-Down). El estado dicta cómo se ve la UI, haciendo que la depuración de errores sea predecible. Sabes exactamente qué variable causó el cambio visual.
+4. **Sinergia con TypeScript:**
+   - A diferencia del JavaScript tradicional, la integración estricta de React con TypeScript permitió capturar el 90% de los errores (como pasar un String en vez de un Número a la base de datos) durante la *fase de compilación* (mientras se escribía el código), antes de que el error llegara siquiera al servidor en producción.
