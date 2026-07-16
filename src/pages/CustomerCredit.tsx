@@ -272,7 +272,6 @@ export default function CustomerCredit() {
 
   const hasOverdue = credit.daysOverdue && credit.daysOverdue > 0;
   const hasUpcoming = credit.daysUntilDue !== null && credit.daysUntilDue !== undefined && credit.daysUntilDue >= 0 && credit.daysUntilDue <= 3 && credit.current_balance > 0;
-  const hasPendingPayments = pendingAbonos.length > 0;
 
   return (
     <StoreLayout>

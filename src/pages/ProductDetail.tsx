@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
   ArrowLeft, ShoppingBag, Minus, Plus, Check, Package, 
   Truck, Shield, Heart, ChevronLeft, ChevronRight 
 } from 'lucide-react';
@@ -291,7 +292,6 @@ export default function ProductDetail() {
               />
             </div>
 
-            </div>
           </motion.div>
 
           {/* Details */}
