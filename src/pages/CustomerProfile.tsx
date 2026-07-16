@@ -699,25 +699,36 @@ export default function CustomerProfile() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {purchases.slice(0, 10).map((purchase) => (
-                        <div 
-                          key={purchase.id}
-                          className="flex items-center justify-between p-4 rounded-xl bg-card/80 hover:bg-card/80 transition-colors duration-300"
-                        >
-                          <div>
-                            <p className="font-medium text-sm">{purchase.product_name}</p>
-                            <p className="text-xs text-muted-foreground/40 tracking-wide">
-                              {format(new Date(purchase.created_at), 'PPP', { locale: es })}
-                            </p>
+                      {purchases.slice(0, 10).map((purchase: any) => {
+                        const isOrder = !!purchase.items;
+                        const productName = isOrder 
+                          ? (purchase.items?.map((i: any) => i.product_name).join(', ') || `Pedido #${purchase.id.slice(0, 8)}`)
+                          : purchase.product_name;
+                        
+                        const quantity = isOrder 
+                          ? purchase.items?.reduce((acc: number, item: any) => acc + (item.quantity || 1), 0) || 1
+                          : purchase.quantity;
+
+                        return (
+                          <div 
+                            key={purchase.id}
+                            className="flex items-center justify-between p-4 rounded-xl bg-card/80 hover:bg-card/80 transition-colors duration-300"
+                          >
+                            <div>
+                              <p className="font-medium text-sm line-clamp-1">{productName}</p>
+                              <p className="text-xs text-muted-foreground/40 tracking-wide">
+                                {format(new Date(purchase.created_at), 'PPP', { locale: es })}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-sm text-gradient-gold">${Number(purchase.total_usd).toFixed(2)}</p>
+                              <p className="text-[10px] text-muted-foreground/30 tracking-wide">
+                                x{quantity}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-sm text-gradient-gold">${purchase.total_usd.toFixed(2)}</p>
-                            <p className="text-[10px] text-muted-foreground/30 tracking-wide">
-                              x{purchase.quantity}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       {purchases.length > 10 && (
                         <Link to="/cliente/pedidos">
                           <Button variant="outline" className="w-full mt-3 rounded-full border-border/15 text-sm">
