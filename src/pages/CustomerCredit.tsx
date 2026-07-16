@@ -226,7 +226,7 @@ export default function CustomerCredit() {
   const trustConfig = TRUST_CONFIG[credit.trust_level as keyof typeof TRUST_CONFIG] || TRUST_CONFIG.CONFIABLE;
   const TrustIcon = trustConfig.icon;
   const statusConfig = STATUS_CONFIG[credit.calculatedStatus || 'ACTIVO'];
-  const usagePercent = (credit.current_balance / credit.credit_limit) * 100;
+  const usagePercent = credit.credit_limit > 0 ? (credit.current_balance / credit.credit_limit) * 100 : 0;
 
   // Calcular las cuotas a partir de los cargos de financiamiento registrados
   const cuotasFinanciadas = transactions
@@ -270,7 +270,7 @@ export default function CustomerCredit() {
       };
     });
 
-  const hasOverdue = credit.daysOverdue && credit.daysOverdue > 0;
+  const hasOverdue = (credit.daysOverdue ?? 0) > 0;
   const hasUpcoming = credit.daysUntilDue !== null && credit.daysUntilDue !== undefined && credit.daysUntilDue >= 0 && credit.daysUntilDue <= 3 && credit.current_balance > 0;
 
   return (
