@@ -211,7 +211,7 @@ export default function ProductDetail() {
     <StoreLayout>
       <div className="container mx-auto px-4 py-6 md:py-10">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-xs text-muted-foreground/40 mb-6 tracking-wide">
+        <nav className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground/40 mb-6 tracking-wide">
           <Link to="/" className="hover:text-foreground transition-colors">Inicio</Link>
           <span>/</span>
           <Link to="/tienda" className="hover:text-foreground transition-colors">Tienda</Link>
