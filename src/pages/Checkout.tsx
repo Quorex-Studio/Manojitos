@@ -357,6 +357,15 @@ export default function Checkout() {
           setLoading(false);
           return;
         }
+        if (!/^\d+$/.test(numeroReferencia.trim())) {
+          toast({
+            title: 'Referencia inválida',
+            description: 'El número de referencia debe contener solo dígitos.',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
       }
 
       // Upsert a customer_profiles con los datos de envío
@@ -949,7 +958,7 @@ export default function Checkout() {
                           id="numeroReferencia"
                           placeholder="Ej: 123456"
                           value={numeroReferencia}
-                          onChange={(e) => setNumeroReferencia(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 20))}
+                          onChange={(e) => setNumeroReferencia(e.target.value.replace(/[^0-9]/g, '').slice(0, 20))}
                           className="mt-1 bg-white/50 dark:bg-white/5 dark:border-white/10"
                         />
                       </div>

@@ -159,10 +159,8 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
       <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold mb-2">No hay pedidos</h2>
-          <p className="text-muted-foreground mb-6">
-            Aún no has realizado ningún pedido
-          </p>
+          <h3 className="text-lg font-medium mb-2">No hay pedidos</h3>
+          <p className="text-muted-foreground mb-6">No se encontraron pedidos en esta categoría.</p>
           <Link to="/tienda">
             <Button>Explorar Tienda</Button>
           </Link>

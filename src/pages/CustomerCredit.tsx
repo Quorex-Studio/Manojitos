@@ -668,7 +668,18 @@ export default function CustomerCredit() {
                                 <TrendingUp className="h-5 w-5 text-destructive" />
                               )}
                               <div>
-                                <p className="font-medium">{tx.description || tx.type}</p>
+                                <p className="font-medium">{
+                                  (() => {
+                                    const desc = tx.description || tx.type;
+                                    // Strip raw [ABONO_CREDITO] notes string from stored orders notes
+                                    if (desc.startsWith('[ABONO_CREDITO]')) {
+                                      const refMatch = desc.match(/Referencia:\s*([^\.\n]+)/);
+                                      const ref = refMatch ? refMatch[1].trim() : '';
+                                      return ref ? `Abono reportado — Ref: ${ref}` : 'Abono reportado';
+                                    }
+                                    return desc;
+                                  })()
+                                }</p>
                                 <p className="text-xs text-muted-foreground">
                                   {format(new Date(tx.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
                                 </p>

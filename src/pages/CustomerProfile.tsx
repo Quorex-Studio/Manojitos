@@ -372,7 +372,11 @@ export default function CustomerProfile() {
                           className="bg-card/80 border-border/15 focus:border-primary/30 uppercase"
                           {...form.register('dni')}
                           onChange={(e) => {
-                            const val = e.target.value.replace(/[^A-Za-z0-9-]/g, '').toUpperCase().slice(0, 20);
+                            // Permite V/E al inicio, luego solo dígitos
+                            const raw = e.target.value.toUpperCase();
+                            const val = raw.replace(/^([VE]-)?(.*)/,  (_, prefix, rest) =>
+                              (prefix || '') + rest.replace(/[^0-9]/g, '')
+                            ).slice(0, 12);
                             form.setValue('dni', val, { shouldValidate: true });
                           }}
                         />
@@ -479,7 +483,7 @@ export default function CustomerProfile() {
                           className="bg-card/80 border-border/15 focus:border-primary/30"
                           {...form.register('zip_code')}
                           onChange={(e) => {
-                            const val = e.target.value.replace(/[^A-Za-z0-9-]/g, '').slice(0, 20);
+                            const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
                             form.setValue('zip_code', val, { shouldValidate: true });
                           }}
                         />
