@@ -126,7 +126,7 @@ export default function TermsAndConditions() {
                     <CheckCircle2 className="h-5 w-5 text-pink-500 mt-1 flex-shrink-0" />
                     <div>
                       <h2 className="text-lg font-semibold mb-3">{section.title}</h2>
-                      <p className="text-muted-foreground whitespace-pre-line text-sm">
+                      <p className="text-muted-foreground whitespace-pre-line text-xs leading-relaxed">
                         {section.content}
                       </p>
                     </div>

@@ -1,6 +1,6 @@
 // Panel de alertas inteligentes para el admin
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, AlertTriangle, AlertCircle, Info, CheckCircle, ChevronRight, X, DollarSign, Clock, FileText, TrendingDown } from 'lucide-react';
+import { Bell, AlertTriangle, AlertCircle, Info, CheckCircle, ChevronRight, ChevronDown, X, DollarSign, Clock, FileText, TrendingDown } from 'lucide-react';
 import { useState } from 'react';
 import { useAdminAlerts, AdminAlert, AlertType } from '@/hooks/useAdminAlerts';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,7 @@ const alertColors: Record<AlertType, { bg: string; border: string; icon: string 
 function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => void }) {
   const Icon = lucideIcons[alert.icon] || alertIcons[alert.type] || Info;
   const colors = alertColors[alert.type];
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <motion.div
@@ -83,6 +84,39 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
                 <ChevronRight className="h-3 w-3" />
               </Link>
             </Button>
+          )}
+
+          {/* Drill-down de inventario o data adicional */}
+          {alert.category === 'stock' && Array.isArray(alert.data) && alert.data.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-border/10">
+              <button 
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="flex items-center gap-1 text-xs font-medium text-foreground hover:text-primary transition-colors"
+              >
+                {isExpanded ? 'Ocultar detalles' : 'Ver detalle'}
+                <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+              </button>
+              
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <ul className="mt-2 space-y-1">
+                      {alert.data.map((product: any) => (
+                        <li key={product.id} className="text-xs flex items-center justify-between py-1 bg-background/40 px-2 rounded">
+                          <span className="truncate pr-2">{product.name}</span>
+                          <span className="font-semibold">{product.stock} und</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           )}
         </div>
         {onDismiss && (

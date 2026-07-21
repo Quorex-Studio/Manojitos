@@ -61,11 +61,8 @@ export default function Debts() {
     if (!selectedDebt || !abonoAmount || Number(abonoAmount) <= 0) return;
     
     const amount = Number(abonoAmount);
-    if (amount > selectedDebt.amount_usd) {
-      alert('El monto del abono no puede superar el saldo pendiente de la deuda.');
-      return;
-    }
-
+    // [MODIFICADO]: Eliminado el bloqueo que impedía un abono mayor al saldo.
+    // El excedente será procesado y almacenado como saldo a favor en la RPC.
     setIsSubmitting(true);
     try {
       await registerAbono(selectedDebt.id, amount, abonoNotes, rate || undefined);
@@ -82,7 +79,7 @@ export default function Debts() {
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="page-header">Deudas</h1>
+          <h1 className="page-header">Cuentas por Cobrar</h1>
           <p className="page-subtitle">
             Total pendiente: <span className="text-gradient-gold font-bold">${totalPending.toFixed(2)}</span>
           </p>
@@ -90,9 +87,9 @@ export default function Debts() {
 
         <div className="p-4 rounded-xl border border-white/10 bg-secondary/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-foreground">💡 ¿Deudas vs Crédito?</p>
+            <p className="text-sm font-semibold text-foreground">💡 ¿Cuentas por Cobrar vs Crédito?</p>
             <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">
-              Las <strong>Deudas</strong> corresponden a ventas manuales o físicas facturadas en partes. El <strong>Crédito</strong> (pago en cuotas) se gestiona de forma automatizada por cliente en la pestaña o sección de Clientes / Créditos.
+              Las <strong>Cuentas por Cobrar</strong> corresponden a ventas manuales o físicas facturadas en partes. El <strong>Crédito</strong> (pago en cuotas) se gestiona de forma automatizada por cliente en la pestaña o sección de Clientes / Créditos.
             </p>
           </div>
         </div>
@@ -131,7 +128,7 @@ export default function Debts() {
             {filterDebts(pendingDebts).length === 0 && (
               <div className="text-center py-16">
                 <CreditCard className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">No hay deudas pendientes</p>
+                <p className="text-muted-foreground">No hay cuentas por cobrar pendientes</p>
               </div>
             )}
           </TabsContent>

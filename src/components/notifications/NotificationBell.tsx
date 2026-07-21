@@ -91,44 +91,52 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="p-2">
+              <AnimatePresence>
               {recentNotifications.map((notif) => (
-                <div
+                <motion.div
                   key={notif.id}
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
                   className={cn(
-                    "p-3 rounded-md mb-1 cursor-pointer transition-colors",
+                    "p-2.5 rounded-lg mb-1 cursor-pointer transition-colors border border-transparent",
                     notif.is_read
-                      ? "hover:bg-muted/50"
-                      : "bg-primary/5 hover:bg-primary/10"
+                      ? "hover:bg-muted/50 hover:border-border/50"
+                      : "bg-primary/5 border-primary/10 hover:bg-primary/10"
                   )}
                   onClick={() => {
                     if (!notif.is_read) markAsRead.mutate(notif.id);
                   }}
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2.5">
                     <div className={cn(
-                      "w-2 h-2 rounded-full mt-1.5 flex-shrink-0",
-                      notif.type === 'warning' ? 'bg-gold' :
-                      notif.type === 'error' ? 'bg-destructive' :
-                      notif.type === 'success' ? 'bg-primary' :
-                      'bg-primary/70'
+                      "w-2 h-2 rounded-full mt-1.5 flex-shrink-0 shadow-sm",
+                      notif.type === 'warning' ? 'bg-gold shadow-gold/40' :
+                      notif.type === 'error' ? 'bg-destructive shadow-destructive/40' :
+                      notif.type === 'success' ? 'bg-primary shadow-primary/40' :
+                      'bg-primary/70 shadow-primary/20'
                     )} />
-                    <div className="flex-1 min-w-0">
-                      <p className={cn(
-                        "text-sm font-medium truncate",
-                        !notif.is_read && "text-primary"
-                      )}>
-                        {notif.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className={cn(
+                          "text-sm font-semibold truncate leading-tight",
+                          !notif.is_read ? "text-primary" : "text-foreground/90"
+                        )}>
+                          {notif.title}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground whitespace-nowrap pt-0.5">
+                          {format(new Date(notif.sent_at), "dd MMM, HH:mm", { locale: es })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                         {notif.message}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(notif.sent_at), "dd MMM, HH:mm", { locale: es })}
                       </p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
+              </AnimatePresence>
             </div>
           )}
         </ScrollArea>

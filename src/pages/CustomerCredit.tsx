@@ -59,6 +59,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatBS } from '@/lib/utils';
+import { useCustomerProfile } from '@/hooks/useCustomerProfile';
 import { cn } from '@/lib/utils';
 import { sanitizeText } from '@/lib/validations';
 
@@ -80,8 +81,11 @@ export default function CustomerCredit() {
   // --- DERIVED ---
   const { user } = useAuth();
   const { credit, transactions, promises, hasCredit, hasPendingPayments, isLoading } = useCustomerCredit();
+  const { data: profile, isLoading: isProfileLoading } = useCustomerProfile();
   const queryClient = useQueryClient();
   const { rate } = useExchangeRate();
+
+  const isKycComplete = profile?.dni && profile?.address && profile?.phone;
 
   // Fecha de hoy como tope máximo (se recalcula cada render, no se queda fija)
   const todayStr = new Date().toISOString().split('T')[0];
@@ -192,11 +196,30 @@ export default function CustomerCredit() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || isProfileLoading) {
     return (
       <StoreLayout>
         <div className="container py-12 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </StoreLayout>
+    );
+  }
+
+  if (!isKycComplete) {
+    return (
+      <StoreLayout>
+        <div className="container py-12 max-w-2xl text-center space-y-6">
+          <div className="mx-auto w-16 h-16 bg-destructive/10 text-destructive rounded-full flex items-center justify-center">
+            <ShieldAlert className="h-8 w-8" />
+          </div>
+          <h1 className="text-2xl font-bold">Verificación de Identidad Requerida</h1>
+          <p className="text-muted-foreground">
+            Para acceder al módulo de crédito, necesitas completar tu perfil con tu Cédula/RIF, Dirección y Teléfono.
+          </p>
+          <Link to="/cliente/perfil">
+            <Button className="btn-gold rounded-full px-8">Completar Mi Perfil KYC</Button>
+          </Link>
         </div>
       </StoreLayout>
     );

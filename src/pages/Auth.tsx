@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Mail, Lock, User, Phone, ArrowRight, Sparkles } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import logoImage from '@/assets/logo.jpeg';
 
 export default function Auth() {
   // --- STATE ---
@@ -138,9 +139,9 @@ export default function Auth() {
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", damping: 15 }}
-              className="inline-block mb-4 p-3 rounded-2xl bg-gradient-gold shadow-lg shadow-gold/20"
+              className="inline-block mb-4 overflow-hidden rounded-full shadow-lg shadow-gold/20"
             >
-              <Sparkles className="h-6 w-6 text-white" />
+              <img src={logoImage} alt="Manojitos Logo" className="w-auto h-20 md:h-24 object-cover" />
             </motion.div>
             <h1 className="font-serif text-5xl font-bold text-gradient-gold tracking-tight mb-2">
               Manojitos
@@ -170,7 +171,7 @@ export default function Auth() {
                   className="space-y-6"
                 >
                   <div className="space-y-2 group/input">
-                    <Label htmlFor="fullName" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Nombre completo</Label>
+                    <Label htmlFor="fullName" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Nombre completo <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
                       <Input
@@ -180,11 +181,12 @@ export default function Auth() {
                         value={form.fullName}
                         onChange={handleInputChange}
                         className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/20"
+                        aria-required="true"
                       />
                     </div>
                   </div>
                   <div className="space-y-2 group/input">
-                    <Label htmlFor="phone" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Teléfono</Label>
+                    <Label htmlFor="phone" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Teléfono <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
                       <Input
@@ -194,6 +196,7 @@ export default function Auth() {
                         value={form.phone}
                         onChange={handleInputChange}
                         className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/20"
+                        aria-required="true"
                       />
                     </div>
                   </div>
@@ -203,7 +206,7 @@ export default function Auth() {
 
             <div className="space-y-6">
               <div className="space-y-2 group/input">
-                <Label htmlFor="email" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Correo electrónico</Label>
+                <Label htmlFor="email" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Correo electrónico <span className="text-destructive">*</span></Label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
                   <Input
@@ -214,12 +217,13 @@ export default function Auth() {
                     onChange={handleInputChange}
                     className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/20"
                     required
+                    aria-required="true"
                   />
                 </div>
               </div>
 
               <div className="space-y-2 group/input">
-                <Label htmlFor="password" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Contraseña</Label>
+                <Label htmlFor="password" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Contraseña <span className="text-destructive">*</span></Label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
                   <Input
@@ -230,6 +234,7 @@ export default function Auth() {
                     onChange={handleInputChange}
                     className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/20"
                     required
+                    aria-required="true"
                     minLength={6}
                   />
                 </div>

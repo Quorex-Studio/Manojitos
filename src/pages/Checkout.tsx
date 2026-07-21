@@ -21,8 +21,8 @@ import { useSales } from '@/hooks/useSales';
 import type { StockValidationError } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, X } from 'lucide-react';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
+import { useCustomerProfile } from '@/hooks/useCustomerProfile';
 import { useCustomerPaymentMethods } from '@/hooks/useCustomerPaymentMethods';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { sanitizeText } from '@/lib/validations';
@@ -162,6 +162,9 @@ export default function Checkout() {
   const [orderComplete, setOrderComplete] = useState(false);
   const [stockErrors, setStockErrors] = useState<StockValidationError[]>([]);
   const [kycCompleted, setKycCompleted] = useState(false);
+  const { data: profile } = useCustomerProfile();
+  
+  const isKycComplete = profile?.dni && profile?.address && profile?.phone;
 
   const subtotal = getSubtotal();
   const isEmpty = items.length === 0;
@@ -196,11 +199,13 @@ export default function Checkout() {
         {
           id: 'credito',
           label: 'Crédito Manojitos (Pago en partes)',
-          description: `Crédito financia el 50%. Paga la Inicial + Cuota 1 hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales.`,
-          disabled: !creditAvailable,
+          description: !isKycComplete
+            ? 'Requiere completar Perfil KYC (Cédula, Dirección, Teléfono).'
+            : `Crédito financia el 50%. Paga la Inicial + Cuota 1 hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales.`,
+          disabled: !creditAvailable || !isKycComplete,
         },
       ]
-    : BASE_PAYMENT_METHODS, [hasCredit, creditAvailable, montoInicialTotal]);
+    : BASE_PAYMENT_METHODS, [hasCredit, creditAvailable, montoInicialTotal, isKycComplete]);
 
   // Datos del formulario
   const [shippingData, setShippingData] = useState({
@@ -843,6 +848,11 @@ export default function Checkout() {
                                         }`}>
                                           {isDisabled ? 'No Disponible' : 'Autorizado'}
                                         </span>
+                                      )}
+                                      {isCreditMethod && !isKycComplete && (
+                                        <Link to="/cliente/perfil" className="ml-auto text-xs text-primary underline hover:text-primary/80">
+                                          Completar KYC →
+                                        </Link>
                                       )}
                                     </div>
                                     <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{method.description}</p>

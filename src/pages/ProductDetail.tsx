@@ -312,13 +312,13 @@ export default function ProductDetail() {
               {product.name}
             </h1>
 
-            {/* Price — large golden */}
+            {/* Price */}
             <div className="space-y-1">
-              <span className="text-3xl md:text-4xl font-bold text-gradient-gold font-serif">
+              <span className="text-3xl md:text-4xl font-semibold text-foreground tabular-nums tracking-tight">
                 ${product.price_usd.toFixed(2)}
               </span>
               {rate > 0 && (
-                <p className="text-sm text-muted-foreground/40 tracking-wide">
+                <p className="text-sm text-muted-foreground tabular-nums tracking-wide">
                   Bs. {formatBS(convertToBS(product.price_usd))}
                 </p>
               )}

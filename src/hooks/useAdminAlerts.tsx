@@ -25,6 +25,7 @@ export interface AdminAlert {
     path: string;
   };
   timestamp: Date;
+  data?: any;
 }
 
 export function useAdminAlerts() {
@@ -38,7 +39,7 @@ export function useAdminAlerts() {
     const now = new Date();
 
     // 🚨 Alertas de Stock Crítico
-    const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= 3);
+    const lowStockProducts = products.filter(p => p.stock > 0 && p.stock < 10);
     const outOfStockProducts = products.filter(p => p.stock === 0);
 
     if (outOfStockProducts.length > 0) {
@@ -49,8 +50,9 @@ export function useAdminAlerts() {
         title: 'Productos agotados',
         message: `${outOfStockProducts.length} producto(s) sin stock`,
         icon: 'AlertTriangle',
-        action: { label: 'Ver productos', path: '/products' },
-        timestamp: now
+        action: { label: 'Ver productos', path: '/tienda' },
+        timestamp: now,
+        data: outOfStockProducts
       });
     }
 
@@ -60,10 +62,11 @@ export function useAdminAlerts() {
         type: 'warning',
         category: 'stock',
         title: 'Stock bajo',
-        message: `${lowStockProducts.length} producto(s) con menos de 4 unidades`,
+        message: `${lowStockProducts.length} producto(s) con menos de 10 unidades`,
         icon: 'AlertCircle',
-        action: { label: 'Reponer', path: '/products' },
-        timestamp: now
+        action: { label: 'Reponer', path: '/tienda' },
+        timestamp: now,
+        data: lowStockProducts
       });
     }
 

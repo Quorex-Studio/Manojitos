@@ -12,6 +12,8 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatBS } from '@/lib/utils';
+import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function Settings() {
   // --- STATE ---
@@ -158,22 +160,31 @@ export default function Settings() {
                 </div>
               </div>
 
-              {/* Formulario de actualización manual oculto por petición
-              <form onSubmit={handleUpdateRate} className="flex flex-wrap gap-2 mt-4">
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={newRate}
-                  onChange={(e) => setNewRate(e.target.value.replace(/[^0-9.]/g, ''))}
-                  placeholder={`Nueva tasa ${selectedCurrency} en Bs.`}
-                  className="input-glass rounded-xl min-w-0 flex-1"
-                />
-                <Button type="submit" disabled={loading || !newRate} className="btn-gold rounded-xl shrink-0">
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Actualizar'}
-                </Button>
-              </form>
-              */}
+              {/* Formulario de actualización manual */}
+              <div className="mt-4 border-t border-border/10 pt-4">
+                <Alert variant="default" className="mb-4 bg-gold/10 border-gold/30 text-gold-foreground">
+                  <AlertTriangle className="h-4 w-4 text-gold" />
+                  <AlertTitle>Modo de Contingencia</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    Si la tasa automática falla, puedes fijar el valor oficial manualmente. Recuerda actualizarlo diariamente.
+                  </AlertDescription>
+                </Alert>
+                <form onSubmit={handleUpdateRate} className="flex flex-wrap gap-2">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newRate}
+                    onChange={(e) => setNewRate(e.target.value.replace(/[^0-9.]/g, ''))}
+                    placeholder={`Nueva tasa ${selectedCurrency} manual`}
+                    className="input-glass rounded-xl min-w-0 flex-1"
+                    aria-label="Tasa manual"
+                  />
+                  <Button type="submit" disabled={loading || !newRate} className="btn-gold rounded-xl shrink-0">
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Fijar Tasa Manual'}
+                  </Button>
+                </form>
+              </div>
             </CardContent>
           </Card>
         </motion.div>

@@ -41,6 +41,9 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useProducts } from '@/hooks/useProducts';
+import { toast } from 'sonner';
 import { Credit, useCreditTransactions, usePaymentPromises, getRestrictionLabel } from '@/hooks/useCredits';
 import { cn } from '@/lib/utils';
 
@@ -175,6 +178,11 @@ function MoraCounter({ daysUntilDue, daysOverdue, graceDays }: {
 export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: CreditProfileProps) {
   const { data: transactions = [], isLoading: loadingTx } = useCreditTransactions(credit.id);
   const { promises, isLoading: loadingPromises, fulfillPromise, breakPromise } = usePaymentPromises(credit.id);
+  const { products } = useProducts();
+  
+  const totalInventoryValue = React.useMemo(() => {
+    return products?.reduce((acc, p) => acc + (Number(p.price_usd) * Number(p.stock)), 0) || 0;
+  }, [products]);
   
   // Fecha de hoy (YYYY-MM-DD) como límite máximo para el campo de fecha
   const todayStr = new Date().toISOString().split('T')[0];
@@ -195,6 +203,10 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
   const handleSaveLimit = () => {
     const limit = parseFloat(newLimit);
     if (!isNaN(limit) && limit >= 0) {
+      if (limit > totalInventoryValue) {
+        toast.error(`El límite no puede superar el valor del inventario ($${totalInventoryValue.toFixed(2)})`);
+        return;
+      }
       onAdjustLimit?.(limit);
       setIsEditingLimit(false);
     }

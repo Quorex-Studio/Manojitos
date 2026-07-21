@@ -198,9 +198,9 @@ export default function Sales() {
 
         if (targetCredit) {
           const totalUsd = approvedOrder.total_usd;
-          const montoFinanciado = totalUsd * 0.50;
-          const montoCuota = montoFinanciado / 3;
-          const saldoDeudorNeto = montoFinanciado - montoCuota; // 2 cuotas pendientes ($40 en una orden de $120)
+          const montoFinanciado = Math.round((totalUsd * 0.50) * 100) / 100;
+          const montoCuota = Math.round((montoFinanciado / 2) * 100) / 100;
+          const saldoDeudorNeto = montoFinanciado; // El 50% inicial se asume pagado. Quedan 2 cuotas.
 
           const previousBalance = targetCredit.current_balance;
           const newBalance = previousBalance + saldoDeudorNeto;
@@ -239,22 +239,7 @@ export default function Sales() {
 
           if (txCargoErr) throw txCargoErr;
 
-          // 2. ABONO inmediato de la Cuota 1 de 3 (incluida en el pago inicial)
-          const { error: txAbonoErr } = await supabase
-            .from('credit_transactions')
-            .insert({
-              credit_id: targetCredit.id,
-              user_id: approvedOrder.customer_user_id || targetCredit.user_id,
-              type: 'ABONO',
-              amount: montoCuota,
-              previous_balance: previousBalance + montoFinanciado,
-              new_balance: newBalance,
-              description: `Abono Cuota 1/3 (Pago Inicial) pedido #${orderId.substring(0, 8)}`,
-            });
-
-          if (txAbonoErr) throw txAbonoErr;
-
-          toast.success(`Financiamiento Manojitos aplicado a ${targetCredit.client_name}: Cargado $${montoFinanciado.toFixed(2)}, Abonado Cuota 1 $${montoCuota.toFixed(2)}. Saldo restante financiado: $${saldoDeudorNeto.toFixed(2)}.`);
+          toast.success(`Financiamiento aplicado a ${targetCredit.client_name}: Cargado $${montoFinanciado.toFixed(2)} a crédito (2 cuotas de $${montoCuota.toFixed(2)}).`);
         } else {
           toast.warning('El pedido se aprobó con método Crédito, pero el cliente no posee una línea de crédito registrada.');
         }

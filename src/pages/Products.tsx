@@ -38,6 +38,12 @@ export default function Products() {
     p.category?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const existingCategories = [...new Set(
+    products
+      .map(p => p.category)
+      .filter((c): c is string => c !== null && c.trim() !== '')
+  )];
+
   // Paginación
   const {
     currentPage,
@@ -176,11 +182,17 @@ export default function Products() {
                 <div className="space-y-2">
                   <Label>Categoría</Label>
                   <Input
+                    list="categories-list"
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50) })}
                     placeholder="Ej: Accesorios, Ropa..."
                     className="input-glass rounded-xl"
                   />
+                  <datalist id="categories-list">
+                    {existingCategories.map(cat => (
+                      <option key={cat} value={cat} />
+                    ))}
+                  </datalist>
                 </div>
                 <div className="space-y-2">
                   <Label>URL de imagen</Label>

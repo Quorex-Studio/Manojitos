@@ -56,6 +56,7 @@ import { useCredits, calculateCreditStatus, useCreditTransactions, useAllCreditT
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
 import { useAllCustomerProfiles } from '@/hooks/useCustomerProfile';
+import { useProducts } from '@/hooks/useProducts';
 import { cn } from '@/lib/utils';
 import { NotificationCenter, CreditReminderHistoryPanel } from '@/components/notifications/NotificationCenter';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -177,16 +178,25 @@ export default function Credits() {
           status: 'cancelled',
           payment_status: 'failed'
         })
-        .eq('id', abonoOrderId);
+  const { data: reportedAbonos, isLoading: loadingAbonos } = useQuery({
+    queryKey: ['admin-reported-abonos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .like('notes', '[ABONO_CREDITO]%')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
 
-      if (orderError) throw orderError;
-
-      toast.success('Abono rechazado correctamente.');
-      queryClient.invalidateQueries({ queryKey: ['admin-reported-abonos'] });
-    } catch (e: any) {
-      toast.error(`Error al rechazar abono: ${e.message}`);
+      if (error) throw error;
+      return data;
     }
-  };
+  });
+
+  const { products } = useProducts();
+  const totalInventoryValue = useMemo(() => {
+    return products?.reduce((acc, p) => acc + (Number(p.price_usd) * Number(p.stock)), 0) || 0;
+  }, [products]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -364,7 +374,7 @@ export default function Credits() {
           <div>
             <h1 className="text-3xl font-bold text-gradient-gold">Gestión de Créditos</h1>
             <p className="text-muted-foreground mt-1">
-              Control de fiados y notificaciones automáticas
+              Control de créditos y notificaciones automáticas
             </p>
           </div>
           
@@ -459,13 +469,14 @@ export default function Credits() {
                 </Tabs>
 
                 <div className="space-y-2">
-                  <Label htmlFor="client_name">Nombre del Cliente *</Label>
+                  <Label htmlFor="client_name">Nombre del Cliente <span className="text-destructive">*</span></Label>
                   <Input
                     id="client_name"
                     value={newCredit.client_name}
                     onChange={e => setNewCredit(prev => ({ ...prev, client_name: e.target.value }))}
                     placeholder="Nombre completo"
                     disabled={creationMode === 'registered'}
+                    aria-required="true"
                   />
                 </div>
                 
@@ -495,14 +506,22 @@ export default function Credits() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="credit_limit">Límite de Crédito ($)</Label>
+                    <Label htmlFor="credit_limit">Límite de Crédito ($) <span className="text-destructive">*</span></Label>
                     <Input
                       id="credit_limit"
                       type="number"
                       value={newCredit.credit_limit}
                       onChange={e => setNewCredit(prev => ({ ...prev, credit_limit: e.target.value }))}
                       placeholder="100.00"
+                      aria-required="true"
+                      className={cn(Number(newCredit.credit_limit) > totalInventoryValue && "border-destructive focus-visible:ring-destructive")}
                     />
+                    {Number(newCredit.credit_limit) > totalInventoryValue && (
+                      <p className="text-[10px] text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        El límite no puede superar el valor del inventario (${totalInventoryValue.toFixed(2)})
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cut_off_day">Día de Corte</Label>
@@ -538,7 +557,7 @@ export default function Credits() {
                 </Button>
                 <Button 
                   onClick={handleCreateCredit}
-                  disabled={!newCredit.client_name || createCredit.isPending}
+                  disabled={!newCredit.client_name || createCredit.isPending || Number(newCredit.credit_limit) > totalInventoryValue}
                 >
                   {createCredit.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Crear Crédito

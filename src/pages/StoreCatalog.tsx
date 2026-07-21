@@ -322,6 +322,31 @@ export default function StoreCatalog() {
           </div>
         </div>
 
+        {/* Category Chips (Quick Filter) */}
+        {!loading && categories.length > 0 && (
+          <div className="flex overflow-x-auto pb-2 mb-6 gap-2 scrollbar-hide">
+            <Button
+              variant={selectedCategories.length === 0 ? "default" : "outline"}
+              size="sm"
+              className={`rounded-full whitespace-nowrap ${selectedCategories.length === 0 ? 'bg-primary text-primary-foreground' : 'bg-card/80 border-border/15'}`}
+              onClick={() => setSelectedCategories([])}
+            >
+              Todos
+            </Button>
+            {categories.map(cat => (
+              <Button
+                key={cat}
+                variant={selectedCategories.includes(cat) ? "default" : "outline"}
+                size="sm"
+                className={`rounded-full whitespace-nowrap ${selectedCategories.includes(cat) ? 'bg-primary text-primary-foreground' : 'bg-card/80 border-border/15'}`}
+                onClick={() => toggleCategory(cat)}
+              >
+                {cat}
+              </Button>
+            ))}
+          </div>
+        )}
+
         {/* Active Filters */}
         {hasActiveFilters && (
           <div className="flex flex-wrap gap-2 mb-6">

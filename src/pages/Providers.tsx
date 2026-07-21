@@ -24,7 +24,7 @@ export default function Providers() {
   const [search, setSearch] = useState('');
   
   const [providerForm, setProviderForm] = useState({ name: '', phone: '', email: '', notes: '' });
-  const [purchaseForm, setPurchaseForm] = useState({ provider_id: '', amount_usd: '', notes: '', purchase_date: new Date().toISOString().split('T')[0] });
+  const [purchaseForm, setPurchaseForm] = useState({ provider_id: '', amount_usd: '', amount_bs: '', notes: '', purchase_date: new Date().toISOString().split('T')[0] });
 
   // --- DERIVED ---
 
@@ -65,7 +65,7 @@ export default function Providers() {
     });
     if (!error) {
       setIsPurchaseOpen(false);
-      setPurchaseForm({ provider_id: '', amount_usd: '', notes: '', purchase_date: new Date().toISOString().split('T')[0] });
+      setPurchaseForm({ provider_id: '', amount_usd: '', amount_bs: '', notes: '', purchase_date: new Date().toISOString().split('T')[0] });
     }
   };
 
@@ -159,17 +159,46 @@ export default function Providers() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Monto (USD) *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={purchaseForm.amount_usd}
-                      onChange={(e) => setPurchaseForm({ ...purchaseForm, amount_usd: e.target.value.replace(/[^0-9.]/g, '') })}
-                      className="input-glass rounded-xl"
-                      required
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Monto (Bs.)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={purchaseForm.amount_bs}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, '');
+                          setPurchaseForm({
+                            ...purchaseForm,
+                            amount_bs: val,
+                            amount_usd: rate > 0 && val ? (Number(val) / rate).toFixed(2) : ''
+                          });
+                        }}
+                        className="input-glass rounded-xl"
+                        placeholder="Ej. 1500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Equivalente (USD) *</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={purchaseForm.amount_usd}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, '');
+                          setPurchaseForm({
+                            ...purchaseForm,
+                            amount_usd: val,
+                            amount_bs: rate > 0 && val ? (Number(val) * rate).toFixed(2) : ''
+                          });
+                        }}
+                        className="input-glass rounded-xl"
+                        placeholder="Ej. 40"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Fecha de compra</Label>

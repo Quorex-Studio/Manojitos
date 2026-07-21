@@ -170,11 +170,11 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
             {/* Prices & Cart Indicator */}
             <div className="flex items-baseline justify-between flex-wrap gap-1">
               <div>
-                <span className="text-base font-bold text-gradient-gold">
+                <span className="text-base font-semibold text-foreground tabular-nums tracking-tight">
                   ${product.price_usd.toFixed(2)}
                 </span>
                 {rate > 0 && (
-                  <span className="text-[10px] text-muted-foreground/45 ml-1.5">
+                  <span className="text-xs text-muted-foreground ml-1.5 tabular-nums">
                     ≈ {formatBS(bsPrice)} Bs.
                   </span>
                 )}
