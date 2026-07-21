@@ -178,20 +178,16 @@ export default function Credits() {
           status: 'cancelled',
           payment_status: 'failed'
         })
-  const { data: reportedAbonos, isLoading: loadingAbonos } = useQuery({
-    queryKey: ['admin-reported-abonos'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .like('notes', '[ABONO_CREDITO]%')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+        .eq('id', abonoOrderId);
 
-      if (error) throw error;
-      return data;
+      if (orderError) throw orderError;
+      
+      toast.success('Abono rechazado correctamente.');
+      queryClient.invalidateQueries({ queryKey: ['admin-reported-abonos'] });
+    } catch (e: any) {
+      toast.error(`Error al rechazar abono: ${e.message}`);
     }
-  });
+  };
 
   const { products } = useProducts();
   const totalInventoryValue = useMemo(() => {

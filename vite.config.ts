@@ -40,7 +40,22 @@ export default defineConfig(({ mode }: { mode: string }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              return 'vendor'; // Agrupar todas las dependencias en un solo chunk mejora el tiempo de build
+              if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-router')) {
+                return 'vendor-react';
+              }
+              if (id.includes('@supabase')) {
+                return 'vendor-supabase';
+              }
+              if (id.includes('framer-motion')) {
+                return 'vendor-framer';
+              }
+              if (id.includes('lucide-react')) {
+                return 'vendor-icons';
+              }
+              if (id.includes('@radix-ui') || id.includes('cmdk')) {
+                return 'vendor-ui';
+              }
+              return 'vendor-core';
             }
           },
         }

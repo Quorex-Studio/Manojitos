@@ -2,21 +2,48 @@
 <html lang="es">
 
 <head>
-  <!-- Google Tag Manager (deferido hasta después de window.load) -->
-  <script>
-    window.addEventListener('load', function () {
-      setTimeout(function () {
-        (function (w, d, s, l, i) {
-          w[l] = w[l] || []; w[l].push({
-            'gtm.start': new Date().getTime(), event: 'gtm.js'
-          }); var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-              'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-        })(window, document, 'script', 'dataLayer', 'GTM-W7SP74CQ');
-      }, 1500);
-    });
-  </script>
-  <!-- End Google Tag Manager (deferido) -->
+  <!-- Preload fonts to avoid render-blocking -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  </noscript>
+
+  <!-- Inline critical CSS to avoid blank page while loading -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #faf8f5; /* var(--background) aprox */
+      color: #170d10; /* var(--foreground) aprox */
+      font-family: 'Quicksand', system-ui, -apple-system, sans-serif;
+    }
+    #root {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .initial-loader {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+    }
+    .initial-loader-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(212, 175, 55, 0.3); /* Gold light */
+      border-radius: 50%;
+      border-top-color: #D4AF37; /* Gold */
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Manojitos</title>
@@ -41,10 +68,36 @@
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W7SP74CQ" height="0" width="0"
       style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
-  <div id="root"></div>
+  <div id="root">
+    <div class="initial-loader">
+      <div class="initial-loader-spinner"></div>
+    </div>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
 
-
+  <!-- Google Tag Manager (deferido con requestIdleCallback/setTimeout) -->
+  <script>
+    function loadGTM() {
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || []; w[l].push({
+          'gtm.start': new Date().getTime(), event: 'gtm.js'
+        }); var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+            'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+      })(window, document, 'script', 'dataLayer', 'GTM-W7SP74CQ');
+    }
+    
+    // Cargar GTM cuando el hilo principal esté inactivo, o después de 3s
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(function() {
+        setTimeout(loadGTM, 2000);
+      }, { timeout: 3000 });
+    } else {
+      window.addEventListener('load', function() {
+        setTimeout(loadGTM, 3000);
+      });
+    }
+  </script>
 </body>
 
 </html>
