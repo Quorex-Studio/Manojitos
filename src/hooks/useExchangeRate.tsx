@@ -132,6 +132,8 @@ export function useExchangeRate(requestedCurrency: 'USD' | 'EUR' = 'USD') {
     convertFromBS,
     refetch,
     autoFetching,
-    currency,
+    currency: requestedCurrency,
+    rates,
+    calculateAllCurrencies,
   };
 }
