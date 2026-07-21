@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { CartProvider } from "@/contexts/CartContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 
 // Admin Pages - Lazy loaded
 const Auth = lazy(() => import("./pages/Auth"));
@@ -226,18 +227,19 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <CartProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <AppRoutes />
-
-              </TooltipProvider>
-            </CartProvider>
-          </AuthProvider>
-        </BrowserRouter>
+        <CurrencyProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <CartProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  <AppRoutes />
+                </TooltipProvider>
+              </CartProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </CurrencyProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </ErrorBoundary>

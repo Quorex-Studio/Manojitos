@@ -7,8 +7,10 @@ import {
   Copy, Smartphone, Landmark, Wallet, AlertTriangle, Edit3, Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -1115,9 +1117,11 @@ export default function Checkout() {
                       <p className="text-xs text-muted-foreground mt-1">x{item.quantity} unidades</p>
                     </div>
                     <div className="flex flex-col justify-center text-right">
-                      <p className="text-sm font-bold text-foreground">
-                        ${(item.price_usd * item.quantity).toFixed(2)}
-                      </p>
+                      <PriceDisplay 
+                        amountUsd={item.price_usd * item.quantity}
+                        primaryClassName="text-sm font-bold text-foreground"
+                        showSecondary={false}
+                      />
                     </div>
                   </div>
                 ))}
@@ -1128,7 +1132,7 @@ export default function Checkout() {
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium text-foreground">${subtotal.toFixed(2)}</span>
+                  <PriceDisplay amountUsd={subtotal} primaryClassName="font-medium text-foreground" showSecondary={false} />
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Envío</span>
@@ -1139,15 +1143,14 @@ export default function Checkout() {
               <div className="mt-6 pt-6 border-t border-dashed border-border">
                 <div className="flex justify-between items-end mb-1">
                   <span className="text-lg font-bold text-foreground">Total a Pagar</span>
-                  <span className="text-3xl font-serif font-bold text-accent">
-                    ${subtotal.toFixed(2)}
-                  </span>
+                  <div className="text-right">
+                    <PriceDisplay 
+                      amountUsd={subtotal}
+                      primaryClassName="text-3xl font-serif font-bold text-accent"
+                      secondaryClassName="text-right text-muted-foreground text-sm"
+                    />
+                  </div>
                 </div>
-                {rate > 0 && (
-                  <p className="text-right text-muted-foreground text-sm">
-                    ≈ Bs. {formatBS(convertToBS(subtotal))}
-                  </p>
-                )}
               </div>
 
               {/* Validación de pago inicial de crédito y KYC */}

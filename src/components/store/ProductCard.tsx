@@ -9,6 +9,7 @@ import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { toast } from 'sonner';
 import { PublicProduct } from '@/hooks/usePublicProducts';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
+import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { formatBS } from '@/lib/utils';
 interface ProductCardProps {
   product: PublicProduct;
@@ -169,16 +170,11 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
 
             {/* Prices & Cart Indicator */}
             <div className="flex items-baseline justify-between flex-wrap gap-1">
-              <div>
-                <span className="text-base font-semibold text-foreground tabular-nums tracking-tight">
-                  ${product.price_usd.toFixed(2)}
-                </span>
-                {rate > 0 && (
-                  <span className="text-xs text-muted-foreground ml-1.5 tabular-nums">
-                    ≈ {formatBS(bsPrice)} Bs.
-                  </span>
-                )}
-              </div>
+              <PriceDisplay 
+                amountUsd={product.price_usd}
+                primaryClassName="text-base font-semibold text-foreground tabular-nums tracking-tight"
+                secondaryClassName="text-[11px] text-muted-foreground ml-1.5 tabular-nums"
+              />
               
               {/* In Cart Indicator */}
               <AnimatePresence>

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Settings as SettingsIcon, RefreshCw, DollarSign, Moon, Sun, Loader2, Euro } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useExchangeRate, Currency } from '@/hooks/useExchangeRate';
+import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
+type Currency = 'USD' | 'EUR' | 'VES';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,11 +19,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function Settings() {
   // --- STATE ---
-  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(() => {
-    return (localStorage.getItem('preferredCurrency') as Currency) || 'USD';
-  });
+  const { displayCurrency, setDisplayCurrency } = useCurrency();
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>('USD');
+  const { rates, loading: rateLoading, lastUpdate, refetch, autoFetching, updateRate } = useExchangeRate(selectedCurrency as 'USD' | 'EUR');
   
-  const { rate, loading: rateLoading, lastUpdate, refetch, autoFetching } = useExchangeRate(selectedCurrency);
+  // Rate para la UI de configuración de BCV
+  const rateInfo = selectedCurrency === 'EUR' ? rates?.EUR : rates?.USD;
+  const rate = rateInfo?.rate ?? 0;
+  const newLastUpdate = rateInfo?.lastUpdate ?? null;
   const [newRate, setNewRate] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetchingRate, setFetchingRate] = useState(false);
@@ -94,10 +99,36 @@ export default function Settings() {
           <p className="page-subtitle">Ajustes del sistema</p>
         </div>
 
+        {/* Preferencia de Moneda de Visualización */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="glass-card-gold border-gold/30">
+            <CardHeader>
+              <CardTitle className="font-serif flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-gold" />
+                Preferencia de Visualización
+              </CardTitle>
+              <CardDescription>Elige la moneda principal en la que verás los precios (Afecta solo a este dispositivo)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs value={displayCurrency} onValueChange={(v) => setDisplayCurrency(v as DisplayCurrency)}>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="USD">Dólar ($)</TabsTrigger>
+                  <TabsTrigger value="VES">Bolívar (Bs.)</TabsTrigger>
+                  <TabsTrigger value="EUR">Euro (€)</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Exchange Rate */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
         >
           <Card className="glass-card-gold border-gold/30">
             <CardHeader>
@@ -136,9 +167,9 @@ export default function Settings() {
                     <p className="text-3xl font-bold text-gradient-gold">
                       {rate > 0 ? `Bs. ${formatBS(rate)}` : 'No configurada'}
                     </p>
-                    {lastUpdate && (
+                    {newLastUpdate && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Última actualización: {lastUpdate.toLocaleDateString('es', {
+                        Última actualización: {newLastUpdate.toLocaleDateString('es', {
                           day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
                         })}
                       </p>

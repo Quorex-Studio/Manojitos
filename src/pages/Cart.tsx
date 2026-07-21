@@ -7,6 +7,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { formatBS } from '@/lib/utils';
+import { PriceDisplay } from '@/components/ui/PriceDisplay';
 
 // Carrito de compras — Luxury receipt layout
 export default function Cart() {
@@ -116,7 +117,12 @@ export default function Cart() {
                             Talla: {item.size === 'Única' ? 'Única' : item.size}
                           </span>
                         )}
-                        <p className="text-gold text-xs md:text-sm font-semibold mt-1.5">${item.price_usd.toFixed(2)}</p>
+                        <PriceDisplay 
+                          amountUsd={item.price_usd}
+                          className="mt-1.5"
+                          primaryClassName="text-gold text-xs md:text-sm font-semibold"
+                          showSecondary={false}
+                        />
                       </div>
                       
                       {/* Quantity controls — pill */}
@@ -157,14 +163,11 @@ export default function Cart() {
                     <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-start pt-2.5 sm:pt-0 border-t border-border/5 sm:border-t-0">
                       <span className="text-[10px] text-muted-foreground/40 uppercase tracking-wider sm:hidden">Subtotal</span>
                       <div className="text-right">
-                        <p className="font-serif text-base md:text-lg font-semibold text-gradient-gold">
-                          ${(item.price_usd * item.quantity).toFixed(2)}
-                        </p>
-                        {rate > 0 && (
-                          <p className="text-[10px] text-muted-foreground/35 mt-0.5">
-                            Bs. {formatBS(convertToBS(item.price_usd * item.quantity))}
-                          </p>
-                        )}
+                        <PriceDisplay 
+                          amountUsd={item.price_usd * item.quantity}
+                          primaryClassName="font-serif text-base md:text-lg font-semibold text-gradient-gold"
+                          secondaryClassName="text-[10px] text-muted-foreground/35 mt-0.5"
+                        />
                       </div>
                     </div>
                   </div>
@@ -186,7 +189,7 @@ export default function Cart() {
               <div className="space-y-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground/50">Subtotal ({itemCount} productos)</span>
-                  <span className="text-foreground/80">${total.toFixed(2)}</span>
+                  <PriceDisplay amountUsd={total} primaryClassName="text-foreground/80" showSecondary={false} />
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground/50">Envío</span>
@@ -198,14 +201,11 @@ export default function Cart() {
                 <div className="flex justify-between items-baseline">
                   <span className="text-sm text-muted-foreground/60">Total</span>
                   <div className="text-right">
-                    <span className="text-3xl font-bold font-serif text-gradient-gold">
-                      ${total.toFixed(2)}
-                    </span>
-                    {rate > 0 && (
-                      <p className="text-xs text-muted-foreground/30 mt-1">
-                        Bs. {formatBS(convertToBS(total))}
-                      </p>
-                    )}
+                    <PriceDisplay 
+                      amountUsd={total}
+                      primaryClassName="text-3xl font-bold font-serif text-gradient-gold"
+                      secondaryClassName="text-xs text-muted-foreground/30 mt-1"
+                    />
                   </div>
                 </div>
               </div>

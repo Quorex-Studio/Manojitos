@@ -20,16 +20,24 @@ export function usePushNotifications() {
 
     setPermission(Notification.permission);
 
-    // Register the SW
-    navigator.serviceWorker
-      .register('/sw.js', { scope: '/' })
-      .then((reg) => {
-        setSwRegistration(reg);
-        console.log('[Push] Service worker registered:', reg.scope);
-      })
-      .catch((err) => {
-        console.warn('[Push] SW registration failed:', err);
-      });
+    // Defer registration to avoid blocking the main thread (LCP optimization)
+    const registerSW = () => {
+      navigator.serviceWorker
+        .register('/sw.js', { scope: '/' })
+        .then((reg) => {
+          setSwRegistration(reg);
+          console.log('[Push] Service worker registered:', reg.scope);
+        })
+        .catch((err) => {
+          console.warn('[Push] SW registration failed:', err);
+        });
+    };
+
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(registerSW);
+    } else {
+      setTimeout(registerSW, 2000); // Fallback delay
+    }
   }, []);
 
   // Request notification permission from the user

@@ -25,8 +25,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
+import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -50,6 +52,8 @@ export default function CustomerSettings() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
+  const { displayCurrency, setDisplayCurrency } = useCurrency();
   
   const [notifPrefs, setNotifPrefs] = useState({
     email: true,
@@ -257,6 +261,28 @@ export default function CustomerSettings() {
                     Actualizar Contraseña
                   </Button>
                 </form>
+              </CardContent>
+            </Card>
+
+            {/* Preferencia de Moneda de Visualización */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-xl">💰</span>
+                  Preferencia de Visualización
+                </CardTitle>
+                <CardDescription>
+                  Elige la moneda principal en la que verás los precios (Afecta solo a este dispositivo)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={displayCurrency} onValueChange={(v) => setDisplayCurrency(v as DisplayCurrency)}>
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="USD">Dólar ($)</TabsTrigger>
+                    <TabsTrigger value="VES">Bolívar (Bs.)</TabsTrigger>
+                    <TabsTrigger value="EUR">Euro (€)</TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </CardContent>
             </Card>
 

@@ -7,11 +7,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/store/ProductCard';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
+import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { usePublicProducts } from '@/hooks/usePublicProducts';
 import type { PublicProduct } from '@/types';
 import { useCart, CartItem } from '@/contexts/CartContext';
@@ -313,16 +315,12 @@ export default function ProductDetail() {
             </h1>
 
             {/* Price */}
-            <div className="space-y-1">
-              <span className="text-3xl md:text-4xl font-semibold text-foreground tabular-nums tracking-tight">
-                ${product.price_usd.toFixed(2)}
-              </span>
-              {rate > 0 && (
-                <p className="text-sm text-muted-foreground tabular-nums tracking-wide">
-                  Bs. {formatBS(convertToBS(product.price_usd))}
-                </p>
-              )}
-            </div>
+            <PriceDisplay 
+              amountUsd={product.price_usd}
+              className="space-y-1"
+              primaryClassName="text-3xl md:text-4xl font-semibold text-foreground tabular-nums tracking-tight"
+              secondaryClassName="text-sm text-muted-foreground tabular-nums tracking-wide"
+            />
 
             {/* Stock Status — pulsing dot */}
             <div className="flex items-center gap-2.5">
