@@ -70,6 +70,18 @@ export default function Sales() {
   });
 
   // --- DERIVED ---
+  const existingClients = useMemo(() => {
+    const clientsMap = new Map<string, string>();
+    sales.forEach(s => {
+      if (s.client_name) {
+        if (!clientsMap.has(s.client_name) || (!clientsMap.get(s.client_name) && s.client_phone)) {
+           clientsMap.set(s.client_name, s.client_phone || '');
+        }
+      }
+    });
+    return Array.from(clientsMap.entries()).map(([name, phone]) => ({ name, phone }));
+  }, [sales]);
+
   const selectedProduct = products.find(p => p.id === form.product_id);
   const totalUSD = selectedProduct ? Number(selectedProduct.price_usd) * Number(form.quantity) : 0;
   const totalBS = convertToBS(totalUSD);
@@ -542,29 +554,42 @@ export default function Sales() {
                       </div>
                     )}
 
-                    {form.is_credit && (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Nombre del cliente *</Label>
-                          <Input
-                            value={form.client_name}
-                            onChange={(e) => setForm({ ...form, client_name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50) })}
-                            placeholder="Nombre del cliente"
-                            className="input-glass rounded-xl"
-                            required={form.is_credit}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Teléfono</Label>
-                          <Input
-                            value={form.client_phone}
-                            onChange={(e) => setForm({ ...form, client_phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '').slice(0, 20) })}
-                            placeholder="Teléfono de contacto"
-                            className="input-glass rounded-xl"
-                          />
-                        </div>
-                      </>
-                    )}
+                    <div className="space-y-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                      <h4 className="font-semibold text-primary">Datos del Cliente</h4>
+                      <div className="space-y-2">
+                        <Label>Nombre del cliente *</Label>
+                        <Input
+                          list="clients-list"
+                          value={form.client_name}
+                          onChange={(e) => {
+                            const newName = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50);
+                            const existing = existingClients.find(c => c.name === newName);
+                            setForm({ 
+                              ...form, 
+                              client_name: newName,
+                              client_phone: existing && existing.phone && !form.client_phone ? existing.phone : form.client_phone
+                            });
+                          }}
+                          placeholder="Buscar o registrar nuevo cliente"
+                          className="input-glass rounded-xl"
+                          required
+                        />
+                        <datalist id="clients-list">
+                          {existingClients.map(c => (
+                            <option key={c.name} value={c.name} />
+                          ))}
+                        </datalist>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Teléfono</Label>
+                        <Input
+                          value={form.client_phone}
+                          onChange={(e) => setForm({ ...form, client_phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '').slice(0, 20) })}
+                          placeholder="Teléfono de contacto"
+                          className="input-glass rounded-xl"
+                        />
+                      </div>
+                    </div>
 
                     <div className="space-y-2">
                       <Label>Notas</Label>
