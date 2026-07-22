@@ -43,6 +43,7 @@ export default function Sales() {
     product_id: '',
     quantity: '1',
     payment_method: '',
+    amount_received: '',
     client_name: '',
     client_phone: '',
     is_credit: false,
@@ -73,6 +74,21 @@ export default function Sales() {
   const totalUSD = selectedProduct ? Number(selectedProduct.price_usd) * Number(form.quantity) : 0;
   const totalBS = convertToBS(totalUSD);
 
+  const amountReceived = Number(form.amount_received) || 0;
+  const isEfectivo = form.payment_method === 'efectivo_usd' || form.payment_method === 'efectivo_bs';
+  
+  let changeUSD = 0;
+  let changeBS = 0;
+  if (isEfectivo && amountReceived > 0) {
+    if (form.payment_method === 'efectivo_usd') {
+      changeUSD = Math.max(0, amountReceived - totalUSD);
+      changeBS = convertToBS(changeUSD);
+    } else {
+      changeBS = Math.max(0, amountReceived - totalBS);
+      changeUSD = changeBS > 0 && rate > 0 ? changeBS / rate : 0;
+    }
+  }
+
   const filteredSales = sales.filter(s =>
     s.product_name.toLowerCase().includes(search.toLowerCase()) ||
     s.client_name?.toLowerCase().includes(search.toLowerCase())
@@ -94,6 +110,7 @@ export default function Sales() {
       product_id: '',
       quantity: '1',
       payment_method: '',
+      amount_received: '',
       client_name: '',
       client_phone: '',
       is_credit: false,
@@ -106,6 +123,14 @@ export default function Sales() {
     if (!selectedProduct) return;
 
     const { sanitizeText } = await import('@/lib/validations');
+    let finalNotes = form.notes;
+    if (!form.is_credit && isEfectivo && amountReceived > 0) {
+      const currency = form.payment_method === 'efectivo_usd' ? '$' : 'Bs';
+      const changeText = form.payment_method === 'efectivo_usd' ? `$${changeUSD.toFixed(2)}` : `Bs ${changeBS.toFixed(2)}`;
+      const exchangeText = rate > 0 ? ` (Tasa: Bs ${rate.toFixed(2)})` : '';
+      const receiptInfo = `[Recibido: ${currency}${amountReceived.toFixed(2)} | Vuelto: ${changeText}${exchangeText}]`;
+      finalNotes = finalNotes ? `${receiptInfo} - ${finalNotes}` : receiptInfo;
+    }
 
     const saleData = {
       product_id: form.product_id,
@@ -118,7 +143,7 @@ export default function Sales() {
       client_name: form.client_name ? sanitizeText(form.client_name) : null,
       client_phone: form.client_phone ? sanitizeText(form.client_phone) : null,
       is_credit: form.is_credit,
-      notes: form.notes ? sanitizeText(form.notes) : null
+      notes: finalNotes ? sanitizeText(finalNotes) : null
     };
 
     const { data, error } = await addSale(saleData);
@@ -470,18 +495,50 @@ export default function Sales() {
                     </div>
 
                     {!form.is_credit && (
-                      <div className="space-y-2">
-                        <Label>Método de pago *</Label>
-                        <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
-                          <SelectTrigger className="input-glass rounded-xl">
-                            <SelectValue placeholder="Seleccionar método" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {paymentMethods.map((m) => (
-                              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Método de pago *</Label>
+                          <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
+                            <SelectTrigger className="input-glass rounded-xl">
+                              <SelectValue placeholder="Seleccionar método" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {paymentMethods.map((m) => (
+                                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {isEfectivo && (
+                          <div className="space-y-2 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                            <Label className="text-primary font-semibold">
+                              Monto Recibido ({form.payment_method === 'efectivo_usd' ? 'USD' : 'Bs'}) *
+                            </Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={form.amount_received}
+                              onChange={(e) => setForm({ ...form, amount_received: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) })}
+                              placeholder="0.00"
+                              className="input-glass rounded-xl text-lg font-bold"
+                              required
+                            />
+                            
+                            {amountReceived > 0 && (
+                              <div className="mt-4 p-3 rounded-lg bg-background/50 border border-border/50">
+                                <p className="text-sm text-muted-foreground mb-1">Vuelto a entregar:</p>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-2xl font-bold text-gradient-gold">${changeUSD.toFixed(2)}</span>
+                                  {rate > 0 && (
+                                    <span className="text-sm font-medium">Bs. {formatBS(changeBS)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
 
