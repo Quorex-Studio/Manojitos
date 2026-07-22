@@ -17,6 +17,7 @@ import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
 import { useDebts } from '@/hooks/useDebts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { formatBS } from '@/lib/utils';
@@ -27,7 +28,8 @@ export default function Dashboard() {
   const { sales } = useSales();
   const { products } = useProducts();
   const { pendingDebts } = useDebts();
-  const { rate, convertToBS } = useExchangeRate();
+  const { displayCurrency } = useCurrency();
+  const { rate, convertToBS, calculateAllCurrencies } = useExchangeRate(displayCurrency === 'EUR' ? 'EUR' : 'USD');
 
   // --- DERIVED ---
   const stats = useMemo(() => {
@@ -80,6 +82,28 @@ export default function Dashboard() {
       }));
   }, [products]);
 
+  // Helper para mostrar moneda primaria/secundaria en el Dashboard
+  const formatCurrencyPair = (amountUsd: number) => {
+    const { USD, VES, EUR } = calculateAllCurrencies(amountUsd);
+    
+    if (displayCurrency === 'VES') {
+      return {
+        primary: `Bs. ${formatBS(VES)}`,
+        secondary: `$${USD.toFixed(2)}`
+      };
+    } else if (displayCurrency === 'EUR') {
+      return {
+        primary: `€${EUR.toFixed(2)}`,
+        secondary: `$${USD.toFixed(2)}`
+      };
+    }
+    
+    return {
+      primary: `$${USD.toFixed(2)}`,
+      secondary: rate > 0 ? `Bs. ${formatBS(VES)}` : ''
+    };
+  };
+
   // --- RENDER ---
   return (
     <AppLayout>
@@ -106,9 +130,9 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Ventas Hoy"
-            value={`$${stats.todayTotal.toFixed(2)}`}
+            value={formatCurrencyPair(stats.todayTotal).primary}
             subtitle={`${stats.todaySales} ventas`}
-            tertiaryText={`Bs. ${formatBS(convertToBS(stats.todayTotal))}`}
+            tertiaryText={formatCurrencyPair(stats.todayTotal).secondary}
             icon={<DollarSign className="h-6 w-6" />}
             variant="gold"
             delay={0}
@@ -121,7 +145,7 @@ export default function Dashboard() {
                     {stats.todaySalesList.slice(0, 5).map(s => (
                       <li key={s.id} className="flex justify-between items-center text-xs">
                         <span className="truncate w-32">{s.product_name}</span>
-                        <span className="font-bold text-gradient-gold">${Number(s.total_usd).toFixed(2)}</span>
+                        <span className="font-bold text-gradient-gold">{formatCurrencyPair(Number(s.total_usd)).primary}</span>
                       </li>
                     ))}
                   </ul>
@@ -134,9 +158,9 @@ export default function Dashboard() {
           />
           <StatCard
             title="Ventas del Mes"
-            value={`$${stats.monthTotal.toFixed(2)}`}
+            value={formatCurrencyPair(stats.monthTotal).primary}
             subtitle={`${sales.length} ventas`}
-            tertiaryText={`Bs. ${formatBS(convertToBS(stats.monthTotal))}`}
+            tertiaryText={formatCurrencyPair(stats.monthTotal).secondary}
             icon={<TrendingUp className="h-6 w-6" />}
             variant="default"
             delay={0.1}
@@ -162,21 +186,22 @@ export default function Dashboard() {
           />
           <StatCard
             title="Cuentas Pendientes"
-            value={`$${stats.totalDebt.toFixed(2)}`}
-            subtitle={`${pendingDebts.length} clientes`}
-            tertiaryText={`Bs. ${formatBS(convertToBS(stats.totalDebt))}`}
+            value={formatCurrencyPair(stats.totalDebt).primary}
+            subtitle={`${stats.pendingDebtsList.length} clientes`}
+            tertiaryText={formatCurrencyPair(stats.totalDebt).secondary}
             icon={<CreditCard className="h-6 w-6" />}
+            variant="default"
             delay={0.2}
             href="/debts"
             hoverContent={
               stats.pendingDebtsList.length > 0 ? (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold border-b border-border/50 pb-2">Clientes Pendientes</h4>
+                  <h4 className="text-sm font-semibold border-b border-border/50 pb-2">Top Deudores</h4>
                   <ul className="text-sm space-y-1">
                     {stats.pendingDebtsList.slice(0, 5).map(d => (
                       <li key={d.id} className="flex justify-between items-center text-xs">
-                        <span className="truncate w-32">{d.client_name}</span>
-                        <span className="font-bold text-destructive">${Number(d.amount_usd).toFixed(2)}</span>
+                        <span className="truncate w-32">{d.client_name || 'Sin nombre'}</span>
+                        <span className="font-bold text-destructive">{formatCurrencyPair(Number(d.amount_usd)).primary}</span>
                       </li>
                     ))}
                   </ul>
@@ -322,7 +347,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-sm text-gradient-gold">${Number(sale.total_usd).toFixed(2)}</p>
+                      <p className="font-semibold text-sm text-gradient-gold">{formatCurrencyPair(Number(sale.total_usd)).primary}</p>
                       <p className="text-[10px] text-muted-foreground/30 tracking-wide">{sale.payment_method}</p>
                     </div>
                   </div>

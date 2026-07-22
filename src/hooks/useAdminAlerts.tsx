@@ -84,7 +84,8 @@ export function useAdminAlerts() {
         message: `${overdueCredits.length} cliente(s) en mora - $${totalOverdue.toFixed(2)} pendiente`,
         icon: 'DollarSign',
         action: { label: 'Gestionar cobros', path: '/credits' },
-        timestamp: now
+        timestamp: now,
+        data: overdueCredits
       });
     }
 
@@ -112,7 +113,8 @@ export function useAdminAlerts() {
         message: `${pendingDebts.length} cuenta(s) pendiente(s) - $${totalDebt.toFixed(2)}`,
         icon: 'FileText',
         action: { label: 'Ver cuentas', path: '/debts' },
-        timestamp: now
+        timestamp: now,
+        data: pendingDebts
       });
     }
 

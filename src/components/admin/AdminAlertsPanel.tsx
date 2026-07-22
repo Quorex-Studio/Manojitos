@@ -64,8 +64,8 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
   const colors = alertColors[alert.type];
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // If this alert has drill-down data (like low stock products), expand on click
-  const hasDrillDown = alert.category === 'stock' && Array.isArray(alert.data) && alert.data.length > 0;
+  // If this alert has drill-down data, expand on click
+  const hasDrillDown = Array.isArray(alert.data) && alert.data.length > 0;
 
   return (
     <motion.div
@@ -91,7 +91,7 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
           </div>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{alert.message}</p>
           
-          {alert.action && !hasDrillDown && (
+          {alert.action && (
             <Button
               asChild
               variant="link"
@@ -108,8 +108,8 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
           {/* Drill-down in-situ detail */}
           {hasDrillDown && (
             <div className="mt-2">
-              <div className="flex items-center gap-1 text-[11px] font-medium text-foreground/70 group-hover:text-primary transition-colors">
-                {isExpanded ? 'Ocultar productos' : 'Ver productos afectados'}
+              <div className="flex items-center gap-1 text-[11px] font-medium text-foreground/70 group-hover:text-primary transition-colors cursor-pointer w-fit" onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}>
+                {isExpanded ? 'Ocultar detalles' : 'Ver detalles desplegables'}
                 <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", isExpanded && "rotate-180")} />
               </div>
               
@@ -122,10 +122,22 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
                     className="overflow-hidden"
                   >
                     <ul className="mt-2 space-y-1 bg-background/50 rounded-lg p-2 border border-border/50">
-                      {alert.data.map((product: any) => (
-                        <li key={product.id} className="text-xs flex items-center justify-between py-1 px-1 border-b border-border/30 last:border-0">
-                          <span className="truncate pr-2 font-medium text-foreground/80">{product.name}</span>
-                          <span className="font-bold text-destructive whitespace-nowrap">{product.stock} und</span>
+                      {alert.category === 'stock' && alert.data.map((item: any) => (
+                        <li key={item.id} className="text-xs flex items-center justify-between py-1 px-1 border-b border-border/30 last:border-0">
+                          <span className="truncate pr-2 font-medium text-foreground/80">{item.name}</span>
+                          <span className="font-bold text-destructive whitespace-nowrap">{item.stock} und</span>
+                        </li>
+                      ))}
+                      {alert.category === 'debt' && alert.data.map((item: any) => (
+                        <li key={item.id} className="text-xs flex items-center justify-between py-1 px-1 border-b border-border/30 last:border-0">
+                          <span className="truncate pr-2 font-medium text-foreground/80">{item.client_name || 'Desconocido'}</span>
+                          <span className="font-bold text-gold whitespace-nowrap">${item.amount_usd.toFixed(2)}</span>
+                        </li>
+                      ))}
+                      {alert.category === 'credit' && alert.data.map((item: any) => (
+                        <li key={item.id} className="text-xs flex items-center justify-between py-1 px-1 border-b border-border/30 last:border-0">
+                          <span className="truncate pr-2 font-medium text-foreground/80">{item.client_name}</span>
+                          <span className="font-bold text-destructive whitespace-nowrap">${item.current_balance.toFixed(2)}</span>
                         </li>
                       ))}
                     </ul>
