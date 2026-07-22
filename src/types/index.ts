@@ -81,7 +81,10 @@ export interface Sale {
   total_bs: number | null;
   payment_method: string;
   client_name: string | null;
+  client_dni: string | null;
+  client_email: string | null;
   client_phone: string | null;
+  client_address: string | null;
   is_credit: boolean;
   notes: string | null;
   status: SaleStatus;

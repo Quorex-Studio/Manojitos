@@ -45,7 +45,10 @@ export default function Sales() {
     payment_method: '',
     amount_received: '',
     client_name: '',
+    client_dni: '',
+    client_email: '',
     client_phone: '',
+    client_address: '',
     is_credit: false,
     notes: ''
   });
@@ -124,7 +127,10 @@ export default function Sales() {
       payment_method: '',
       amount_received: '',
       client_name: '',
+      client_dni: '',
+      client_email: '',
       client_phone: '',
+      client_address: '',
       is_credit: false,
       notes: ''
     });
@@ -153,7 +159,10 @@ export default function Sales() {
       total_bs: totalBS,
       payment_method: form.is_credit ? 'credito' : form.payment_method,
       client_name: form.client_name ? sanitizeText(form.client_name) : null,
+      client_dni: form.client_dni ? sanitizeText(form.client_dni) : null,
+      client_email: form.client_email ? sanitizeText(form.client_email) : null,
       client_phone: form.client_phone ? sanitizeText(form.client_phone) : null,
+      client_address: form.client_address ? sanitizeText(form.client_address) : null,
       is_credit: form.is_credit,
       notes: finalNotes ? sanitizeText(finalNotes) : null
     };
@@ -164,7 +173,10 @@ export default function Sales() {
       await addDebt({
         sale_id: data?.id || null,
         client_name: sanitizeText(form.client_name),
+        client_dni: form.client_dni ? sanitizeText(form.client_dni) : null,
+        client_email: form.client_email ? sanitizeText(form.client_email) : null,
         client_phone: form.client_phone ? sanitizeText(form.client_phone) : null,
+        client_address: form.client_address ? sanitizeText(form.client_address) : null,
         amount_usd: totalUSD,
         amount_bs: totalBS,
         status: 'pending',
@@ -580,14 +592,44 @@ export default function Sales() {
                           ))}
                         </datalist>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Teléfono</Label>
-                        <Input
-                          value={form.client_phone}
-                          onChange={(e) => setForm({ ...form, client_phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '').slice(0, 20) })}
-                          placeholder="Teléfono de contacto"
-                          className="input-glass rounded-xl"
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Cédula / RIF</Label>
+                          <Input
+                            value={form.client_dni}
+                            onChange={(e) => setForm({ ...form, client_dni: e.target.value.replace(/[^0-9VJEG-]/ig, '').toUpperCase().slice(0, 15) })}
+                            placeholder="Ej: V-12345678"
+                            className="input-glass rounded-xl"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Teléfono</Label>
+                          <Input
+                            value={form.client_phone}
+                            onChange={(e) => setForm({ ...form, client_phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '').slice(0, 20) })}
+                            placeholder="Ej: +584141234567"
+                            className="input-glass rounded-xl"
+                          />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Correo Electrónico</Label>
+                          <Input
+                            type="email"
+                            value={form.client_email}
+                            onChange={(e) => setForm({ ...form, client_email: e.target.value.slice(0, 100) })}
+                            placeholder="correo@ejemplo.com"
+                            className="input-glass rounded-xl"
+                          />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Dirección</Label>
+                          <Textarea
+                            value={form.client_address}
+                            onChange={(e) => setForm({ ...form, client_address: e.target.value.slice(0, 150) })}
+                            placeholder="Dirección completa del cliente..."
+                            className="input-glass rounded-xl resize-none h-16"
+                          />
+                        </div>
                       </div>
                     </div>
 

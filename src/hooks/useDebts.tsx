@@ -14,7 +14,10 @@ export interface Debt {
   user_id: string;
   sale_id: string | null;
   client_name: string;
+  client_dni: string | null;
+  client_email: string | null;
   client_phone: string | null;
+  client_address: string | null;
   amount_usd: number;
   amount_bs: number | null;
   status: string;
@@ -56,7 +59,10 @@ export function useDebts() {
         .from('debts')
         .insert([{
           client_name: validated.client_name,
+          client_dni: validated.client_dni,
+          client_email: validated.client_email,
           client_phone: validated.client_phone,
+          client_address: validated.client_address,
           amount_usd: validated.amount_usd,
           amount_bs: validated.amount_bs,
           status: validated.status,
