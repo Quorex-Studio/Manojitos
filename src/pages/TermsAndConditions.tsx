@@ -69,6 +69,10 @@ El Usuario deberá seguir los siguientes pasos:
     {
       title: "7. Aceptación a las Comunicaciones",
       content: `El Usuario acepta que Manojitos o terceros contratados puedan enviar mensajes de texto, WhatsApp, notificaciones push, correos electrónicos y llamadas telefónicas, con el fin de recordar el pago de cuotas, realizar campañas de marketing, informar descuentos, promociones y cualquier otro concepto que Manojitos considere relevante.`
+    },
+    {
+      title: "8. Uso Correcto de la Plataforma y Sanciones",
+      content: `Manojitos App sólo podrá utilizarse dentro del ámbito para los fines previstos en los presentes Términos y Condiciones, y de conformidad con la legislación aplicable. Los Usuarios serán los únicos responsables de asegurarse de su correcta utilización y a preservar la confidencialidad de su información de acceso. Por consiguiente, Manojitos se reserva el derecho a adoptar las medidas oportunas para proteger sus intereses legítimos, incluyendo la denegación de Líneas de Compra, la terminación de contratos, la presentación de denuncias ante las autoridades competentes cuando se realicen, o se sospeche que se han realizado, cualquiera de las siguientes actividades: Infracciones de las leyes, los reglamentos y/o de las presentes condiciones; Vulneración de los derechos de terceros; Causar un perjuicio considerable a los intereses legítimos de Manojitos o de sus Comercios Afiliados; Ofensas contra Manojitos o contra cualquier tercero; e incumplimiento de los pagos de las cuotas.`
     }
   ];
 
