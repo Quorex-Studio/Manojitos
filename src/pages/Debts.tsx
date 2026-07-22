@@ -85,14 +85,7 @@ export default function Debts() {
           </p>
         </div>
 
-        <div className="p-4 rounded-xl border border-white/10 bg-secondary/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-foreground">💡 ¿Cuentas por Cobrar vs Crédito?</p>
-            <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">
-              Las <strong>Cuentas por Cobrar</strong> corresponden a ventas manuales o físicas facturadas en partes. El <strong>Crédito</strong> (pago en cuotas) se gestiona de forma automatizada por cliente en la pestaña o sección de Clientes / Créditos.
-            </p>
-          </div>
-        </div>
+
 
         <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />

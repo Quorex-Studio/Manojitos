@@ -399,7 +399,7 @@ export default function Sales() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   value={search}
-                  onChange={(e) => setSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50))}
+                  onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar ventas..."
                   className="pl-10 input-glass rounded-xl"
                 />
@@ -462,7 +462,7 @@ export default function Sales() {
                     )}
 
                     <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/80">
-                      <Label className="cursor-pointer">¿Es a crédito?</Label>
+                      <Label className="cursor-pointer">¿Es Cuenta por Cobrar?</Label>
                       <Switch
                         checked={form.is_credit}
                         onCheckedChange={(checked) => setForm({ ...form, is_credit: checked })}
@@ -563,7 +563,7 @@ export default function Sales() {
                           <div className="text-right">
                             <p className="font-bold text-gradient-gold">${Number(sale.total_usd).toFixed(2)}</p>
                             <Badge variant={sale.is_credit ? 'destructive' : 'secondary'} className="mt-1">
-                              {sale.is_credit ? 'Crédito' : sale.payment_method}
+                              {sale.is_credit ? 'Por Cobrar' : sale.payment_method}
                             </Badge>
                           </div>
                           <Button
@@ -597,7 +597,7 @@ export default function Sales() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   value={orderSearch}
-                  onChange={(e) => setOrderSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s@.]/g, '').slice(0, 50))}
+                  onChange={(e) => setOrderSearch(e.target.value)}
                   placeholder="Buscar por cliente o ID de pedido..."
                   className="pl-10 input-glass rounded-xl"
                 />
