@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, ShoppingCart, Search, Trash2, Check, X, ClipboardList, User, Phone, Mail, DollarSign, Calendar, CreditCard, Landmark, FileText, MapPin } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
