@@ -21,6 +21,7 @@ export default function Products() {
   const { products, loading, addProduct, updateProduct, deleteProduct } = useProducts();
   const { rate, convertToBS } = useExchangeRate();
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('name_asc');
   const [isOpen, setIsOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [form, setForm] = useState({
@@ -37,7 +38,18 @@ export default function Products() {
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.category?.toLowerCase().includes(search.toLowerCase())
-  );
+  ).sort((a, b) => {
+    switch (sortBy) {
+      case 'name_asc': return a.name.localeCompare(b.name);
+      case 'name_desc': return b.name.localeCompare(a.name);
+      case 'stock_asc': return a.stock - b.stock;
+      case 'stock_desc': return b.stock - a.stock;
+      case 'price_asc': return Number(a.price_usd) - Number(b.price_usd);
+      case 'price_desc': return Number(b.price_usd) - Number(a.price_usd);
+      case 'sales_desc': return (b.sold_count || 0) - (a.sold_count || 0);
+      default: return 0;
+    }
+  });
 
   const existingCategories = [...new Set(
     products
@@ -237,6 +249,24 @@ export default function Products() {
               {existingCategories.map(cat => (
                 <SelectItem key={cat} value={cat}>{cat}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={sortBy} 
+            onValueChange={setSortBy}
+          >
+            <SelectTrigger className="w-full sm:w-48 input-glass rounded-xl">
+              <SelectValue placeholder="Ordenar por..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name_asc">A - Z</SelectItem>
+              <SelectItem value="name_desc">Z - A</SelectItem>
+              <SelectItem value="stock_asc">Menor Stock</SelectItem>
+              <SelectItem value="stock_desc">Mayor Stock</SelectItem>
+              <SelectItem value="price_asc">Menor Precio</SelectItem>
+              <SelectItem value="price_desc">Mayor Precio</SelectItem>
+              <SelectItem value="sales_desc">Más Vendidos</SelectItem>
             </SelectContent>
           </Select>
         </div>
