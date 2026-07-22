@@ -6,12 +6,13 @@ interface StatCardProps {
   title: string;
   value: string | number;
   subtitle?: string;
+  tertiaryText?: string;
   icon: ReactNode;
   variant?: 'default' | 'gold' | 'rose';
   delay?: number;
 }
 
-export const StatCard = memo(function StatCard({ title, value, subtitle, icon, variant = 'default', delay = 0 }: StatCardProps) {
+export const StatCard = memo(function StatCard({ title, value, subtitle, tertiaryText, icon, variant = 'default', delay = 0 }: StatCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -44,6 +45,8 @@ export const StatCard = memo(function StatCard({ title, value, subtitle, icon, v
           )}>
             {value}
           </p>
+          {subtitle && <p className="text-muted-foreground/50 text-[10px] truncate mt-0.5">{subtitle}</p>}
+          {tertiaryText && <p className="text-muted-foreground/40 text-[10px] truncate">{tertiaryText}</p>}
         </div>
       </div>
 
@@ -61,6 +64,9 @@ export const StatCard = memo(function StatCard({ title, value, subtitle, icon, v
             </p>
             {subtitle && (
               <p className="text-muted-foreground/50 text-sm mt-1">{subtitle}</p>
+            )}
+            {tertiaryText && (
+              <p className="text-muted-foreground/40 text-xs mt-0.5">{tertiaryText}</p>
             )}
           </div>
           <div className={cn(

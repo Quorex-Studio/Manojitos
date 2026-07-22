@@ -222,7 +222,7 @@ export default function Debts() {
             </Button>
             <Button
               onClick={handleSaveAbono}
-              disabled={isSubmitting || !abonoAmount || Number(abonoAmount) <= 0 || Number(abonoAmount) > (selectedDebt?.amount_usd || 0)}
+              disabled={isSubmitting || !abonoAmount || Number(abonoAmount) <= 0}
               className="gradient-primary text-white rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30"
             >
               {isSubmitting ? (

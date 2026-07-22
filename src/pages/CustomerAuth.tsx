@@ -10,6 +10,7 @@ import { StoreLayout } from '@/components/store/StoreLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import logoImage from '@/assets/logo.jpeg';
 
 // Página de autenticación para clientes (separada del admin)
 export default function CustomerAuth() {
@@ -451,13 +452,13 @@ export default function CustomerAuth() {
           >
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
-                <ShoppingBag className="h-8 w-8 text-accent" />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden border border-border/50 shadow-sm bg-white">
+                <img src={logoImage} alt="Manojitos" className="w-full h-full object-cover" />
               </div>
               <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground">
                 {isForgotPassword ? 'Recuperar Clave' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
               </h1>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-muted-foreground mt-2 text-sm">
                 {isForgotPassword 
                   ? 'Te enviaremos un enlace a tu correo'
                   : isLogin 
@@ -737,10 +738,15 @@ export default function CustomerAuth() {
             </div>
           </motion.div>
 
-          {/* Info */}
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            Al continuar, aceptas nuestros términos y condiciones.
-          </p>
+          <div className="mt-8 text-center">
+            <p className="text-[11px] text-muted-foreground/70">
+              Al continuar, aceptas nuestros{' '}
+              <Link to="/terminos" className="text-primary hover:underline font-medium">
+                términos y condiciones
+              </Link>
+              .
+            </p>
+          </div>
         </div>
       </div>
     </StoreLayout>

@@ -1,5 +1,6 @@
-import { motion } from 'framer-motion';
-import { HelpCircle, CreditCard, ShieldCheck, UserCheck, ShoppingBag, Truck } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { HelpCircle, CreditCard, ShieldCheck, UserCheck, ShoppingBag, ArrowLeft, Building2 } from 'lucide-react';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import {
   Accordion,
@@ -8,12 +9,19 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+type Question = { q: string; a: string };
+type Category = { title: string; icon: React.ReactNode; description: string; questions: Question[] };
 
 export default function FAQ() {
-  const faqCategories = [
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+
+  const faqCategories: Category[] = [
     {
       title: "Pago de Cuotas",
-      icon: <CreditCard className="h-6 w-6 text-primary" />,
+      description: "Encuentra métodos, fechas, recordatorios y soluciones para pagar tus cuotas.",
+      icon: <CreditCard className="h-8 w-8 text-primary" />,
       questions: [
         {
           q: "Posibles inconvenientes al pagar o reportar un pago por el app",
@@ -58,7 +66,8 @@ export default function FAQ() {
     },
     {
       title: "Usuarios y Cuenta",
-      icon: <UserCheck className="h-6 w-6 text-primary" />,
+      description: "Descubre cómo crear tu cuenta, verificar tu identidad y recuperar el acceso.",
+      icon: <UserCheck className="h-8 w-8 text-primary" />,
       questions: [
         {
           q: "¿Qué es Manojitos y cómo funciona?",
@@ -76,7 +85,8 @@ export default function FAQ() {
     },
     {
       title: "Compras y Envíos",
-      icon: <ShoppingBag className="h-6 w-6 text-primary" />,
+      description: "Aprende a comprar, entender tu inicial y solucionar problemas con tus pedidos.",
+      icon: <ShoppingBag className="h-8 w-8 text-primary" />,
       questions: [
         {
           q: "Proceso de Compra y Pago Inicial",
@@ -90,7 +100,8 @@ export default function FAQ() {
     },
     {
       title: "Seguridad y Privacidad",
-      icon: <ShieldCheck className="h-6 w-6 text-primary" />,
+      description: "Descubre cómo protegemos tu información y las mejores prácticas de ciberseguridad.",
+      icon: <ShieldCheck className="h-8 w-8 text-primary" />,
       questions: [
         {
           q: "Protección de Datos y Ciberseguridad",
@@ -102,60 +113,141 @@ export default function FAQ() {
 
   return (
     <StoreLayout>
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <HelpCircle className="h-8 w-8 text-primary" />
-            </div>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-4">
-            Centro de Soluciones y FAQs
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Encuentra respuestas a las preguntas frecuentes sobre el uso de nuestra plataforma y servicios de crédito.
-          </p>
-        </motion.div>
-
-        <div className="space-y-8">
-          {faqCategories.map((category, idx) => (
+      <div className="container mx-auto px-4 py-12 max-w-4xl min-h-[70vh]">
+        
+        {/* Encabezado Principal */}
+        <AnimatePresence mode="wait">
+          {!selectedCategory && (
             <motion.div
-              key={idx}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: idx * 0.1 }}
+              key="header"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
+              className="text-center mb-12"
             >
-              <Card className="glass-card border-border/50 shadow-sm overflow-hidden">
-                <div className="bg-primary/5 px-6 py-4 border-b border-border/50 flex items-center gap-3">
-                  {category.icon}
-                  <h2 className="text-xl font-bold text-foreground m-0">{category.title}</h2>
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <HelpCircle className="h-8 w-8 text-primary" />
                 </div>
-                <CardContent className="p-6">
-                  <Accordion type="multiple" className="w-full">
-                    {category.questions.map((item, i) => (
-                      <AccordionItem key={i} value={`item-${idx}-${i}`} className="border-border/30">
-                        <AccordionTrigger className="text-left font-medium hover:text-primary transition-colors text-[15px]">
-                          {item.q}
-                        </AccordionTrigger>
-                        <AccordionContent className="text-muted-foreground leading-relaxed whitespace-pre-line text-sm bg-secondary/20 p-4 rounded-lg mt-2 mb-2">
-                          {item.a}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </CardContent>
-              </Card>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-4">
+                Centro de Soluciones y FAQs
+              </h1>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                En este espacio diseñado especialmente para ti, encontrarás respuestas a las preguntas frecuentes sobre el uso de nuestra plataforma.
+              </p>
             </motion.div>
-          ))}
+          )}
+        </AnimatePresence>
+
+        {/* Sistema de Tabs y Vistas */}
+        <div className="relative">
+          <AnimatePresence mode="wait">
+            {!selectedCategory ? (
+              <motion.div
+                key="grid-view"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
+              >
+                <Tabs defaultValue="usuarios" className="w-full">
+                  <div className="flex justify-center mb-8">
+                    <TabsList className="grid w-full max-w-md grid-cols-2">
+                      <TabsTrigger value="usuarios" className="text-base font-medium">Usuarios</TabsTrigger>
+                      <TabsTrigger value="comercios" className="text-base font-medium">Comercios</TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <TabsContent value="usuarios" className="mt-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {faqCategories.map((category, idx) => (
+                        <Card 
+                          key={idx} 
+                          className="glass-card border-border/50 shadow-sm hover:border-primary/50 transition-all cursor-pointer hover:shadow-md group"
+                          onClick={() => setSelectedCategory(category)}
+                        >
+                          <CardContent className="p-6 flex flex-col h-full">
+                            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                              {category.icon}
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">
+                              {category.title}
+                            </h3>
+                            <p className="text-muted-foreground text-sm leading-relaxed flex-grow">
+                              {category.description}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="comercios" className="mt-0">
+                    <div className="flex flex-col items-center justify-center py-16 text-center border rounded-xl border-dashed border-border bg-card/30">
+                      <Building2 className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                      <h3 className="text-xl font-bold text-foreground mb-2">Próximamente</h3>
+                      <p className="text-muted-foreground max-w-sm">
+                        Estamos preparando el centro de soluciones exclusivo para nuestros comercios aliados.
+                      </p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="detail-view"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20, transition: { duration: 0.2 } }}
+                className="w-full"
+              >
+                <div className="mb-8">
+                  <button 
+                    onClick={() => setSelectedCategory(null)}
+                    className="flex items-center text-muted-foreground hover:text-primary transition-colors mb-6 text-sm font-medium"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Volver a categorías
+                  </button>
+                  
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                      {selectedCategory.icon}
+                    </div>
+                    <div>
+                      <h1 className="text-3xl font-serif font-bold text-foreground">{selectedCategory.title}</h1>
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground text-lg ml-20">
+                    {selectedCategory.description}
+                  </p>
+                </div>
+
+                <Card className="glass-card border-border/50 shadow-sm overflow-hidden">
+                  <CardContent className="p-2 sm:p-6">
+                    <Accordion type="single" collapsible className="w-full">
+                      {selectedCategory.questions.map((item, i) => (
+                        <AccordionItem key={i} value={`item-${i}`} className="border-border/30 px-2 sm:px-4">
+                          <AccordionTrigger className="text-left font-medium hover:text-primary transition-colors text-[15px] py-4">
+                            {item.q}
+                          </AccordionTrigger>
+                          <AccordionContent className="text-muted-foreground leading-relaxed whitespace-pre-line text-sm bg-secondary/30 p-4 rounded-lg mb-4">
+                            {item.a}
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         
-        <div className="mt-12 text-center p-6 bg-primary/5 rounded-2xl border border-primary/20">
-          <p className="text-muted-foreground mb-4">¿No encontraste lo que buscabas?</p>
-          <a href="mailto:soporte@manojitos.com" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+        {/* Footer de Soporte */}
+        <div className="mt-16 text-center p-8 bg-primary/5 rounded-3xl border border-primary/20">
+          <p className="text-muted-foreground mb-4 font-medium">¿Aún tienes dudas o necesitas ayuda personalizada?</p>
+          <a href="mailto:soporte@manojitos.com" className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5 h-12 px-8 py-2">
             Contactar a Soporte
           </a>
         </div>
@@ -163,3 +255,4 @@ export default function FAQ() {
     </StoreLayout>
   );
 }
+

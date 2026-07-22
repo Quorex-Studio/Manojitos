@@ -1,4 +1,4 @@
-// Panel de alertas inteligentes para el admin
+// Panel de alertas inteligentes para el admin (Refactorizado a Dropdown Popover UX)
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, AlertTriangle, AlertCircle, Info, CheckCircle, ChevronRight, ChevronDown, X, DollarSign, Clock, FileText, TrendingDown } from 'lucide-react';
 import { useState } from 'react';
@@ -8,6 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Link } from 'react-router-dom';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 const alertIcons: Record<AlertType, typeof AlertTriangle> = {
   critical: AlertTriangle,
@@ -26,26 +32,30 @@ const lucideIcons: Record<string, typeof AlertTriangle> = {
   CheckCircle
 };
 
-const alertColors: Record<AlertType, { bg: string; border: string; icon: string }> = {
+const alertColors: Record<AlertType, { bg: string; border: string; icon: string; hover: string }> = {
   critical: {
-    bg: 'bg-destructive/15 dark:bg-destructive/10',
-    border: 'border-destructive/30 dark:border-destructive/30',
-    icon: 'text-destructive'
+    bg: 'bg-destructive/10 dark:bg-destructive/10',
+    border: 'border-destructive/20 dark:border-destructive/30',
+    icon: 'text-destructive',
+    hover: 'hover:bg-destructive/15'
   },
   warning: {
-    bg: 'bg-gold/15 dark:bg-gold/10',
-    border: 'border-gold/30 dark:border-gold/30',
-    icon: 'text-gold'
+    bg: 'bg-gold/10 dark:bg-gold/10',
+    border: 'border-gold/20 dark:border-gold/30',
+    icon: 'text-gold',
+    hover: 'hover:bg-gold/15'
   },
   info: {
-    bg: 'bg-primary/15 dark:bg-primary/10',
-    border: 'border-primary/30 dark:border-primary/25',
-    icon: 'text-primary'
+    bg: 'bg-primary/10 dark:bg-primary/10',
+    border: 'border-primary/20 dark:border-primary/25',
+    icon: 'text-primary',
+    hover: 'hover:bg-primary/15'
   },
   success: {
-    bg: 'bg-secondary dark:bg-secondary/50',
+    bg: 'bg-secondary/50 dark:bg-secondary/50',
     border: 'border-border dark:border-border/30',
-    icon: 'text-primary dark:text-primary/90'
+    icon: 'text-primary dark:text-primary/90',
+    hover: 'hover:bg-secondary'
   }
 };
 
@@ -54,48 +64,54 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
   const colors = alertColors[alert.type];
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // If this alert has drill-down data (like low stock products), expand on click
+  const hasDrillDown = alert.category === 'stock' && Array.isArray(alert.data) && alert.data.length > 0;
+
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      className={`${colors.bg} ${colors.border} border rounded-lg p-3`}
+      initial={{ opacity: 0, y: -5 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className={cn(
+        "border rounded-xl p-3 mb-2 transition-colors cursor-default",
+        colors.bg, colors.border,
+        hasDrillDown && `cursor-pointer ${colors.hover}`
+      )}
+      onClick={() => hasDrillDown && setIsExpanded(!isExpanded)}
     >
       <div className="flex items-start gap-3">
         <Icon className={`h-5 w-5 mt-0.5 ${colors.icon}`} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h4 className="font-medium text-sm text-foreground">{alert.title}</h4>
-            <Badge variant="outline" className="text-[10px]">
-              {alert.category}
-            </Badge>
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="font-semibold text-sm text-foreground/90 leading-tight">{alert.title}</h4>
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap pt-0.5">
+              {alert.timestamp.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{alert.message}</p>
-          {alert.action && (
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{alert.message}</p>
+          
+          {alert.action && !hasDrillDown && (
             <Button
               asChild
               variant="link"
               size="sm"
-              className="h-auto p-0 mt-1 text-xs"
+              className="h-auto p-0 mt-1.5 text-[11px] font-medium"
             >
-              <Link to={alert.action.path} className="flex items-center gap-1">
+              <Link to={alert.action.path} className="flex items-center gap-1 text-primary hover:text-primary/80">
                 {alert.action.label}
                 <ChevronRight className="h-3 w-3" />
               </Link>
             </Button>
           )}
 
-          {/* Drill-down de inventario o data adicional */}
-          {alert.category === 'stock' && Array.isArray(alert.data) && alert.data.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-border/10">
-              <button 
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="flex items-center gap-1 text-xs font-medium text-foreground hover:text-primary transition-colors"
-              >
-                {isExpanded ? 'Ocultar detalles' : 'Ver detalle'}
-                <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-              </button>
+          {/* Drill-down in-situ detail */}
+          {hasDrillDown && (
+            <div className="mt-2">
+              <div className="flex items-center gap-1 text-[11px] font-medium text-foreground/70 group-hover:text-primary transition-colors">
+                {isExpanded ? 'Ocultar productos' : 'Ver productos afectados'}
+                <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", isExpanded && "rotate-180")} />
+              </div>
               
               <AnimatePresence>
                 {isExpanded && (
@@ -105,11 +121,11 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <ul className="mt-2 space-y-1">
+                    <ul className="mt-2 space-y-1 bg-background/50 rounded-lg p-2 border border-border/50">
                       {alert.data.map((product: any) => (
-                        <li key={product.id} className="text-xs flex items-center justify-between py-1 bg-background/40 px-2 rounded">
-                          <span className="truncate pr-2">{product.name}</span>
-                          <span className="font-semibold">{product.stock} und</span>
+                        <li key={product.id} className="text-xs flex items-center justify-between py-1 px-1 border-b border-border/30 last:border-0">
+                          <span className="truncate pr-2 font-medium text-foreground/80">{product.name}</span>
+                          <span className="font-bold text-destructive whitespace-nowrap">{product.stock} und</span>
                         </li>
                       ))}
                     </ul>
@@ -119,12 +135,16 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
             </div>
           )}
         </div>
+        
         {onDismiss && (
           <button
-            onClick={onDismiss}
-            className="p-1 hover:bg-black/5 rounded transition-colors shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDismiss();
+            }}
+            className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors shrink-0 ml-1"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
         )}
       </div>
@@ -132,91 +152,98 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
   );
 }
 
-export function AdminAlertsPanel() {
+export function DashboardAlertsDropdown() {
   const { alerts, criticalCount, warningCount, hasAlerts } = useAdminAlerts();
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [open, setOpen] = useState(false);
 
   const visibleAlerts = alerts.filter(a => !dismissedIds.has(a.id));
+  const activeCritical = visibleAlerts.filter(a => a.type === 'critical').length;
+  const activeWarning = visibleAlerts.filter(a => a.type === 'warning').length;
 
   const handleDismiss = (id: string) => {
     setDismissedIds(prev => new Set([...prev, id]));
   };
 
-  if (!hasAlerts || visibleAlerts.length === 0) {
-    return (
-      <Card className="p-4 bg-secondary border-border">
-        <div className="flex items-center gap-3">
-          <CheckCircle className="h-5 w-5 text-primary" />
-          <div>
-            <h4 className="font-medium text-foreground">Todo en orden</h4>
-            <p className="text-xs text-muted-foreground">No hay alertas pendientes</p>
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="overflow-hidden">
-      <div className="p-4 border-b bg-muted/30">
-        <div className="flex items-center justify-between">
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="icon" className={cn(
+          "relative h-10 w-10 rounded-xl border-border/50 bg-card hover:bg-muted/50 transition-colors shadow-sm",
+          activeCritical > 0 && "border-destructive/30 hover:bg-destructive/10",
+          activeWarning > 0 && activeCritical === 0 && "border-gold/30 hover:bg-gold/10"
+        )}>
+          <Bell className={cn(
+            "h-5 w-5",
+            activeCritical > 0 ? "text-destructive" : activeWarning > 0 ? "text-gold" : "text-muted-foreground"
+          )} />
+          <AnimatePresence>
+            {(activeCritical > 0 || activeWarning > 0) && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                className="absolute -top-1.5 -right-1.5 flex"
+              >
+                <span className="relative flex h-3 w-3">
+                  <span className={cn(
+                    "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                    activeCritical > 0 ? "bg-destructive" : "bg-gold"
+                  )}></span>
+                  <span className={cn(
+                    "relative inline-flex rounded-full h-3 w-3",
+                    activeCritical > 0 ? "bg-destructive" : "bg-gold"
+                  )}></span>
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[380px] p-0" align="end">
+        <div className="p-4 border-b border-border/40 bg-muted/20 flex items-center justify-between rounded-t-xl">
           <div className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Alertas</h3>
+            <h4 className="font-serif font-bold text-lg text-foreground">Insights</h4>
           </div>
           <div className="flex gap-2">
-            {criticalCount > 0 && (
-              <Badge variant="destructive" className="text-xs">
-                {criticalCount} crítica{criticalCount !== 1 ? 's' : ''}
+            {activeCritical > 0 && (
+              <Badge variant="destructive" className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5">
+                {activeCritical} crítica{activeCritical !== 1 ? 's' : ''}
               </Badge>
             )}
-            {warningCount > 0 && (
-              <Badge variant="outline" className="text-xs bg-gold/10 text-gold border-gold/30">
-                {warningCount} aviso{warningCount !== 1 ? 's' : ''}
+            {activeWarning > 0 && (
+              <Badge variant="outline" className="text-[10px] bg-gold/10 text-gold border-gold/30 font-semibold uppercase tracking-wider px-2 py-0.5">
+                {activeWarning} aviso{activeWarning !== 1 ? 's' : ''}
               </Badge>
             )}
           </div>
         </div>
-      </div>
-      <ScrollArea className="max-h-[300px]">
-        <div className="p-3 space-y-2">
-          <AnimatePresence mode="popLayout">
-            {visibleAlerts.map(alert => (
-              <AlertItem
-                key={alert.id}
-                alert={alert}
-                onDismiss={() => handleDismiss(alert.id)}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
-      </ScrollArea>
-    </Card>
+
+        <ScrollArea className="max-h-[450px]">
+          {visibleAlerts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center bg-card">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <CheckCircle className="h-6 w-6 text-primary" />
+              </div>
+              <h4 className="font-medium text-foreground">Todo bajo control</h4>
+              <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">No tienes alertas pendientes ni métricas críticas que revisar.</p>
+            </div>
+          ) : (
+            <div className="p-3 bg-card/50">
+              <AnimatePresence mode="popLayout">
+                {visibleAlerts.map(alert => (
+                  <AlertItem
+                    key={alert.id}
+                    alert={alert}
+                    onDismiss={() => handleDismiss(alert.id)}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
   );
 }
 
-// Badge compacto para el sidebar
-export function AlertsBadge() {
-  const { criticalCount, warningCount } = useAdminAlerts();
-  
-  if (criticalCount === 0 && warningCount === 0) return null;
-
-  return (
-    <motion.div
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      className="flex items-center gap-1"
-    >
-      {criticalCount > 0 && (
-        <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-[10px]">
-          {criticalCount}
-        </Badge>
-      )}
-      {warningCount > 0 && criticalCount === 0 && (
-        <Badge className="h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-gold">
-          {warningCount}
-        </Badge>
-      )}
-    </motion.div>
-  );
-}

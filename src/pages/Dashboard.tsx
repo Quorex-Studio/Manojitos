@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/ui/stat-card';
-import { AdminAlertsPanel } from '@/components/admin/AdminAlertsPanel';
+import { DashboardAlertsDropdown } from '@/components/admin/AdminAlertsPanel';
 import { CustomerOfMonthCard } from '@/components/credits/CustomerOfMonthCard';
 
 import { useSales } from '@/hooks/useSales';
@@ -81,21 +81,21 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        {/* Header — editorial serif */}
-        <div>
-          <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
-            Dashboard
-          </h1>
-          <p className="text-muted-foreground/40 mt-1 text-sm tracking-wide">
-            Resumen de tu negocio
-          </p>
+        {/* Header — editorial serif with Notification Dropdown */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
+              Dashboard
+            </h1>
+            <p className="text-muted-foreground/40 mt-1 text-sm tracking-wide">
+              Resumen de tu negocio
+            </p>
+          </div>
+          <DashboardAlertsDropdown />
         </div>
 
-        {/* Panel de Alertas + Cliente del Mes */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="lg:col-span-1">
-            <AdminAlertsPanel />
-          </div>
+        {/* Highlight Section (Customer of month) */}
+        <div className="w-full">
           <CustomerOfMonthCard />
         </div>
 
@@ -105,6 +105,7 @@ export default function Dashboard() {
             title="Ventas Hoy"
             value={`$${stats.todayTotal.toFixed(2)}`}
             subtitle={`${stats.todaySales} ventas`}
+            tertiaryText={`Bs. ${formatBS(convertToBS(stats.todayTotal))}`}
             icon={<DollarSign className="h-6 w-6" />}
             variant="gold"
             delay={0}
@@ -112,7 +113,8 @@ export default function Dashboard() {
           <StatCard
             title="Ventas del Mes"
             value={`$${stats.monthTotal.toFixed(2)}`}
-            subtitle={`Bs. ${formatBS(convertToBS(stats.monthTotal))}`}
+            subtitle={`${sales.length} ventas`}
+            tertiaryText={`Bs. ${formatBS(convertToBS(stats.monthTotal))}`}
             icon={<TrendingUp className="h-6 w-6" />}
             variant="default"
             delay={0.1}
@@ -121,6 +123,7 @@ export default function Dashboard() {
             title="Cuentas Pendientes"
             value={`$${stats.totalDebt.toFixed(2)}`}
             subtitle={`${pendingDebts.length} clientes`}
+            tertiaryText={`Bs. ${formatBS(convertToBS(stats.totalDebt))}`}
             icon={<CreditCard className="h-6 w-6" />}
             delay={0.2}
           />

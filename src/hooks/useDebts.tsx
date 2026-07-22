@@ -113,7 +113,16 @@ export function useDebts() {
       toast.error(error.message || 'No se pudo registrar el abono');
     } else {
       const isPaid = data?.status === 'paid';
-      toast.success(isPaid ? 'Abono registrado. Deuda totalmente pagada! 🩷' : `Abono de $${amount.toFixed(2)} registrado.`);
+      const surplus = data?.surplus || 0;
+      
+      if (surplus > 0) {
+        toast.success(`Abono registrado. Deuda pagada 🩷. Entregar vuelto: $${Number(surplus).toFixed(2)}`);
+      } else if (isPaid) {
+        toast.success('Abono registrado. Deuda totalmente pagada! 🩷');
+      } else {
+        toast.success(`Abono de $${amount.toFixed(2)} registrado.`);
+      }
+      
       fetchDebts();
     }
     return { error };
