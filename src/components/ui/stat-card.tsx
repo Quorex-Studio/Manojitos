@@ -74,8 +74,12 @@ export const StatCard = memo(function StatCard({ title, value, subtitle, tertiar
             </p>
             {href && <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 -translate-x-2 translate-y-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0" />}
           </div>
-          {subtitle && <p className="text-muted-foreground/50 text-[10px] truncate mt-0.5">{subtitle}</p>}
-          {tertiaryText && <p className="text-muted-foreground/40 text-[10px] truncate">{tertiaryText}</p>}
+          <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-300 group-hover:grid-rows-[1fr] group-hover:opacity-100 mt-0 group-hover:mt-1">
+            <div className="overflow-hidden">
+              {subtitle && <p className="text-muted-foreground/50 text-[10px] truncate mt-0.5">{subtitle}</p>}
+              {tertiaryText && <p className="text-muted-foreground/40 text-[10px] truncate">{tertiaryText}</p>}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -91,12 +95,16 @@ export const StatCard = memo(function StatCard({ title, value, subtitle, tertiar
             )}>
               {value}
             </p>
-            {subtitle && (
-              <p className="text-muted-foreground/50 text-sm mt-1">{subtitle}</p>
-            )}
-            {tertiaryText && (
-              <p className="text-muted-foreground/40 text-xs mt-0.5">{tertiaryText}</p>
-            )}
+            <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-300 group-hover:grid-rows-[1fr] group-hover:opacity-100 mt-0 group-hover:mt-1">
+              <div className="overflow-hidden">
+                {subtitle && (
+                  <p className="text-muted-foreground/50 text-sm mt-1">{subtitle}</p>
+                )}
+                {tertiaryText && (
+                  <p className="text-muted-foreground/40 text-xs mt-0.5">{tertiaryText}</p>
+                )}
+              </div>
+            </div>
           </div>
           <div className={cn(
             "p-3 rounded-xl transition-all duration-300 group-hover:scale-110",
