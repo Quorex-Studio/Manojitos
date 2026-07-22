@@ -1,239 +1,122 @@
-// Página de Política de Envíos
 import { motion } from 'framer-motion';
-import { Truck, MapPin, Clock, Package, AlertCircle, CheckCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Truck, AlertCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { StoreLayout } from '@/components/store/StoreLayout';
 
 export default function ShippingPolicy() {
-  // --- DERIVED ---
-  const deliveryZones = [
+  const sections = [
     {
-      zone: "Zona Local",
-      description: "Área metropolitana y zonas cercanas",
-      time: "24-48 horas",
-      available: true
+      title: "1.- Plataforma Manojitos Envíos",
+      content: `Manojitos Envíos es un servicio que ofrece a los usuarios la opción de recibir los productos adquiridos a través de su marketplace (compras online) a la dirección de domicilio o a la agencia de la empresa de envíos más cercana a su domicilio. Los envíos a domicilio y los retiros en agencia se realizarán únicamente en aquellas direcciones previstas dentro de las áreas de cobertura establecidas por las empresas de envíos. El área de cobertura y las zonas de entrega de este sistema de envíos puede estar sujeta a cambios sin previo aviso.`
     },
     {
-      zone: "Zona Regional",
-      description: "Estados cercanos y ciudades principales",
-      time: "3-5 días hábiles",
-      available: true
+      title: "2.- Carrito de Compras",
+      content: `Los usuarios podrán hacer uso del servicio Manojitos Envíos para realizar compras a domicilio o con retiros en agencias, para lo cual, deberán indicarlo en su orden de compra online respectiva.
+El carrito de compras permite a los usuarios seleccionar productos. Los productos agregados al carrito no representan una reserva ni garantizan su disponibilidad hasta que se complete el proceso de compra (pago de la inicial en cuotas o pago total de contado).
+Los usuarios pueden revisar, modificar o eliminar los productos antes de proceder al pago. La disponibilidad puede cambiar durante el proceso de compra.
+Los productos no se consideran comprados hasta que se haya completado el pago respectivo y recibido la confirmación de Manojitos.`
     },
     {
-      zone: "Todo el País",
-      description: "Resto de Venezuela",
-      time: "5-10 días hábiles",
-      available: true
+      title: "3.- Políticas de Envío",
+      content: `Manojitos Envíos busca facilitar el seguimiento y la entrega eficiente de los productos a nivel nacional por intermedio de empresas especializadas.
+Existen limitaciones (tamaño, volumen, peso, áreas de cobertura, productos prohibidos) impuestas por terceros autorizados.
+**Envíos Última Milla:** Para zonas céntricas y locales, el proceso de entrega se realizará mediante un servicio de última milla, siempre y cuando la distancia no sea mayor a 15 Km.
+**Envíos Nacionales:** Los comercios afiliados llevarán la mercancía a un proveedor autorizado para despachar al domicilio o agencia. Manojitos no será responsable por retrasos o problemas en la entrega causados por factores externos o de fuerza mayor.`
+    },
+    {
+      title: "4.- Recepción del Envío",
+      content: `Los usuarios deberán indicar toda la información necesaria y correcta para el envío y recepción del producto (dirección exacta).
+Las personas que podrán recibir el envío son:
+• El usuario que realizó la compra (mostrando su cédula y número de orden).
+• Un tercero debidamente autorizado (con copia de la cédula del usuario y número de guía).
+• En caso de cobro en destino, quien reciba deberá pagar el costo del envío a la empresa de encomiendas.`
+    },
+    {
+      title: "5.- Costo de Envío",
+      content: `La aplicación indicará los productos que contarán con envío gratuito y aquellos que deberán ser pagados con cobro en destino. Manojitos no interviene ni fija los costos de envío de los productos; estos son determinados por las agencias de envíos.`
+    },
+    {
+      title: "6.- Procedimiento en Caso de No Entrega y Abandono",
+      content: `Si el producto no puede ser entregado (dirección inexacta, ausencia de personas, falta de autorización), la agencia lo devolverá a la tienda o lo tendrá en depósito por 5 a 10 días hábiles. Si el usuario solicita un reenvío, deberá cubrir nuevamente los costos del mismo.`
+    },
+    {
+      title: "7.- Reclamos por Pérdida, Extravío o Daños",
+      content: `El usuario podrá reportar inconvenientes a atencion@manojitos.com o al número de soporte en un plazo no mayor a 24 horas tras la recepción del paquete, indicando número de guía, factura, copia de cédula y evidencia fotográfica. Manojitos notificará a la agencia de envíos en un plazo máximo de 24 horas y habrá un plazo de 7 días hábiles para el análisis y resolución.`
+    },
+    {
+      title: "8.- Devoluciones y Reembolsos",
+      content: `La política de devoluciones será determinada por los comercios afiliados correspondientes. Al realizar una compra, los usuarios aceptan las condiciones establecidas por la tienda. Se recomienda revisar estas políticas antes de efectuar cualquier compra.`
+    },
+    {
+      title: "9.- Responsabilidad de los Usuarios",
+      content: `• Proporcionar una dirección de envío precisa y completa.
+• Conocer las políticas de devoluciones.
+• Revisar el producto al recibirlo y reportar cualquier daño oportunamente.
+• Asegurarse de que la compra no infrinja leyes locales.`
+    },
+    {
+      title: "10.- Responsabilidades Generales",
+      content: `Manojitos proveerá la plataforma segura, pero no es el transportista final. Las empresas de envío son las responsables directas del traslado, seguridad de la carga y puntualidad, acatando las leyes de la República Bolivariana de Venezuela.`
     }
   ];
 
-  // --- RENDER ---
   return (
     <StoreLayout>
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Header */}
+      <div className="container mx-auto px-4 py-12 max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center">
-              <Truck className="h-8 w-8 text-pink-500" />
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Truck className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
-            Política de Envíos
+          <h1 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-4">
+            Términos y Condiciones
           </h1>
-          <p className="text-muted-foreground">
-            Información sobre entregas y despachos
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Conoce los términos y condiciones del uso de Manojitos Envíos.
           </p>
         </motion.div>
 
-        {/* Zonas de Entrega */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="mb-10"
-        >
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-pink-500" />
-            Zonas de Entrega
-          </h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            {deliveryZones.map((zone, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{zone.zone}</CardTitle>
-                    {zone.available && (
-                      <Badge variant="outline" className="text-green-600 border-green-600">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Disponible
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-2">{zone.description}</p>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-pink-500" />
-                    <span className="font-medium">{zone.time}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Proceso de Envío */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mb-10"
-        >
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Package className="h-5 w-5 text-pink-500" />
-            Proceso de Envío
-          </h2>
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-bold text-sm flex-shrink-0">
-                    1
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Confirmación del Pedido</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Una vez realizado el pago, recibirás confirmación de tu pedido por la plataforma.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-bold text-sm flex-shrink-0">
-                    2
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Preparación</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Preparamos tu pedido con cuidado en 24-48 horas hábiles.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-bold text-sm flex-shrink-0">
-                    3
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Despacho</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Tu pedido es despachado y te notificamos por la plataforma o WhatsApp.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-bold text-sm flex-shrink-0">
-                    4
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Entrega</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Recibes tu pedido en la dirección indicada. ¡Listo para disfrutar!
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.section>
-
-        {/* Costos de Envío */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mb-10"
-        >
-          <h2 className="text-xl font-semibold mb-4">Costos de Envío</h2>
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  Los costos de envío se calculan al momento de realizar tu pedido y dependen de:
-                </p>
-                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                  <li>La zona de entrega</li>
-                  <li>El peso y volumen del pedido</li>
-                  <li>El método de envío seleccionado</li>
-                </ul>
-                <div className="bg-pink-50 dark:bg-pink-950/20 p-4 rounded-lg">
-                  <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
-                    💡 Consulta con nuestro equipo para conocer el costo exacto de envío a tu zona.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.section>
-
-        {/* Consideraciones Importantes */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-pink-500" />
-            Consideraciones Importantes
-          </h2>
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              <div className="space-y-3 text-sm text-muted-foreground">
-                <p>
-                  • Los tiempos de entrega son estimados y pueden variar según disponibilidad 
-                  y condiciones externas.
-                </p>
-                <p>
-                  • Es responsabilidad del cliente proporcionar una dirección de entrega 
-                  correcta y completa.
-                </p>
-                <p>
-                  • En caso de no encontrar al destinatario, se realizarán hasta 2 intentos 
-                  de entrega adicionales.
-                </p>
-                <p>
-                  • Para entregas especiales (horarios específicos, fechas particulares), 
-                  consultar disponibilidad con anticipación.
-                </p>
-                <p>
-                  • Los productos deben ser revisados al momento de la entrega. Cualquier 
-                  inconformidad debe reportarse en las primeras 24 horas.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.section>
-
-        {/* Contact */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-8"
+          transition={{ delay: 0.2 }}
         >
-          <Card className="bg-pink-50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-800">
-            <CardContent className="p-6 text-center">
-              <h3 className="font-semibold mb-2">¿Tienes dudas sobre tu envío?</h3>
-              <p className="text-sm text-muted-foreground">
-                Contáctanos por WhatsApp o escríbenos a{' '}
-                <a href="mailto:contacto@manojitos.com" className="text-pink-600 hover:underline">
-                  contacto@manojitos.com
-                </a>
-              </p>
+          <Card className="glass-card shadow-lg border-border/50">
+            <CardContent className="p-6 md:p-8 prose prose-slate dark:prose-invert max-w-none">
+              
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 mb-8 text-sm leading-relaxed text-muted-foreground">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="mb-2">
+                      Los presentes términos y condiciones de Manojitos constituyen el contrato entre el USUARIO y la plataforma, que rige el uso de la logística y del sistema de envíos (MANOJITOS ENVÍOS) para las compras efectuadas en el Marketplace de la aplicación (compras online).
+                    </p>
+                    <p>
+                      Manojitos prestará el servicio a través de empresas de envío debidamente autorizadas en la República Bolivariana de Venezuela, por lo que serán éstas las responsables de la adecuada entrega de los productos. En caso de no estar de acuerdo con los presentes términos, por favor no haga uso de Manojitos Envíos.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-8 text-foreground/80">
+                {sections.map((section, idx) => (
+                  <div key={idx}>
+                    <h3 className="text-xl font-bold text-foreground mb-3">{section.title}</h3>
+                    {section.content.split('\\n').map((paragraph, i) => {
+                      if (paragraph.startsWith('**') || paragraph.startsWith('•')) {
+                        return <p key={i} className="mb-2 leading-relaxed whitespace-pre-line ml-4">{paragraph}</p>;
+                      }
+                      return <p key={i} className="mb-3 leading-relaxed text-justify">{paragraph}</p>;
+                    })}
+                  </div>
+                ))}
+              </div>
+
             </CardContent>
           </Card>
         </motion.div>

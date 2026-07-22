@@ -69,6 +69,11 @@ export function StoreFooter() {
                 </Link>
               </li>
               <li>
+                <Link to="/faq" className="text-[#F5EDE8]/40 hover:text-gold transition-colors duration-300 text-sm tracking-wide">
+                  Preguntas Frecuentes (FAQ)
+                </Link>
+              </li>
+              <li>
                 <Link to="/nosotros" className="text-[#F5EDE8]/40 hover:text-gold transition-colors duration-300 text-sm tracking-wide">
                   Sobre Nosotros
                 </Link>

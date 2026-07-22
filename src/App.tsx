@@ -46,6 +46,7 @@ const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
 const ShippingPolicy = lazy(() => import("./pages/ShippingPolicy"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Atencion = lazy(() => import("./pages/Atencion"));
+const FAQ = lazy(() => import("./pages/FAQ"));
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 import { Loader2 } from "lucide-react";
@@ -201,6 +202,7 @@ function AppRoutes() {
       <Route path="/nosotros" element={<LazyPage><AboutUs /></LazyPage>} />
       <Route path="/terminos" element={<LazyPage><TermsAndConditions /></LazyPage>} />
       <Route path="/envios" element={<LazyPage><ShippingPolicy /></LazyPage>} />
+      <Route path="/faq" element={<LazyPage><FAQ /></LazyPage>} />
       <Route path="/privacidad" element={<LazyPage><PrivacyPolicy /></LazyPage>} />
 
       {/* ===== RUTAS ADMIN ===== */}
