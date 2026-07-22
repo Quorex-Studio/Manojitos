@@ -345,6 +345,27 @@ export default function Sales() {
     }
   };
 
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+    if (!confirm(`¿Marcar este pedido como ${newStatus === 'shipped' ? 'Enviado' : 'Entregado'}?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      toast.success(`Pedido marcado como ${newStatus === 'shipped' ? 'Enviado 🚚' : 'Entregado ✅'}`);
+      
+      refetchOrders();
+      queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar el estado del pedido');
+    }
+  };
+
   // --- RENDER ---
   return (
     <AppLayout>
@@ -590,6 +611,8 @@ export default function Sales() {
                   <SelectContent>
                     <SelectItem value="pending">Pendientes</SelectItem>
                     <SelectItem value="confirmed">Aprobados</SelectItem>
+                    <SelectItem value="shipped">Enviados</SelectItem>
+                    <SelectItem value="delivered">Entregados</SelectItem>
                     <SelectItem value="cancelled">Rechazados</SelectItem>
                     <SelectItem value="all">Todos</SelectItem>
                   </SelectContent>
@@ -626,10 +649,15 @@ export default function Sales() {
                                 <h3 className="font-semibold text-lg">{order.customer_name}</h3>
                                 <Badge variant={
                                   order.status === 'pending' ? 'outline' : 
-                                  order.status === 'confirmed' ? 'default' : 'destructive'
+                                  (order.status === 'confirmed' || order.status === 'shipped' || order.status === 'delivered') ? 'default' : 'destructive'
+                                } className={
+                                  order.status === 'shipped' ? 'bg-primary/80 hover:bg-primary text-primary-foreground' :
+                                  order.status === 'delivered' ? 'bg-green-600 hover:bg-green-700 text-white' : ''
                                 }>
                                   {order.status === 'pending' ? 'Pendiente' : 
-                                   order.status === 'confirmed' ? 'Aprobado' : 'Rechazado'}
+                                   order.status === 'confirmed' ? 'Aprobado' : 
+                                   order.status === 'shipped' ? 'Enviado' :
+                                   order.status === 'delivered' ? 'Entregado' : 'Rechazado'}
                                 </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1 font-mono">
@@ -754,6 +782,30 @@ export default function Sales() {
                                 >
                                   <Check className="h-4 w-4 mr-2" />
                                   Aprobar Pedido
+                                </Button>
+                              </div>
+                            )}
+
+                            {order.status === 'confirmed' && (
+                              <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                <Button 
+                                  onClick={() => handleUpdateOrderStatus(order.id, 'shipped')}
+                                  className="bg-primary/90 hover:bg-primary text-white rounded-xl flex-1 sm:flex-initial"
+                                >
+                                  <Truck className="h-4 w-4 mr-2" />
+                                  Marcar como Enviado
+                                </Button>
+                              </div>
+                            )}
+
+                            {order.status === 'shipped' && (
+                              <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                <Button 
+                                  onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
+                                  className="bg-green-600 hover:bg-green-700 text-white rounded-xl flex-1 sm:flex-initial"
+                                >
+                                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                                  Marcar como Entregado
                                 </Button>
                               </div>
                             )}

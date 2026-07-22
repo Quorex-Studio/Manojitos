@@ -27,9 +27,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 const ORDER_STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pendiente', color: 'bg-gold/20 text-gold border-gold/30' },
+  pending: { label: 'En revisión', color: 'bg-gold/20 text-gold border-gold/30' },
+  confirmed: { label: 'Aprobado / En proceso', color: 'bg-primary/10 text-primary border-primary/20' },
   processing: { label: 'En proceso', color: 'bg-primary/10 text-primary border-primary/20' },
-  shipped: { label: 'Enviado', color: 'bg-primary/20 text-primary border-primary/30' },
+  shipped: { label: 'En camino', color: 'bg-primary/20 text-primary border-primary/30' },
   delivered: { label: 'Entregado', color: 'bg-primary text-primary-foreground' },
   cancelled: { label: 'Cancelado', color: 'bg-destructive/10 text-destructive border-destructive/20' },
 };
