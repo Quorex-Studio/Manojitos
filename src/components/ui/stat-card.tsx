@@ -13,9 +13,12 @@ interface StatCardProps {
   variant?: 'default' | 'gold' | 'rose';
   delay?: number;
   href?: string;
+  hoverContent?: ReactNode;
 }
 
-export const StatCard = memo(function StatCard({ title, value, subtitle, tertiaryText, icon, variant = 'default', delay = 0, href }: StatCardProps) {
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+
+export const StatCard = memo(function StatCard({ title, value, subtitle, tertiaryText, icon, variant = 'default', delay = 0, href, hoverContent }: StatCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -113,21 +116,36 @@ export const StatCard = memo(function StatCard({ title, value, subtitle, tertiar
     </div>
   );
 
-  return (
+  const InnerElement = (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
       whileHover={{ y: -6, transition: { duration: 0.3 } }}
-      className="h-full"
+      className="h-full block"
     >
       {href ? (
         <Link to={href} className="block h-full outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-2xl">
           {CardContent}
         </Link>
       ) : (
-        <div className="h-full">{CardContent}</div>
+        <div className="h-full block">{CardContent}</div>
       )}
     </motion.div>
   );
+
+  if (hoverContent) {
+    return (
+      <HoverCard openDelay={200} closeDelay={100}>
+        <HoverCardTrigger asChild>
+          {InnerElement}
+        </HoverCardTrigger>
+        <HoverCardContent className="w-80 glass-card bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl z-50 p-4" align="center" sideOffset={10}>
+          {hoverContent}
+        </HoverCardContent>
+      </HoverCard>
+    );
+  }
+
+  return InnerElement;
 });

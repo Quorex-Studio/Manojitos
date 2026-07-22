@@ -44,7 +44,10 @@ export default function Dashboard() {
       monthTotal,
       totalDebt,
       lowStockCount: lowStockProducts.length,
-      totalProducts: products.length
+      totalProducts: products.length,
+      todaySalesList: todaySales,
+      pendingDebtsList: pendingDebts,
+      lowStockProductsList: lowStockProducts,
     };
   }, [sales, products, pendingDebts]);
 
@@ -110,6 +113,24 @@ export default function Dashboard() {
             variant="gold"
             delay={0}
             href="/sales"
+            hoverContent={
+              stats.todaySalesList.length > 0 ? (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold border-b border-border/50 pb-2">Ventas de Hoy</h4>
+                  <ul className="text-sm space-y-1">
+                    {stats.todaySalesList.slice(0, 5).map(s => (
+                      <li key={s.id} className="flex justify-between items-center text-xs">
+                        <span className="truncate w-32">{s.product_name}</span>
+                        <span className="font-bold text-gradient-gold">${Number(s.total_usd).toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {stats.todaySalesList.length > 5 && <p className="text-xs text-muted-foreground pt-1">+ {stats.todaySalesList.length - 5} más</p>}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No hay ventas hoy</p>
+              )
+            }
           />
           <StatCard
             title="Ventas del Mes"
@@ -120,6 +141,24 @@ export default function Dashboard() {
             variant="default"
             delay={0.1}
             href="/sales"
+            hoverContent={
+              sales.length > 0 ? (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold border-b border-border/50 pb-2">Últimas Ventas</h4>
+                  <ul className="text-sm space-y-1">
+                    {sales.slice(0, 5).map(s => (
+                      <li key={s.id} className="flex justify-between items-center text-xs">
+                        <span className="truncate w-32">{s.product_name}</span>
+                        <span className="font-bold text-gradient-gold">${Number(s.total_usd).toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {sales.length > 5 && <p className="text-xs text-muted-foreground pt-1">+ {sales.length - 5} ventas previas</p>}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No hay ventas registradas</p>
+              )
+            }
           />
           <StatCard
             title="Cuentas Pendientes"
@@ -129,6 +168,24 @@ export default function Dashboard() {
             icon={<CreditCard className="h-6 w-6" />}
             delay={0.2}
             href="/debts"
+            hoverContent={
+              stats.pendingDebtsList.length > 0 ? (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold border-b border-border/50 pb-2">Clientes Pendientes</h4>
+                  <ul className="text-sm space-y-1">
+                    {stats.pendingDebtsList.slice(0, 5).map(d => (
+                      <li key={d.id} className="flex justify-between items-center text-xs">
+                        <span className="truncate w-32">{d.client_name}</span>
+                        <span className="font-bold text-destructive">${Number(d.amount_usd).toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {stats.pendingDebtsList.length > 5 && <p className="text-xs text-muted-foreground pt-1">+ {stats.pendingDebtsList.length - 5} más</p>}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No hay deudas pendientes</p>
+              )
+            }
           />
           <StatCard
             title="Stock Bajo"
@@ -137,6 +194,24 @@ export default function Dashboard() {
             icon={<AlertCircle className="h-6 w-6" />}
             delay={0.3}
             href="/products"
+            hoverContent={
+              stats.lowStockProductsList.length > 0 ? (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold border-b border-border/50 pb-2">Atención Stock</h4>
+                  <ul className="text-sm space-y-1">
+                    {stats.lowStockProductsList.slice(0, 5).map(p => (
+                      <li key={p.id} className="flex justify-between items-center text-xs">
+                        <span className="truncate w-32">{p.name}</span>
+                        <span className="font-bold text-destructive">{p.stock} uds</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {stats.lowStockProductsList.length > 5 && <p className="text-xs text-muted-foreground pt-1">+ {stats.lowStockProductsList.length - 5} más</p>}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Inventario saludable</p>
+              )
+            }
           />
         </div>
 
