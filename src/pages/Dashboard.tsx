@@ -109,6 +109,7 @@ export default function Dashboard() {
             icon={<DollarSign className="h-6 w-6" />}
             variant="gold"
             delay={0}
+            href="/sales"
           />
           <StatCard
             title="Ventas del Mes"
@@ -118,6 +119,7 @@ export default function Dashboard() {
             icon={<TrendingUp className="h-6 w-6" />}
             variant="default"
             delay={0.1}
+            href="/sales"
           />
           <StatCard
             title="Cuentas Pendientes"
@@ -126,6 +128,7 @@ export default function Dashboard() {
             tertiaryText={`Bs. ${formatBS(convertToBS(stats.totalDebt))}`}
             icon={<CreditCard className="h-6 w-6" />}
             delay={0.2}
+            href="/debts"
           />
           <StatCard
             title="Stock Bajo"
@@ -133,6 +136,7 @@ export default function Dashboard() {
             subtitle={`de ${stats.totalProducts} productos`}
             icon={<AlertCircle className="h-6 w-6" />}
             delay={0.3}
+            href="/products"
           />
         </div>
 
