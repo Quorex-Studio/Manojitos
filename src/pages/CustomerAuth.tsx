@@ -506,7 +506,7 @@ export default function CustomerAuth() {
                 {!isLogin && (
                   <>
                     <div>
-                      <Label htmlFor="fullName">Nombre Completo</Label>
+                      <Label htmlFor="fullName">Nombre Completo <span className="text-destructive">*</span></Label>
                       <div className="relative mt-1">
                         <Input
                           id="fullName"
@@ -524,7 +524,7 @@ export default function CustomerAuth() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="phone">Teléfono</Label>
+                        <Label htmlFor="phone">Teléfono <span className="text-destructive">*</span></Label>
                         <div className="relative mt-1">
                           <Input
                             id="phone"
@@ -545,7 +545,7 @@ export default function CustomerAuth() {
                         </p>
                       </div>
                       <div>
-                        <Label htmlFor="dni">Cédula o RIF</Label>
+                        <Label htmlFor="dni">Cédula o RIF <span className="text-destructive">*</span></Label>
                         <div className="relative mt-1">
                           <Input
                             id="dni"
@@ -568,7 +568,7 @@ export default function CustomerAuth() {
                     </div>
 
                     <div>
-                      <Label htmlFor="address">Ubicación / Dirección exacta</Label>
+                      <Label htmlFor="address">Ubicación / Dirección exacta <span className="text-destructive">*</span></Label>
                       <div className="flex gap-2 mt-1">
                         <div className="relative flex-1">
                           <Input
@@ -631,7 +631,7 @@ export default function CustomerAuth() {
                 )}
 
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
                   <div className="relative mt-1">
                     <Input
                       id="email"
@@ -648,7 +648,7 @@ export default function CustomerAuth() {
                 </div>
 
                 <div>
-                  <Label htmlFor="password">Contraseña</Label>
+                  <Label htmlFor="password">Contraseña <span className="text-destructive">*</span></Label>
                   <div className="relative mt-1">
                     <Input
                       id="password"

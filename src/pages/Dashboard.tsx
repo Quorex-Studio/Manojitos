@@ -118,7 +118,7 @@ export default function Dashboard() {
             delay={0.1}
           />
           <StatCard
-            title="Deudas Pendientes"
+            title="Cuentas Pendientes"
             value={`$${stats.totalDebt.toFixed(2)}`}
             subtitle={`${pendingDebts.length} clientes`}
             icon={<CreditCard className="h-6 w-6" />}
@@ -232,11 +232,9 @@ export default function Dashboard() {
                       <div>
                         <p className="font-medium text-sm text-foreground/80">{sale.product_name}</p>
                         <p className="text-xs text-muted-foreground/40 tracking-wide">
-                          {new Date(sale.created_at).toLocaleDateString('es', { 
-                            day: 'numeric', 
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit'
+                          {new Date(sale.created_at).toLocaleDateString('es-VE', { 
+                            day: '2-digit', month: '2-digit', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
                           })}
                         </p>
                       </div>

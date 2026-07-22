@@ -40,13 +40,13 @@ export default function Debts() {
   // --- HANDLERS ---
 
   const handleMarkPaid = async (id: string) => {
-    if (confirm('¿Marcar esta deuda como pagada en su totalidad?')) {
+    if (confirm('¿Marcar esta cuenta como pagada en su totalidad?')) {
       await markAsPaid(id);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('¿Eliminar esta deuda?')) {
+    if (confirm('¿Eliminar esta cuenta por cobrar?')) {
       await deleteDebt(id);
     }
   };
@@ -147,7 +147,7 @@ export default function Debts() {
             {filterDebts(paidDebts).length === 0 && (
               <div className="text-center py-16">
                 <Check className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">No hay deudas pagadas</p>
+                <p className="text-muted-foreground">No hay cuentas pagadas</p>
               </div>
             )}
           </TabsContent>
@@ -186,7 +186,6 @@ export default function Debts() {
                     type="number"
                     step="0.01"
                     min="0.01"
-                    max={selectedDebt.amount_usd}
                     value={abonoAmount}
                     onChange={(e) => setAbonoAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                     placeholder="0.00"
@@ -288,8 +287,8 @@ function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, onAbono, con
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground mt-1">
-                  Creado: {new Date(debt.created_at).toLocaleDateString('es', {
-                    day: 'numeric', month: 'short', year: 'numeric'
+                  Creado: {new Date(debt.created_at).toLocaleDateString('es-VE', {
+                    day: '2-digit', month: '2-digit', year: 'numeric'
                   })}
                 </p>
                 {mainNotes && <p className="text-xs text-muted-foreground italic mt-1">{mainNotes}</p>}
@@ -350,7 +349,7 @@ function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, onAbono, con
                     variant="ghost"
                     onClick={() => onDelete(debt.id)}
                     className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                    title="Eliminar Deuda"
+                    title="Eliminar Cuenta"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

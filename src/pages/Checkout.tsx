@@ -177,6 +177,7 @@ export default function Checkout() {
   // Estados de pago móvil (método regular)
   const [bancoOrigen, setBancoOrigen] = useState('');
   const [numeroReferencia, setNumeroReferencia] = useState('');
+  const [telefonoEmisor, setTelefonoEmisor] = useState('');
 
   // Financiamiento Manojitos
   const montoFinanciado = subtotal * 0.50;
@@ -355,10 +356,10 @@ export default function Checkout() {
 
       // Validar campos de pago móvil regular
       if (paymentMethod === 'pago_movil') {
-        if (!bancoOrigen.trim() || !numeroReferencia.trim()) {
+        if (!bancoOrigen.trim() || !numeroReferencia.trim() || !telefonoEmisor.trim()) {
           toast({
             title: 'Datos incompletos',
-            description: 'Debe ingresar el banco de origen y número de referencia para procesar el pago móvil.',
+            description: 'Debe ingresar el banco, número de referencia y teléfono emisor para procesar el pago móvil.',
             variant: 'destructive'
           });
           setLoading(false);
@@ -403,7 +404,7 @@ export default function Checkout() {
           payment_method: sanitizeText(paymentMethod),
           client_name: shippingData.fullName,
           client_phone: shippingData.phone,
-          notes: `${notesPrefix}[${deliveryMethod === 'pickup' ? 'RETIRO EN TIENDA' : 'DELIVERY'}] ${deliveryMethod === 'delivery' ? `Dirección: ${shippingData.address}, ${shippingData.city}. ` : ''}${shippingData.notes || ''}`,
+          notes: `${notesPrefix}[${deliveryMethod === 'pickup' ? 'RETIRO EN TIENDA' : 'DELIVERY'}] ${deliveryMethod === 'delivery' ? `Dirección: ${shippingData.address}, ${shippingData.city}. ` : ''}${paymentMethod === 'pago_movil' ? `Tlf. Emisor PM: ${sanitizeText(telefonoEmisor)}. ` : ''}${shippingData.notes || ''}`,
           total_bs_rate: rate > 0 ? rate : undefined,
           banco_origen: paymentMethod === 'pago_movil' ? sanitizeText(bancoOrigen) : undefined,
           numero_referencia: paymentMethod === 'pago_movil' ? sanitizeText(numeroReferencia) : undefined
@@ -965,12 +966,22 @@ export default function Checkout() {
                         </select>
                       </div>
                       <div>
-                        <Label htmlFor="numeroReferencia" className="text-sm">N° de Referencia (Completa o últimos 6 dígitos) <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="numeroReferencia" className="text-sm">N° de Referencia <span className="text-destructive">*</span></Label>
                         <Input
                           id="numeroReferencia"
-                          placeholder="Ej: 123456"
+                          placeholder="Últimos 6 dígitos"
                           value={numeroReferencia}
                           onChange={(e) => setNumeroReferencia(e.target.value.replace(/[^0-9]/g, '').slice(0, 20))}
+                          className="mt-1 bg-white/50 dark:bg-white/5 dark:border-white/10"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="telefonoEmisor" className="text-sm">Teléfono Emisor <span className="text-destructive">*</span></Label>
+                        <Input
+                          id="telefonoEmisor"
+                          placeholder="Ej: 04141234567"
+                          value={telefonoEmisor}
+                          onChange={(e) => setTelefonoEmisor(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
                           className="mt-1 bg-white/50 dark:bg-white/5 dark:border-white/10"
                         />
                       </div>
@@ -995,8 +1006,18 @@ export default function Checkout() {
                     <div className="space-y-3 text-sm">
                       <div className="bg-background/80 rounded-xl p-3 border border-primary/20 space-y-2">
                         <div className="flex justify-between font-bold text-foreground">
-                          <span>Pago Inicial Hoy (50% + Cuota 1):</span>
+                          <span>Pago Inicial (Hoy):</span>
                           <span className="text-primary text-base">${montoInicialTotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex flex-col gap-1 text-[11px] text-muted-foreground mt-1 bg-background/50 p-2 rounded-md border border-border/40">
+                          <div className="flex justify-between">
+                            <span>Inicial (50% de la compra)</span>
+                            <span>${(subtotal * 0.50).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>+ 1ra Cuota (1/3 del resto)</span>
+                            <span>${montoCuota.toFixed(2)}</span>
+                          </div>
                         </div>
                         {rate > 0 && (
                           <div className="text-right text-xs text-muted-foreground font-medium">

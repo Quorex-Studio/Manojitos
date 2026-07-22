@@ -532,8 +532,8 @@ export default function Sales() {
                               {sale.quantity} x ${Number(sale.unit_price_usd).toFixed(2)}
                             </p>
                             <p className="text-xs text-muted-foreground text-left">
-                              {new Date(sale.created_at).toLocaleDateString('es', {
-                                day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                              {new Date(sale.created_at).toLocaleDateString('es-VE', {
+                                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
                               })}
                             </p>
                           </div>

@@ -39,7 +39,7 @@ export function useAdminAlerts() {
     const now = new Date();
 
     // 🚨 Alertas de Stock Crítico
-    const lowStockProducts = products.filter(p => p.stock > 0 && p.stock < 10);
+    const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= 4);
     const outOfStockProducts = products.filter(p => p.stock === 0);
 
     if (outOfStockProducts.length > 0) {
@@ -62,7 +62,7 @@ export function useAdminAlerts() {
         type: 'warning',
         category: 'stock',
         title: 'Stock bajo',
-        message: `${lowStockProducts.length} producto(s) con menos de 10 unidades`,
+        message: `${lowStockProducts.length} producto(s) con stock crítico (4 o menos)`,
         icon: 'AlertCircle',
         action: { label: 'Reponer', path: '/tienda' },
         timestamp: now,
@@ -80,7 +80,7 @@ export function useAdminAlerts() {
         id: 'credit-overdue',
         type: 'critical',
         category: 'credit',
-        title: 'Créditos vencidos',
+        title: 'Cobros pendientes (Créditos)',
         message: `${overdueCredits.length} cliente(s) en mora - $${totalOverdue.toFixed(2)} pendiente`,
         icon: 'DollarSign',
         action: { label: 'Gestionar cobros', path: '/credits' },
@@ -108,10 +108,10 @@ export function useAdminAlerts() {
         id: 'debts-pending',
         type: 'warning',
         category: 'debt',
-        title: 'Deudas por cobrar',
-        message: `${pendingDebts.length} deuda(s) pendiente(s) - $${totalDebt.toFixed(2)}`,
+        title: 'Cuentas por cobrar',
+        message: `${pendingDebts.length} cuenta(s) pendiente(s) - $${totalDebt.toFixed(2)}`,
         icon: 'FileText',
-        action: { label: 'Ver deudas', path: '/debts' },
+        action: { label: 'Ver cuentas', path: '/debts' },
         timestamp: now
       });
     }
