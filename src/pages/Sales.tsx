@@ -520,23 +520,8 @@ export default function Sales() {
                   <DialogHeader>
                     <DialogTitle className="font-serif text-2xl">Nueva Venta</DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label>Producto *</Label>
-                      <Select value={form.product_id} onValueChange={(v) => setForm({ ...form, product_id: v })}>
-                        <SelectTrigger className="input-glass rounded-xl">
-                          <SelectValue placeholder="Seleccionar producto" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.filter(p => p.stock > 0).map((p) => (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.name} - ${Number(p.price_usd).toFixed(2)} ({p.stock} uds)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
 
+                    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
                     {/* ── CARRITO DE PRODUCTOS ── */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
