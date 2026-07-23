@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, ShoppingCart, Search, Trash2, Check, X, ClipboardList, User, Phone, Mail, DollarSign, Calendar, CreditCard, Landmark, FileText, MapPin } from 'lucide-react';
+import { Plus, ShoppingCart, Search, Trash2, Check, X, ClipboardList, User, Phone, Mail, DollarSign, Calendar, CreditCard, Landmark, FileText, MapPin, PackagePlus, Loader2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
@@ -29,6 +29,13 @@ const paymentMethods = [
   { value: 'transferencia', label: 'Transferencia' },
 ];
 
+// Línea individual del carrito de venta
+interface SaleLineItem {
+  id: string; // UUID local para key
+  product_id: string;
+  quantity: string;
+}
+
 export default function Sales() {
   // --- STATE ---
   const { sales, addSale, deleteSale, refetch: refetchSales } = useSales();
@@ -39,23 +46,92 @@ export default function Sales() {
   const [search, setSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('pending');
-  const [form, setForm] = useState({
-    product_id: '',
-    quantity: '1',
-    payment_method: '',
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Carrito multi-producto
+  const [items, setItems] = useState<SaleLineItem[]>([{ id: crypto.randomUUID(), product_id: '', quantity: '1' }]);
+
+  // Datos del pago
+  const [payment, setPayment] = useState({
+    method: '',
     amount_received: '',
-    client_name: '',
-    client_dni: '',
-    client_email: '',
-    client_phone: '',
-    client_address: '',
     is_credit: false,
-    notes: ''
   });
+
+  // Datos del cliente (DNI primero)
+  const [client, setClient] = useState({
+    dni: '',
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    notes: '',
+  });
+  const [dniLookupState, setDniLookupState] = useState<'idle' | 'loading' | 'found' | 'notfound'>('idle');
 
   const queryClient = useQueryClient();
 
-  // --- QUERY CUSTOMER ORDERS ---
+  // --- CART HANDLERS ---
+  const addItem = () => setItems(prev => [...prev, { id: crypto.randomUUID(), product_id: '', quantity: '1' }]);
+  const removeItem = (id: string) => setItems(prev => prev.filter(i => i.id !== id));
+  const updateItem = (id: string, field: 'product_id' | 'quantity', value: string) =>
+    setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i));
+
+  // Auto-buscar cliente por DNI en customer_profiles
+  const handleDniBlur = useCallback(async () => {
+    const dni = client.dni.trim();
+    if (!dni || dni.length < 4) return;
+    setDniLookupState('loading');
+    try {
+      const { data } = await supabase
+        .from('customer_profiles')
+        .select('full_name, phone, email, address')
+        .ilike('dni', `%${dni}%`)
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setClient(prev => ({
+          ...prev,
+          name: data.full_name || prev.name,
+          phone: data.phone || prev.phone,
+          email: data.email || prev.email,
+          address: data.address || prev.address,
+        }));
+        setDniLookupState('found');
+      } else {
+        setDniLookupState('notfound');
+      }
+    } catch {
+      setDniLookupState('idle');
+    }
+  }, [client.dni]);
+
+  // --- DERIVED ---
+  const resolvedItems = items.map(item => {
+    const product = products.find(p => p.id === item.product_id);
+    const qty = Math.max(1, parseInt(item.quantity) || 1);
+    const subtotalUSD = product ? Number(product.price_usd) * qty : 0;
+    const subtotalBS = convertToBS(subtotalUSD);
+    return { ...item, product, qty, subtotalUSD, subtotalBS };
+  });
+
+  const totalUSD = resolvedItems.reduce((sum, i) => sum + i.subtotalUSD, 0);
+  const totalBS = convertToBS(totalUSD);
+
+  const amountReceived = Number(payment.amount_received) || 0;
+  const isEfectivo = payment.method === 'efectivo_usd' || payment.method === 'efectivo_bs';
+
+  let changeUSD = 0;
+  let changeBS = 0;
+  if (isEfectivo && amountReceived > 0) {
+    if (payment.method === 'efectivo_usd') {
+      changeUSD = Math.max(0, amountReceived - totalUSD);
+      changeBS = convertToBS(changeUSD);
+    } else {
+      changeBS = Math.max(0, amountReceived - totalBS);
+      changeUSD = changeBS > 0 && rate > 0 ? changeBS / rate : 0;
+    }
+  }
   const { data: orders = [], isLoading: isLoadingOrders, refetch: refetchOrders } = useQuery({
     queryKey: ['admin-orders-list'],
     queryFn: async () => {
@@ -72,7 +148,7 @@ export default function Sales() {
     }
   });
 
-  // --- DERIVED ---
+  // --- DERIVED (orders/sales list)
   const existingClients = useMemo(() => {
     const clientsMap = new Map<string, string>();
     sales.forEach(s => {
@@ -84,25 +160,6 @@ export default function Sales() {
     });
     return Array.from(clientsMap.entries()).map(([name, phone]) => ({ name, phone }));
   }, [sales]);
-
-  const selectedProduct = products.find(p => p.id === form.product_id);
-  const totalUSD = selectedProduct ? Number(selectedProduct.price_usd) * Number(form.quantity) : 0;
-  const totalBS = convertToBS(totalUSD);
-
-  const amountReceived = Number(form.amount_received) || 0;
-  const isEfectivo = form.payment_method === 'efectivo_usd' || form.payment_method === 'efectivo_bs';
-  
-  let changeUSD = 0;
-  let changeBS = 0;
-  if (isEfectivo && amountReceived > 0) {
-    if (form.payment_method === 'efectivo_usd') {
-      changeUSD = Math.max(0, amountReceived - totalUSD);
-      changeBS = convertToBS(changeUSD);
-    } else {
-      changeBS = Math.max(0, amountReceived - totalBS);
-      changeUSD = changeBS > 0 && rate > 0 ? changeBS / rate : 0;
-    }
-  }
 
   const filteredSales = sales.filter(s =>
     s.product_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -121,70 +178,68 @@ export default function Sales() {
 
   // --- HANDLERS ---
   const resetForm = () => {
-    setForm({
-      product_id: '',
-      quantity: '1',
-      payment_method: '',
-      amount_received: '',
-      client_name: '',
-      client_dni: '',
-      client_email: '',
-      client_phone: '',
-      client_address: '',
-      is_credit: false,
-      notes: ''
-    });
+    setItems([{ id: crypto.randomUUID(), product_id: '', quantity: '1' }]);
+    setPayment({ method: '', amount_received: '', is_credit: false });
+    setClient({ dni: '', name: '', phone: '', email: '', address: '', notes: '' });
+    setDniLookupState('idle');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) return;
+    const validItems = resolvedItems.filter(i => i.product);
+    if (validItems.length === 0) return;
+    setIsSubmitting(true);
 
     const { sanitizeText } = await import('@/lib/validations');
-    let finalNotes = form.notes;
-    if (!form.is_credit && isEfectivo && amountReceived > 0) {
-      const currency = form.payment_method === 'efectivo_usd' ? '$' : 'Bs';
-      const changeText = form.payment_method === 'efectivo_usd' ? `$${changeUSD.toFixed(2)}` : `Bs ${changeBS.toFixed(2)}`;
+    let finalNotes = client.notes;
+    if (!payment.is_credit && isEfectivo && amountReceived > 0) {
+      const currency = payment.method === 'efectivo_usd' ? '$' : 'Bs';
+      const changeText = payment.method === 'efectivo_usd' ? `$${changeUSD.toFixed(2)}` : `Bs ${changeBS.toFixed(2)}`;
       const exchangeText = rate > 0 ? ` (Tasa: Bs ${rate.toFixed(2)})` : '';
       const receiptInfo = `[Recibido: ${currency}${amountReceived.toFixed(2)} | Vuelto: ${changeText}${exchangeText}]`;
       finalNotes = finalNotes ? `${receiptInfo} - ${finalNotes}` : receiptInfo;
     }
 
-    const saleData = {
-      product_id: form.product_id,
-      product_name: selectedProduct.name,
-      quantity: Number(form.quantity),
-      unit_price_usd: Number(selectedProduct.price_usd),
-      total_usd: totalUSD,
-      total_bs: totalBS,
-      payment_method: form.is_credit ? 'credito' : form.payment_method,
-      client_name: form.client_name ? sanitizeText(form.client_name) : null,
-      client_dni: form.client_dni ? sanitizeText(form.client_dni) : null,
-      client_email: form.client_email ? sanitizeText(form.client_email) : null,
-      client_phone: form.client_phone ? sanitizeText(form.client_phone) : null,
-      client_address: form.client_address ? sanitizeText(form.client_address) : null,
-      is_credit: form.is_credit,
-      notes: finalNotes ? sanitizeText(finalNotes) : null
-    };
+    let hasError = false;
+    for (const item of validItems) {
+      const saleData = {
+        product_id: item.product_id,
+        product_name: item.product!.name,
+        quantity: item.qty,
+        unit_price_usd: Number(item.product!.price_usd),
+        total_usd: item.subtotalUSD,
+        total_bs: item.subtotalBS,
+        payment_method: payment.is_credit ? 'credito' : payment.method,
+        client_name: client.name ? sanitizeText(client.name) : null,
+        client_dni: client.dni ? sanitizeText(client.dni) : null,
+        client_email: client.email ? sanitizeText(client.email) : null,
+        client_phone: client.phone ? sanitizeText(client.phone) : null,
+        client_address: client.address ? sanitizeText(client.address) : null,
+        is_credit: payment.is_credit,
+        notes: finalNotes ? sanitizeText(finalNotes) : null,
+      };
 
-    const { data, error } = await addSale(saleData);
+      const { data, error } = await addSale(saleData);
+      if (error) { hasError = true; break; }
 
-    if (!error && form.is_credit && form.client_name) {
-      await addDebt({
-        sale_id: data?.id || null,
-        client_name: sanitizeText(form.client_name),
-        client_dni: form.client_dni ? sanitizeText(form.client_dni) : null,
-        client_email: form.client_email ? sanitizeText(form.client_email) : null,
-        client_phone: form.client_phone ? sanitizeText(form.client_phone) : null,
-        client_address: form.client_address ? sanitizeText(form.client_address) : null,
-        amount_usd: totalUSD,
-        amount_bs: totalBS,
-        status: 'pending',
-        notes: form.notes ? sanitizeText(form.notes) : null
-      });
+      if (!error && payment.is_credit && client.name) {
+        await addDebt({
+          sale_id: data?.id || null,
+          client_name: sanitizeText(client.name),
+          client_dni: client.dni ? sanitizeText(client.dni) : null,
+          client_email: client.email ? sanitizeText(client.email) : null,
+          client_phone: client.phone ? sanitizeText(client.phone) : null,
+          client_address: client.address ? sanitizeText(client.address) : null,
+          amount_usd: item.subtotalUSD,
+          amount_bs: item.subtotalBS,
+          status: 'pending',
+          notes: client.notes ? sanitizeText(client.notes) : null,
+        });
+      }
     }
 
-    if (!error) {
+    setIsSubmitting(false);
+    if (!hasError) {
       setIsOpen(false);
       resetForm();
       refetchProducts();
@@ -482,76 +537,212 @@ export default function Sales() {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>Cantidad *</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max={selectedProduct?.stock || 999}
-                        value={form.quantity}
-                        onChange={(e) => setForm({ ...form, quantity: e.target.value.replace(/[^0-9]/g, '').slice(0, 4) })}
-                        className="input-glass rounded-xl"
-                        required
-                      />
+                    {/* ── CARRITO DE PRODUCTOS ── */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-semibold">Productos *</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addItem}
+                          className="gap-1 text-xs"
+                        >
+                          <PackagePlus className="h-3.5 w-3.5" />
+                          Agregar producto
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {items.map((item, idx) => {
+                          const ri = resolvedItems[idx];
+                          return (
+                            <div key={item.id} className="flex items-center gap-2 p-3 rounded-xl bg-secondary/60 border border-border/40">
+                              <div className="flex-1 min-w-0">
+                                <Select value={item.product_id} onValueChange={v => updateItem(item.id, 'product_id', v)}>
+                                  <SelectTrigger className="input-glass rounded-lg text-sm h-9">
+                                    <SelectValue placeholder="Seleccionar producto" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {products.filter(p => p.stock > 0).map(p => (
+                                      <SelectItem key={p.id} value={p.id}>
+                                        {p.name} — ${Number(p.price_usd).toFixed(2)} ({p.stock} uds)
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="w-20 flex-shrink-0">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max={ri?.product?.stock || 999}
+                                  value={item.quantity}
+                                  onChange={e => updateItem(item.id, 'quantity', e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
+                                  className="input-glass rounded-lg text-sm h-9 text-center"
+                                  placeholder="Cant."
+                                />
+                              </div>
+                              {ri?.product && (
+                                <span className="text-xs font-bold text-primary w-16 text-right flex-shrink-0">
+                                  ${ri.subtotalUSD.toFixed(2)}
+                                </span>
+                              )}
+                              {items.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
+                                  onClick={() => removeItem(item.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Total del carrito */}
+                      {totalUSD > 0 && (
+                        <div className="p-3 rounded-xl bg-secondary/80 space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground font-medium">Total USD:</span>
+                            <span className="font-bold text-gradient-gold text-lg">${totalUSD.toFixed(2)}</span>
+                          </div>
+                          {rate > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground text-sm">Total Bs:</span>
+                              <span className="font-medium text-sm">Bs. {formatBS(totalBS)}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    {selectedProduct && (
-                      <div className="p-4 rounded-xl bg-secondary/80 space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Total USD:</span>
-                          <span className="font-bold text-gradient-gold">${totalUSD.toFixed(2)}</span>
+                    {/* ── DATOS DEL CLIENTE (DNI primero) ── */}
+                    <div className="space-y-3 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                      <h4 className="font-semibold text-primary flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Datos del Cliente
+                      </h4>
+
+                      {/* CÉDULA PRIMERO */}
+                      <div className="space-y-1.5">
+                        <Label>Cédula / RIF *</Label>
+                        <div className="relative">
+                          <Input
+                            value={client.dni}
+                            onChange={e => {
+                              setClient(prev => ({ ...prev, dni: e.target.value.replace(/[^0-9VJEG-]/ig, '').toUpperCase().slice(0, 15) }));
+                              setDniLookupState('idle');
+                            }}
+                            onBlur={handleDniBlur}
+                            placeholder="Ej: V-12345678"
+                            className="input-glass rounded-xl pr-9"
+                          />
+                          {dniLookupState === 'loading' && (
+                            <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                          {dniLookupState === 'found' && (
+                            <Check className="absolute right-3 top-2.5 h-4 w-4 text-primary" />
+                          )}
                         </div>
-                        {rate > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Total Bs:</span>
-                            <span className="font-medium">Bs. {formatBS(totalBS)}</span>
-                          </div>
+                        {dniLookupState === 'found' && (
+                          <p className="text-xs text-primary">✓ Cliente encontrado y datos auto-completados</p>
+                        )}
+                        {dniLookupState === 'notfound' && (
+                          <p className="text-xs text-muted-foreground">Cliente no registrado — completa los datos manualmente</p>
                         )}
                       </div>
-                    )}
 
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="space-y-1.5">
+                          <Label>Nombre del cliente *</Label>
+                          <Input
+                            value={client.name}
+                            onChange={e => setClient(prev => ({ ...prev, name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50) }))}
+                            placeholder="Nombre completo"
+                            className="input-glass rounded-xl"
+                            required
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label>Teléfono</Label>
+                            <Input
+                              value={client.phone}
+                              onChange={e => setClient(prev => ({ ...prev, phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '').slice(0, 20) }))}
+                              placeholder="+584141234567"
+                              className="input-glass rounded-xl"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>Email</Label>
+                            <Input
+                              type="email"
+                              value={client.email}
+                              onChange={e => setClient(prev => ({ ...prev, email: e.target.value.slice(0, 100) }))}
+                              placeholder="correo@ejemplo.com"
+                              className="input-glass rounded-xl"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Dirección</Label>
+                          <Textarea
+                            value={client.address}
+                            onChange={e => setClient(prev => ({ ...prev, address: e.target.value.slice(0, 150) }))}
+                            placeholder="Dirección completa del cliente..."
+                            className="input-glass rounded-xl resize-none h-14"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── TIPO DE PAGO ── */}
                     <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/80">
                       <Label className="cursor-pointer">¿Es Cuenta por Cobrar?</Label>
                       <Switch
-                        checked={form.is_credit}
-                        onCheckedChange={(checked) => setForm({ ...form, is_credit: checked })}
+                        checked={payment.is_credit}
+                        onCheckedChange={checked => setPayment(prev => ({ ...prev, is_credit: checked }))}
                       />
                     </div>
 
-                    {!form.is_credit && (
+                    {!payment.is_credit && (
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label>Método de pago *</Label>
-                          <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
+                          <Select value={payment.method} onValueChange={v => setPayment(prev => ({ ...prev, method: v }))}>
                             <SelectTrigger className="input-glass rounded-xl">
                               <SelectValue placeholder="Seleccionar método" />
                             </SelectTrigger>
                             <SelectContent>
-                              {paymentMethods.map((m) => (
+                              {paymentMethods.map(m => (
                                 <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
-                        
+
                         {isEfectivo && (
                           <div className="space-y-2 p-4 rounded-xl border border-primary/20 bg-primary/5">
                             <Label className="text-primary font-semibold">
-                              Monto Recibido ({form.payment_method === 'efectivo_usd' ? 'USD' : 'Bs'}) *
+                              Monto Recibido ({payment.method === 'efectivo_usd' ? 'USD' : 'Bs'}) *
                             </Label>
                             <Input
                               type="number"
                               step="0.01"
                               min="0"
-                              value={form.amount_received}
-                              onChange={(e) => setForm({ ...form, amount_received: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) })}
+                              value={payment.amount_received}
+                              onChange={e => setPayment(prev => ({ ...prev, amount_received: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) }))}
                               placeholder="0.00"
                               className="input-glass rounded-xl text-lg font-bold"
                               required
                             />
-                            
                             {amountReceived > 0 && (
-                              <div className="mt-4 p-3 rounded-lg bg-background/50 border border-border/50">
+                              <div className="mt-3 p-3 rounded-lg bg-background/50 border border-border/50">
                                 <p className="text-sm text-muted-foreground mb-1">Vuelto a entregar:</p>
                                 <div className="flex items-center justify-between">
                                   <span className="text-2xl font-bold text-gradient-gold">${changeUSD.toFixed(2)}</span>
@@ -566,90 +757,32 @@ export default function Sales() {
                       </div>
                     )}
 
-                    <div className="space-y-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
-                      <h4 className="font-semibold text-primary">Datos del Cliente</h4>
-                      <div className="space-y-2">
-                        <Label>Nombre del cliente *</Label>
-                        <Input
-                          list="clients-list"
-                          value={form.client_name}
-                          onChange={(e) => {
-                            const newName = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50);
-                            const existing = existingClients.find(c => c.name === newName);
-                            setForm({ 
-                              ...form, 
-                              client_name: newName,
-                              client_phone: existing && existing.phone && !form.client_phone ? existing.phone : form.client_phone
-                            });
-                          }}
-                          placeholder="Buscar o registrar nuevo cliente"
-                          className="input-glass rounded-xl"
-                          required
-                        />
-                        <datalist id="clients-list">
-                          {existingClients.map(c => (
-                            <option key={c.name} value={c.name} />
-                          ))}
-                        </datalist>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Cédula / RIF</Label>
-                          <Input
-                            value={form.client_dni}
-                            onChange={(e) => setForm({ ...form, client_dni: e.target.value.replace(/[^0-9VJEG-]/ig, '').toUpperCase().slice(0, 15) })}
-                            placeholder="Ej: V-12345678"
-                            className="input-glass rounded-xl"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Teléfono</Label>
-                          <Input
-                            value={form.client_phone}
-                            onChange={(e) => setForm({ ...form, client_phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '').slice(0, 20) })}
-                            placeholder="Ej: +584141234567"
-                            className="input-glass rounded-xl"
-                          />
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                          <Label>Correo Electrónico</Label>
-                          <Input
-                            type="email"
-                            value={form.client_email}
-                            onChange={(e) => setForm({ ...form, client_email: e.target.value.slice(0, 100) })}
-                            placeholder="correo@ejemplo.com"
-                            className="input-glass rounded-xl"
-                          />
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                          <Label>Dirección</Label>
-                          <Textarea
-                            value={form.client_address}
-                            onChange={(e) => setForm({ ...form, client_address: e.target.value.slice(0, 150) })}
-                            placeholder="Dirección completa del cliente..."
-                            className="input-glass rounded-xl resize-none h-16"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
+                    {/* ── NOTAS ── */}
                     <div className="space-y-2">
                       <Label>Notas</Label>
                       <Textarea
-                        value={form.notes}
-                        onChange={(e) => setForm({ ...form, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '').slice(0, 200) })}
+                        value={client.notes}
+                        onChange={e => setClient(prev => ({ ...prev, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '').slice(0, 200) }))}
                         placeholder="Observaciones..."
                         className="input-glass rounded-xl resize-none"
                         rows={2}
                       />
                     </div>
 
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="w-full btn-gold rounded-xl"
-                      disabled={!form.product_id || (!form.is_credit && !form.payment_method)}
+                      disabled={
+                        isSubmitting ||
+                        resolvedItems.filter(i => i.product).length === 0 ||
+                        (!payment.is_credit && !payment.method)
+                      }
                     >
-                      Registrar Venta
+                      {isSubmitting ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Registrando...</>
+                      ) : (
+                        `Registrar Venta${resolvedItems.filter(i => i.product).length > 1 ? ` (${resolvedItems.filter(i => i.product).length} productos)` : ''}`
+                      )}
                     </Button>
                   </form>
                 </DialogContent>

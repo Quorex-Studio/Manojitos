@@ -57,7 +57,9 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/hooks/useAuth';
 import { useAllCustomerProfiles } from '@/hooks/useCustomerProfile';
 import { useProducts } from '@/hooks/useProducts';
+import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { cn } from '@/lib/utils';
+import { formatBS } from '@/lib/utils';
 import { NotificationCenter, CreditReminderHistoryPanel } from '@/components/notifications/NotificationCenter';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -89,6 +91,7 @@ export default function Credits() {
   const { sendManualNotification } = useNotifications();
   const { data: customerProfiles = [], isLoading: isLoadingProfiles } = useAllCustomerProfiles();
   const { data: allTransactions = [], isLoading: loadingTransactions } = useAllCreditTransactions();
+  const { rate } = useExchangeRate();
   
   const queryClient = useQueryClient();
 
@@ -281,14 +284,29 @@ export default function Credits() {
     setCreationMode('manual');
   };
 
-  // Manejar pago
+  // Manejar pago — incluye tasa y equivalente Bs en la description
   const handlePayment = async () => {
     if (!selectedCredit || !paymentAmount) return;
     
+    const amount = parseFloat(paymentAmount);
+    const credit = credits.find(c => c.id === selectedCredit);
+    
+    // Construir descripción enriquecida con tasa
+    let description = paymentDescription ? sanitizeText(paymentDescription) : 'Pago registrado';
+    if (rate > 0) {
+      const amountBs = amount * rate;
+      description += ` — Bs. ${formatBS(amountBs)} @ Tasa: Bs. ${rate.toFixed(2)}`;
+    }
+    // Marcar sobrante si el abono supera el saldo
+    if (credit && amount > credit.current_balance && credit.current_balance > 0) {
+      const surplus = amount - credit.current_balance;
+      description += ` [Sobrante: $${surplus.toFixed(2)}]`;
+    }
+    
     await registerPayment.mutateAsync({
       creditId: selectedCredit,
-      amount: parseFloat(paymentAmount),
-      description: paymentDescription ? sanitizeText(paymentDescription) : undefined,
+      amount,
+      description,
     });
     
     setIsPaymentOpen(false);
@@ -922,45 +940,80 @@ export default function Credits() {
                 <CardContent className="p-0">
                   <ScrollArea className="h-[500px]">
                     <div className="divide-y divide-border">
-                      {filteredAbonos.map(tx => (
-                        <div
-                          key={tx.id}
-                          className="flex items-center justify-between px-4 py-3 hover:bg-secondary/30 transition-colors"
-                        >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className={cn(
-                              'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
-                              tx.type === 'ABONO' ? 'bg-primary/10' : 'bg-destructive/10'
-                            )}>
-                              {tx.type === 'ABONO' ? (
-                                <TrendingDown className="h-4 w-4 text-primary" />
-                              ) : (
-                                <TrendingUp className="h-4 w-4 text-destructive" />
-                              )}
+                      {filteredAbonos.map(tx => {
+                        // Parsear la descripción para extraer Bs, tasa y referencia
+                        const desc = tx.description || tx.type;
+                        const bsMatch = desc.match(/Bs\.\s*([\d,.]+)/);
+                        const tasaMatch = desc.match(/Tasa:\s*Bs\.\s*([\d.]+)/);
+                        const surplusMatch = desc.match(/\[Sobrante:\s*\$([\d.]+)\]/);
+                        // Descripción limpia sin las notas técnicas
+                        const cleanDesc = desc
+                          .replace(/\s*—\s*Bs\.\s*[\d,.]+\s*@\s*Tasa:\s*Bs\.\s*[\d.]+/g, '')
+                          .replace(/\s*\[Sobrante:[^\]]*\]/g, '')
+                          .trim();
+                        const bsAmount = bsMatch ? bsMatch[1] : null;
+                        const tasaVal = tasaMatch ? tasaMatch[1] : null;
+                        const surplusVal = surplusMatch ? surplusMatch[1] : null;
+                        const isPaid = tx.new_balance === 0 && tx.type === 'ABONO';
+
+                        return (
+                          <div
+                            key={tx.id}
+                            className="flex items-start justify-between px-4 py-3 hover:bg-secondary/30 transition-colors"
+                          >
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className={cn(
+                                'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
+                                tx.type === 'ABONO' ? 'bg-primary/10' : 'bg-destructive/10'
+                              )}>
+                                {tx.type === 'ABONO' ? (
+                                  <TrendingDown className="h-4 w-4 text-primary" />
+                                ) : (
+                                  <TrendingUp className="h-4 w-4 text-destructive" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="font-medium text-sm">{tx.client_name}</p>
+                                  {isPaid && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                      PAGADO
+                                    </span>
+                                  )}
+                                  {surplusVal && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                      +${surplusVal} sobrante
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {cleanDesc}
+                                </p>
+                                {(bsAmount || tasaVal) && (
+                                  <p className="text-xs text-muted-foreground/80 mt-0.5">
+                                    {bsAmount && <span>Bs. {bsAmount}</span>}
+                                    {tasaVal && <span className="ml-2">· Tasa: {tasaVal}</span>}
+                                  </p>
+                                )}
+                                <p className="text-xs text-muted-foreground/60 mt-0.5">
+                                  {format(new Date(tx.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
+                                </p>
+                              </div>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium text-sm truncate">{tx.client_name}</p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {tx.description || tx.type}
+                            <div className="text-right ml-4 flex-shrink-0">
+                              <p className={cn(
+                                'font-bold',
+                                tx.type === 'ABONO' ? 'text-primary' : 'text-destructive'
+                              )}>
+                                {tx.type === 'ABONO' ? '-' : '+'}${tx.amount.toFixed(2)}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {format(new Date(tx.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
+                                Saldo: ${tx.new_balance.toFixed(2)}
                               </p>
                             </div>
                           </div>
-                          <div className="text-right ml-4 flex-shrink-0">
-                            <p className={cn(
-                              'font-bold',
-                              tx.type === 'ABONO' ? 'text-primary' : 'text-destructive'
-                            )}>
-                              {tx.type === 'ABONO' ? '-' : '+'}${tx.amount.toFixed(2)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Saldo: ${tx.new_balance.toFixed(2)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </ScrollArea>
                 </CardContent>
@@ -1058,29 +1111,62 @@ export default function Credits() {
             <DialogHeader>
               <DialogTitle>Registrar Pago</DialogTitle>
               <DialogDescription>
-                Registra un abono al crédito del cliente
+                {(() => {
+                  const credit = credits.find(c => c.id === selectedCredit);
+                  return credit ? `Saldo actual: $${credit.current_balance.toFixed(2)}` : 'Registra un abono al crédito del cliente';
+                })()}
               </DialogDescription>
             </DialogHeader>
             
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="payment_amount">Monto del Pago ($)</Label>
+                <Label htmlFor="payment_amount">Monto del Pago (USD)</Label>
                 <Input
                   id="payment_amount"
                   type="number"
+                  step="0.01"
+                  min="0.01"
                   value={paymentAmount}
                   onChange={e => setPaymentAmount(e.target.value)}
                   placeholder="0.00"
                 />
+                {/* Equivalente en Bs con tasa */}
+                {paymentAmount && parseFloat(paymentAmount) > 0 && rate > 0 && (
+                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                      Equivalente:{' '}
+                      <span className="font-bold text-primary">
+                        Bs. {formatBS(parseFloat(paymentAmount) * rate)}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Tasa del día: Bs. {rate.toFixed(2)} / $
+                    </p>
+                    {/* Advertencia si el abono supera el saldo */}
+                    {(() => {
+                      const credit = credits.find(c => c.id === selectedCredit);
+                      const amount = parseFloat(paymentAmount);
+                      if (credit && amount > credit.current_balance && credit.current_balance > 0) {
+                        return (
+                          <p className="text-xs text-amber-500 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Sobrante de ${(amount - credit.current_balance).toFixed(2)} (pago excede el saldo)
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="payment_description">Descripción (opcional)</Label>
+                <Label htmlFor="payment_description">Referencia / Descripción (opcional)</Label>
                 <Input
                   id="payment_description"
                   value={paymentDescription}
                   onChange={e => setPaymentDescription(e.target.value)}
-                  placeholder="Ej: Pago en efectivo"
+                  placeholder="Ej: Ref. 12345678 / Efectivo"
                 />
               </div>
             </div>
@@ -1091,7 +1177,7 @@ export default function Credits() {
               </Button>
               <Button 
                 onClick={handlePayment}
-                disabled={!paymentAmount || registerPayment.isPending}
+                disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || registerPayment.isPending}
               >
                 {registerPayment.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Registrar Pago
