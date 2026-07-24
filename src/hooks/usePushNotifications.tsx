@@ -97,8 +97,12 @@ export function usePushNotifications() {
     try {
       if (swRegistration) {
         await swRegistration.showNotification(title, notifOptions);
-      } else {
-        new Notification(title, notifOptions);
+      } else if (typeof window !== 'undefined' && 'Notification' in window && typeof window.Notification === 'function') {
+        try {
+          new window.Notification(title, notifOptions);
+        } catch {
+          // Fallback if Notification constructor is disabled on mobile
+        }
       }
     } catch (err) {
       console.warn('[Push] Could not show notification:', err);
