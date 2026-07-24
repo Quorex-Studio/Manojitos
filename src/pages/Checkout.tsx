@@ -177,8 +177,8 @@ export default function Checkout() {
 
   // Financiamiento Manojitos
   const montoFinanciado = subtotal * 0.50;
-  const montoCuota = montoFinanciado / 3;
-  const montoInicialTotal = (subtotal * 0.50) + montoCuota;
+  const montoCuota = montoFinanciado / 2;
+  const montoInicialTotal = subtotal * 0.50;
 
   const isCreditBlocked = hasCredit && credit && (credit.calculatedStatus === 'VENCIDO' || credit.is_blocked || hasPendingPayments);
 
@@ -198,11 +198,11 @@ export default function Checkout() {
         {
           id: 'credito',
           label: 'Crédito Manojitos (Pago en partes)',
-          description: `Crédito financia el 50%. Paga la Inicial + Cuota 1 hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales.`,
+          description: `Crédito financia el 50%. Paga la Inicial hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales de $${montoCuota.toFixed(2)}.`,
           disabled: !creditAvailable,
         },
       ]
-    : BASE_PAYMENT_METHODS, [hasCredit, creditAvailable, montoInicialTotal]);
+    : BASE_PAYMENT_METHODS, [hasCredit, creditAvailable, montoInicialTotal, montoCuota]);
 
   // Datos del formulario
   const [shippingData, setShippingData] = useState({
@@ -1005,10 +1005,6 @@ export default function Checkout() {
                             <span>Inicial (50% de la compra)</span>
                             <span>${(subtotal * 0.50).toFixed(2)}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span>+ 1ra Cuota (1/3 del resto)</span>
-                            <span>${montoCuota.toFixed(2)}</span>
-                          </div>
                         </div>
                         {rate > 0 && (
                           <div className="text-right text-xs text-muted-foreground font-medium">
@@ -1016,23 +1012,18 @@ export default function Checkout() {
                           </div>
                         )}
                         <p className="text-[11px] text-muted-foreground leading-normal mt-1 border-t border-border/40 pt-1.5">
-                          Para completar tu compra debes transferir o pagar la inicial hoy. El 50% restante (${montoFinanciado.toFixed(2)}) se cargará a tu línea de crédito en 3 cuotas.
+                          Para completar tu compra debes transferir o pagar la inicial hoy. El 50% restante (${montoFinanciado.toFixed(2)}) se cargará a tu línea de crédito en 2 cuotas.
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <div className="bg-background/50 rounded-lg p-2 text-center border border-border/50">
-                          <p className="text-xs text-muted-foreground">Cuota 1 (Hoy)</p>
-                          <p className="font-semibold text-foreground text-xs mt-0.5">${montoCuota.toFixed(2)}</p>
-                          <span className="text-[10px] text-green-600 bg-green-50 px-1 rounded font-medium">Pagas hoy</span>
-                        </div>
-                        <div className="bg-background/50 rounded-lg p-2 text-center border border-border/50">
-                          <p className="text-xs text-muted-foreground">Cuota 2 (15d)</p>
+                          <p className="text-xs text-muted-foreground">Cuota 1 (15d)</p>
                           <p className="font-semibold text-foreground text-xs mt-0.5">${montoCuota.toFixed(2)}</p>
                           <span className="text-[10px] text-muted-foreground">Pendiente</span>
                         </div>
                         <div className="bg-background/50 rounded-lg p-2 text-center border border-border/50">
-                          <p className="text-xs text-muted-foreground">Cuota 3 (30d)</p>
+                          <p className="text-xs text-muted-foreground">Cuota 2 (30d)</p>
                           <p className="font-semibold text-foreground text-xs mt-0.5">${montoCuota.toFixed(2)}</p>
                           <span className="text-[10px] text-muted-foreground">Pendiente</span>
                         </div>
