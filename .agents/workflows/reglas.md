@@ -1,5 +1,5 @@
 ---
-trigger: always_on
+description: reglas
 ---
 
 REGLAS.

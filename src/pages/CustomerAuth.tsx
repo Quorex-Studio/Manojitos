@@ -34,6 +34,7 @@ export default function CustomerAuth() {
 
 
   const [gettingGPS, setGettingGPS] = useState(false);
+  const [hasPromptedLocation, setHasPromptedLocation] = useState(false);
 
   const redirectTo = searchParams.get('redirect') || '/';
 
@@ -43,6 +44,18 @@ export default function CustomerAuth() {
       navigate(redirectTo);
     }
   }, [user, navigate, redirectTo]);
+
+  // Solicitar ubicación automáticamente al entrar a la vista de registro
+  useEffect(() => {
+    if (!isLogin && !hasPromptedLocation && !form.locationCoords && navigator.geolocation) {
+      setHasPromptedLocation(true);
+      // Pequeño delay para no abrumar al instante
+      const timer = setTimeout(() => {
+        handleGetLocation();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLogin, hasPromptedLocation, form.locationCoords]);
 
   // --- HANDLERS ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -570,7 +583,7 @@ export default function CustomerAuth() {
 
                     <div>
                       <Label htmlFor="address">Ubicación / Dirección exacta <span className="text-destructive">*</span></Label>
-                      <div className="flex gap-2 mt-1">
+                      <div className="flex flex-col gap-2 mt-1">
                         <div className="relative flex-1">
                           <Input
                             id="address"
@@ -586,16 +599,15 @@ export default function CustomerAuth() {
                         </div>
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="secondary"
                           onClick={handleGetLocation}
                           disabled={gettingGPS}
-                          className="flex-shrink-0"
-                          title="Obtener coordenadas GPS automáticamente"
+                          className="w-full sm:w-auto bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
                         >
                           {gettingGPS ? (
-                            <Loader className="h-4 w-4 animate-spin" />
+                            <><Loader className="h-4 w-4 animate-spin mr-2" /> Detectando...</>
                           ) : (
-                            <Location className="h-4 w-4" />
+                            <><Location className="h-4 w-4 mr-2" /> Detectar mi Ubicación</>
                           )}
                         </Button>
                       </div>

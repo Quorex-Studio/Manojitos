@@ -29,6 +29,57 @@ const paymentMethods = [
   { value: 'transferencia', label: 'Transferencia' },
 ];
 
+const formatPaymentMethod = (method: string) => {
+  if (!method) return '';
+  return method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
+const renderOrderNotes = (notes: string) => {
+  if (!notes) return null;
+  const isDelivery = notes.includes('[DELIVERY]');
+  let cleanNotes = notes.replace('[DELIVERY]', '').trim();
+
+  // Try to extract Tlf. Emisor PM
+  let pmPhone = '';
+  const phoneMatch = cleanNotes.match(/Tlf\. Emisor PM:\s*([\d\s]+)/i);
+  if (phoneMatch) {
+    pmPhone = phoneMatch[1].trim();
+    cleanNotes = cleanNotes.replace(phoneMatch[0], '').trim();
+  }
+  
+  // Try to extract Dirección
+  let address = cleanNotes;
+  if (cleanNotes.startsWith('Dirección:')) {
+    address = cleanNotes.replace('Dirección:', '').trim();
+  }
+
+  return (
+    <div className="flex flex-col gap-2 mt-2">
+      {isDelivery && (
+        <div className="flex items-start gap-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 p-2.5 rounded-lg border border-blue-500/20">
+          <Truck className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-0.5">Delivery a:</p>
+            <p className="text-sm">{address}</p>
+          </div>
+        </div>
+      )}
+      {!isDelivery && address && (
+        <div className="flex items-start gap-2 bg-background/50 p-2.5 rounded-lg border border-border/50">
+          <Location className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+          <p className="text-sm text-foreground">{address}</p>
+        </div>
+      )}
+      {pmPhone && (
+        <div className="flex items-center gap-2 bg-green-500/10 text-green-600 dark:text-green-400 p-2.5 rounded-lg border border-green-500/20">
+          <Phone className="h-4 w-4 flex-shrink-0" />
+          <p className="text-sm font-medium">Tlf. Pago Móvil: {pmPhone}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Línea individual del carrito de venta
 interface SaleLineItem {
   id: string; // UUID local para key
@@ -45,7 +96,9 @@ export default function Sales() {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
-  const [orderStatusFilter, setOrderStatusFilter] = useState('pending');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [orderDateFilter, setOrderDateFilter] = useState('all');
+  const [orderSort, setOrderSort] = useState('date_desc');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Carrito multi-producto
@@ -166,14 +219,77 @@ export default function Sales() {
     s.client_name?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const groupedSales = useMemo(() => {
+    const groups: any[] = [];
+    filteredSales.forEach(sale => {
+      if (groups.length === 0) {
+        groups.push({
+          id: sale.id,
+          client_name: sale.client_name,
+          payment_method: sale.payment_method,
+          is_credit: sale.is_credit,
+          created_at: sale.created_at,
+          total_usd: Number(sale.total_usd),
+          items: [sale]
+        });
+      } else {
+        const lastGroup = groups[groups.length - 1];
+        const timeDiff = Math.abs(new Date(lastGroup.created_at).getTime() - new Date(sale.created_at).getTime());
+        
+        if (
+          lastGroup.client_name === sale.client_name &&
+          lastGroup.payment_method === sale.payment_method &&
+          timeDiff <= 60000 // Within 1 minute
+        ) {
+          lastGroup.total_usd += Number(sale.total_usd);
+          lastGroup.items.push(sale);
+        } else {
+          groups.push({
+            id: sale.id,
+            client_name: sale.client_name,
+            payment_method: sale.payment_method,
+            is_credit: sale.is_credit,
+            created_at: sale.created_at,
+            total_usd: Number(sale.total_usd),
+            items: [sale]
+          });
+        }
+      }
+    });
+    return groups;
+  }, [filteredSales]);
+
   const filteredOrders = orders.filter(o => {
     const matchesSearch = 
       o.customer_name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
       o.id.toLowerCase().includes(orderSearch.toLowerCase()) ||
       o.customer_email?.toLowerCase().includes(orderSearch.toLowerCase());
     
-    if (orderStatusFilter === 'all') return matchesSearch;
-    return matchesSearch && o.status === orderStatusFilter;
+    const matchesStatus = orderStatusFilter === 'all' ? true : o.status === orderStatusFilter;
+    
+    let matchesDate = true;
+    if (orderDateFilter === 'today') {
+      const today = new Date();
+      const orderDate = new Date(o.created_at);
+      matchesDate = today.toDateString() === orderDate.toDateString();
+    } else if (orderDateFilter === '7days') {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      matchesDate = new Date(o.created_at) >= sevenDaysAgo;
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
+  }).sort((a, b) => {
+    if (orderSort === 'date_desc') {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    } else if (orderSort === 'date_asc') {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    } else if (orderSort === 'total_desc') {
+      return Number(b.total_usd) - Number(a.total_usd);
+    } else if (orderSort === 'total_asc') {
+      return Number(a.total_usd) - Number(b.total_usd);
+    }
+    return 0;
   });
 
   // --- HANDLERS ---
@@ -516,7 +632,7 @@ export default function Sales() {
                     Nueva Venta
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="glass-card border-border/50 max-w-md max-h-[90vh] overflow-y-auto">
+                <DialogContent className="glass-card border-border/50 w-[95vw] sm:max-w-md mx-auto max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle className="font-serif text-2xl">Nueva Venta</DialogTitle>
                   </DialogHeader>
@@ -775,55 +891,93 @@ export default function Sales() {
             </div>
 
             <div className="space-y-3">
-              {filteredSales.map((sale, index) => (
+              {groupedSales.map((group, index) => (
                 <motion.div
-                  key={sale.id}
+                  key={group.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.02 }}
                 >
                   <Card className="glass-card border-border/50 hover:shadow-md transition-all duration-300">
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            <ShoppingCart className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-left">{sale.product_name}</p>
-                            <p className="text-sm text-muted-foreground text-left">
-                              {sale.quantity} x ${Number(sale.unit_price_usd).toFixed(2)}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/10 pb-3 mb-3">
+                        <div>
+                          {group.client_name && (
+                            <p className="font-semibold text-lg flex items-center gap-2">
+                              <User className="h-4 w-4 text-primary" />
+                              {group.client_name}
                             </p>
-                            <p className="text-xs text-muted-foreground text-left">
-                              {new Date(sale.created_at).toLocaleDateString('es-VE', {
-                                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {new Date(group.created_at).toLocaleDateString('es-VE', {
+                              day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className="font-bold text-gradient-gold">${Number(sale.total_usd).toFixed(2)}</p>
-                            <Badge variant={sale.is_credit ? 'destructive' : 'secondary'} className="mt-1">
-                              {sale.is_credit ? 'Por Cobrar' : sale.payment_method}
+                        <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                          <div className="text-right flex-1 sm:flex-initial">
+                            <p className="font-bold text-xl text-gradient-gold">${group.total_usd.toFixed(2)}</p>
+                            <Badge variant={group.is_credit ? 'destructive' : 'secondary'} className="mt-1">
+                              {group.is_credit ? 'Por Cobrar' : formatPaymentMethod(group.payment_method)}
                             </Badge>
                           </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleDelete(sale.id)}
-                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {group.items.length === 1 && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleDelete(group.items[0].id)}
+                              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full flex-shrink-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {group.items.map((sale: any) => {
+                          const product = products.find(p => p.id === sale.product_id);
+                          return (
+                            <div key={sale.id} className="flex justify-between items-center py-1.5 group/item">
+                              <div className="flex items-center gap-3">
+                                {product?.image_url ? (
+                                  <img src={product.image_url} alt={sale.product_name} className="w-10 h-10 rounded-lg object-cover ring-1 ring-border/50" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+                                    <ShoppingCart className="h-5 w-5 text-primary" />
+                                  </div>
+                                )}
+                                <div className="text-left">
+                                  <p className="font-medium text-sm leading-tight">{sale.product_name}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {sale.quantity} x ${Number(sale.unit_price_usd).toFixed(2)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="font-semibold text-sm">${Number(sale.total_usd).toFixed(2)}</span>
+                                {group.items.length > 1 && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => handleDelete(sale.id)}
+                                    className="h-7 w-7 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-full opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
                 </motion.div>
               ))}
 
-              {filteredSales.length === 0 && (
+              {groupedSales.length === 0 && (
                 <div className="text-center py-16">
                   <ShoppingCart className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
                   <p className="text-muted-foreground">No hay ventas registradas</p>
@@ -845,9 +999,20 @@ export default function Sales() {
                 />
               </div>
 
-              <div className="flex gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap gap-2 w-full md:w-auto md:flex-nowrap">
+                <Select value={orderDateFilter} onValueChange={setOrderDateFilter}>
+                  <SelectTrigger className="w-full sm:w-[140px] input-glass rounded-xl">
+                    <SelectValue placeholder="Fecha" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las fechas</SelectItem>
+                    <SelectItem value="today">Hoy</SelectItem>
+                    <SelectItem value="7days">Últimos 7 días</SelectItem>
+                  </SelectContent>
+                </Select>
+
                 <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-44 input-glass rounded-xl">
+                  <SelectTrigger className="w-full sm:w-[140px] input-glass rounded-xl">
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
                   <SelectContent>
@@ -857,6 +1022,18 @@ export default function Sales() {
                     <SelectItem value="delivered">Entregados</SelectItem>
                     <SelectItem value="cancelled">Rechazados</SelectItem>
                     <SelectItem value="all">Todos</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={orderSort} onValueChange={setOrderSort}>
+                  <SelectTrigger className="w-full sm:w-[160px] input-glass rounded-xl">
+                    <SelectValue placeholder="Ordenar por" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date_desc">Más recientes</SelectItem>
+                    <SelectItem value="date_asc">Más antiguos</SelectItem>
+                    <SelectItem value="total_desc">Mayor total</SelectItem>
+                    <SelectItem value="total_asc">Menor total</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1000,9 +1177,7 @@ export default function Sales() {
                                       <Location className="h-4 w-4 text-primary" />
                                       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notas / Dirección</p>
                                     </div>
-                                    <p className="text-sm text-foreground bg-background/50 p-3 rounded-lg border border-border/50 leading-relaxed shadow-sm">
-                                      {order.notes}
-                                    </p>
+                                    {renderOrderNotes(order.notes)}
                                   </div>
                                 )}
                               </div>
