@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 const alertIcons: Record<AlertType, typeof AlertTriangle> = {
   critical: AlertTriangle,
   warning: AlertCircle,
-  info: Info,
+  info: InfoCircle,
   success: CheckCircle
 };
 
@@ -28,7 +28,7 @@ const lucideIcons: Record<string, typeof AlertTriangle> = {
   DollarSign,
   Clock,
   FileText,
-  TrendingDown,
+  TrendingDown: ArrowDown,
   CheckCircle
 };
 
@@ -60,7 +60,7 @@ const alertColors: Record<AlertType, { bg: string; border: string; icon: string;
 };
 
 function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => void }) {
-  const Icon = lucideIcons[alert.icon] || alertIcons[alert.type] || Info;
+  const Icon = lucideIcons[alert.icon] || alertIcons[alert.type] || InfoCircle;
   const colors = alertColors[alert.type];
   const [isExpanded, setIsExpanded] = useState(false);
 
