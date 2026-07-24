@@ -1,20 +1,15 @@
 import React, { useState, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { User, Wallet, Heart, ShoppingBag, Shield, Sparkles } from 'reicon-react';
 import {
-  User,
-  Wallet,
   Package,
-  Heart,
   Bell,
   Settings,
   CreditCard,
   ChevronRight,
-  ShoppingBag,
   Clock,
-  Sparkles,
   MapPin,
-  Shield,
   Headphones
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -179,23 +174,23 @@ export function CustomerDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         <QuickLink
           to="/cliente/pedidos"
-          icon={<Package className="h-6 w-6" strokeWidth={1.5} />}
-          label="Tus pedidos"
-          description="Rastrear, devolver o ver historial"
+          icon={<ShoppingBag className="h-6 w-6" />}
+          label="Mis Pedidos"
+          description="Rastrea y gestiona tus compras"
           badge={pendingOrders > 0 ? pendingOrders : undefined}
           badgeVariant="default"
           accent={pendingOrders > 0}
         />
 
         <QuickLink
-          icon={<Shield className="h-6 w-6" strokeWidth={1.5} />}
+          icon={<Shield className="h-6 w-6" />}
           label="Inicio de sesión y seguridad"
           description="Editar nombre, teléfono y contraseña"
           onClick={openSecurityModal}
         />
 
         <QuickLink
-          icon={<MapPin className="h-6 w-6" strokeWidth={1.5} />}
+          icon={<MapPin className="h-6 w-6" />}
           label="Tus Direcciones"
           description="Editar, eliminar o establecer predeterminada"
           onClick={openAddressModal}
@@ -203,23 +198,33 @@ export function CustomerDashboard() {
 
         <QuickLink
           to="/cliente/credito"
-          icon={<Wallet className="h-6 w-6" strokeWidth={1.5} />}
+          icon={<Wallet className="h-6 w-6" />}
           label="Tus Pagos"
           description="Ver transacciones y administrar saldo"
           badge={hasCredit ? credit?.status : undefined}
           badgeVariant={credit?.status === 'VENCIDO' ? 'destructive' : 'secondary'}
         />
 
+        {!hasCredit && (
+          <QuickLink
+            to="/cliente/credito"
+            icon={<CreditCard className="h-6 w-6" />}
+            label="Solicitar Crédito"
+            description="Activa tu línea de crédito con la tienda"
+            accent
+          />
+        )}
+
         <QuickLink
           to="/cliente/favoritos"
-          icon={<Heart className="h-6 w-6" strokeWidth={1.5} />}
-          label="Tus Listas"
-          description="Mira, modifica y comparte tus favoritos"
+          icon={<Heart className="h-6 w-6" />}
+          label="Lista de Deseos"
+          description="Productos que te encantan"
           badge={wishlistCount > 0 ? wishlistCount : undefined}
         />
 
         <QuickLink
-          icon={<Headphones className="h-6 w-6" strokeWidth={1.5} />}
+          icon={<Headphones className="h-6 w-6" />}
           label="Servicio al Cliente"
           description="Explorar opciones de ayuda o contáctanos"
           badge={unreadCount > 0 ? unreadCount : undefined}

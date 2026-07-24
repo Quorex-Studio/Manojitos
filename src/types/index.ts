@@ -49,6 +49,7 @@ export interface Product {
   minimum_stock: number | null;
   category: string | null;
   image_url: string | null;
+  sizes: string[] | null;
   sold_count: number;
   created_at: string;
   updated_at: string;
@@ -62,6 +63,7 @@ export interface PublicProduct {
   stock: number;
   category: string | null;
   image_url: string | null;
+  sizes: string[] | null;
   sold_count: number;
   created_at: string;
 }

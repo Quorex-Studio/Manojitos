@@ -62,6 +62,7 @@ import { formatBS } from '@/lib/utils';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
 import { cn } from '@/lib/utils';
 import { sanitizeText } from '@/lib/validations';
+import { PriceDisplay } from '@/components/ui/PriceDisplay';
 
 const TRUST_CONFIG = {
   CONFIABLE: { icon: Shield, color: 'text-primary', bg: 'bg-primary/10', label: 'Confiable' },
@@ -76,6 +77,157 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   VENCIDO: { label: 'Vencido', color: 'bg-destructive/80' },
   BLOQUEADO: { label: 'Bloqueado', color: 'bg-gray-500' },
 };
+
+// Sub-componente: vista cuando el cliente no tiene crédito aún
+function CreditRequestView({ user, profile, rate }: { user: any; profile: any; rate: number }) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const handleRequest = async () => {
+    if (!user) return;
+    setIsSending(true);
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          customer_user_id: user.id,
+          customer_name: profile?.full_name || user.email || 'Cliente',
+          customer_phone: profile?.phone || '',
+          customer_email: user.email || '',
+          items: [{ id: 'credit_request', name: 'Solicitud de Crédito', quantity: 1, price_usd: 0 }],
+          subtotal: 0,
+          discount: 0,
+          total_usd: 0,
+          total_bs: 0,
+          status: 'pending',
+          payment_method: 'credito',
+          payment_status: 'pending',
+          notes: `[SOLICITUD_CREDITO] ${message ? sanitizeText(message) : 'Cliente solicita una línea de crédito.'} DNI: ${profile?.dni || 'N/A'}. Tel: ${profile?.phone || 'N/A'}.`
+        });
+      if (error) throw error;
+      toast.success('Solicitud enviada correctamente. Te contactaremos pronto.');
+      setIsDialogOpen(false);
+      setMessage('');
+    } catch (err: any) {
+      toast.error(err.message || 'Error al enviar solicitud');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <StoreLayout>
+      <div className="container py-12 max-w-2xl">
+        <div className="flex items-center gap-4 mb-8">
+          <Link to="/cliente/perfil">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <h1 className="page-header">Mi Crédito</h1>
+        </div>
+
+        <Card className="glass-card overflow-hidden">
+          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-8 text-center">
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-5">
+              <CreditCard className="h-10 w-10 text-primary/70" />
+            </div>
+            <h2 className="text-2xl font-serif font-medium mb-2">Sin línea de crédito activa</h2>
+            <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-8">
+              Solicita tu línea de crédito personalizada. El equipo evaluará tu perfil y se comunicará contigo.
+            </p>
+
+            <div className="grid grid-cols-3 gap-3 mb-8 text-center">
+              <div className="p-3 rounded-xl bg-card/60 border border-border/10">
+                <p className="text-xs text-muted-foreground">Paso 1</p>
+                <p className="text-sm font-medium mt-1">Completa tu perfil KYC</p>
+              </div>
+              <div className="p-3 rounded-xl bg-card/60 border border-border/10">
+                <p className="text-xs text-muted-foreground">Paso 2</p>
+                <p className="text-sm font-medium mt-1">Solicita tu crédito</p>
+              </div>
+              <div className="p-3 rounded-xl bg-card/60 border border-border/10">
+                <p className="text-xs text-muted-foreground">Paso 3</p>
+                <p className="text-sm font-medium mt-1">Recibe aprobación</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="btn-gold btn-shimmer rounded-full px-8 h-12">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Solicitar Crédito
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="glass-card max-w-md bg-background/95 backdrop-blur-md border border-border dark:border-white/10">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-xl">
+                      <CreditCard className="h-5 w-5 text-primary" />
+                      Solicitud de Línea de Crédito
+                    </DialogTitle>
+                    <DialogDescription>
+                      Tu solicitud será revisada por nuestro equipo. Te contactaremos a la brevedad.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
+                        <p className="text-muted-foreground text-xs">Nombre</p>
+                        <p className="font-medium">{profile?.full_name || 'N/A'}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
+                        <p className="text-muted-foreground text-xs">Teléfono</p>
+                        <p className="font-medium">{profile?.phone || 'N/A'}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
+                        <p className="text-muted-foreground text-xs">DNI / Cédula</p>
+                        <p className="font-medium">{profile?.dni || 'Pendiente'}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
+                        <p className="text-muted-foreground text-xs">KYC</p>
+                        <p className="font-medium capitalize">{profile?.kyc_status || 'none'}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="credit-message">Mensaje adicional (opcional)</Label>
+                      <Textarea
+                        id="credit-message"
+                        placeholder="Cuéntanos sobre tu necesidad de crédito..."
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '').slice(0, 300))}
+                        rows={3}
+                        className="bg-background/50"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter className="gap-2">
+                    <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                    <Button
+                      className="btn-gold rounded-full"
+                      onClick={handleRequest}
+                      disabled={isSending}
+                    >
+                      {isSending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                      Enviar Solicitud
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Link to="/cliente/perfil?tab=kyc">
+                <Button variant="outline" className="rounded-full px-6 h-12 border-border/20">
+                  Ver mi Perfil KYC
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </StoreLayout>
+  );
+}
 
 export default function CustomerCredit() {
   // --- DERIVED ---
@@ -227,30 +379,11 @@ export default function CustomerCredit() {
 
   if (!hasCredit) {
     return (
-      <StoreLayout>
-        <div className="container py-12 max-w-2xl">
-          <div className="flex items-center gap-4 mb-8">
-            <Link to="/cliente/perfil">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <h1 className="page-header">Mi Crédito</h1>
-          </div>
-          <Card className="glass-card text-center py-12">
-            <CardContent>
-              <Wallet className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-xl font-semibold mb-2">No tienes línea de crédito</h2>
-              <p className="text-muted-foreground mb-6">
-                Aún no tienes una línea de crédito habilitada. Contacta con la tienda para solicitar una.
-              </p>
-              <Link to="/tienda">
-                <Button>Explorar Tienda</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </StoreLayout>
+      <CreditRequestView
+        user={user}
+        profile={profile}
+        rate={rate}
+      />
     );
   }
 
@@ -412,10 +545,16 @@ export default function CustomerCredit() {
               <div className="flex flex-col md:flex-row justify-between gap-6">
                 <div>
                   <p className="text-sm text-muted-foreground">Saldo Pendiente</p>
-                  <p className="text-4xl font-bold">${credit.current_balance.toFixed(2)}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    de ${credit.credit_limit.toFixed(2)} disponibles
-                  </p>
+                  <PriceDisplay 
+                    amountUsd={credit.current_balance} 
+                    primaryClassName="text-4xl font-bold"
+                    showSecondary={false} 
+                  />
+                  <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
+                    <span>de</span>
+                    <PriceDisplay amountUsd={credit.credit_limit} primaryClassName="text-sm" showSecondary={false} />
+                    <span>disponibles</span>
+                  </div>
                 </div>
                 <div className="flex flex-col gap-3 items-start md:items-end justify-between">
                   <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
@@ -780,7 +919,7 @@ export default function CustomerCredit() {
                               </div>
                               <div className="text-right">
                                 <span className="text-xs text-muted-foreground block">Total Pedido</span>
-                                <span className="font-bold text-primary">${compra.totalPedido.toFixed(2)}</span>
+                                <PriceDisplay amountUsd={compra.totalPedido} primaryClassName="font-bold text-primary" showSecondary={false} />
                               </div>
                             </div>
 
@@ -825,7 +964,7 @@ export default function CustomerCredit() {
                                       </Badge>
                                     </div>
                                     <div>
-                                      <p className="text-lg font-bold">${cuota.monto.toFixed(2)}</p>
+                                      <PriceDisplay amountUsd={cuota.monto} primaryClassName="text-lg font-bold" showSecondary={false} />
                                       <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                                         <Calendar className="h-3 w-3" />
                                         Vence: {format(cuota.fechaVencimiento, "dd MMM yyyy", { locale: es })}

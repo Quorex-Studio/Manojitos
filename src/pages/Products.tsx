@@ -30,7 +30,8 @@ export default function Products() {
     price_usd: '',
     stock: '',
     category: '',
-    image_url: ''
+    image_url: '',
+    sizes: [] as string[]
   });
 
   // --- DERIVED ---
@@ -70,7 +71,7 @@ export default function Products() {
 
   // --- HANDLERS ---
   const resetForm = () => {
-    setForm({ name: '', description: '', price_usd: '', stock: '', category: '', image_url: '' });
+    setForm({ name: '', description: '', price_usd: '', stock: '', category: '', image_url: '', sizes: [] });
     setEditingProduct(null);
   };
 
@@ -87,7 +88,8 @@ export default function Products() {
       price_usd: String(product.price_usd),
       stock: String(product.stock),
       category: product.category || '',
-      image_url: product.image_url || ''
+      image_url: product.image_url || '',
+      sizes: product.sizes || []
     });
     setIsOpen(true);
   };
@@ -102,7 +104,8 @@ export default function Products() {
       price_usd: Number(form.price_usd),
       stock: Number(form.stock),
       category: form.category ? sanitizeText(form.category) : null,
-      image_url: form.image_url ? sanitizeText(form.image_url) : null
+      image_url: form.image_url ? sanitizeText(form.image_url) : null,
+      sizes: form.sizes.length > 0 ? form.sizes : null
     };
 
     if (editingProduct) {
@@ -216,6 +219,44 @@ export default function Products() {
                     placeholder="https://..."
                     className="input-glass rounded-xl"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tallas disponibles</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {(['Única', 'S', 'M', 'L', 'XL'] as const).map((size) => {
+                      const isUnique = size === 'Única';
+                      const hasOtherSizes = form.sizes.some(s => s !== 'Única');
+                      const isSelected = form.sizes.includes(size);
+                      const isDisabled = isUnique ? hasOtherSizes : form.sizes.includes('Única');
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          disabled={isDisabled}
+                          onClick={() => {
+                            if (isSelected) {
+                              setForm({ ...form, sizes: form.sizes.filter(s => s !== size) });
+                            } else {
+                              const newSizes = isUnique ? ['Única'] : form.sizes.filter(s => s !== 'Única').concat(size);
+                              setForm({ ...form, sizes: newSizes });
+                            }
+                          }}
+                          className={[
+                            'px-3 py-1.5 rounded-lg text-sm font-medium border transition-all',
+                            isSelected
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-card/80 border-border/40 text-muted-foreground hover:border-primary/50',
+                            isDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'
+                          ].join(' ')}
+                        >
+                          {size === 'Única' ? 'Talla Única' : size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.sizes.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Sin tallas (aplica para todos)</p>
+                  )}
                 </div>
                 <Button type="submit" className="w-full btn-gold rounded-xl">
                   {editingProduct ? 'Actualizar' : 'Crear Producto'}

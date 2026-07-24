@@ -828,6 +828,7 @@ export type Database = {
           minimum_stock: number | null
           name: string
           price_usd: number
+          sizes: string[] | null
           sold_count: number
           stock: number
           updated_at: string
@@ -842,6 +843,7 @@ export type Database = {
           minimum_stock?: number | null
           name: string
           price_usd?: number
+          sizes?: string[] | null
           sold_count?: number
           stock?: number
           updated_at?: string
@@ -856,6 +858,7 @@ export type Database = {
           minimum_stock?: number | null
           name?: string
           price_usd?: number
+          sizes?: string[] | null
           sold_count?: number
           stock?: number
           updated_at?: string

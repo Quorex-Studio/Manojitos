@@ -205,7 +205,13 @@ export default function Providers() {
                     <Input
                       type="date"
                       value={purchaseForm.purchase_date}
-                      onChange={(e) => setPurchaseForm({ ...purchaseForm, purchase_date: e.target.value })}
+                      max={new Date().toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        const today = new Date().toISOString().split('T')[0];
+                        if (e.target.value <= today) {
+                          setPurchaseForm({ ...purchaseForm, purchase_date: e.target.value });
+                        }
+                      }}
                       className="input-glass rounded-xl"
                     />
                   </div>

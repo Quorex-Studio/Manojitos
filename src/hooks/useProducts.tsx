@@ -50,6 +50,7 @@ export function useProducts() {
           description: validated.description,
           category: validated.category,
           image_url: validated.image_url,
+          sizes: validated.sizes ?? null,
           user_id: user.id
         }])
         .select()

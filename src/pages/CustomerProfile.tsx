@@ -6,7 +6,9 @@ import { motion } from 'framer-motion';
 import { User, Phone, Mail, MapPin, Save, Loader2, ArrowLeft, Camera, ShieldCheck, Upload, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
+import { formatBS } from '@/lib/utils';
+import { PriceDisplay } from '@/components/ui/PriceDisplay';
 
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -679,8 +681,8 @@ export default function CustomerProfile() {
               <Card className="bg-card/80 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.06)]">
                 <CardHeader>
                   <CardTitle className="font-serif tracking-tight">Historial de Compras</CardTitle>
-                  <CardDescription className="text-muted-foreground/75 dark:text-muted-foreground/40 text-sm tracking-wide">
-                    Total gastado: <span className="text-gradient-gold font-semibold">${totalSpent.toFixed(2)} USD</span> en {totalPurchases} compras
+                  <CardDescription className="text-muted-foreground/75 dark:text-muted-foreground/40 text-sm tracking-wide flex items-center gap-1">
+                    Total gastado: <PriceDisplay amountUsd={totalSpent} primaryClassName="text-gradient-gold font-semibold inline" showSecondary={false} /> en {totalPurchases} compras
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -721,7 +723,7 @@ export default function CustomerProfile() {
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="font-semibold text-sm text-gradient-gold">${Number(purchase.total_usd).toFixed(2)}</p>
+                              <PriceDisplay amountUsd={Number(purchase.total_usd)} primaryClassName="font-semibold text-sm text-gradient-gold" showSecondary={false} />
                               <p className="text-[10px] text-muted-foreground/30 tracking-wide">
                                 x{quantity}
                               </p>

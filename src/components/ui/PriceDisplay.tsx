@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { formatBS } from '@/lib/utils';
 
 interface PriceDisplayProps {
   amountUsd: number;
@@ -24,8 +25,8 @@ export function PriceDisplay({
 
   // Funciones de formateo rápido
   const formatUSD = (val: number) => `$${val.toFixed(2)}`;
-  const formatVES = (val: number) => `Bs. ${val.toFixed(2)}`;
-  const formatEUR = (val: number) => `€${val.toFixed(2)}`;
+  const formatVES = (val: number) => `Bs. ${formatBS(val)}`;
+  const formatEUR = (val: number) => `€${formatBS(val)}`;
 
   let PrimaryComponent = null;
   let SecondaryComponent = null;

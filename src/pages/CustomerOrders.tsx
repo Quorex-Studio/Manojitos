@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useCustomerOrders } from '@/hooks/useCustomerOrders';
 import { useAuth } from '@/hooks/useAuth';
+import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { cn } from '@/lib/utils';
 
 const ORDER_STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -193,7 +194,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                   </div>
                   <div>
                     <p className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold mb-0.5">Total</p>
-                    <p className="font-medium text-foreground/80">${(order.total_usd || 0).toFixed(2)}</p>
+                    <PriceDisplay amountUsd={order.total_usd || 0} primaryClassName="font-medium text-foreground/80" showSecondary={false} />
                   </div>
                   <div>
                     <p className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold mb-0.5">Enviar a</p>
@@ -236,9 +237,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                           <p className="text-sm text-muted-foreground mt-1">
                             Cantidad: {item.quantity}
                           </p>
-                          <p className="text-sm font-semibold mt-1">
-                            ${(item.total || 0).toFixed(2)}
-                          </p>
+                          <PriceDisplay amountUsd={item.total || 0} primaryClassName="text-sm font-semibold mt-1" showSecondary={false} />
                         </div>
                       </div>
                     ))}
