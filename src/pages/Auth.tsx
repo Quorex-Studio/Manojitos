@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Refresh, Mailbox, Lock, User, Phone, ArrowRight, Sparkles, MapPin, IdCard, Check, X } from 'reicon-react';
+import { Refresh, Mailbox, Lock, User, Phone, ArrowRight, Sparkles, Location, UserId, Check, X } from 'reicon-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -265,7 +265,7 @@ export default function Auth() {
                   <div className="space-y-2 group/input">
                     <Label htmlFor="dni" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Cédula de Identidad <span className="text-destructive">*</span></Label>
                     <div className="relative">
-                      <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
+                      <UserId className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
                       <Input
                         id="dni"
                         type="text"
@@ -281,7 +281,7 @@ export default function Auth() {
                   <div className="space-y-2 group/input">
                     <Label htmlFor="address" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Ubicación / Dirección <span className="text-destructive">*</span></Label>
                     <div className="relative">
-                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
+                      <Location className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
                       <Input
                         id="address"
                         type="text"
