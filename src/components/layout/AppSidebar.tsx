@@ -51,20 +51,6 @@ export function AppSidebar() {
         </Button>
       )}
 
-      {/* Desktop collapse button */}
-      {!isMobile && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "fixed top-4 z-50 transition-all duration-300 bg-background/80 backdrop-blur-sm border border-border shadow-sm",
-            isCollapsed ? "left-4" : "left-[250px]"
-          )}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-      )}
 
       {/* Overlay - mobile only */}
       {isMobile && isOpen && (
@@ -77,7 +63,7 @@ export function AppSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "h-full bg-sidebar border-r border-sidebar-border flex-shrink-0 transition-all duration-300",
+          "relative h-full bg-sidebar border-r border-sidebar-border flex-shrink-0 transition-all duration-300",
           isCollapsed && !isMobile ? "w-[80px]" : "w-[280px]",
           isMobile && "fixed left-0 top-0 z-50",
           isMobile && !isOpen && "-translate-x-full",
@@ -85,9 +71,21 @@ export function AppSidebar() {
           !isMobile && "sticky top-0"
         )}
       >
-        <div className="flex flex-col h-full p-6">
+        {/* Desktop collapse button */}
+        {!isMobile && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute top-8 -right-4 z-50 h-8 w-8 rounded-full bg-background shadow-md border border-border flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
+        )}
+
+        <div className={cn("flex flex-col h-full", isCollapsed && !isMobile ? "p-3" : "p-6")}>
           {/* Logo */}
-          <div className={cn("mb-8 flex items-center", isCollapsed && !isMobile ? "justify-center pt-8" : "gap-3 pt-2")}>
+          <div className={cn("mb-8 flex items-center", isCollapsed && !isMobile ? "justify-center pt-2" : "gap-3 pt-2")}>
             <img 
               src={logoImage} 
               alt="Manojitos" 
@@ -142,7 +140,7 @@ export function AppSidebar() {
           </nav>
 
           {/* Actions */}
-          <div className={cn("flex items-center gap-2 mb-4", isCollapsed && !isMobile && "flex-col")}>
+          <div className={cn("flex items-center gap-2 mb-4", isCollapsed && !isMobile ? "flex-col" : "")}>
             <NotificationBell />
             <ThemeToggle />
           </div>
