@@ -8,6 +8,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { PriceDisplay } from '@/components/ui/PriceDisplay';
 
 interface ProductCardProps {
     product: PublicProduct;
@@ -80,9 +81,11 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                             <h3 className="font-serif text-white text-sm md:text-base font-medium line-clamp-2 leading-snug">
                                 {product.name}
                             </h3>
-                            <span className="block font-bold text-lg text-gold mt-1">
-                                ${product.price_usd.toFixed(2)}
-                            </span>
+                            <PriceDisplay 
+                                amountUsd={product.price_usd} 
+                                primaryClassName="block font-bold text-lg text-gold mt-1" 
+                                showSecondary={false} 
+                            />
                         </div>
 
                         <div className="flex justify-center gap-2">

@@ -10,6 +10,7 @@ import { useWishlist } from '@/hooks/useWishlist';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { PriceDisplay } from '@/components/ui/PriceDisplay';
 
 export default function CustomerWishlist() {
   // --- DERIVED ---
@@ -129,9 +130,13 @@ export default function CustomerWishlist() {
                                 {item.product.category}
                               </Badge>
                             )}
-                            <p className="text-lg font-bold mt-2">
-                              ${item.product?.price_usd.toFixed(2) || '0.00'}
-                            </p>
+                            <div className="mt-2">
+                              <PriceDisplay 
+                                amountUsd={item.product?.price_usd || 0} 
+                                primaryClassName="text-lg font-bold" 
+                                showSecondary={false} 
+                              />
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-2">

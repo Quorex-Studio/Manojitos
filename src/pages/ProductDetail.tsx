@@ -431,7 +431,7 @@ export default function ProductDetail() {
                         className="flex items-center"
                       >
                         <ShoppingBag className="h-5 w-5 mr-2" />
-                        Agregar al Carrito — ${(product.price_usd * quantity).toFixed(2)}
+                        <span className="flex items-center gap-1">Agregar al Carrito — <PriceDisplay amountUsd={product.price_usd * quantity} showSecondary={false} primaryClassName="font-medium" className="inline-flex" /></span>
                       </motion.span>
                     )}
                   </AnimatePresence>
