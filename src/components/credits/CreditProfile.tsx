@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { User, ArrowUp, ArrowDown, Clock, Calendar, DollarSign, CheckCircle, XCircle, AlertTriangle, Shield, ShieldAlert, ShieldX, Award, History, FileText, Refresh, ChevronDown, Phone, Mailbox, Edit, Save } from 'reicon-react';
+import {Loader,  User, ArrowUp, ArrowDown, Clock, Calendar, DollarSign, CheckCircle, XCircle, AlertTriangle, Shield, ShieldAlert, ShieldX, Award, History, FileText, Refresh, ChevronDown, Phone, Mailbox, Edit, Save } from 'reicon-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -388,7 +388,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
             <CardContent className="p-4">
               {loadingTx ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <Loader className="h-6 w-6 animate-spin" />
                 </div>
               ) : transactions.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
@@ -446,7 +446,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
             <CardContent>
               {loadingPromises ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <Loader className="h-6 w-6 animate-spin" />
                 </div>
               ) : promises.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">

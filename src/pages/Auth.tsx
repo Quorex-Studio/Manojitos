@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Refresh, Mailbox, Lock, User, Phone, ArrowRight, Sparkles, Location, UserId, Check, X } from 'reicon-react';
+import {Loader,  Refresh, Mailbox, Lock, User, Phone, ArrowRight, Sparkles, Location, UserId, Check, X } from 'reicon-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -167,7 +167,7 @@ export default function Auth() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -418,7 +418,7 @@ export default function Auth() {
                 className="w-full h-14 btn-gold rounded-[1.25rem] text-lg font-bold group"
               >
                 {loading ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <Loader className="h-6 w-6 animate-spin" />
                 ) : (
                   <div className="flex items-center justify-center gap-2">
                     {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}

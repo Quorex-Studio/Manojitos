@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/tabs";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { UserCheck, UserX, Refresh, Search, FileText, Image as ImageIcon, Users, Mailbox, Phone, Calendar, ShieldAlert, CheckCircle, Clock, XCircle, ChevronRight, ChevronLeft, Map, Key, Ban, Trash2, Unlock } from 'reicon-react';
+import {Loader,  UserCheck, UserX, Refresh, Search, FileText, Image as ImageIcon, Users, Mailbox, Phone, Calendar, ShieldAlert, CheckCircle, Clock, XCircle, ChevronRight, ChevronLeft, Map, Key, Ban, Trash2, Unlock } from 'reicon-react';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
@@ -75,7 +75,7 @@ function CustomerHistory({ userId, phone }: { userId: string, phone: string | nu
     enabled: !!userId
   });
 
-  if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  if (isLoading) return <div className="flex justify-center p-8"><Loader className="w-6 h-6 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6">
@@ -289,7 +289,7 @@ export default function Customers() {
       <div className="flex h-[400px] items-center justify-center">
         <div className="relative">
           <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
-          <Loader2 className="h-10 w-10 animate-spin text-primary relative z-10" />
+          <Loader className="h-10 w-10 animate-spin text-primary relative z-10" />
         </div>
       </div>
     );

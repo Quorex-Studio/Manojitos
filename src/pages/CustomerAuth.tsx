@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mailbox, Lock, User, Refresh, ArrowLeft, ShoppingBag, Phone, FileText, Map, Camera, Location, AlertCircle, ShieldAlert } from 'reicon-react';
+import {Loader,  Mailbox, Lock, User, Refresh, ArrowLeft, ShoppingBag, Phone, FileText, Map, Camera, Location, AlertCircle, ShieldAlert } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -424,7 +424,7 @@ export default function CustomerAuth() {
     return (
       <StoreLayout>
         <div className="container mx-auto px-4 py-20 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+          <Loader className="h-8 w-8 animate-spin text-accent" />
         </div>
       </StoreLayout>
     );
@@ -494,7 +494,7 @@ export default function CustomerAuth() {
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader className="h-4 w-4 mr-2 animate-spin" />
                       Enviando...
                     </>
                   ) : (
@@ -593,7 +593,7 @@ export default function CustomerAuth() {
                           title="Obtener coordenadas GPS automáticamente"
                         >
                           {gettingGPS ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader className="h-4 w-4 animate-spin" />
                           ) : (
                             <Navigation className="h-4 w-4" />
                           )}
@@ -695,7 +695,7 @@ export default function CustomerAuth() {
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader className="h-4 w-4 mr-2 animate-spin" />
                       {isLogin ? 'Iniciando sesión...' : 'Creando cuenta...'}
                     </>
                   ) : (

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bell, Check, ChevronRight, Refresh } from 'reicon-react';
+import {Loader,  Bell, Check, ChevronRight, Refresh } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -82,7 +82,7 @@ export function NotificationBell() {
         <ScrollArea className="h-[300px]">
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Loader className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : recentNotifications.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">

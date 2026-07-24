@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Search, Check, Trash2, Phone, User, DollarSign, Refresh } from 'reicon-react';
+import {Loader,  CreditCard, Search, Check, Trash2, Phone, User, DollarSign, Refresh } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useDebts, Debt } from '@/hooks/useDebts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
@@ -220,7 +220,7 @@ export default function Debts() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
                   Procesando...
                 </>
               ) : (

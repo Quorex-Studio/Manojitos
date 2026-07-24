@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Scale, Plus, Edit2, Trash2, ToggleOff, ToggleOn, AlertTriangle, Refresh, ChevronDown, ChevronUp, Settings2 } from 'reicon-react';
+import {Loader,  Scale, Plus, Edit2, Trash2, ToggleOff, ToggleOn, AlertTriangle, Refresh, ChevronDown, ChevronUp, Settings2 } from 'reicon-react';
 import { cn } from '@/lib/utils';
 
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -174,7 +174,7 @@ export default function BusinessRules() {
                 disabled={initializeDefaultRules.isPending}
               >
                 {initializeDefaultRules.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader className="h-4 w-4 animate-spin mr-2" />
                 ) : (
                   <Settings2 className="h-4 w-4 mr-2" />
                 )}
@@ -219,7 +219,7 @@ export default function BusinessRules() {
         {/* Rules List */}
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : rules.length === 0 ? (
           <Card className="glass-card">
@@ -454,7 +454,7 @@ export default function BusinessRules() {
                 className="btn-gold"
               >
                 {(createRule.isPending || updateRule.isPending) && (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader className="h-4 w-4 animate-spin mr-2" />
                 )}
                 {selectedRule ? 'Guardar' : 'Crear'}
               </Button>

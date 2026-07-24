@@ -1,6 +1,6 @@
 // Componente de perfil financiero del cliente con visualización premium
 import { motion } from 'framer-motion';
-import { ArrowUp, ArrowDown, AlertCircle, CheckCircle, CreditCard, DollarSign, Calendar, Award, Shield, Target, Flash, Clock, Refresh } from 'reicon-react';
+import {Loader,  ArrowUp, ArrowDown, AlertCircle, CheckCircle, CreditCard, DollarSign, Calendar, Award, Shield, Target, Flash, Clock, Refresh } from 'reicon-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -24,7 +24,7 @@ export function CreditFinancialProfile({ creditId, creditData, compact = false }
     return (
       <Card className="glass-card">
         <CardContent className="p-4 flex items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Loader className="h-6 w-6 animate-spin text-primary" />
         </CardContent>
       </Card>
     );

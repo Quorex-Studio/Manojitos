@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bell, BellOff, Check, InfoCircle, AlertTriangle, CheckCircle, XCircle, ArrowLeft, Refresh } from 'reicon-react';
+import {Loader,  Bell, BellOff, Check, InfoCircle, AlertTriangle, CheckCircle, XCircle, ArrowLeft, Refresh } from 'reicon-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -63,7 +63,7 @@ export default function CustomerNotifications() {
     return (
       <StoreLayout>
         <div className="container py-12 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader className="h-8 w-8 animate-spin text-primary" />
         </div>
       </StoreLayout>
     );

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, Plus, Trash2, Star, Refresh, ArrowLeft, Phone, Mailbox, Building2, Wallet, CheckCircle } from 'reicon-react';
+import {Loader,  CreditCard, Plus, Trash2, Star, Refresh, ArrowLeft, Phone, Mailbox, Building2, Wallet, CheckCircle } from 'reicon-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -239,7 +239,7 @@ export default function CustomerPaymentMethods() {
                     disabled={addMethod.isPending || !selectedType}
                   >
                     {addMethod.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <Loader className="h-4 w-4 animate-spin mr-2" />
                     ) : (
                       <Plus className="h-4 w-4 mr-2" />
                     )}
@@ -253,7 +253,7 @@ export default function CustomerPaymentMethods() {
           {/* Lista de métodos */}
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : methods.length === 0 ? (
             <Card className="glass-card">

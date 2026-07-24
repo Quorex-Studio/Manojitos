@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { Settings, Lock, Bell, Shield, Logout, Refresh, ArrowLeft, Eye, EyeOff, Check, CreditCard } from 'reicon-react';
+import {Loader,  Settings, Lock, Bell, Shield, Logout, Refresh, ArrowLeft, Eye, EyeOff, Check, CreditCard } from 'reicon-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -118,7 +118,7 @@ export default function CustomerSettings() {
     return (
       <StoreLayout>
         <div className="container py-12 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader className="h-8 w-8 animate-spin text-primary" />
         </div>
       </StoreLayout>
     );
@@ -242,7 +242,7 @@ export default function CustomerSettings() {
                     disabled={isChangingPassword}
                   >
                     {isChangingPassword ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <Loader className="h-4 w-4 animate-spin mr-2" />
                     ) : (
                       <Check className="h-4 w-4 mr-2" />
                     )}

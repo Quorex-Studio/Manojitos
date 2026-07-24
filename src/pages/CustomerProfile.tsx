@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { User, Phone, Mailbox, Map, Save, Refresh, ArrowLeft, Camera, ShieldCheck, Upload, Image as ImageIcon, CheckCircle } from 'reicon-react';
+import {Loader,  User, Phone, Mailbox, Map, Save, Refresh, ArrowLeft, Camera, ShieldCheck, Upload, Image as ImageIcon, CheckCircle } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -274,7 +274,7 @@ export default function CustomerProfile() {
     return (
       <StoreLayout>
         <div className="container py-24 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
+          <Loader className="h-8 w-8 animate-spin text-primary/50" />
         </div>
       </StoreLayout>
     );
@@ -305,7 +305,7 @@ export default function CustomerProfile() {
                 </Avatar>
                 <div className="absolute inset-0 bg-background/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onClick={() => document.getElementById('avatarUpload')?.click()}>
                   {isUploadingAvatar ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <Loader className="h-4 w-4 animate-spin text-primary" />
                   ) : (
                     <Camera className="h-5 w-5 text-primary" />
                   )}
@@ -517,7 +517,7 @@ export default function CustomerProfile() {
                       disabled={upsertProfile.isPending}
                     >
                       {upsertProfile.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <Loader className="h-4 w-4 animate-spin mr-2" />
                       ) : (
                         <Save className="h-4 w-4 mr-2" />
                       )}
@@ -572,7 +572,7 @@ export default function CustomerProfile() {
 
                   {profile?.kyc_status === 'pending' && (
                     <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-700 dark:text-yellow-400 p-4 rounded-lg flex items-center gap-3">
-                      <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin" />
+                      <Loader className="h-5 w-5 flex-shrink-0 animate-spin" />
                       <div>
                         <p className="font-medium text-sm">En Revisión</p>
                         <p className="text-xs opacity-90">Tus documentos están siendo revisados por nuestro equipo. Te notificaremos pronto.</p>
@@ -675,7 +675,7 @@ export default function CustomerProfile() {
                       className="w-full btn-gold rounded-full h-12 mt-4"
                     >
                       {kycUploading ? (
-                        <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Subiendo...</>
+                        <><Loader className="h-4 w-4 animate-spin mr-2" /> Subiendo...</>
                       ) : (
                         <><Upload className="h-4 w-4 mr-2" /> Enviar Documentos KYC</>
                       )}
@@ -697,7 +697,7 @@ export default function CustomerProfile() {
                 <CardContent>
                   {purchasesLoading ? (
                     <div className="flex justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/30" />
+                      <Loader className="h-6 w-6 animate-spin text-muted-foreground/30" />
                     </div>
                   ) : purchases.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground/75 dark:text-muted-foreground/40">

@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
-import { Upload, File, CheckCircle, XCircle, AlertTriangle, Download, Trash2, Refresh } from 'reicon-react';
+import {Loader,  Upload, File, CheckCircle, XCircle, AlertTriangle, Download, Trash2, Refresh } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -434,7 +434,7 @@ export default function ImportProducts() {
                     />
                     <label htmlFor="file-upload" className="cursor-pointer">
                       {isProcessing ? (
-                        <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin" />
+                        <Loader className="h-12 w-12 mx-auto text-primary animate-spin" />
                       ) : (
                         <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                       )}
@@ -602,7 +602,7 @@ export default function ImportProducts() {
             >
               <Card>
                 <CardContent className="pt-12 pb-12 text-center">
-                  <Loader2 className="h-16 w-16 mx-auto text-primary animate-spin mb-6" />
+                  <Loader className="h-16 w-16 mx-auto text-primary animate-spin mb-6" />
                   <h3 className="text-xl font-semibold mb-2">Importando productos...</h3>
                   <p className="text-muted-foreground mb-6">
                     Por favor no cierres esta página

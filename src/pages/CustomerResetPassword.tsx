@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Lock, Refresh, Key } from 'reicon-react';
+import {Loader,  Lock, Refresh, Key } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -147,7 +147,7 @@ export default function CustomerResetPassword() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader className="h-4 w-4 mr-2 animate-spin" />
                     Actualizando...
                   </>
                 ) : (

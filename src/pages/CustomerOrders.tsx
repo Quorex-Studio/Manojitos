@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Package, Truck, CheckCircle, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag, Map } from 'reicon-react';
+import {Loader,  Package, Truck, CheckCircle, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag, Map } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -66,7 +66,7 @@ export default function CustomerOrders() {
     return (
       <StoreLayout>
         <div className="container py-12 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader className="h-8 w-8 animate-spin text-primary" />
         </div>
       </StoreLayout>
     );

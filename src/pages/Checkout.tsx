@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Check, CreditCard, Truck, Package, Store, User, Mailbox, Phone, Map, Refresh, ShoppingBag, Shield, Copy, Mobile, Bank, Wallet, AlertTriangle, Edit, Plus } from 'reicon-react';
+import {Loader,  ArrowLeft, Check, CreditCard, Truck, Package, Store, User, Mailbox, Phone, Map, Refresh, ShoppingBag, Shield, Copy, Mobile, Bank, Wallet, AlertTriangle, Edit, Plus } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -431,7 +431,7 @@ export default function Checkout() {
     return (
       <StoreLayout>
         <div className="container mx-auto px-4 py-20 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+          <Loader className="h-8 w-8 animate-spin text-accent" />
         </div>
       </StoreLayout>
     );
@@ -1195,7 +1195,7 @@ export default function Checkout() {
                     >
                       {loading ? (
                         <>
-                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          <Loader className="h-5 w-5 mr-2 animate-spin" />
                           Procesando...
                         </>
                       ) : (

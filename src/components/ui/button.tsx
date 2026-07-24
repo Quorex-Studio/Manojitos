@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-import { Refresh } from 'reicon-react';
+import {Loader,  Refresh } from 'reicon-react';
 
 import { cn } from "@/lib/utils";
 
@@ -51,7 +51,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader className="h-4 w-4 animate-spin" />
             <span className="opacity-70">{children}</span>
           </>
         ) : (

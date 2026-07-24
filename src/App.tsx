@@ -49,7 +49,7 @@ const Atencion = lazy(() => import("./pages/Atencion"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 
 const NotFound = lazy(() => import("./pages/NotFound"));
-import { Refresh } from 'reicon-react';
+import {Loader,  Refresh } from 'reicon-react';
 
 
 // ErrorBoundary — captura crashes de React y muestra mensaje en vez de pantalla negra
@@ -116,7 +116,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -141,7 +141,7 @@ function CustomerProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -161,7 +161,7 @@ function LazyPage({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader className="h-8 w-8 animate-spin text-primary" />
       </div>
     }>
       {children}

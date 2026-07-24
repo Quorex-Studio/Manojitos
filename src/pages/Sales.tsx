@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, ShoppingCart, Search, Trash2, Check, X, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Map, Package, Refresh } from 'reicon-react';
+import {Loader,  Plus, ShoppingCart, Search, Trash2, Check, X, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Map, Package, Refresh } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
@@ -628,7 +628,7 @@ export default function Sales() {
                             className="input-glass rounded-xl pr-9"
                           />
                           {dniLookupState === 'loading' && (
-                            <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                            <Loader className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
                           )}
                           {dniLookupState === 'found' && (
                             <Check className="absolute right-3 top-2.5 h-4 w-4 text-primary" />
@@ -764,7 +764,7 @@ export default function Sales() {
                       }
                     >
                       {isSubmitting ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Registrando...</>
+                        <><Loader className="h-4 w-4 mr-2 animate-spin" />Registrando...</>
                       ) : (
                         `Registrar Venta${resolvedItems.filter(i => i.product).length > 1 ? ` (${resolvedItems.filter(i => i.product).length} productos)` : ''}`
                       )}

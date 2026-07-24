@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CreditCard, Wallet, Calendar, ArrowDown, ArrowUp, Shield, ShieldAlert, ShieldX, Clock, ArrowLeft, Refresh, AlertTriangle, Alert, CheckCircle, Award, History, DollarSign, Plus } from 'reicon-react';
+import {Loader,  CreditCard, Wallet, Calendar, ArrowDown, ArrowUp, Shield, ShieldAlert, ShieldX, Clock, ArrowLeft, Refresh, AlertTriangle, Alert, CheckCircle, Award, History, DollarSign, Plus } from 'reicon-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -191,7 +191,7 @@ function CreditRequestView({ user, profile, rate }: { user: any; profile: any; r
                       onClick={handleRequest}
                       disabled={isSending}
                     >
-                      {isSending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                      {isSending ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                       Enviar Solicitud
                     </Button>
                   </DialogFooter>
@@ -333,7 +333,7 @@ export default function CustomerCredit() {
     return (
       <StoreLayout>
         <div className="container py-12 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader className="h-8 w-8 animate-spin text-primary" />
         </div>
       </StoreLayout>
     );
@@ -661,7 +661,7 @@ export default function CustomerCredit() {
                         >
                           {reportPayment.isPending ? (
                             <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <Loader className="mr-2 h-4 w-4 animate-spin" />
                               Enviando...
                             </>
                           ) : (

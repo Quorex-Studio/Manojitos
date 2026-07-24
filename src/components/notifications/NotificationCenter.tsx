@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bell, Mailbox, MessageSquare, Phone, CheckCircle, XCircle, Clock, Send, Refresh, ChevronDown, AlertCircle, InfoCircle } from 'reicon-react';
+import {Loader,  Bell, Mailbox, MessageSquare, Phone, CheckCircle, XCircle, Clock, Send, Refresh, ChevronDown, AlertCircle, InfoCircle } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -112,7 +112,7 @@ export function NotificationCenter({ creditId, compact }: NotificationCenterProp
               disabled={processAutomaticNotifications.isPending}
             >
               {processAutomaticNotifications.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader className="h-4 w-4 animate-spin" />
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
@@ -135,7 +135,7 @@ export function NotificationCenter({ creditId, compact }: NotificationCenterProp
       <CardContent>
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : filteredNotifications.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
@@ -250,7 +250,7 @@ export function CreditReminderHistoryPanel({ creditId, clientName }: CreditRemin
         <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
           {isLoading ? (
             <div className="flex justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader className="h-5 w-5 animate-spin" />
             </div>
           ) : reminders.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">

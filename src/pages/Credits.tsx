@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CreditCard, Plus, Search, Filter, Phone, Mailbox, Calendar, DollarSign, AlertCircle, CheckCircle, Clock, Ban, MessageSquare, Refresh, ChevronDown, X, Send, Lock, Unlock, Bell, ArrowDown, ArrowUp, Receipt } from 'reicon-react';
+import {Loader,  CreditCard, Plus, Search, Filter, Phone, Mailbox, Calendar, DollarSign, AlertCircle, CheckCircle, Clock, Ban, MessageSquare, Refresh, ChevronDown, X, Send, Lock, Unlock, Bell, ArrowDown, ArrowUp, Receipt } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -420,7 +420,7 @@ export default function Credits() {
                       <Label htmlFor="customer_select">Seleccionar Cliente Registrado *</Label>
                       {isLoadingProfiles ? (
                         <div className="flex items-center space-x-2 text-sm text-muted-foreground py-2">
-                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <Loader className="h-4 w-4 animate-spin text-primary" />
                           <span>Cargando clientes...</span>
                         </div>
                       ) : (
@@ -549,7 +549,7 @@ export default function Credits() {
                   onClick={handleCreateCredit}
                   disabled={!newCredit.client_name || createCredit.isPending || Number(newCredit.credit_limit) > totalInventoryValue}
                 >
-                  {createCredit.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {createCredit.isPending && <Loader className="h-4 w-4 mr-2 animate-spin" />}
                   Crear Crédito
                 </Button>
               </DialogFooter>
@@ -651,7 +651,7 @@ export default function Credits() {
         {/* Lista de créditos */}
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : filteredCredits.length === 0 ? (
           <Card>
@@ -891,7 +891,7 @@ export default function Credits() {
             {/* Tabla de transacciones */}
             {loadingTransactions ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : filteredAbonos.length === 0 ? (
               <Card>
@@ -1011,7 +1011,7 @@ export default function Credits() {
               <CardContent>
                 {loadingReportedAbonos ? (
                   <div className="flex justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <Loader className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : reportedAbonos.length === 0 ? (
                   <div className="py-12 text-center text-muted-foreground">
@@ -1155,7 +1155,7 @@ export default function Credits() {
                 onClick={handlePayment}
                 disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || registerPayment.isPending}
               >
-                {registerPayment.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {registerPayment.isPending && <Loader className="h-4 w-4 mr-2 animate-spin" />}
                 Registrar Pago
               </Button>
             </DialogFooter>
@@ -1237,7 +1237,7 @@ export default function Credits() {
                 onClick={handleSendReminder}
                 disabled={!customMessage || selectedChannels.length === 0 || sendManualNotification.isPending}
               >
-                {sendManualNotification.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {sendManualNotification.isPending && <Loader className="h-4 w-4 mr-2 animate-spin" />}
                 <Send className="h-4 w-4 mr-2" />
                 Enviar Recordatorio
               </Button>

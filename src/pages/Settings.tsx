@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, Refresh, DollarSign, Moon, Sun, Euro } from 'reicon-react';
+import {Loader,  Settings as SettingsIcon, Refresh, DollarSign, Moon, Sun, Euro } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
@@ -182,7 +182,7 @@ export default function Settings() {
                     className="rounded-xl gap-2 shrink-0"
                   >
                     {fetchingRate ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader className="h-4 w-4 animate-spin" />
                     ) : (
                       <RefreshCw className="h-4 w-4" />
                     )}
@@ -212,7 +212,7 @@ export default function Settings() {
                     aria-label="Tasa manual"
                   />
                   <Button type="submit" disabled={loading || !newRate} className="btn-gold rounded-xl shrink-0">
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Fijar Tasa Manual'}
+                    {loading ? <Loader className="h-4 w-4 animate-spin" /> : 'Fijar Tasa Manual'}
                   </Button>
                 </form>
               </div>
