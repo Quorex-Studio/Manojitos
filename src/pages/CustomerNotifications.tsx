@@ -14,10 +14,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
-const TYPE_CONFIG: Record<string, { icon: typeof Info; color: string; bg: string }> = {
-  info: { icon: Info, color: 'text-primary/80', bg: 'bg-primary/10' },
+const TYPE_CONFIG: Record<string, { icon: typeof InfoCircle; color: string; bg: string }> = {
+  info: { icon: InfoCircle, color: 'text-primary/80', bg: 'bg-primary/10' },
   warning: { icon: AlertTriangle, color: 'text-gold', bg: 'bg-gold/10' },
-  success: { icon: CheckCircle2, color: 'text-primary', bg: 'bg-primary/10' },
+  success: { icon: CheckCircle, color: 'text-primary', bg: 'bg-primary/10' },
   error: { icon: XCircle, color: 'text-destructive', bg: 'bg-destructive/10' },
 };
 
