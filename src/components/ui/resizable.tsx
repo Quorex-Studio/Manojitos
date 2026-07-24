@@ -1,4 +1,4 @@
-import {Menu,  MoreSquare } from 'reicon-react';
+import { Menu, MoreSquare } from 'reicon-react';
 import * as ResizablePrimitive from "react-resizable-panels";
 
 import { cn } from "@/lib/utils";

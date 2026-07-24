@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import {Loader,  Settings as SettingsIcon, Refresh, DollarSign, Moon, Sun, Euro } from 'reicon-react';
+import { Loader, Settings as SettingsIcon, Refresh, DollarSign, Moon, Sun, Euro } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import {Location, Gallery, TickCircle, Loader,  User, Phone, Mailbox, Map, Save, Refresh, ArrowLeft, Camera, ShieldCheck, Upload, Image as Gallery, CheckCircle } from 'reicon-react';
+import { Location, Gallery, TickCircle, Loader, User, Phone, Mailbox, Save, Refresh, ArrowLeft, Camera, ShieldCheck, Upload, Image as Gallery, CheckCircle } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';

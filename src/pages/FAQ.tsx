@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {Category,  HelpCircle, CreditCard, ShieldCheck, UserCheck, ShoppingBag, ArrowLeft, Building2 } from 'reicon-react';
+import { Category, HelpCircle, CreditCard, ShieldCheck, UserCheck, ShoppingBag, ArrowLeft, Building2 } from 'reicon-react';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import {
   Accordion,

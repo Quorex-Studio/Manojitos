@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import {ArrowLeft2, ArrowRight2,  ChevronLeft, ChevronRight, AnglesLeft, AnglesRight } from 'reicon-react';
+import { ArrowLeft2, ArrowRight2, ChevronLeft, ChevronRight, AnglesLeft, AnglesRight } from 'reicon-react';
 
 interface PaginationProps {
   currentPage: number;

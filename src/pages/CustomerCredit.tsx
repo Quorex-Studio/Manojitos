@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {ChartSuccess, Danger, TickCircle, Loader,  CreditCard, Wallet, Calendar, ArrowDown, ArrowUp, Shield, ShieldAlert, ShieldX, Clock, ArrowLeft, Refresh, AlertTriangle, Alert, CheckCircle, Award, History, DollarSign, Plus } from 'reicon-react';
+import { ChartSuccess, Danger, TickCircle, Loader, CreditCard, Wallet, Calendar, ArrowDown, ArrowUp, Shield, ShieldAlert, ShieldX, Clock, ArrowLeft, Refresh, AlertTriangle, Alert, CheckCircle, Award, History, DollarSign, Plus } from 'reicon-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';

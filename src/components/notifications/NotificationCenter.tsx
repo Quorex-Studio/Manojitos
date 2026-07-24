@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {TickCircle, Loader,  Bell, Mailbox, MessageSquare, Phone, CheckCircle, XCircle, Clock, Send, Refresh, ChevronDown, AlertCircle, InfoCircle } from 'reicon-react';
+import { TickCircle, Loader, Bell, Mailbox, MessageSquare, Phone, CheckCircle, XCircle, Clock, Send, Refresh, ChevronDown, AlertCircle, InfoCircle } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

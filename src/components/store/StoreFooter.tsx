@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import {Location,  Instagram, Global, Mailbox, Phone, Map, Heart } from 'reicon-react';
+import { Location, Instagram, Global, Mailbox, Phone, Heart } from 'reicon-react';
 
 // Footer de la tienda — Editorial luxury
 export function StoreFooter() {

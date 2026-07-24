@@ -1,6 +1,6 @@
 // Página Sobre Nosotros y Contacto
 import { motion } from 'framer-motion';
-import {Location, Star,  Map, Phone, Mailbox, Clock, Heart, Sparkles, Instagram, Global } from 'reicon-react';
+import { Location, Star, Phone, Mailbox, Clock, Heart, Sparkles, Instagram, Global } from 'reicon-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StoreLayout } from '@/components/store/StoreLayout';

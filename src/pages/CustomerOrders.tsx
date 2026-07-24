@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {TickCircle, Location, Loader,  Package, Truck, CheckCircle, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag, Map } from 'reicon-react';
+import { TickCircle, Location, Loader, Package, Truck, CheckCircle, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 

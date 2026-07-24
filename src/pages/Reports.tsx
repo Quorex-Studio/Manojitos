@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import {ChartSuccess,  FileText, Download, Calendar, ArrowUp, DollarSign, ShoppingCart } from 'reicon-react';
+import { ChartSuccess, FileText, Download, Calendar, ArrowUp, DollarSign, ShoppingCart } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSales } from '@/hooks/useSales';
 import { useExchangeRate } from '@/hooks/useExchangeRate';

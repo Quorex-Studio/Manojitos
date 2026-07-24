@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import {ChartSuccess,  DollarSign, ShoppingBag, ArrowUp, InfoCircle, Package, CreditCard } from 'reicon-react';
+import { ChartSuccess, DollarSign, ShoppingBag, ArrowUp, InfoCircle, Package, CreditCard } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/ui/stat-card';
 import { DashboardAlertsDropdown } from '@/components/admin/AdminAlertsPanel';

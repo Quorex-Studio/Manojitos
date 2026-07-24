@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import {Loader,  Scale, Plus, Edit2, Trash2, ToggleOff, ToggleOn, AlertTriangle, Refresh, ChevronDown, ChevronUp, Settings2 } from 'reicon-react';
+import { Loader, Scale, Plus, Edit2, Trash2, ToggleOff, ToggleOn, AlertTriangle, Refresh, ChevronDown, ChevronUp, Settings2 } from 'reicon-react';
 import { cn } from '@/lib/utils';
 
 import { AppLayout } from '@/components/layout/AppLayout';

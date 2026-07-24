@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {Loader,  Bell, BellOff, Check, InfoCircle, AlertTriangle, CheckCircle, XCircle, ArrowLeft, Refresh } from 'reicon-react';
+import { Loader, Bell, BellOff, Check, InfoCircle, AlertTriangle, CheckCircle, XCircle, ArrowLeft, Refresh } from 'reicon-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';

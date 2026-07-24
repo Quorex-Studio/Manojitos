@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {Gallery,  Plus, Search, Package, Edit2, Trash2, AlertTriangle, Image } from 'reicon-react';
+import { Gallery, Plus, Search, Package, Edit2, Trash2, AlertTriangle, Image } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {Loader,  Bell, Check, ChevronRight, Refresh } from 'reicon-react';
+import { Loader, Bell, Check, ChevronRight, Refresh } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

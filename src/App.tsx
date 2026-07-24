@@ -49,7 +49,7 @@ const Atencion = lazy(() => import("./pages/Atencion"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 
 const NotFound = lazy(() => import("./pages/NotFound"));
-import {Loader,  Refresh } from 'reicon-react';
+import { Loader, Refresh } from 'reicon-react';
 
 
 // ErrorBoundary — captura crashes de React y muestra mensaje en vez de pantalla negra

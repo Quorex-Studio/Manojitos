@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import {Loader,  CreditCard, Search, Check, Trash2, Phone, User, DollarSign, Refresh } from 'reicon-react';
+import { Loader, CreditCard, Search, Check, Trash2, Phone, User, DollarSign, Refresh } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useDebts, Debt } from '@/hooks/useDebts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';

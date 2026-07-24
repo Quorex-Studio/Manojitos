@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/tabs";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {Location, TickCircle, Gallery, Loader,  UserCheck, UserX, Refresh, Search, FileText, Image as Gallery, Users, Mailbox, Phone, Calendar, ShieldAlert, CheckCircle, Clock, XCircle, ChevronRight, ChevronLeft, Map, Key, Ban, Trash2, Unlock } from 'reicon-react';
+import { Location, TickCircle, Gallery, Loader, UserCheck, UserX, Refresh, Search, FileText, Image as Gallery, Users, Mailbox, Phone, Calendar, ShieldAlert, CheckCircle, Clock, XCircle, ChevronRight, ChevronLeft, Key, Ban, Trash2, Unlock } from 'reicon-react';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';

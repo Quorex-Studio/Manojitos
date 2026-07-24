@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {Category,  User, Logout, Settings, Layout, ChevronDown } from 'reicon-react';
+import { Category, User, Logout, Settings, Layout, ChevronDown } from 'reicon-react';
 import { Button } from './button';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';

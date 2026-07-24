@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import {Loader,  Heart, ShoppingCart, Trash2, ArrowLeft, Refresh, HeartOff } from 'reicon-react';
+import { Loader, Heart, ShoppingCart, Trash2, ArrowLeft, Refresh, HeartOff } from 'reicon-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';

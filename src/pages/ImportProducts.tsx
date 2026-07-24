@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
-import {TickCircle, Document, Loader,  Upload, File, CheckCircle, XCircle, AlertTriangle, Download, Trash2, Refresh } from 'reicon-react';
+import { TickCircle, Document, Loader, Upload, File, CheckCircle, XCircle, AlertTriangle, Download, Trash2, Refresh } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
