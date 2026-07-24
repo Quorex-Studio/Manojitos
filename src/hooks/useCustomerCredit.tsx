@@ -27,29 +27,61 @@ export function useCustomerCredit() {
 
       if (error) throw error;
 
-      // 2. Fallback: Si no se encuentra, buscar por email del usuario actual (si tiene)
-      if (!data && user.email) {
+      // Obtener el perfil para fallback de email y teléfono
+      let profileEmail = null;
+      let profilePhone = null;
+      if (!data) {
+        const { data: profile } = await supabase
+          .from('customer_profiles')
+          .select('email, phone')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        profileEmail = profile?.email;
+        profilePhone = profile?.phone;
+      }
+
+      // 2. Fallback: Si no se encuentra, buscar por email del usuario actual o perfil
+      const emailToSearch = user.email || profileEmail;
+      if (!data && emailToSearch) {
         const { data: emailData, error: emailError } = await supabase
           .from('credits')
           .select('*')
-          .eq('client_email', user.email)
+          .eq('client_email', emailToSearch)
           .maybeSingle();
 
         if (emailError) throw emailError;
         data = emailData;
       }
 
-      // 3. Fallback adicional: Buscar por teléfono si está disponible en metadatos del usuario
-      const phone = user.user_metadata?.phone || user.phone;
-      if (!data && phone) {
-        const { data: phoneData, error: phoneError } = await supabase
+      // 3. Fallback adicional: Buscar por teléfono si está disponible en metadatos del usuario o perfil
+      const phoneToSearch = user.user_metadata?.phone || user.phone || profilePhone;
+      if (!data && phoneToSearch) {
+        // Intento 1: Coincidencia exacta
+        let { data: phoneData, error: phoneError } = await supabase
           .from('credits')
           .select('*')
-          .eq('client_phone', phone)
+          .eq('client_phone', phoneToSearch)
           .maybeSingle();
 
         if (phoneError) throw phoneError;
         data = phoneData;
+
+        // Intento 2: Coincidencia parcial (últimos 10 dígitos) por si hay discrepancias de +58 o 0
+        if (!data) {
+          const cleanPhone = phoneToSearch.replace(/\D/g, '');
+          const last10 = cleanPhone.slice(-10);
+          if (last10.length >= 10) {
+            const { data: likeData, error: likeError } = await supabase
+              .from('credits')
+              .select('*')
+              .like('client_phone', `%${last10}%`)
+              .maybeSingle();
+            
+            if (!likeError) {
+              data = likeData;
+            }
+          }
+        }
       }
 
       if (!data) return null;
