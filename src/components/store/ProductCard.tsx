@@ -1,5 +1,5 @@
 import { useState, useMemo, memo, forwardRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Eye, Check, Package, Sparkles } from 'reicon-react';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { PublicProduct } from '@/hooks/usePublicProducts';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
-import { formatBS } from '@/lib/utils';
+import { formatBS, getAvailableSizes } from '@/lib/utils';
 interface ProductCardProps {
   product: PublicProduct;
   index?: number;
@@ -28,8 +28,11 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
   const cartQuantity = getItemQuantity(product.id);
   const remainingStock = product.stock - cartQuantity;
   const canAdd = remainingStock > 0;
+  const navigate = useNavigate();
 
   const bsPrice = useMemo(() => convertToBS(product.price_usd), [product.price_usd, rate]);
+  const availableSizes = getAvailableSizes(product.name, product.category || '');
+  const requiresSize = availableSizes.length > 0 && availableSizes[0] !== 'Única';
 
   // Manejar agregar al carrito con animación
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -40,6 +43,11 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
       toast.error('Sin stock disponible', {
         description: 'Ya tienes el máximo disponible en tu carrito'
       });
+      return;
+    }
+
+    if (requiresSize) {
+      navigate(`/producto/${product.id}`);
       return;
     }
 
@@ -221,7 +229,7 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
                       className="flex items-center justify-center gap-1.5"
                     >
                       <ShoppingBag className="h-3 w-3" />
-                      <span>{inCart ? 'Agregar más' : 'Agregar'}</span>
+                      <span>{requiresSize ? 'Seleccionar Talla' : inCart ? 'Agregar más' : 'Agregar'}</span>
                     </motion.div>
                   )}
                 </AnimatePresence>

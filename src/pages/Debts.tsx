@@ -149,7 +149,7 @@ export default function Debts() {
 
       {/* Diálogo para registrar abono parcial */}
       <Dialog open={!!selectedDebt} onOpenChange={(open) => !open && setSelectedDebt(null)}>
-        <DialogContent className="glass-card border-border/50 max-w-md">
+        <DialogContent className="max-h-[85vh] overflow-y-auto glass-card border-border/50 max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-serif text-gradient-gold">Registrar Abono</DialogTitle>
             <DialogDescription className="text-muted-foreground text-sm">
@@ -166,7 +166,7 @@ export default function Debts() {
                 </p>
                 <p className="flex justify-between text-xs text-muted-foreground">
                   <span>Equivalente en Bs:</span>
-                  <span>Bs. {formatBS(convertToBS(Number(selectedDebt.amount_usd)))}</span>
+                  <span>{formatBS(convertToBS(Number(selectedDebt.amount_usd)))}</span>
                 </p>
               </div>
 
@@ -187,7 +187,7 @@ export default function Debts() {
                 </div>
                 {abonoAmount && !isNaN(Number(abonoAmount)) && (
                   <p className="text-xs text-muted-foreground pl-1">
-                    Equivalente en Bs: Bs. {formatBS(convertToBS(Number(abonoAmount)))}
+                    Equivalente en Bs: {formatBS(convertToBS(Number(abonoAmount)))}
                   </p>
                 )}
               </div>
@@ -302,7 +302,7 @@ function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, onAbono, con
             <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 pt-3 md:pt-0 border-border/30">
               <div className="text-right">
                 <p className="font-bold text-gradient-gold text-lg">${Number(debt.amount_usd).toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground">Bs. {formatBS(convertToBS(Number(debt.amount_usd)))}</p>
+                <p className="text-xs text-muted-foreground">{formatBS(convertToBS(Number(debt.amount_usd)))}</p>
                 <Badge
                   variant="outline"
                   className={cn(

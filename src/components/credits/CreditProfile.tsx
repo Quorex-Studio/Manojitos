@@ -567,7 +567,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
 
       {/* Dialog para nuevo compromiso */}
       <Dialog open={isPromiseOpen} onOpenChange={setIsPromiseOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nuevo Compromiso de Pago</DialogTitle>
           </DialogHeader>

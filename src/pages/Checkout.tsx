@@ -1017,7 +1017,7 @@ export default function Checkout() {
                         </div>
                         {rate > 0 && (
                           <div className="text-right text-xs text-muted-foreground font-medium">
-                            ≈ Bs. {formatBS(convertToBS(montoInicialTotal))}
+                            ≈ {formatBS(convertToBS(montoInicialTotal))}
                           </div>
                         )}
                         <p className="text-[11px] text-muted-foreground leading-normal mt-1 border-t border-border/40 pt-1.5">

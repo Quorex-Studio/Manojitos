@@ -108,6 +108,7 @@ export default function Reports() {
                 <Input
                   type="date"
                   value={startDate}
+                  max={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="input-glass rounded-xl"
                 />
@@ -117,6 +118,7 @@ export default function Reports() {
                 <Input
                   type="date"
                   value={endDate}
+                  max={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setEndDate(e.target.value)}
                   className="input-glass rounded-xl"
                 />
@@ -140,7 +142,7 @@ export default function Reports() {
           <StatCard
             title="Total Ventas"
             value={`$${stats.totalUSD.toFixed(2)}`}
-            subtitle={`Bs. ${formatBS(convertToBS(stats.totalUSD))}`}
+            subtitle={`${formatBS(convertToBS(stats.totalUSD))}`}
             icon={<DollarSign className="h-6 w-6" />}
             variant="gold"
           />

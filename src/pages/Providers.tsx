@@ -89,7 +89,7 @@ export default function Providers() {
                   Proveedor
                 </Button>
               </DialogTrigger>
-              <DialogContent className="glass-card border-border/50">
+              <DialogContent className="max-h-[85vh] overflow-y-auto glass-card border-border/50">
                 <DialogHeader>
                   <DialogTitle className="font-serif text-2xl">Nuevo Proveedor</DialogTitle>
                 </DialogHeader>
@@ -141,7 +141,7 @@ export default function Providers() {
                   Compra
                 </Button>
               </DialogTrigger>
-              <DialogContent className="glass-card border-border/50">
+              <DialogContent className="max-h-[85vh] overflow-y-auto glass-card border-border/50">
                 <DialogHeader>
                   <DialogTitle className="font-serif text-2xl">Nueva Compra</DialogTitle>
                 </DialogHeader>

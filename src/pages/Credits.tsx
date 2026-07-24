@@ -271,7 +271,7 @@ export default function Credits() {
     let description = paymentDescription ? sanitizeText(paymentDescription) : 'Pago registrado';
     if (rate > 0) {
       const amountBs = amount * rate;
-      description += ` — Bs. ${formatBS(amountBs)} @ Tasa: Bs. ${rate.toFixed(2)}`;
+      description += ` — ${formatBS(amountBs)} @ Tasa: Bs. ${rate.toFixed(2)}`;
     }
     // Marcar sobrante si el abono supera el saldo
     if (credit && amount > credit.current_balance && credit.current_balance > 0) {
@@ -389,7 +389,7 @@ export default function Credits() {
                   Nuevo Crédito
                 </Button>
               </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Crear Nuevo Crédito</DialogTitle>
                 <DialogDescription>
@@ -1083,7 +1083,7 @@ export default function Credits() {
 
         {/* Modal de pago */}
         <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Registrar Pago</DialogTitle>
               <DialogDescription>
@@ -1112,7 +1112,7 @@ export default function Credits() {
                     <p className="text-sm text-muted-foreground">
                       Equivalente:{' '}
                       <span className="font-bold text-primary">
-                        Bs. {formatBS(parseFloat(paymentAmount) * rate)}
+                        {formatBS(parseFloat(paymentAmount) * rate)}
                       </span>
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -1164,7 +1164,7 @@ export default function Credits() {
 
         {/* Modal de recordatorio */}
         <Dialog open={isReminderOpen} onOpenChange={setIsReminderOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-h-[85vh] overflow-y-auto max-w-lg">
             <DialogHeader>
               <DialogTitle>Enviar Recordatorio</DialogTitle>
               <DialogDescription>

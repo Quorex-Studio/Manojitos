@@ -5,9 +5,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Refresh, Mailbox, Lock, User, Phone, ArrowRight, Sparkles } from 'reicon-react';
+import { Refresh, Mailbox, Lock, User, Phone, ArrowRight, Sparkles, MapPin, IdCard, Check, X } from 'reicon-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import logoImage from '@/assets/logo.jpeg';
 
 export default function Auth() {
@@ -19,9 +20,25 @@ export default function Auth() {
   const [form, setForm] = useState({
     email: '',
     password: '',
+    confirmPassword: '',
     fullName: '',
-    phone: ''
+    phone: '',
+    dni: '',
+    address: ''
   });
+
+  const getPasswordStrength = (pass: string) => {
+    let score = 0;
+    if (pass.length > 0) {
+      if (pass.length >= 8) score++;
+      if (/[A-Z]/.test(pass)) score++;
+      if (/[0-9]/.test(pass)) score++;
+      if (/[^a-zA-Z0-9]/.test(pass)) score++;
+    }
+    return score;
+  };
+  
+  const passwordScore = getPasswordStrength(form.password);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -39,6 +56,8 @@ export default function Auth() {
       finalValue = finalValue.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
     } else if (id === 'email') {
       finalValue = finalValue.replace(/[^a-zA-Z0-9@._\-+]/g, '');
+    } else if (id === 'dni') {
+      finalValue = finalValue.replace(/[^VEJGP0-9-]/gi, '').toUpperCase();
     } else if (id === 'phone') {
       finalValue = finalValue.replace(/[^\+0-9\-\(\)]/g, '').trim();
       // Auto prefijo venezolano si empieza por 0
@@ -72,9 +91,52 @@ export default function Auth() {
           });
         }
       } else {
+        if (form.password !== form.confirmPassword) {
+          toast({ title: 'Error', description: 'Las contraseñas no coinciden', variant: 'destructive' });
+          setLoading(false);
+          return;
+        }
+        if (passwordScore < 3) {
+          toast({ title: 'Contraseña débil', description: 'La contraseña debe tener al menos 8 caracteres, incluir números y mayúsculas.', variant: 'destructive' });
+          setLoading(false);
+          return;
+        }
+
+        // Validación de unicidad
+        const { data: uniquenessCheck, error: rpcError } = await supabase.rpc('check_unique_customer_data', {
+          p_phone: form.phone,
+          p_dni: form.dni,
+          p_email: form.email
+        });
+        
+        if (rpcError) {
+          toast({ title: 'Error de validación', description: 'Hubo un error verificando tus datos. Inténtalo de nuevo.', variant: 'destructive' });
+          setLoading(false);
+          return;
+        }
+
+        if (uniquenessCheck) {
+          const check = uniquenessCheck as { email_taken: boolean, dni_taken: boolean, phone_taken: boolean };
+          if (check.email_taken) {
+            toast({ title: 'Error', description: 'El correo electrónico ya está registrado', variant: 'destructive' });
+            setLoading(false);
+            return;
+          }
+          if (check.dni_taken) {
+            toast({ title: 'Error', description: 'El DNI o Cédula ya está registrado', variant: 'destructive' });
+            setLoading(false);
+            return;
+          }
+          if (check.phone_taken) {
+            toast({ title: 'Error', description: 'El número de teléfono ya está registrado', variant: 'destructive' });
+            setLoading(false);
+            return;
+          }
+        }
+
         const { sanitizeText } = await import('@/lib/validations');
         const safeName = sanitizeText(form.fullName);
-        const { error } = await signUp(form.email, form.password, safeName, form.phone);
+        const { error } = await signUp(form.email, form.password, safeName, form.phone, form.dni, undefined, form.address);
         if (error) {
           if (error.message.includes('already registered')) {
             toast({
@@ -200,6 +262,38 @@ export default function Auth() {
                       />
                     </div>
                   </div>
+                  <div className="space-y-2 group/input">
+                    <Label htmlFor="dni" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Cédula de Identidad <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <IdCard className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
+                      <Input
+                        id="dni"
+                        type="text"
+                        placeholder="V-12345678"
+                        value={form.dni}
+                        onChange={handleInputChange}
+                        className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/20"
+                        required={!isLogin}
+                        aria-required="true"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2 group/input">
+                    <Label htmlFor="address" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Ubicación / Dirección <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
+                      <Input
+                        id="address"
+                        type="text"
+                        placeholder="Ej: Av. Principal, Edificio Central, Apt 4"
+                        value={form.address}
+                        onChange={handleInputChange}
+                        className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground/20"
+                        required={!isLogin}
+                        aria-required="true"
+                      />
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -238,7 +332,79 @@ export default function Auth() {
                     minLength={6}
                   />
                 </div>
+                {/* Medidor de seguridad de contraseña */}
+                {!isLogin && form.password.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex gap-1 h-1.5">
+                      {[1, 2, 3, 4].map((step) => (
+                        <div
+                          key={step}
+                          className={cn(
+                            "flex-1 rounded-full transition-colors duration-300",
+                            passwordScore >= step
+                              ? passwordScore <= 2
+                                ? "bg-destructive/60"
+                                : passwordScore === 3
+                                ? "bg-yellow-500/80"
+                                : "bg-green-500/80"
+                              : "bg-border/20"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex justify-between items-center text-[10px] text-muted-foreground/70 uppercase font-bold tracking-wider">
+                      <span>Nivel de seguridad</span>
+                      <span>
+                        {passwordScore <= 2 ? 'Débil' : passwordScore === 3 ? 'Aceptable' : 'Fuerte'}
+                      </span>
+                    </div>
+                    <ul className="text-xs space-y-1 text-muted-foreground/60">
+                      <li className={cn("flex items-center gap-1", form.password.length >= 8 ? "text-green-500" : "")}>
+                        {form.password.length >= 8 ? <Check className="w-3 h-3" /> : <X className="w-3 h-3 text-destructive/50" />} 8+ caracteres
+                      </li>
+                      <li className={cn("flex items-center gap-1", /[A-Z]/.test(form.password) ? "text-green-500" : "")}>
+                        {/[A-Z]/.test(form.password) ? <Check className="w-3 h-3" /> : <X className="w-3 h-3 text-destructive/50" />} Letra mayúscula
+                      </li>
+                      <li className={cn("flex items-center gap-1", /[0-9]/.test(form.password) ? "text-green-500" : "")}>
+                        {/[0-9]/.test(form.password) ? <Check className="w-3 h-3" /> : <X className="w-3 h-3 text-destructive/50" />} Número
+                      </li>
+                    </ul>
+                  </div>
+                )}
               </div>
+
+              <AnimatePresence mode="popLayout">
+                {!isLogin && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, y: 20 }}
+                    animate={{ opacity: 1, height: "auto", y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: -20 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                    className="space-y-2 group/input overflow-hidden"
+                  >
+                    <Label htmlFor="confirmPassword" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Confirmar Contraseña <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="••••••••"
+                        value={form.confirmPassword}
+                        onChange={handleInputChange}
+                        className={cn(
+                          "pl-12 h-14 bg-background/40 rounded-2xl transition-all duration-300 placeholder:text-muted-foreground/20",
+                          form.confirmPassword.length > 0 && form.password !== form.confirmPassword 
+                            ? "border-destructive/50 focus:ring-destructive/20 focus:border-destructive" 
+                            : "border-border/20 focus:ring-primary/20 focus:border-primary"
+                        )}
+                        required={!isLogin}
+                        aria-required="true"
+                        minLength={6}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <motion.div

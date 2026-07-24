@@ -337,7 +337,7 @@ export default function BusinessRules() {
 
         {/* Create/Edit Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-h-[85vh] overflow-y-auto max-w-lg">
             <DialogHeader>
               <DialogTitle>{selectedRule ? 'Editar Regla' : 'Nueva Regla'}</DialogTitle>
               <DialogDescription>

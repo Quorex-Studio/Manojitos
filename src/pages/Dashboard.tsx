@@ -81,7 +81,7 @@ export default function Dashboard() {
     
     if (displayCurrency === 'VES') {
       return {
-        primary: `Bs. ${formatBS(VES)}`,
+        primary: `${formatBS(VES)}`,
         secondary: `$${USD.toFixed(2)}`
       };
     } else if (displayCurrency === 'EUR') {
@@ -93,7 +93,7 @@ export default function Dashboard() {
     
     return {
       primary: `$${USD.toFixed(2)}`,
-      secondary: rate > 0 ? `Bs. ${formatBS(VES)}` : ''
+      secondary: rate > 0 ? `${formatBS(VES)}` : ''
     };
   };
 
@@ -105,7 +105,7 @@ export default function Dashboard() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
-              Dashboard
+              Panel General
             </h1>
             <p className="text-muted-foreground/40 mt-1 text-sm tracking-wide">
               Resumen de tu negocio

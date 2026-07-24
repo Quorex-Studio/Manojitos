@@ -274,7 +274,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
       })}
       {/* Tracking Modal */}
       <Dialog open={!!trackingOrder} onOpenChange={(open) => !open && setTrackingOrder(null)}>
-        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
           <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center">
             <DialogTitle className="text-xl font-medium tracking-tight">Rastreo de Paquete</DialogTitle>
           </div>

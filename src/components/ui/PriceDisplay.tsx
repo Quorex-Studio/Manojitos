@@ -25,7 +25,7 @@ export function PriceDisplay({
 
   // Funciones de formateo rápido
   const formatUSD = (val: number) => `$${val.toFixed(2)}`;
-  const formatVES = (val: number) => `Bs. ${formatBS(val)}`;
+  const formatVES = (val: number) => `${formatBS(val)}`;
   const formatEUR = (val: number) => `€${formatBS(val)}`;
 
   let PrimaryComponent = null;

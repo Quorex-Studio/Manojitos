@@ -599,7 +599,7 @@ export default function Sales() {
                           {rate > 0 && (
                             <div className="flex justify-between">
                               <span className="text-muted-foreground text-sm">Total Bs:</span>
-                              <span className="font-medium text-sm">Bs. {formatBS(totalBS)}</span>
+                              <span className="font-medium text-sm">{formatBS(totalBS)}</span>
                             </div>
                           )}
                         </div>
@@ -732,7 +732,7 @@ export default function Sales() {
                                 <div className="flex items-center justify-between">
                                   <span className="text-2xl font-bold text-gradient-gold">${changeUSD.toFixed(2)}</span>
                                   {rate > 0 && (
-                                    <span className="text-sm font-medium">Bs. {formatBS(changeBS)}</span>
+                                    <span className="text-sm font-medium">{formatBS(changeBS)}</span>
                                   )}
                                 </div>
                               </div>
@@ -960,7 +960,7 @@ export default function Sales() {
                                 <span className="text-xs text-muted-foreground">Total:</span>
                                 <span className="text-xl font-bold text-gradient-gold">${Number(order.total_usd).toFixed(2)}</span>
                                 {order.total_bs && (
-                                  <span className="text-sm text-muted-foreground font-medium">/ Bs. {formatBS(Number(order.total_bs))}</span>
+                                  <span className="text-sm text-muted-foreground font-medium">/ {formatBS(Number(order.total_bs))}</span>
                                 )}
                               </div>
                               

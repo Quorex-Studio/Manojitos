@@ -309,7 +309,7 @@ export default function Customers() {
               onClick={() => navigate('/dashboard')}
             >
               <ChevronLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-              Volver al Dashboard
+              Volver al Panel General
             </Button>
             
             <div className="flex items-center gap-4">
@@ -436,7 +436,7 @@ export default function Customers() {
                             <ChevronRight className="h-4 w-4 ml-1" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[700px] glass-card text-foreground p-0 overflow-hidden shadow-2xl rounded-2xl border-border/50">
+                        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[700px] glass-card text-foreground p-0 overflow-hidden shadow-2xl rounded-2xl border-border/50">
                           {selectedCustomer && (
                             <>
                               {/* Modal Header Profile */}

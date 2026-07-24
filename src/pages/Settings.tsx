@@ -165,7 +165,7 @@ export default function Settings() {
                   <div className="min-w-0">
                     <p className="text-sm text-muted-foreground">Tasa {selectedCurrency} actual</p>
                     <p className="text-3xl font-bold text-gradient-gold">
-                      {rate > 0 ? `Bs. ${formatBS(rate)}` : 'No configurada'}
+                      {rate > 0 ? `${formatBS(rate)}` : 'No configurada'}
                     </p>
                     {newLastUpdate && (
                       <p className="text-xs text-muted-foreground mt-1">

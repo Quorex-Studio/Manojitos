@@ -141,7 +141,7 @@ export default function Products() {
                 Nuevo Producto
               </Button>
             </DialogTrigger>
-            <DialogContent className="glass-card border-border/50 max-w-md">
+            <DialogContent className="max-h-[85vh] overflow-y-auto glass-card border-border/50 max-w-md">
               <DialogHeader>
                 <DialogTitle className="font-serif text-2xl">
                   {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
@@ -383,7 +383,7 @@ export default function Products() {
                           </p>
                           {rate > 0 && (
                             <p className="text-xs text-muted-foreground">
-                              Bs. {formatBS(convertToBS(Number(product.price_usd)))}
+                              {formatBS(convertToBS(Number(product.price_usd)))}
                             </p>
                           )}
                         </div>

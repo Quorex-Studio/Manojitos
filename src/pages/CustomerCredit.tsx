@@ -143,7 +143,7 @@ function CreditRequestView({ user, profile, rate }: { user: any; profile: any; r
                     Solicitar Crédito
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="glass-card max-w-md bg-background/95 backdrop-blur-md border border-border dark:border-white/10">
+                <DialogContent className="max-h-[85vh] overflow-y-auto glass-card max-w-md bg-background/95 backdrop-blur-md border border-border dark:border-white/10">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl">
                       <CreditCard className="h-5 w-5 text-primary" />
@@ -545,7 +545,7 @@ export default function CustomerCredit() {
                         Reportar Abono
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="glass-card max-w-md bg-background/95 backdrop-blur-md border border-border dark:border-white/10 text-foreground">
+                    <DialogContent className="max-h-[85vh] overflow-y-auto glass-card max-w-md bg-background/95 backdrop-blur-md border border-border dark:border-white/10 text-foreground">
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
                           <DollarSign className="h-5 w-5 text-primary animate-pulse" />
@@ -579,7 +579,7 @@ export default function CustomerCredit() {
                           </div>
                           {amount && rate && (
                             <p className="text-xs text-muted-foreground mt-1">
-                              Equivalente a: <span className="font-semibold text-primary">Bs. {formatBS(parseFloat(amount) * rate)}</span> (Tasa: {rate} Bs/$)
+                              Equivalente a: <span className="font-semibold text-primary">{formatBS(parseFloat(amount) * rate)}</span> (Tasa: {rate} Bs/$)
                             </p>
                           )}
                         </div>

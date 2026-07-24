@@ -43,7 +43,7 @@ export default defineConfig(({ mode }: { mode: string }) => {
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
             'vendor-supabase': ['@supabase/supabase-js'],
             'vendor-framer': ['framer-motion'],
-            'vendor-ui': ['lucide-react', 'clsx', 'tailwind-merge']
+            'vendor-ui': ['reicon-react', 'clsx', 'tailwind-merge']
           },
         }
       },

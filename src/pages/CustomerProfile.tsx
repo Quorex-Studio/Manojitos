@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { User, Phone, Mailbox, Map, Save, Refresh, ArrowLeft, Camera, ShieldCheck, Upload, Image as ImageIcon, CheckCircle } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { formatBS } from '@/lib/utils';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 
@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useCustomerProfile, CustomerProfileInput } from '@/hooks/useCustomerProfile';
 import { useCustomerPurchaseHistory } from '@/hooks/useCustomerProfile';
+import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { useAuth } from '@/hooks/useAuth';
 import { CustomerDashboard } from '@/components/customer/CustomerDashboard';
 import { format } from 'date-fns';
@@ -45,6 +46,7 @@ export default function CustomerProfile() {
   const { user } = useAuth();
   const { profile, isLoading, upsertProfile, hasProfile, updateKycDocuments } = useCustomerProfile();
   const { purchases, totalSpent, totalPurchases, isLoading: purchasesLoading } = useCustomerPurchaseHistory();
+  const { hasCredit } = useCustomerCredit();
   const { toast } = useToast();
 
   // --- KYC STATE ---
@@ -552,12 +554,19 @@ export default function CustomerProfile() {
 
                   {/* Banner de Estado KYC */}
                   {profile?.kyc_status === 'approved' && (
-                    <div className="bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 p-4 rounded-lg flex items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-sm">¡Documentos Aprobados!</p>
-                        <p className="text-xs opacity-90">Tu verificación de identidad ha sido completada exitosamente. Ya puedes solicitar créditos.</p>
+                    <div className="bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 p-4 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-sm">¡Documentos Aprobados!</p>
+                          <p className="text-xs opacity-90">Tu verificación de identidad ha sido completada exitosamente. Ya puedes solicitar créditos.</p>
+                        </div>
                       </div>
+                      {!hasCredit && (
+                        <Link to="/cliente/credito" className="flex-shrink-0">
+                          <Button size="sm" className="btn-gold rounded-full w-full sm:w-auto shadow-md shadow-gold/20">Solicitar Crédito</Button>
+                        </Link>
+                      )}
                     </div>
                   )}
 

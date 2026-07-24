@@ -11,6 +11,8 @@ import { UserMenu } from '@/components/ui/user-menu';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
+import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import logoImage from '@/assets/logo.jpeg';
 import { toast } from 'sonner';
 
@@ -181,6 +183,9 @@ export function StoreHeader() {
                 <Search className="h-4.5 w-4.5" />
               </motion.div>
             </Button>
+
+            {/* Currency Toggle */}
+            <CurrencyToggle />
 
             {/* Theme Toggle */}
             <div className="hidden md:block">
@@ -355,7 +360,7 @@ export function StoreHeader() {
                         className="flex items-center gap-3 py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm font-medium"
                       >
                         <LayoutDashboard className="h-4.5 w-4.5 text-muted-foreground/60" />
-                        <span>Panel Admin</span>
+                        <span>Panel General</span>
                       </Link>
                     )}
                     
@@ -549,5 +554,33 @@ function CustomerNotificationBell() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// Currency Selector para el StoreHeader
+function CurrencyToggle() {
+  const { displayCurrency, setDisplayCurrency } = useCurrency();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-9 px-2 font-medium flex items-center gap-1 bg-card/40 border border-border/10 rounded-full hover:bg-card/80">
+          {displayCurrency === 'VES' && <span className="text-xs">Bs</span>}
+          {displayCurrency === 'USD' && <span className="text-xs">$</span>}
+          {displayCurrency === 'EUR' && <span className="text-xs">€</span>}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-32 bg-card/95 backdrop-blur-xl border-border/20 rounded-xl">
+        <DropdownMenuItem onClick={() => setDisplayCurrency('USD')} className={`rounded-lg cursor-pointer ${displayCurrency === 'USD' ? 'bg-primary/10 text-primary' : ''}`}>
+          Dólar (USD)
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setDisplayCurrency('VES')} className={`rounded-lg cursor-pointer ${displayCurrency === 'VES' ? 'bg-primary/10 text-primary' : ''}`}>
+          Bolívar (Bs)
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setDisplayCurrency('EUR')} className={`rounded-lg cursor-pointer ${displayCurrency === 'EUR' ? 'bg-primary/10 text-primary' : ''}`}>
+          Euro (EUR)
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

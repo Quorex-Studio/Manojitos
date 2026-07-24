@@ -248,7 +248,7 @@ export function CustomerDashboard() {
 
       {/* Modal de Direcciones Estilo Amazon */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
-        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
           <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center">
             <DialogTitle className="text-xl font-medium tracking-tight">Tus direcciones</DialogTitle>
             <DialogDescription className="sr-only">Gestiona tus direcciones de envío</DialogDescription>
@@ -364,7 +364,7 @@ export function CustomerDashboard() {
       </Dialog>
       {/* Modal de Inicio de Sesión y Seguridad */}
       <Dialog open={isSecurityModalOpen} onOpenChange={setIsSecurityModalOpen}>
-        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
           <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex items-center gap-3">
             <div className="bg-primary/10 p-2 rounded-full">
               <Shield className="h-5 w-5 text-primary" />
@@ -408,7 +408,7 @@ export function CustomerDashboard() {
 
       {/* Modal de Servicio al Cliente */}
       <Dialog open={isSupportModalOpen} onOpenChange={setIsSupportModalOpen}>
-        <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
           <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex items-center gap-3">
             <div className="bg-primary/10 p-2 rounded-full">
               <Headphones className="h-5 w-5 text-primary" />

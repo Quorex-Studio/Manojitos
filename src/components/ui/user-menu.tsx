@@ -122,7 +122,7 @@ export function UserMenu() {
                     className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
                   >
                     <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-                    <span>Panel Admin</span>
+                    <span>Panel General</span>
                   </Link>
                 )}
 
