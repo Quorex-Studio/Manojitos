@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, ShoppingBag, ArrowUp, AlertCircle, Package, CreditCard } from 'reicon-react';
+import {ChartSuccess,  DollarSign, ShoppingBag, ArrowUp, InfoCircle, Package, CreditCard } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/ui/stat-card';
 import { DashboardAlertsDropdown } from '@/components/admin/AdminAlertsPanel';
@@ -154,7 +154,7 @@ export default function Dashboard() {
             value={formatCurrencyPair(stats.monthTotal).primary}
             subtitle={`${sales.length} ventas`}
             tertiaryText={formatCurrencyPair(stats.monthTotal).secondary}
-            icon={<TrendingUp className="h-6 w-6" />}
+            icon={<ChartSuccess className="h-6 w-6" />}
             variant="default"
             delay={0.1}
             href="/sales"
@@ -209,7 +209,7 @@ export default function Dashboard() {
             title="Stock Bajo"
             value={stats.lowStockCount}
             subtitle={`de ${stats.totalProducts} productos`}
-            icon={<AlertCircle className="h-6 w-6" />}
+            icon={<InfoCircle className="h-6 w-6" />}
             delay={0.3}
             href="/products"
             hoverContent={

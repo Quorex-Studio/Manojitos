@@ -350,7 +350,7 @@ export default function CustomerSettings() {
                   className="w-full justify-start gap-2"
                   onClick={handleLogout}
                 >
-                  <LogOut className="h-4 w-4" />
+                  <Logout className="h-4 w-4" />
                   Cerrar Sesión
                 </Button>
               </CardContent>

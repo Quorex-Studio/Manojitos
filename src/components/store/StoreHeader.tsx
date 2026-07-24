@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { ShoppingBag, Search, Menu, X, Bell, User, Logout, Settings, Layout } from 'reicon-react';
+import {Category,  ShoppingBag, Search, Menu, CloseSquare, Bell, User, Logout, Settings, Layout } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -250,7 +250,7 @@ export function StoreHeader() {
                 animate={{ rotate: isMenuOpen ? 180 : 0 }}
                 transition={{ duration: 0.3 }}
               >
-                {isMenuOpen ? <X className="h-4.5 w-4.5" /> : <Menu className="h-4.5 w-4.5" />}
+                {isMenuOpen ? <CloseSquare className="h-4.5 w-4.5" /> : <Menu className="h-4.5 w-4.5" />}
               </motion.div>
             </Button>
           </div>
@@ -359,7 +359,7 @@ export function StoreHeader() {
                         onClick={() => setIsMenuOpen(false)}
                         className="flex items-center gap-3 py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm font-medium"
                       >
-                        <LayoutDashboard className="h-4.5 w-4.5 text-muted-foreground/60" />
+                        <Category className="h-4.5 w-4.5 text-muted-foreground/60" />
                         <span>Panel General</span>
                       </Link>
                     )}
@@ -402,7 +402,7 @@ export function StoreHeader() {
                       onClick={handleSignOut}
                       className="flex items-center gap-3 py-2.5 px-4 text-destructive hover:bg-destructive/10 rounded-xl transition-all duration-300 text-sm font-medium w-full text-left"
                     >
-                      <LogOut className="h-4.5 w-4.5" />
+                      <Logout className="h-4.5 w-4.5" />
                       <span>Cerrar sesión</span>
                     </button>
                   </motion.div>

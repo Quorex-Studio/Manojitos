@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {Loader,  Refresh, Mailbox, Lock, User, Phone, ArrowRight, Sparkles, Location, UserId, Check, X } from 'reicon-react';
+import {Loader,  Refresh, Mailbox, Lock, User, Phone, ArrowRight, Sparkles, Location, UserId, Check, CloseSquare } from 'reicon-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -360,13 +360,13 @@ export default function Auth() {
                     </div>
                     <ul className="text-xs space-y-1 text-muted-foreground/60">
                       <li className={cn("flex items-center gap-1", form.password.length >= 8 ? "text-green-500" : "")}>
-                        {form.password.length >= 8 ? <Check className="w-3 h-3" /> : <X className="w-3 h-3 text-destructive/50" />} 8+ caracteres
+                        {form.password.length >= 8 ? <Check className="w-3 h-3" /> : <CloseSquare className="w-3 h-3 text-destructive/50" />} 8+ caracteres
                       </li>
                       <li className={cn("flex items-center gap-1", /[A-Z]/.test(form.password) ? "text-green-500" : "")}>
-                        {/[A-Z]/.test(form.password) ? <Check className="w-3 h-3" /> : <X className="w-3 h-3 text-destructive/50" />} Letra mayúscula
+                        {/[A-Z]/.test(form.password) ? <Check className="w-3 h-3" /> : <CloseSquare className="w-3 h-3 text-destructive/50" />} Letra mayúscula
                       </li>
                       <li className={cn("flex items-center gap-1", /[0-9]/.test(form.password) ? "text-green-500" : "")}>
-                        {/[0-9]/.test(form.password) ? <Check className="w-3 h-3" /> : <X className="w-3 h-3 text-destructive/50" />} Número
+                        {/[0-9]/.test(form.password) ? <Check className="w-3 h-3" /> : <CloseSquare className="w-3 h-3 text-destructive/50" />} Número
                       </li>
                     </ul>
                   </div>

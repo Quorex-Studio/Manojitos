@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {Loader,  Package, Truck, CheckCircle, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag, Map } from 'reicon-react';
+import {TickCircle, Location, Loader,  Package, Truck, CheckCircle, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag, Map } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -34,10 +34,10 @@ const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> = 
 
 const STATUS_ICONS: Record<string, typeof Package> = {
   pending: Clock,
-  confirmed: CheckCircle2,
+  confirmed: TickCircle,
   processing: Package,
   shipped: Truck,
-  delivered: CheckCircle2,
+  delivered: TickCircle,
   cancelled: XCircle,
 };
 
@@ -286,7 +286,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
             <div className="relative pl-6 border-l-2 border-primary/20 space-y-8 pb-4">
               <div className="relative">
                 <div className="absolute -left-[35px] bg-primary rounded-full p-1.5 shadow-[0_0_0_4px_hsl(var(--background))]">
-                  <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
+                  <TickCircle className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <h4 className="font-semibold text-sm">Pedido Confirmado</h4>
                 <p className="text-xs text-muted-foreground mt-1">Hemos recibido tu pedido correctamente.</p>
@@ -310,7 +310,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
 
               <div className="relative">
                 <div className="absolute -left-[35px] bg-muted rounded-full p-1.5 shadow-[0_0_0_4px_hsl(var(--background))] border border-border">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <Location className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <h4 className="font-semibold text-sm text-muted-foreground">Entregado</h4>
                 <p className="text-xs text-muted-foreground mt-1">Esperando confirmación de entrega.</p>

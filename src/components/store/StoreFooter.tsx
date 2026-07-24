@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Instagram, Global, Mailbox, Phone, Map, Heart } from 'reicon-react';
+import {Location,  Instagram, Global, Mailbox, Phone, Map, Heart } from 'reicon-react';
 
 // Footer de la tienda — Editorial luxury
 export function StoreFooter() {
@@ -109,7 +109,7 @@ export function StoreFooter() {
                 <span>contacto@manojitos.com</span>
               </li>
               <li className="flex items-start gap-3 text-[#F5EDE8]/40 text-sm tracking-wide">
-                <MapPin className="h-4 w-4 text-gold/70 mt-0.5 flex-shrink-0" />
+                <Location className="h-4 w-4 text-gold/70 mt-0.5 flex-shrink-0" />
                 <span>Venezuela</span>
               </li>
             </ul>

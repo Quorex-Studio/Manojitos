@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {Loader,  CreditCard, Wallet, Calendar, ArrowDown, ArrowUp, Shield, ShieldAlert, ShieldX, Clock, ArrowLeft, Refresh, AlertTriangle, Alert, CheckCircle, Award, History, DollarSign, Plus } from 'reicon-react';
+import {ChartSuccess, Danger, TickCircle, Loader,  CreditCard, Wallet, Calendar, ArrowDown, ArrowUp, Shield, ShieldAlert, ShieldX, Clock, ArrowLeft, Refresh, AlertTriangle, Alert, CheckCircle, Award, History, DollarSign, Plus } from 'reicon-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -448,7 +448,7 @@ export default function CustomerCredit() {
             >
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-lg bg-red-500/20 text-red-600 dark:text-red-400">
-                  <AlertOctagon className="h-6 w-6 animate-bounce" />
+                  <Danger className="h-6 w-6 animate-bounce" />
                 </div>
                 <div>
                   <h4 className="font-bold text-sm md:text-base text-red-600 dark:text-red-400 flex items-center gap-1.5">
@@ -477,7 +477,7 @@ export default function CustomerCredit() {
             >
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400">
-                  <CheckCircle2 className="h-6 w-6" />
+                  <TickCircle className="h-6 w-6" />
                 </div>
                 <div>
                   <h4 className="font-bold text-sm md:text-base text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
@@ -825,9 +825,9 @@ export default function CustomerCredit() {
                           >
                             <div className="flex items-center gap-3">
                               {tx.type === 'ABONO' ? (
-                                <TrendingDown className="h-5 w-5 text-primary" />
+                                <ArrowDown className="h-5 w-5 text-primary" />
                               ) : (
-                                <TrendingUp className="h-5 w-5 text-destructive" />
+                                <ChartSuccess className="h-5 w-5 text-destructive" />
                               )}
                               <div>
                                 <p className="font-medium">{
@@ -992,7 +992,7 @@ export default function CustomerCredit() {
                           <div className="flex items-center justify-between">
                             <div>
                               <div className="flex items-center gap-2">
-                                {promise.status === 'CUMPLIDA' && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                                {promise.status === 'CUMPLIDA' && <TickCircle className="h-4 w-4 text-primary" />}
                                 {promise.status === 'INCUMPLIDA' && <AlertTriangle className="h-4 w-4 text-destructive" />}
                                 {promise.status === 'PENDIENTE' && <Clock className="h-4 w-4 text-gold" />}
                                 <span className="font-medium">${promise.promised_amount.toFixed(2)}</span>

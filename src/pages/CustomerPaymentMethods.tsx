@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import {Loader,  CreditCard, Plus, Trash2, Star, Refresh, ArrowLeft, Phone, Mailbox, Building2, Wallet, CheckCircle } from 'reicon-react';
+import {TickCircle, Loader,  CreditCard, Plus, Trash2, Star, Refresh, ArrowLeft, Phone, Mailbox, Building2, Wallet, CheckCircle } from 'reicon-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -298,7 +298,7 @@ export default function CustomerPaymentMethods() {
                                   </p>
                                   {isPreferred && (
                                     <Badge variant="secondary" className="text-xs gap-1">
-                                      <CheckCircle2 className="h-3 w-3" />
+                                      <TickCircle className="h-3 w-3" />
                                       Preferido
                                     </Badge>
                                   )}

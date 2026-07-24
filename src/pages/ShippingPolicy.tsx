@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Truck, AlertCircle } from 'reicon-react';
+import { Truck, InfoCircle } from 'reicon-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { StoreLayout } from '@/components/store/StoreLayout';
 
@@ -91,7 +91,7 @@ Las personas que podrán recibir el envío son:
               
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 mb-8 text-sm leading-relaxed text-muted-foreground">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <InfoCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="mb-2">
                       Los presentes términos y condiciones de Manojitos constituyen el contrato entre el USUARIO y la plataforma, que rige el uso de la logística y del sistema de envíos (MANOJITOS ENVÍOS) para las compras efectuadas en el Marketplace de la aplicación (compras online).

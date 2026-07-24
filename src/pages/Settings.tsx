@@ -184,7 +184,7 @@ export default function Settings() {
                     {fetchingRate ? (
                       <Loader className="h-4 w-4 animate-spin" />
                     ) : (
-                      <RefreshCw className="h-4 w-4" />
+                      <Refresh className="h-4 w-4" />
                     )}
                     Obtener {selectedCurrency}
                   </Button>

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import {Loader,  User, Phone, Mailbox, Map, Save, Refresh, ArrowLeft, Camera, ShieldCheck, Upload, Image as ImageIcon, CheckCircle } from 'reicon-react';
+import {Location, Gallery, TickCircle, Loader,  User, Phone, Mailbox, Map, Save, Refresh, ArrowLeft, Camera, ShieldCheck, Upload, Image as Gallery, CheckCircle } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -342,7 +342,7 @@ export default function CustomerProfile() {
               <TabsTrigger value="kyc" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex gap-1 items-center">
                 KYC
                 {profile?.dni_photo_url && profile?.face_photo_url && profile?.verification_photo_url && (
-                  <CheckCircle2 className="w-3 h-3 text-green-500 ml-1" />
+                  <TickCircle className="w-3 h-3 text-green-500 ml-1" />
                 )}
               </TabsTrigger>
               <TabsTrigger value="purchases" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Compras</TabsTrigger>
@@ -497,7 +497,7 @@ export default function CustomerProfile() {
                     <div className="space-y-2">
                       <Label htmlFor="address" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Dirección completa</Label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground/30" />
+                        <Location className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground/30" />
                         <Textarea
                           id="address"
                           placeholder="Calle, número, urbanización, punto de referencia..."
@@ -556,7 +556,7 @@ export default function CustomerProfile() {
                   {profile?.kyc_status === 'approved' && (
                     <div className="bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 p-4 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                        <TickCircle className="h-5 w-5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-sm">¡Documentos Aprobados!</p>
                           <p className="text-xs opacity-90">Tu verificación de identidad ha sido completada exitosamente. Ya puedes solicitar créditos.</p>
@@ -598,7 +598,7 @@ export default function CustomerProfile() {
                         {kycPreviews.dni ? (
                           <img src={kycPreviews.dni} alt="Cédula" className="object-cover w-full h-full" />
                         ) : (
-                          <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                          <Gallery className="h-8 w-8 text-muted-foreground/40" />
                         )}
                         <Input
                           type="file"
@@ -611,7 +611,7 @@ export default function CustomerProfile() {
                       <div className="flex-1 space-y-1">
                         <p className="text-xs text-muted-foreground">Sube una foto clara de tu cédula por el frente.</p>
                         {kycFiles.dni && <p className="text-xs text-primary font-medium">Archivo seleccionado: {kycFiles.dni.name}</p>}
-                        {profile?.dni_photo_url && !kycFiles.dni && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Documento actual</p>}
+                        {profile?.dni_photo_url && !kycFiles.dni && <p className="text-xs text-green-500 flex items-center gap-1"><TickCircle className="w-3 h-3"/> Documento actual</p>}
                       </div>
                     </div>
                   </div>
@@ -637,7 +637,7 @@ export default function CustomerProfile() {
                       <div className="flex-1 space-y-1">
                         <p className="text-xs text-muted-foreground">Sube una selfie donde tu rostro se vea claramente.</p>
                         {kycFiles.face && <p className="text-xs text-primary font-medium">Archivo seleccionado: {kycFiles.face.name}</p>}
-                        {profile?.face_photo_url && !kycFiles.face && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Documento actual</p>}
+                        {profile?.face_photo_url && !kycFiles.face && <p className="text-xs text-green-500 flex items-center gap-1"><TickCircle className="w-3 h-3"/> Documento actual</p>}
                       </div>
                     </div>
                   </div>
@@ -663,7 +663,7 @@ export default function CustomerProfile() {
                       <div className="flex-1 space-y-1">
                         <p className="text-xs text-muted-foreground">Sube una foto tuya sosteniendo tu cédula cerca de tu rostro.</p>
                         {kycFiles.verification && <p className="text-xs text-primary font-medium">Archivo seleccionado: {kycFiles.verification.name}</p>}
-                        {profile?.verification_photo_url && !kycFiles.verification && <p className="text-xs text-green-500 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Documento actual</p>}
+                        {profile?.verification_photo_url && !kycFiles.verification && <p className="text-xs text-green-500 flex items-center gap-1"><TickCircle className="w-3 h-3"/> Documento actual</p>}
                       </div>
                     </div>
                   </div>

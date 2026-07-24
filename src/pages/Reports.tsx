@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Download, Calendar, ArrowUp, DollarSign, ShoppingCart } from 'reicon-react';
+import {ChartSuccess,  FileText, Download, Calendar, ArrowUp, DollarSign, ShoppingCart } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSales } from '@/hooks/useSales';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
@@ -157,7 +157,7 @@ export default function Reports() {
             title="Ventas a Crédito"
             value={`$${stats.creditTotal.toFixed(2)}`}
             subtitle={`${((stats.creditTotal / stats.totalUSD) * 100 || 0).toFixed(1)}% del total`}
-            icon={<TrendingUp className="h-6 w-6" />}
+            icon={<ChartSuccess className="h-6 w-6" />}
           />
           <StatCard
             title="Período"

@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
-import {Loader,  Upload, File, CheckCircle, XCircle, AlertTriangle, Download, Trash2, Refresh } from 'reicon-react';
+import {TickCircle, Document, Loader,  Upload, File, CheckCircle, XCircle, AlertTriangle, Download, Trash2, Refresh } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -404,7 +404,7 @@ export default function ImportProducts() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <FileSpreadsheet className="h-5 w-5" />
+                    <Document className="h-5 w-5" />
                     Subir Archivo
                   </CardTitle>
                   <CardDescription>
@@ -480,7 +480,7 @@ export default function ImportProducts() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <FileSpreadsheet className="h-8 w-8 text-primary" />
+                      <Document className="h-8 w-8 text-primary" />
                       <div>
                         <p className="font-medium">{file?.name}</p>
                         <p className="text-sm text-muted-foreground">
@@ -551,7 +551,7 @@ export default function ImportProducts() {
                             <td className="p-2">{product.rowIndex}</td>
                             <td className="p-2">
                               {product.isValid ? (
-                                <CheckCircle2 className="h-4 w-4 text-primary" />
+                                <TickCircle className="h-4 w-4 text-primary" />
                               ) : (
                                 <AlertTriangle className="h-4 w-4 text-destructive" />
                               )}
@@ -628,7 +628,7 @@ export default function ImportProducts() {
               <Card>
                 <CardContent className="pt-12 pb-12 text-center">
                   {importResult.success > 0 ? (
-                    <CheckCircle2 className="h-16 w-16 mx-auto text-primary mb-6" />
+                    <TickCircle className="h-16 w-16 mx-auto text-primary mb-6" />
                   ) : (
                     <XCircle className="h-16 w-16 mx-auto text-destructive mb-6" />
                   )}

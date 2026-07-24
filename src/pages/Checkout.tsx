@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {Loader,  ArrowLeft, Check, CreditCard, Truck, Package, Store, User, Mailbox, Phone, Map, Refresh, ShoppingBag, Shield, Copy, Mobile, Bank, Wallet, AlertTriangle, Edit, Plus } from 'reicon-react';
+import {InfoCircle, CloseSquare, Loader,  ArrowLeft, Check, CreditCard, Truck, Package, Store, User, Mailbox, Phone, Map, Refresh, ShoppingBag, Shield, Copy, Mobile, Bank, Wallet, AlertTriangle, Edit, Plus } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -75,9 +75,9 @@ const PaymentInfoPanel = memo(function PaymentInfoPanel({ method }: { method: st
     >
       <div className="flex items-center gap-2 mb-4">
         {method === 'pago_movil' ? (
-          <Smartphone className="h-4 w-4 text-accent" />
+          <Mobile className="h-4 w-4 text-accent" />
         ) : (
-          <Landmark className="h-4 w-4 text-accent" />
+          <Bank className="h-4 w-4 text-accent" />
         )}
         <p className="text-sm font-bold text-accent uppercase tracking-wide">
           {method === 'pago_movil' ? 'Datos para Pago Móvil' : 'Datos para Transferencia'}
@@ -556,7 +556,7 @@ export default function Checkout() {
               className="mb-6"
             >
               <Alert variant="destructive" className="border-destructive/50 bg-destructive/5">
-                <AlertCircle className="h-5 w-5" />
+                <InfoCircle className="h-5 w-5" />
                 <AlertTitle className="text-lg font-semibold">Stock no disponible</AlertTitle>
                 <AlertDescription className="mt-3">
                   <p className="text-sm mb-3">Algunos productos no tienen suficiente stock:</p>
@@ -578,7 +578,7 @@ export default function Checkout() {
                   onClick={() => setStockErrors([])}
                   className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <X className="h-4 w-4" />
+                  <CloseSquare className="h-4 w-4" />
                 </button>
               </Alert>
             </motion.div>
@@ -796,7 +796,7 @@ export default function Checkout() {
                           variant="ghost" 
                           className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10"
                         >
-                          <Edit3 className="h-4 w-4 mr-2" />
+                          <Edit className="h-4 w-4 mr-2" />
                           Cambiar método de pago
                         </Button>
                       </DialogTrigger>
@@ -892,7 +892,7 @@ export default function Checkout() {
                     className="absolute top-2 right-2 h-8 px-3 text-muted-foreground hover:text-primary transition-colors"
                     onClick={() => setIsEditingPayment(true)}
                   >
-                    <Edit3 className="h-4 w-4 mr-1.5" />
+                    <Edit className="h-4 w-4 mr-1.5" />
                     Cambiar
                   </Button>
                   <div className="space-y-2 pr-20">

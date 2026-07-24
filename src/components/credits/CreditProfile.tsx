@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {Loader,  User, ArrowUp, ArrowDown, Clock, Calendar, DollarSign, CheckCircle, XCircle, AlertTriangle, Shield, ShieldAlert, ShieldX, Award, History, FileText, Refresh, ChevronDown, Phone, Mailbox, Edit, Save } from 'reicon-react';
+import {ChartSuccess, TickCircle, Loader,  User, ArrowUp, ArrowDown, Clock, Calendar, DollarSign, CheckCircle, XCircle, AlertTriangle, Shield, ShieldAlert, ShieldX, Award, History, FileText, Refresh, ChevronDown, Phone, Mailbox, Edit, Save } from 'reicon-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -404,9 +404,9 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
                       >
                         <div className="flex items-center gap-3">
                           {tx.type === 'ABONO' ? (
-                            <TrendingDown className="h-5 w-5 text-primary" />
+                            <ArrowDown className="h-5 w-5 text-primary" />
                           ) : (
-                            <TrendingUp className="h-5 w-5 text-destructive" />
+                            <ChartSuccess className="h-5 w-5 text-destructive" />
                           )}
                           <div>
                             <p className="font-medium">{tx.description || tx.type}</p>
@@ -478,7 +478,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
                             </Badge>
                             {promise.client_accepted && (
                               <Badge variant="outline" className="text-primary">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                <TickCircle className="h-3 w-3 mr-1" />
                                 Aceptado
                               </Badge>
                             )}
@@ -497,7 +497,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
                                 amountPaid: promise.promised_amount 
                               })}
                             >
-                              <CheckCircle2 className="h-4 w-4 mr-1" />
+                              <TickCircle className="h-4 w-4 mr-1" />
                               Cumplida
                             </Button>
                             <Button 
@@ -525,7 +525,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
               <div className="space-y-4">
                 {credit.last_payment_date && (
                   <div className="flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                    <TickCircle className="h-5 w-5 text-primary" />
                     <div>
                       <p className="font-medium">Último pago</p>
                       <p className="text-sm text-muted-foreground">

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Logout, Settings, Layout, ChevronDown } from 'reicon-react';
+import {Category,  User, Logout, Settings, Layout, ChevronDown } from 'reicon-react';
 import { Button } from './button';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -121,7 +121,7 @@ export function UserMenu() {
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
                   >
-                    <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                    <Category className="h-4 w-4 text-muted-foreground" />
                     <span>Panel General</span>
                   </Link>
                 )}
@@ -152,7 +152,7 @@ export function UserMenu() {
                   onClick={handleSignOut}
                   className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-destructive/10 text-destructive w-full transition-colors"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <Logout className="h-4 w-4" />
                   <span>Cerrar sesión</span>
                 </button>
               </div>

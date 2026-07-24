@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Package, Edit2, Trash2, AlertTriangle, Image } from 'reicon-react';
+import {Gallery,  Plus, Search, Package, Edit2, Trash2, AlertTriangle, Image } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
@@ -335,7 +335,7 @@ export default function Products() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="h-16 w-16 text-muted-foreground/30" />
+                        <Gallery className="h-16 w-16 text-muted-foreground/30" />
                       </div>
                     )}
                     {product.stock <= 5 && (

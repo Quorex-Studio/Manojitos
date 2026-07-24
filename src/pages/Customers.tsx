@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/tabs";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {Loader,  UserCheck, UserX, Refresh, Search, FileText, Image as ImageIcon, Users, Mailbox, Phone, Calendar, ShieldAlert, CheckCircle, Clock, XCircle, ChevronRight, ChevronLeft, Map, Key, Ban, Trash2, Unlock } from 'reicon-react';
+import {Location, TickCircle, Gallery, Loader,  UserCheck, UserX, Refresh, Search, FileText, Image as Gallery, Users, Mailbox, Phone, Calendar, ShieldAlert, CheckCircle, Clock, XCircle, ChevronRight, ChevronLeft, Map, Key, Ban, Trash2, Unlock } from 'reicon-react';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
@@ -83,7 +83,7 @@ function CustomerHistory({ userId, phone }: { userId: string, phone: string | nu
       {history?.credit ? (
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 space-y-3">
           <h4 className="font-semibold text-sm uppercase tracking-wider text-primary flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" /> Línea de Crédito Activa
+            <TickCircle className="w-4 h-4" /> Línea de Crédito Activa
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
@@ -265,7 +265,7 @@ export default function Customers() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1 flex w-fit items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5"/> Aprobado</Badge>;
+        return <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1 flex w-fit items-center gap-1.5"><TickCircle className="w-3.5 h-3.5"/> Aprobado</Badge>;
       case 'rejected':
         return <Badge className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 px-3 py-1 flex w-fit items-center gap-1.5"><XCircle className="w-3.5 h-3.5"/> Rechazado</Badge>;
       case 'pending':
@@ -277,7 +277,7 @@ export default function Customers() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved': return <CheckCircle2 className="h-6 w-6 text-emerald-500" />;
+      case 'approved': return <TickCircle className="h-6 w-6 text-emerald-500" />;
       case 'rejected': return <XCircle className="h-6 w-6 text-red-500" />;
       case 'pending': return <Clock className="h-6 w-6 text-amber-500" />;
       default: return <ShieldAlert className="h-6 w-6 text-slate-400" />;
@@ -479,7 +479,7 @@ export default function Customers() {
                                         <FileText className="w-4 h-4 mr-2" /> Historial
                                       </TabsTrigger>
                                       <TabsTrigger value="acciones" className="data-[state=active]:bg-background data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-border/50 px-4 py-2 rounded-t-lg rounded-b-none data-[state=active]:text-primary transition-colors">
-                                        <KeyRound className="w-4 h-4 mr-2" /> Acciones
+                                        <Key className="w-4 h-4 mr-2" /> Acciones
                                       </TabsTrigger>
                                     </TabsList>
                                   </div>
@@ -509,7 +509,7 @@ export default function Customers() {
                                       </div>
                                       <div className="bg-background/40 border border-border/50 rounded-xl p-4 flex items-center gap-4 col-span-2">
                                         <div className="bg-primary/10 p-3 rounded-lg text-primary">
-                                          <MapPin className="w-5 h-5" />
+                                          <Location className="w-5 h-5" />
                                         </div>
                                         <div>
                                           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Dirección de Envío</p>
@@ -523,7 +523,7 @@ export default function Customers() {
                                     {/* KYC Photos */}
                                     <div className="space-y-4">
                                       <h4 className="font-semibold flex items-center text-foreground/90">
-                                        <ImageIcon className="h-5 w-5 mr-2 text-primary" />
+                                        <Gallery className="h-5 w-5 mr-2 text-primary" />
                                         Evidencia de Verdad (KYC)
                                       </h4>
                                       
@@ -569,7 +569,7 @@ export default function Customers() {
                                               </a>
                                             ) : (
                                               <div className="aspect-video rounded-xl border border-dashed border-border/50 bg-background/20 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                                                <ImageIcon className="w-6 h-6 opacity-20" />
+                                                <Gallery className="w-6 h-6 opacity-20" />
                                                 <span className="text-xs">Falta documento</span>
                                               </div>
                                             )}
@@ -610,7 +610,7 @@ export default function Customers() {
                                           onClick={() => handleUpdateStatus(selectedCustomer.user_id, 'approved')}
                                           disabled={updateKycStatus.isPending}
                                         >
-                                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                                          <TickCircle className="h-4 w-4 mr-2" />
                                           Aprobar Verificación
                                         </Button>
                                       )}
@@ -630,7 +630,7 @@ export default function Customers() {
                                       {/* Contraseña */}
                                       <div className="bg-background/40 border border-border/50 rounded-xl p-5 space-y-4">
                                         <h4 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                                          <KeyRound className="w-4 h-4" /> Forzar Cambio de Clave
+                                          <Key className="w-4 h-4" /> Forzar Cambio de Clave
                                         </h4>
                                         <form 
                                           className="flex gap-2"

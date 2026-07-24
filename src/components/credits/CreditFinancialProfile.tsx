@@ -1,6 +1,6 @@
 // Componente de perfil financiero del cliente con visualización premium
 import { motion } from 'framer-motion';
-import {Loader,  ArrowUp, ArrowDown, AlertCircle, CheckCircle, CreditCard, DollarSign, Calendar, Award, Shield, Target, Flash, Clock, Refresh } from 'reicon-react';
+import {ChartSuccess, Loader,  ArrowUp, ArrowDown, InfoCircle, CheckCircle, CreditCard, DollarSign, Calendar, Award, Shield, Target, Flash, Clock, Refresh } from 'reicon-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -46,9 +46,9 @@ export function CreditFinancialProfile({ creditId, creditData, compact = false }
 
   const getAdjustmentIcon = () => {
     switch (profile.adjustmentSuggestion) {
-      case 'increase': return <TrendingUp className="h-4 w-4 text-primary" />;
-      case 'decrease': return <TrendingDown className="h-4 w-4 text-destructive" />;
-      case 'block': return <AlertCircle className="h-4 w-4 text-destructive" />;
+      case 'increase': return <ChartSuccess className="h-4 w-4 text-primary" />;
+      case 'decrease': return <ArrowDown className="h-4 w-4 text-destructive" />;
+      case 'block': return <InfoCircle className="h-4 w-4 text-destructive" />;
       default: return <CheckCircle className="h-4 w-4 text-primary/80" />;
     }
   };
@@ -160,7 +160,7 @@ export function CreditFinancialProfile({ creditId, creditData, compact = false }
       <Card className="glass-card">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Zap className="h-4 w-4" />
+            <Flash className="h-4 w-4" />
             Comportamiento de Pagos
           </CardTitle>
         </CardHeader>
@@ -228,12 +228,12 @@ export function CreditFinancialProfile({ creditId, creditData, compact = false }
                 <p className="text-sm font-medium flex items-center gap-2">
                   {profile.suggestedLimitChange > 0 ? (
                     <>
-                      <TrendingUp className="h-4 w-4 text-primary" />
+                      <ChartSuccess className="h-4 w-4 text-primary" />
                       Sugerencia: Aumentar límite en {profile.suggestedLimitChange}%
                     </>
                   ) : (
                     <>
-                      <TrendingDown className="h-4 w-4 text-destructive" />
+                      <ArrowDown className="h-4 w-4 text-destructive" />
                       Sugerencia: Reducir límite en {Math.abs(profile.suggestedLimitChange)}%
                     </>
                   )}

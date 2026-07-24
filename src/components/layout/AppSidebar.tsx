@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Layout, Package, ShoppingCart, CreditCard, Truck, FileText, Settings, Logout, Menu, X, Store, FileUp, Wallet, Users } from 'reicon-react';
+import { Layout, Package, ShoppingCart, CreditCard, Truck, FileText, Settings, Logout, Menu, CloseSquare, Store, FileUp, Wallet, Users } from 'reicon-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -46,7 +46,7 @@ export function AppSidebar() {
           className="fixed top-4 left-4 z-50"
           onClick={() => setIsOpen(!isOpen)}
         >
-          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {isOpen ? <CloseSquare className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </Button>
       )}
 
@@ -132,7 +132,7 @@ export function AppSidebar() {
             onClick={() => signOut()}
             className="w-full justify-start gap-3 text-sidebar-foreground/40 hover:text-destructive hover:bg-destructive/10 text-sm"
           >
-            <LogOut className="h-4 w-4" />
+            <Logout className="h-4 w-4" />
             Cerrar Sesión
           </Button>
         </div>

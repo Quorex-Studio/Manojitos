@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import {Loader,  Plus, ShoppingCart, Search, Trash2, Check, X, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Map, Package, Refresh } from 'reicon-react';
+import {TickCircle, Location, BoxAdd, Truck, Loader,  Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Map, Package, Refresh } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
@@ -533,7 +533,7 @@ export default function Sales() {
                           onClick={addItem}
                           className="gap-1 text-xs"
                         >
-                          <PackagePlus className="h-3.5 w-3.5" />
+                          <BoxAdd className="h-3.5 w-3.5" />
                           Agregar producto
                         </Button>
                       </div>
@@ -978,7 +978,7 @@ export default function Sales() {
                                     {order.payment_method === 'pago_movil' && order.banco_origen && (
                                       <div className="flex flex-col gap-2 mt-1 bg-background/50 p-3 rounded-lg border border-border/50">
                                         <div className="flex items-center gap-2">
-                                          <Landmark className="h-4 w-4 text-muted-foreground" />
+                                          <Bank className="h-4 w-4 text-muted-foreground" />
                                           <span className="text-sm text-muted-foreground font-medium w-16">Banco:</span>
                                           <span className="font-semibold text-foreground">{order.banco_origen}</span>
                                         </div>
@@ -997,7 +997,7 @@ export default function Sales() {
                                 {order.notes && (
                                   <div className="pt-3 border-t border-primary/10">
                                     <div className="flex items-center gap-2 mb-2">
-                                      <MapPin className="h-4 w-4 text-primary" />
+                                      <Location className="h-4 w-4 text-primary" />
                                       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notas / Dirección</p>
                                     </div>
                                     <p className="text-sm text-foreground bg-background/50 p-3 rounded-lg border border-border/50 leading-relaxed shadow-sm">
@@ -1015,7 +1015,7 @@ export default function Sales() {
                                   onClick={() => handleRejectOrder(order.id)}
                                   className="border-destructive/30 hover:border-destructive text-destructive hover:bg-destructive/5 rounded-xl flex-1 sm:flex-initial"
                                 >
-                                  <X className="h-4 w-4 mr-2" />
+                                  <CloseSquare className="h-4 w-4 mr-2" />
                                   Rechazar
                                 </Button>
                                 <Button 
@@ -1046,7 +1046,7 @@ export default function Sales() {
                                   onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
                                   className="bg-green-600 hover:bg-green-700 text-white rounded-xl flex-1 sm:flex-initial"
                                 >
-                                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                                  <TickCircle className="h-4 w-4 mr-2" />
                                   Marcar como Entregado
                                 </Button>
                               </div>

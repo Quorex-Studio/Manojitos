@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, AnglesLeft, AnglesRight } from 'reicon-react';
+import {ArrowLeft2, ArrowRight2,  ChevronLeft, ChevronRight, AnglesLeft, AnglesRight } from 'reicon-react';
 
 interface PaginationProps {
   currentPage: number;
@@ -69,7 +69,7 @@ export function Pagination({
             disabled={currentPage === 1}
             onClick={() => onPageChange(1)}
           >
-            <ChevronsLeft className="h-4 w-4" />
+            <ArrowLeft2 className="h-4 w-4" />
           </Button>
 
           <Button
@@ -111,7 +111,7 @@ export function Pagination({
             disabled={currentPage === totalPages}
             onClick={() => onPageChange(totalPages)}
           >
-            <ChevronsRight className="h-4 w-4" />
+            <ArrowRight2 className="h-4 w-4" />
           </Button>
         </div>
       </div>

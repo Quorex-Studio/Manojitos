@@ -4,7 +4,7 @@
  * `calculatedStatus === 'VENCIDO'` o `is_blocked === true`.
  */
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, CreditCard, X } from 'reicon-react';
+import { AlertTriangle, CreditCard, CloseSquare } from 'reicon-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -71,7 +71,7 @@ export function OverdueCreditBanner() {
                 className="text-red-400 hover:text-red-200 transition-colors p-1"
                 aria-label="Cerrar aviso"
               >
-                <X className="h-4 w-4" />
+                <CloseSquare className="h-4 w-4" />
               </button>
             </div>
           </div>

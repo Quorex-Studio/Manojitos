@@ -1,7 +1,7 @@
 import React, { useState, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Wallet, Heart, ShoppingBag, Shield, Sparkles } from 'reicon-react';
+import {Location,  User, Wallet, Heart, ShoppingBag, Shield, Sparkles } from 'reicon-react';
 import { Package, Bell, Settings, CreditCard, ChevronRight, Clock, Map, Headphones } from 'reicon-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -181,7 +181,7 @@ export function CustomerDashboard() {
         />
 
         <QuickLink
-          icon={<MapPin className="h-6 w-6" />}
+          icon={<Location className="h-6 w-6" />}
           label="Tus Direcciones"
           description="Editar, eliminar o establecer predeterminada"
           onClick={openAddressModal}
@@ -272,7 +272,7 @@ export function CustomerDashboard() {
             {/* Agregar Nueva Dirección */}
             <div className="pt-2">
               <h4 className="text-lg font-medium mb-4 flex items-center gap-2">
-                <div className="bg-primary/10 p-1.5 rounded-full"><MapPin className="h-4 w-4 text-primary" /></div>
+                <div className="bg-primary/10 p-1.5 rounded-full"><Location className="h-4 w-4 text-primary" /></div>
                 Agregar una nueva dirección
               </h4>
 

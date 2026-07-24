@@ -95,7 +95,7 @@ export default function CustomerNotifications() {
                 onClick={() => markAllAsRead.mutate()}
                 disabled={markAllAsRead.isPending}
               >
-                <CheckCheck className="h-4 w-4 mr-1" />
+                <Check className="h-4 w-4 mr-1" />
                 Marcar todas
               </Button>
             )}

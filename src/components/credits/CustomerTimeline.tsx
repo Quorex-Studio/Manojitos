@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ShoppingBag, CreditCard, AlertCircle, CheckCircle, Bell, Calendar, Clock, DollarSign, Ban, Unlock, MessageSquare, FileText, ArrowUp } from 'reicon-react';
+import {ChartSuccess,  ShoppingBag, CreditCard, InfoCircle, CheckCircle, Bell, Calendar, Clock, DollarSign, Ban, Unlock, MessageSquare, FileText, ArrowUp } from 'reicon-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useCustomerTimeline } from '@/hooks/useCustomerTimeline';
@@ -56,7 +56,7 @@ const EVENT_CONFIG: Record<string, {
     label: 'Promesa cumplida'
   },
   'PROMISE_BROKEN': {
-    icon: <AlertCircle className="h-4 w-4" />,
+    icon: <InfoCircle className="h-4 w-4" />,
     color: 'text-destructive',
     bgColor: 'bg-destructive/10',
     label: 'Promesa incumplida'
@@ -86,7 +86,7 @@ const EVENT_CONFIG: Record<string, {
     label: 'Notificación'
   },
   'LIMIT_INCREASED': {
-    icon: <TrendingUp className="h-4 w-4" />,
+    icon: <ChartSuccess className="h-4 w-4" />,
     color: 'text-primary',
     bgColor: 'bg-primary/10',
     label: 'Límite aumentado'

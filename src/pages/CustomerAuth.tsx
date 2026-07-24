@@ -582,7 +582,7 @@ export default function CustomerAuth() {
                             className="pl-10 text-ellipsis"
                             required
                           />
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Location className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         </div>
                         <Button
                           type="button"
@@ -595,7 +595,7 @@ export default function CustomerAuth() {
                           {gettingGPS ? (
                             <Loader className="h-4 w-4 animate-spin" />
                           ) : (
-                            <Navigation className="h-4 w-4" />
+                            <Location className="h-4 w-4" />
                           )}
                         </Button>
                       </div>

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, X, Package, SliderHorizontal, Grid3, List, ChevronDown } from 'reicon-react';
+import {Setting, Grid,  Search, Filter, CloseSquare, Package, SliderHorizontal, Grid3, List, ChevronDown } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -220,7 +220,7 @@ export default function StoreCatalog() {
           className="w-full rounded-full border-border/20 hover:border-primary/30 text-sm"
           onClick={clearFilters}
         >
-          <X className="h-3.5 w-3.5 mr-2" />
+          <CloseSquare className="h-3.5 w-3.5 mr-2" />
           Limpiar Filtros
         </Button>
       )}
@@ -270,7 +270,7 @@ export default function StoreCatalog() {
             <Sheet open={showFilters} onOpenChange={setShowFilters}>
               <SheetTrigger asChild>
                 <Button variant="outline" className="md:hidden relative rounded-full border-border/20 h-11">
-                  <SlidersHorizontal className="h-4 w-4 mr-2" />
+                  <Setting className="h-4 w-4 mr-2" />
                   Filtros
                   {hasActiveFilters && (
                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-gold rounded-full shadow-gold" />
@@ -308,7 +308,7 @@ export default function StoreCatalog() {
                 className={`rounded-none h-11 w-11 ${viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'text-muted-foreground/40'}`}
                 onClick={() => setViewMode('grid')}
               >
-                <Grid3X3 className="h-4 w-4" />
+                <Grid className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -316,7 +316,7 @@ export default function StoreCatalog() {
                 className={`rounded-none h-11 w-11 ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground/40'}`}
                 onClick={() => setViewMode('list')}
               >
-                <LayoutList className="h-4 w-4" />
+                <List className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -354,7 +354,7 @@ export default function StoreCatalog() {
               <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 Búsqueda: "{searchQuery}"
                 <button onClick={() => setSearchQuery('')} className="ml-2 text-muted-foreground/40 hover:text-foreground">
-                  <X className="h-3 w-3" />
+                  <CloseSquare className="h-3 w-3" />
                 </button>
               </Badge>
             )}
@@ -362,7 +362,7 @@ export default function StoreCatalog() {
               <Badge key={cat} variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 {cat}
                 <button onClick={() => toggleCategory(cat)} className="ml-2 text-muted-foreground/40 hover:text-foreground">
-                  <X className="h-3 w-3" />
+                  <CloseSquare className="h-3 w-3" />
                 </button>
               </Badge>
             ))}
@@ -370,7 +370,7 @@ export default function StoreCatalog() {
               <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 ${priceRange[0]} - ${priceRange[1]}
                 <button onClick={() => setPriceRange([0, maxPrice])} className="ml-2 text-muted-foreground/40 hover:text-foreground">
-                  <X className="h-3 w-3" />
+                  <CloseSquare className="h-3 w-3" />
                 </button>
               </Badge>
             )}

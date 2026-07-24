@@ -1,6 +1,6 @@
 // Panel de alertas inteligentes para el admin (Refactorizado a Dropdown Popover UX)
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, AlertTriangle, AlertCircle, InfoCircle, CheckCircle, ChevronRight, ChevronDown, X, DollarSign, Clock, FileText, ArrowDown } from 'reicon-react';
+import { Bell, AlertTriangle, AlertCircle, InfoCircle, CheckCircle, ChevronRight, ChevronDown, CloseSquare, DollarSign, Clock, FileText, ArrowDown } from 'reicon-react';
 import { useState } from 'react';
 import { useAdminAlerts, AdminAlert, AlertType } from '@/hooks/useAdminAlerts';
 import { Button } from '@/components/ui/button';
@@ -156,7 +156,7 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
             }}
             className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors shrink-0 ml-1"
           >
-            <X className="h-3.5 w-3.5 text-muted-foreground" />
+            <CloseSquare className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
         )}
       </div>

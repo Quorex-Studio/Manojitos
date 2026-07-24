@@ -1,6 +1,6 @@
 // Página Sobre Nosotros y Contacto
 import { motion } from 'framer-motion';
-import { Map, Phone, Mailbox, Clock, Heart, Sparkles, Instagram, Global } from 'reicon-react';
+import {Location, Star,  Map, Phone, Mailbox, Clock, Heart, Sparkles, Instagram, Global } from 'reicon-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -18,7 +18,7 @@ export default function AboutUs() {
         >
           <div className="flex justify-center mb-4">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center">
-              <Flower2 className="h-10 w-10 text-pink-500" />
+              <Star className="h-10 w-10 text-pink-500" />
             </div>
           </div>
           <h1 className="text-4xl font-serif font-bold text-foreground mb-4">
@@ -78,7 +78,7 @@ export default function AboutUs() {
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="h-6 w-6 text-pink-500" />
+                    <Location className="h-6 w-6 text-pink-500" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Ubicación</h3>

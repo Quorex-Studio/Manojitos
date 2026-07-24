@@ -1,6 +1,6 @@
 // Página de Términos y Condiciones
 import { motion } from 'framer-motion';
-import { FileText, CheckCircle } from 'reicon-react';
+import {TickCircle,  FileText, CheckCircle } from 'reicon-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { StoreLayout } from '@/components/store/StoreLayout';
 
@@ -126,7 +126,7 @@ El Usuario deberá seguir los siguientes pasos:
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-pink-500 mt-1 flex-shrink-0" />
+                    <TickCircle className="h-5 w-5 text-pink-500 mt-1 flex-shrink-0" />
                     <div>
                       <h2 className="text-lg font-semibold mb-3">{section.title}</h2>
                       <p className="text-muted-foreground whitespace-pre-line text-[11px] leading-snug">

@@ -1,6 +1,6 @@
 // Banner de fechas de pago cercanas para clientes
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, AlertCircle, AlertTriangle, X } from 'reicon-react';
+import { Calendar, AlertCircle, AlertTriangle, CloseSquare } from 'reicon-react';
 import { useState } from 'react';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { Button } from '@/components/ui/button';
@@ -73,7 +73,7 @@ export function PaymentReminderBanner() {
                 onClick={() => setDismissed(true)}
                 className="p-1 hover:bg-black/5 rounded-full transition-colors"
               >
-                <X className="h-4 w-4" />
+                <CloseSquare className="h-4 w-4" />
               </button>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {Loader,  CreditCard, Plus, Search, Filter, Phone, Mailbox, Calendar, DollarSign, AlertCircle, CheckCircle, Clock, Ban, MessageSquare, Refresh, ChevronDown, X, Send, Lock, Unlock, Bell, ArrowDown, ArrowUp, Receipt } from 'reicon-react';
+import {ChartSuccess, TickCircle, Loader,  CreditCard, Plus, Search, Filter, Phone, Mailbox, Calendar, DollarSign, InfoCircle, CheckCircle, Clock, Ban, MessageSquare, Refresh, ChevronDown, X, Send, Lock, Unlock, Bell, ArrowDown, ArrowUp, Receipt } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,10 +45,10 @@ import { sanitizeText } from '@/lib/validations';
 
 // Configuración de estados con colores
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  ACTIVO: { label: 'Activo', color: 'bg-primary/80', icon: <CheckCircle2 className="h-4 w-4" /> },
+  ACTIVO: { label: 'Activo', color: 'bg-primary/80', icon: <TickCircle className="h-4 w-4" /> },
   POR_VENCER: { label: 'Por vencer', color: 'bg-gold/80', icon: <Clock className="h-4 w-4" /> },
-  EN_GRACIA: { label: 'En gracia', color: 'bg-gold/60', icon: <AlertCircle className="h-4 w-4" /> },
-  VENCIDO: { label: 'Vencido', color: 'bg-destructive/80', icon: <AlertCircle className="h-4 w-4" /> },
+  EN_GRACIA: { label: 'En gracia', color: 'bg-gold/60', icon: <InfoCircle className="h-4 w-4" /> },
+  VENCIDO: { label: 'Vencido', color: 'bg-destructive/80', icon: <InfoCircle className="h-4 w-4" /> },
   BLOQUEADO: { label: 'Bloqueado', color: 'bg-gray-500', icon: <Ban className="h-4 w-4" /> },
 };
 
@@ -508,7 +508,7 @@ export default function Credits() {
                     />
                     {Number(newCredit.credit_limit) > totalInventoryValue && (
                       <p className="text-[10px] text-destructive flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
+                        <InfoCircle className="h-3 w-3" />
                         El límite no puede superar el valor del inventario (${totalInventoryValue.toFixed(2)})
                       </p>
                     )}
@@ -943,9 +943,9 @@ export default function Credits() {
                                 tx.type === 'ABONO' ? 'bg-primary/10' : 'bg-destructive/10'
                               )}>
                                 {tx.type === 'ABONO' ? (
-                                  <TrendingDown className="h-4 w-4 text-primary" />
+                                  <ArrowDown className="h-4 w-4 text-primary" />
                                 ) : (
-                                  <TrendingUp className="h-4 w-4 text-destructive" />
+                                  <ChartSuccess className="h-4 w-4 text-destructive" />
                                 )}
                               </div>
                               <div className="min-w-0 flex-1">
@@ -1125,7 +1125,7 @@ export default function Credits() {
                       if (credit && amount > credit.current_balance && credit.current_balance > 0) {
                         return (
                           <p className="text-xs text-amber-500 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
+                            <InfoCircle className="h-3 w-3" />
                             Sobrante de ${(amount - credit.current_balance).toFixed(2)} (pago excede el saldo)
                           </p>
                         );

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {Loader,  Bell, Mailbox, MessageSquare, Phone, CheckCircle, XCircle, Clock, Send, Refresh, ChevronDown, AlertCircle, InfoCircle } from 'reicon-react';
+import {TickCircle, Loader,  Bell, Mailbox, MessageSquare, Phone, CheckCircle, XCircle, Clock, Send, Refresh, ChevronDown, AlertCircle, InfoCircle } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -114,7 +114,7 @@ export function NotificationCenter({ creditId, compact }: NotificationCenterProp
               {processAutomaticNotifications.isPending ? (
                 <Loader className="h-4 w-4 animate-spin" />
               ) : (
-                <RefreshCw className="h-4 w-4" />
+                <Refresh className="h-4 w-4" />
               )}
               <span className="ml-2 hidden sm:inline">Procesar automáticos</span>
             </Button>
@@ -125,7 +125,7 @@ export function NotificationCenter({ creditId, compact }: NotificationCenterProp
                 onClick={() => markAllAsRead.mutate()}
                 disabled={markAllAsRead.isPending}
               >
-                <CheckCircle2 className="h-4 w-4" />
+                <TickCircle className="h-4 w-4" />
                 <span className="ml-2 hidden sm:inline">Marcar todas</span>
               </Button>
             )}
@@ -218,7 +218,7 @@ export function CreditReminderHistoryPanel({ creditId, clientName }: CreditRemin
 
   const statusIcon = (delivered: boolean, status: string) => {
     if (status === 'pending') return <Clock className="h-4 w-4 text-gold" />;
-    if (delivered) return <CheckCircle2 className="h-4 w-4 text-primary" />;
+    if (delivered) return <TickCircle className="h-4 w-4 text-primary" />;
     return <XCircle className="h-4 w-4 text-destructive" />;
   };
 
