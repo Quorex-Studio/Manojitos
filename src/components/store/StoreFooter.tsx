@@ -32,7 +32,7 @@ export function StoreFooter() {
                 href="#" 
                 className="w-10 h-10 rounded-full bg-[#F5EDE8]/5 border border-[#F5EDE8]/10 flex items-center justify-center hover:bg-primary/20 hover:border-primary/30 transition-all duration-300"
               >
-                <Facebook className="h-4 w-4 text-[#F5EDE8]/70" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-[#F5EDE8]/70"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
               </a>
             </div>
           </div>
