@@ -570,7 +570,7 @@ export default function CustomerProfile() {
                     </div>
                   )}
 
-                  {profile?.kyc_status === 'pending' && (
+                  {profile?.kyc_status === 'pending' && (profile?.dni_photo_url || profile?.face_photo_url || profile?.verification_photo_url) && (
                     <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-700 dark:text-yellow-400 p-4 rounded-lg flex items-center gap-3">
                       <Loader className="h-5 w-5 flex-shrink-0 animate-spin" />
                       <div>
@@ -605,7 +605,7 @@ export default function CustomerProfile() {
                           accept="image/*"
                           className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
                           onChange={(e) => handleKycFileChange('dni', e)}
-                          disabled={profile?.kyc_status === 'pending' || profile?.kyc_status === 'approved'}
+                          disabled={(profile?.kyc_status === 'pending' && !!profile?.dni_photo_url) || profile?.kyc_status === 'approved'}
                         />
                       </div>
                       <div className="flex-1 space-y-1">
@@ -631,7 +631,7 @@ export default function CustomerProfile() {
                           accept="image/*"
                           className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
                           onChange={(e) => handleKycFileChange('face', e)}
-                          disabled={profile?.kyc_status === 'pending' || profile?.kyc_status === 'approved'}
+                          disabled={(profile?.kyc_status === 'pending' && !!profile?.face_photo_url) || profile?.kyc_status === 'approved'}
                         />
                       </div>
                       <div className="flex-1 space-y-1">
@@ -657,7 +657,7 @@ export default function CustomerProfile() {
                           accept="image/*"
                           className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
                           onChange={(e) => handleKycFileChange('verification', e)}
-                          disabled={profile?.kyc_status === 'pending' || profile?.kyc_status === 'approved'}
+                          disabled={(profile?.kyc_status === 'pending' && !!profile?.verification_photo_url) || profile?.kyc_status === 'approved'}
                         />
                       </div>
                       <div className="flex-1 space-y-1">

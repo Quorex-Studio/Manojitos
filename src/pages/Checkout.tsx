@@ -169,6 +169,7 @@ export default function Checkout() {
 
   const [casheaMethod, setCasheaMethod] = useState('pago_movil');
   const [casheaRef, setCasheaRef] = useState('');
+  const [casheaPhone, setCasheaPhone] = useState('');
 
   // Estados de pago móvil (método regular)
   const [bancoOrigen, setBancoOrigen] = useState('');
@@ -384,7 +385,7 @@ export default function Checkout() {
       }
 
       const notesPrefix = paymentMethod === 'credito'
-        ? `[Inicial Crédito Manojitos: $${montoInicialTotal.toFixed(2)} - Método: ${sanitizeText(casheaMethod)} - Ref: ${casheaRef ? sanitizeText(casheaRef) : 'N/A'}] `
+        ? `[Inicial Crédito Manojitos: $${montoInicialTotal.toFixed(2)} - Método: ${sanitizeText(casheaMethod)} - Ref: ${casheaRef ? sanitizeText(casheaRef) : 'N/A'}${casheaPhone ? ` - Tlf Emisor: ${sanitizeText(casheaPhone)}` : ''}] `
         : '';
 
       const { error, saleIds } = await processCheckout(
@@ -1007,7 +1008,7 @@ export default function Checkout() {
                           </div>
                         </div>
                         {rate > 0 && (
-                          <div className="text-right text-xs text-muted-foreground font-medium">
+                          <div className="text-right text-sm font-semibold text-accent">
                             ≈ {formatBS(convertToBS(montoInicialTotal))}
                           </div>
                         )}
@@ -1050,21 +1051,35 @@ export default function Checkout() {
                           </div>
 
                           {casheaMethod !== 'efectivo_usd' && casheaMethod !== 'efectivo_bs' && (
-                            <div>
-                              <Label htmlFor="casheaRef" className="text-xs">Referencia / Teléfono</Label>
-                              <Input
-                                id="casheaRef"
-                                placeholder="Ej: 123456"
-                                value={casheaRef}
-                                onChange={(e) => setCasheaRef(e.target.value.replace(/[^A-Za-z0-9+-\s()]/g, '').slice(0, 20))}
-                                className="mt-1 h-9 text-xs"
-                              />
+                            <div className="col-span-2 grid grid-cols-2 gap-2">
+                              {casheaMethod === 'pago_movil' && (
+                                <div>
+                                  <Label htmlFor="casheaPhone" className="text-xs">Teléfono Emisor</Label>
+                                  <Input
+                                    id="casheaPhone"
+                                    placeholder="Ej: 04141234567"
+                                    value={casheaPhone}
+                                    onChange={(e) => setCasheaPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
+                                    className="mt-1 h-9 text-xs"
+                                  />
+                                </div>
+                              )}
+                              <div className={casheaMethod !== 'pago_movil' ? 'col-span-2' : ''}>
+                                <Label htmlFor="casheaRef" className="text-xs">Referencia</Label>
+                                <Input
+                                  id="casheaRef"
+                                  placeholder="Ej: 123456"
+                                  value={casheaRef}
+                                  onChange={(e) => setCasheaRef(e.target.value.replace(/[^A-Za-z0-9+-\s()]/g, '').slice(0, 20))}
+                                  className="mt-1 h-9 text-xs"
+                                />
+                              </div>
                             </div>
                           )}
                         </div>
 
                         {casheaMethod === 'pago_movil' && (
-                          <div className="text-[11px] bg-accent/5 p-2.5 rounded-lg border border-accent/20 text-muted-foreground space-y-1">
+                          <div className="col-span-2 text-sm bg-accent/5 p-3 rounded-lg border border-accent/20 text-muted-foreground space-y-1.5">
                             <p className="font-semibold text-accent">Datos Pago Móvil:</p>
                             <p>Banco: {PAYMENT_INFO.pagoMovil.bank} | Tlf: {PAYMENT_INFO.pagoMovil.phone}</p>
                             <p>C.I: {PAYMENT_INFO.pagoMovil.ci} | {PAYMENT_INFO.pagoMovil.name}</p>
@@ -1161,7 +1176,7 @@ export default function Checkout() {
                 const isCasheaValid = paymentMethod !== 'credito' || 
                   casheaMethod === 'efectivo_usd' || 
                   casheaMethod === 'efectivo_bs' || 
-                  casheaRef.trim() !== '';
+                  (casheaRef.trim() !== '' && (casheaMethod !== 'pago_movil' || casheaPhone.trim() !== ''));
 
                 const isKycValid = paymentMethod !== 'credito' || kycCompleted;
 
