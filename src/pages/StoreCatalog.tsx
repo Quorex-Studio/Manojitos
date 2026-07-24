@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, X, Package, SlidersHorizontal, Grid3X3, LayoutList, ChevronDown } from 'lucide-react';
+import { Search, Filter, X, Package, SliderHorizontal, Grid3, List, ChevronDown } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';

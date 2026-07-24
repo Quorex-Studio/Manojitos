@@ -1,17 +1,7 @@
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { 
-  Package, 
-  Truck, 
-  CheckCircle2, 
-  Clock, 
-  XCircle,
-  ArrowLeft,
-  Loader2,
-  ShoppingBag,
-  MapPin
-} from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag, Map } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 

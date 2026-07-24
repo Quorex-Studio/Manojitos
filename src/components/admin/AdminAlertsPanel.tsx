@@ -1,6 +1,6 @@
 // Panel de alertas inteligentes para el admin (Refactorizado a Dropdown Popover UX)
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, AlertTriangle, AlertCircle, Info, CheckCircle, ChevronRight, ChevronDown, X, DollarSign, Clock, FileText, TrendingDown } from 'lucide-react';
+import { Bell, AlertTriangle, AlertCircle, InfoCircle, CheckCircle, ChevronRight, ChevronDown, X, DollarSign, Clock, FileText, ArrowDown } from 'reicon-react';
 import { useState } from 'react';
 import { useAdminAlerts, AdminAlert, AlertType } from '@/hooks/useAdminAlerts';
 import { Button } from '@/components/ui/button';

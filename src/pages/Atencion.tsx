@@ -1,6 +1,6 @@
 // Página de Atención al Cliente / Soporte
 import { motion } from 'framer-motion';
-import { Phone, Mail, Clock, MessageSquare, AlertTriangle, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Phone, Mailbox, Clock, MessageSquare, AlertTriangle, ShieldCheck, HelpCircle } from 'reicon-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Truck, AlertCircle } from 'lucide-react';
+import { Truck, AlertCircle } from 'reicon-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { StoreLayout } from '@/components/store/StoreLayout';
 

@@ -2,16 +2,7 @@ import React, { useState, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Wallet, Heart, ShoppingBag, Shield, Sparkles } from 'reicon-react';
-import {
-  Package,
-  Bell,
-  Settings,
-  CreditCard,
-  ChevronRight,
-  Clock,
-  MapPin,
-  Headphones
-} from 'lucide-react';
+import { Package, Bell, Settings, CreditCard, ChevronRight, Clock, Map, Headphones } from 'reicon-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

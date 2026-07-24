@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/tabs";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { UserCheck, UserX, Loader2, Search, FileText, Image as ImageIcon, Users, Mail, Phone, Calendar, ShieldAlert, CheckCircle2, Clock, XCircle, ChevronRight, ChevronLeft, MapPin, KeyRound, Ban, Trash2, Unlock } from 'lucide-react';
+import { UserCheck, UserX, Refresh, Search, FileText, Image as ImageIcon, Users, Mailbox, Phone, Calendar, ShieldAlert, CheckCircle, Clock, XCircle, ChevronRight, ChevronLeft, Map, Key, Ban, Trash2, Unlock } from 'reicon-react';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';

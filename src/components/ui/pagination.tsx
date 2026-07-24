@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AnglesLeft, AnglesRight } from 'reicon-react';
 
 interface PaginationProps {
   currentPage: number;

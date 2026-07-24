@@ -1,6 +1,6 @@
 // Página de Política de Privacidad
 import { motion } from 'framer-motion';
-import { Shield, Eye, Lock, UserCheck, Database, Bell } from 'lucide-react';
+import { Shield, Eye, Lock, UserCheck, Database, Bell } from 'reicon-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { StoreLayout } from '@/components/store/StoreLayout';
 

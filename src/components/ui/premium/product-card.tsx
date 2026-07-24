@@ -1,6 +1,6 @@
 import { useState, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Eye, Heart, Check } from 'lucide-react';
+import { ShoppingCart, Eye, Heart, Check } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { ImagePremium } from '@/components/ui/image-premium';
 import { PublicProduct } from '@/types';

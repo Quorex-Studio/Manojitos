@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, ShoppingCart, Search, Trash2, Check, X, ClipboardList, User, Phone, Mail, DollarSign, Calendar, CreditCard, Landmark, FileText, MapPin, PackagePlus, Loader2 } from 'lucide-react';
+import { Plus, ShoppingCart, Search, Trash2, Check, X, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Map, Package, Refresh } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';

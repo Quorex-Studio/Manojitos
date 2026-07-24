@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Package, ArrowLeft, Sparkles, AlertTriangle } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Package, ArrowLeft, Sparkles, AlertTriangle } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { useCart } from '@/contexts/CartContext';

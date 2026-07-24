@@ -1,7 +1,7 @@
 import React, { ReactNode, memo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from 'reicon-react';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {

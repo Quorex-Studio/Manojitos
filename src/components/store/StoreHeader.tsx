@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { ShoppingBag, Search, Menu, X, Bell, User, LogOut, Settings, LayoutDashboard } from 'lucide-react';
+import { ShoppingBag, Search, Menu, X, Bell, User, Logout, Settings, Layout } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';

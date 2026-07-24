@@ -1,18 +1,7 @@
 import { motion } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { 
-  Bell, 
-  BellOff, 
-  Check, 
-  CheckCheck, 
-  Info, 
-  AlertTriangle, 
-  CheckCircle2,
-  XCircle,
-  ArrowLeft,
-  Loader2
-} from 'lucide-react';
+import { Bell, BellOff, Check, InfoCircle, AlertTriangle, CheckCircle, XCircle, ArrowLeft, Refresh } from 'reicon-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';

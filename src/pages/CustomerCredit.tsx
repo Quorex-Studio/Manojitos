@@ -2,26 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { 
-  CreditCard, 
-  Wallet, 
-  Calendar, 
-  TrendingDown, 
-  TrendingUp,
-  Shield,
-  ShieldAlert,
-  ShieldX,
-  Clock,
-  ArrowLeft,
-  Loader2,
-  AlertTriangle,
-  AlertOctagon,
-  CheckCircle2,
-  Award,
-  History,
-  DollarSign,
-  Plus
-} from 'lucide-react';
+import { CreditCard, Wallet, Calendar, ArrowDown, ArrowUp, Shield, ShieldAlert, ShieldX, Clock, ArrowLeft, Refresh, AlertTriangle, Alert, CheckCircle, Award, History, DollarSign, Plus } from 'reicon-react';
 import { Link } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';

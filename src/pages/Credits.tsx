@@ -2,31 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {
-  CreditCard,
-  Plus,
-  Search,
-  Filter,
-  Phone,
-  Mail,
-  Calendar,
-  DollarSign,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  Ban,
-  MessageSquare,
-  Loader2,
-  ChevronDown,
-  X,
-  Send,
-  Lock,
-  Unlock,
-  Bell,
-  TrendingDown,
-  TrendingUp,
-  Receipt,
-} from 'lucide-react';
+import { CreditCard, Plus, Search, Filter, Phone, Mailbox, Calendar, DollarSign, AlertCircle, CheckCircle, Clock, Ban, MessageSquare, Refresh, ChevronDown, X, Send, Lock, Unlock, Bell, ArrowDown, ArrowUp, Receipt } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

@@ -1,6 +1,6 @@
 // Componente de Cliente del Mes
 import { motion } from 'framer-motion';
-import { Trophy, Star, Medal, Crown, Sparkles } from 'lucide-react';
+import { Trophy, Star, Medal, Crown, Sparkles } from 'reicon-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useCustomerOfMonth, CustomerOfMonth } from '@/hooks/useCustomerOfMonth';

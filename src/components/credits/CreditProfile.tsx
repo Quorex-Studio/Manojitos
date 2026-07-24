@@ -4,29 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {
-  User,
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  Calendar,
-  DollarSign,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Shield,
-  ShieldAlert,
-  ShieldX,
-  Award,
-  History,
-  FileText,
-  Loader2,
-  ChevronDown,
-  Phone,
-  Mail,
-  Edit,
-  Save,
-} from 'lucide-react';
+import { User, ArrowUp, ArrowDown, Clock, Calendar, DollarSign, CheckCircle, XCircle, AlertTriangle, Shield, ShieldAlert, ShieldX, Award, History, FileText, Refresh, ChevronDown, Phone, Mailbox, Edit, Save } from 'reicon-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

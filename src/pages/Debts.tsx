@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Search, Check, Trash2, Phone, User, DollarSign, Loader2 } from 'lucide-react';
+import { CreditCard, Search, Check, Trash2, Phone, User, DollarSign, Refresh } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useDebts, Debt } from '@/hooks/useDebts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';

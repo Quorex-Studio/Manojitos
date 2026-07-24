@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon } from 'reicon-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from './button';
 

@@ -3,10 +3,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 // @ts-ignore
 import confetti from 'canvas-confetti';
-import { 
-  CheckCircle, PartyPopper, Sparkles, Heart, 
-  CreditCard, ShoppingBag, Star, Trophy
-} from 'lucide-react';
+import { CheckCircle, MagicStar, Sparkles, Heart, CreditCard, ShoppingBag, Star, Trophy } from 'reicon-react';
 
 interface EmotionalFeedbackProps {
   type: 'sale' | 'payment' | 'credit_approved' | 'order' | 'milestone';

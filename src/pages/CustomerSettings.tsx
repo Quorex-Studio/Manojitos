@@ -3,19 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { 
-  Settings, 
-  Lock, 
-  Bell, 
-  Shield, 
-  LogOut, 
-  Loader2, 
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  Check,
-  CreditCard
-} from 'lucide-react';
+import { Settings, Lock, Bell, Shield, Logout, Refresh, ArrowLeft, Eye, EyeOff, Check, CreditCard } from 'reicon-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';

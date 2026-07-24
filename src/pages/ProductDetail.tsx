@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, ShoppingBag, Minus, Plus, Check, Package, 
-  Truck, Shield, Heart, ChevronLeft, ChevronRight 
-} from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Minus, Plus, Check, Package, Truck, Shield, Heart, ChevronLeft, ChevronRight } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';

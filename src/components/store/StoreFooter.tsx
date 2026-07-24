@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Instagram, Facebook, Mail, Phone, MapPin, Heart } from 'lucide-react';
+import { Instagram, Global, Mailbox, Phone, Map, Heart } from 'reicon-react';
 
 // Footer de la tienda — Editorial luxury
 export function StoreFooter() {

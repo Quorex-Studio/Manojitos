@@ -1,21 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Package, 
-  ShoppingCart, 
-  CreditCard, 
-  Truck, 
-  FileText, 
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  Store,
-  FileUp,
-  Wallet,
-  Users
-} from 'lucide-react';
+import { Layout, Package, ShoppingCart, CreditCard, Truck, FileText, Settings, Logout, Menu, X, Store, FileUp, Wallet, Users } from 'reicon-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';

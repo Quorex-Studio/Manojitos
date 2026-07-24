@@ -1,10 +1,6 @@
 // Componente de perfil financiero del cliente con visualización premium
 import { motion } from 'framer-motion';
-import { 
-  TrendingUp, TrendingDown, AlertCircle, CheckCircle, 
-  CreditCard, DollarSign, Calendar, Award,
-  Shield, Target, Zap, Clock, Loader2
-} from 'lucide-react';
+import { ArrowUp, ArrowDown, AlertCircle, CheckCircle, CreditCard, DollarSign, Calendar, Award, Shield, Target, Flash, Clock, Refresh } from 'reicon-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';

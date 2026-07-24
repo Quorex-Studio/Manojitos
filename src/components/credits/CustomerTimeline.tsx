@@ -2,11 +2,7 @@
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { 
-  ShoppingBag, CreditCard, AlertCircle, CheckCircle, 
-  Bell, Calendar, Clock, DollarSign, Ban, Unlock,
-  MessageSquare, FileText, TrendingUp
-} from 'lucide-react';
+import { ShoppingBag, CreditCard, AlertCircle, CheckCircle, Bell, Calendar, Clock, DollarSign, Ban, Unlock, MessageSquare, FileText, ArrowUp } from 'reicon-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useCustomerTimeline } from '@/hooks/useCustomerTimeline';

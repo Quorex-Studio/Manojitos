@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Mail, Lock, User, Phone, ArrowRight, Sparkles } from 'lucide-react';
+import { Refresh, Mailbox, Lock, User, Phone, ArrowRight, Sparkles } from 'reicon-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import logoImage from '@/assets/logo.jpeg';

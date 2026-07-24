@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Truck, Shield, CreditCard, Star, Sparkles, Package } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Truck, Shield, CreditCard, Star, Sparkles, Package } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/ui/premium/product-card';

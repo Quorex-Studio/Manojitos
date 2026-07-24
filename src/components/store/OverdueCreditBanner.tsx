@@ -4,7 +4,7 @@
  * `calculatedStatus === 'VENCIDO'` o `is_blocked === true`.
  */
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, CreditCard, X } from 'lucide-react';
+import { AlertTriangle, CreditCard, X } from 'reicon-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';

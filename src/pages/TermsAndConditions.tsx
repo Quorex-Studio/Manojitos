@@ -1,6 +1,6 @@
 // Página de Términos y Condiciones
 import { motion } from 'framer-motion';
-import { FileText, CheckCircle2 } from 'lucide-react';
+import { FileText, CheckCircle } from 'reicon-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { StoreLayout } from '@/components/store/StoreLayout';
 

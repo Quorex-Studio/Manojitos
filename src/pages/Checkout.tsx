@@ -1,11 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowLeft, Check, CreditCard, Truck, Package, Store,
-  User, Mail, Phone, MapPin, Loader2, ShoppingBag, Shield,
-  Copy, Smartphone, Landmark, Wallet, AlertTriangle, Edit3, Plus
-} from 'lucide-react';
+import { ArrowLeft, Check, CreditCard, Truck, Package, Store, User, Mailbox, Phone, Map, Refresh, ShoppingBag, Shield, Copy, Mobile, Bank, Wallet, AlertTriangle, Edit, Plus } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

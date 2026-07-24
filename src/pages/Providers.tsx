@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Truck, Search, Trash2, Check, Phone, Mail } from 'lucide-react';
+import { Plus, Truck, Search, Trash2, Check, Phone, Mailbox } from 'reicon-react';
 import { cn } from '@/lib/utils';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProviders } from '@/hooks/useProviders';

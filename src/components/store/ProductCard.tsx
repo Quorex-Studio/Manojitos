@@ -1,7 +1,7 @@
 import { useState, useMemo, memo, forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Eye, Check, Package, Sparkles } from 'lucide-react';
+import { ShoppingBag, Eye, Check, Package, Sparkles } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart, CartItem } from '@/contexts/CartContext';

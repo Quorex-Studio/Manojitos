@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, RefreshCw, DollarSign, Moon, Sun, Loader2, Euro } from 'lucide-react';
+import { Settings as SettingsIcon, Refresh, DollarSign, Moon, Sun, Euro } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
@@ -14,7 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatBS } from '@/lib/utils';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'reicon-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function Settings() {

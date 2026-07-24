@@ -1,6 +1,6 @@
 // Banner de fechas de pago cercanas para clientes
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, AlertCircle, AlertTriangle, X } from 'lucide-react';
+import { Calendar, AlertCircle, AlertTriangle, X } from 'reicon-react';
 import { useState } from 'react';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { Button } from '@/components/ui/button';
