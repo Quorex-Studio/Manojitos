@@ -198,13 +198,11 @@ export default function Checkout() {
         {
           id: 'credito',
           label: 'Crédito Manojitos (Pago en partes)',
-          description: !isKycComplete
-            ? 'Requiere completar Perfil KYC (Cédula, Dirección, Teléfono).'
-            : `Crédito financia el 50%. Paga la Inicial + Cuota 1 hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales.`,
-          disabled: !creditAvailable || !isKycComplete,
+          description: `Crédito financia el 50%. Paga la Inicial + Cuota 1 hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales.`,
+          disabled: !creditAvailable,
         },
       ]
-    : BASE_PAYMENT_METHODS, [hasCredit, creditAvailable, montoInicialTotal, isKycComplete]);
+    : BASE_PAYMENT_METHODS, [hasCredit, creditAvailable, montoInicialTotal]);
 
   // Datos del formulario
   const [shippingData, setShippingData] = useState({
@@ -848,11 +846,6 @@ export default function Checkout() {
                                           {isDisabled ? 'No Disponible' : 'Autorizado'}
                                         </span>
                                       )}
-                                      {isCreditMethod && !isKycComplete && (
-                                        <Link to="/cliente/perfil" className="ml-auto text-xs text-primary underline hover:text-primary/80">
-                                          Completar KYC →
-                                        </Link>
-                                      )}
                                     </div>
                                     <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{method.description}</p>
                                     
@@ -869,6 +862,8 @@ export default function Checkout() {
                                               ? '⚠️ Tu crédito está bloqueado temporalmente.'
                                               : credit.calculatedStatus === 'VENCIDO'
                                               ? '⚠️ Tienes cuotas vencidas. Pon al día tu cuenta.'
+                                              : hasPendingPayments
+                                              ? '⚠️ Tienes un pago de crédito en verificación.'
                                               : `⚠️ El monto financiado ($${montoFinanciado.toFixed(2)}) supera tu saldo disponible ($${(credit.credit_limit - credit.current_balance).toFixed(2)}).`}
                                           </p>
                                         )}
