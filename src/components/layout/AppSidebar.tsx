@@ -11,7 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import logoImage from '@/assets/logo.jpeg';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Panel General', path: '/dashboard' },
+  { icon: Layout, label: 'Panel General', path: '/dashboard' },
   { icon: Package, label: 'Productos', path: '/products' },
   { icon: FileUp, label: 'Importar', path: '/import-products' },
   { icon: ShoppingCart, label: 'Ventas', path: '/sales' },
