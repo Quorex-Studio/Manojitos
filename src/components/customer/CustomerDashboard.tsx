@@ -187,16 +187,16 @@ export function CustomerDashboard() {
           onClick={openAddressModal}
         />
 
-        <QuickLink
-          to="/cliente/credito"
-          icon={<Wallet className="h-6 w-6" />}
-          label="Tus Pagos"
-          description="Ver transacciones y administrar saldo"
-          badge={hasCredit ? credit?.status : undefined}
-          badgeVariant={credit?.status === 'VENCIDO' ? 'destructive' : 'secondary'}
-        />
-
-        {!hasCredit && (
+        {hasCredit ? (
+          <QuickLink
+            to="/cliente/credito"
+            icon={<Wallet className="h-6 w-6" />}
+            label="Mi Crédito"
+            description="Ver transacciones y administrar saldo"
+            badge={credit?.status}
+            badgeVariant={credit?.status === 'VENCIDO' ? 'destructive' : 'secondary'}
+          />
+        ) : (
           <QuickLink
             to="/cliente/credito"
             icon={<CreditCard className="h-6 w-6" />}

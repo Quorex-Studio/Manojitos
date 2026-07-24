@@ -339,7 +339,7 @@ export default function CustomerCredit() {
     );
   }
 
-  if (!isKycComplete) {
+  if (!isKycComplete && !hasCredit) {
     return (
       <StoreLayout>
         <div className="container py-12 max-w-2xl text-center space-y-6">
