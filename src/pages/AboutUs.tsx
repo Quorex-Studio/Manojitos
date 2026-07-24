@@ -112,7 +112,7 @@ export default function AboutUs() {
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-                    <Mail className="h-6 w-6 text-pink-500" />
+                    <Mailbox className="h-6 w-6 text-pink-500" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>

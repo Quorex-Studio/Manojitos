@@ -242,7 +242,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
                 )}
                 {credit.client_email && (
                   <span className="flex items-center gap-1 text-muted-foreground">
-                    <Mail className="h-4 w-4" />
+                    <Mailbox className="h-4 w-4" />
                     {credit.client_email}
                   </span>
                 )}

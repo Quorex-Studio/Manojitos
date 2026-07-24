@@ -324,7 +324,7 @@ export default function Providers() {
                         )}
                         {provider.email && (
                           <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                            <Mail className="h-3 w-3" />
+                            <Mailbox className="h-3 w-3" />
                             {provider.email}
                           </div>
                         )}

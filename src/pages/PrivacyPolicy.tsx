@@ -90,7 +90,7 @@ Puedes gestionar tus preferencias de notificación desde tu perfil de usuario en
             Política de Privacidad
           </h1>
           <p className="text-muted-foreground">
-            Última actualización: Enero 2025
+            Última actualización: Enero 2026
           </p>
         </motion.div>
 

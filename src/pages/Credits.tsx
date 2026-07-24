@@ -729,7 +729,7 @@ export default function Credits() {
                                 )}
                                 {credit.client_email && (
                                   <span className="flex items-center gap-1">
-                                    <Mail className="h-3 w-3" />
+                                    <Mailbox className="h-3 w-3" />
                                     {credit.client_email}
                                   </span>
                                 )}
@@ -1207,7 +1207,7 @@ export default function Credits() {
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <Checkbox checked={selectedChannels.includes('email')} onCheckedChange={() => toggleChannel('email')} />
-                    <Mail className="h-4 w-4" />
+                    <Mailbox className="h-4 w-4" />
                     <span className="text-sm">Email</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">

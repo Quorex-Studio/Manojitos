@@ -433,7 +433,7 @@ export default function CustomerProfile() {
                       <div className="space-y-2">
                         <Label htmlFor="email" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Email</Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground/30" />
+                          <Mailbox className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground/30" />
                           <Input
                             id="email"
                             type="email"

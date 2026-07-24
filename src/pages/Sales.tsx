@@ -922,7 +922,7 @@ export default function Sales() {
                               )}
                               {order.customer_email && (
                                 <span className="flex items-center gap-1.5">
-                                  <Mail className="h-4 w-4" />
+                                  <Mailbox className="h-4 w-4" />
                                   {order.customer_email}
                                 </span>
                               )}

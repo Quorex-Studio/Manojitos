@@ -95,7 +95,7 @@ El Usuario deberá seguir los siguientes pasos:
             Términos y Condiciones
           </h1>
           <p className="text-muted-foreground">
-            Última actualización: Enero 2025
+            Última actualización: Enero 2026
           </p>
         </motion.div>
 

@@ -302,7 +302,7 @@ export default function Auth() {
               <div className="space-y-2 group/input">
                 <Label htmlFor="email" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Correo electrónico <span className="text-destructive">*</span></Label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
+                  <Mailbox className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within/input:text-primary transition-colors duration-300" />
                   <Input
                     id="email"
                     type="email"

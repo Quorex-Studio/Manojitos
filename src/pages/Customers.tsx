@@ -409,7 +409,7 @@ export default function Customers() {
                           {customer.phone}
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center gap-2">
-                          <Mail className="w-3.5 h-3.5" />
+                          <Mailbox className="w-3.5 h-3.5" />
                           {customer.email || 'Sin correo'}
                         </div>
                       </div>

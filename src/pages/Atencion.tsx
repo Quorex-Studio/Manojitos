@@ -91,7 +91,7 @@ export default function Atencion() {
           <Card className="hover:shadow-lg transition-shadow border-pink-100 dark:border-pink-900">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Mail className="h-5 w-5 text-pink-500" />
+                <Mailbox className="h-5 w-5 text-pink-500" />
                 Correo de Soporte
               </CardTitle>
             </CardHeader>

@@ -105,7 +105,7 @@ export function StoreFooter() {
                 <span>+58 426-3863042</span>
               </li>
               <li className="flex items-center gap-3 text-[#F5EDE8]/40 text-sm tracking-wide">
-                <Mail className="h-4 w-4 text-gold/70 flex-shrink-0" />
+                <Mailbox className="h-4 w-4 text-gold/70 flex-shrink-0" />
                 <span>contacto@manojitos.com</span>
               </li>
               <li className="flex items-start gap-3 text-[#F5EDE8]/40 text-sm tracking-wide">
@@ -123,7 +123,7 @@ export function StoreFooter() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-[#F5EDE8]/30 tracking-widest uppercase">
             <p>© {currentYear} Manojitos. Todos los derechos reservados.</p>
             <p className="flex items-center gap-1.5">
-              Hecho con <Heart className="h-3 w-3 text-primary fill-primary" /> en Venezuela
+              Desarrollado por Quorex Studio
             </p>
           </div>
         </div>

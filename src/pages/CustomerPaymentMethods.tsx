@@ -32,7 +32,7 @@ type PaymentMethodFormData = z.infer<typeof paymentMethodFormSchema>;
 const methodIcons: Record<PaymentMethodType, React.ReactNode> = {
   efectivo_usd: <Wallet className="h-5 w-5 text-primary" />,
   efectivo_bs: <Wallet className="h-5 w-5 text-primary/70" />,
-  zelle: <Mail className="h-5 w-5 text-primary" />,
+  zelle: <Mailbox className="h-5 w-5 text-primary" />,
   pago_movil: <Phone className="h-5 w-5 text-gold" />,
   transferencia: <Building2 className="h-5 w-5 text-cyan-500" />,
 };
