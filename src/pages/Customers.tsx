@@ -357,9 +357,9 @@ export default function Customers() {
       </div>
 
       {/* Table Section */}
-      <div className="glass-card rounded-2xl overflow-x-auto">
-        <div>
-          <Table>
+      <div className="glass-card rounded-2xl overflow-hidden w-full">
+        <div className="overflow-x-auto w-full">
+          <Table className="min-w-[800px] w-full">
             <TableHeader className="bg-muted/30 border-b border-border/30">
               <TableRow className="border-none hover:bg-transparent">
                 <TableHead className="font-semibold text-muted-foreground py-4 pl-6">Cliente</TableHead>
@@ -436,55 +436,55 @@ export default function Customers() {
                             <ChevronRight className="h-4 w-4 ml-1" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[700px] glass-card text-foreground p-0 overflow-hidden shadow-2xl rounded-2xl border-border/50">
+                        <DialogContent className="flex flex-col max-h-[90vh] w-[95vw] sm:max-w-[700px] glass-card text-foreground p-0 overflow-hidden shadow-2xl rounded-2xl border-border/50 mx-auto">
                           {selectedCustomer && (
                             <>
                               {/* Modal Header Profile */}
-                              <div className="bg-gradient-to-br from-primary/10 via-background to-background border-b border-white/5 p-8 pb-6">
-                                <div className="flex justify-between items-start">
-                                  <div className="flex items-center gap-5">
-                                    <Avatar className="h-20 w-20 border-2 border-primary/20 shadow-xl shadow-primary/5">
+                              <div className="bg-gradient-to-br from-primary/10 via-background to-background border-b border-white/5 p-4 sm:p-8 sm:pb-6 shrink-0">
+                                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                                  <div className="flex items-center gap-3 sm:gap-5 w-full">
+                                    <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 border-primary/20 shadow-xl shadow-primary/5 shrink-0">
                                       <AvatarImage src={selectedCustomer.face_photo_url || ''} alt={selectedCustomer.full_name} className="object-cover" />
-                                      <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
+                                      <AvatarFallback className="bg-primary/10 text-primary text-xl sm:text-2xl font-bold">
                                         {selectedCustomer.full_name?.substring(0, 2).toUpperCase() || 'CL'}
                                       </AvatarFallback>
                                     </Avatar>
-                                    <div>
-                                      <DialogTitle className="text-2xl font-bold text-foreground mb-1">{selectedCustomer.full_name}</DialogTitle>
-                                      <DialogDescription className="text-base text-muted-foreground">
+                                    <div className="flex-1 min-w-0">
+                                      <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground mb-1 truncate">{selectedCustomer.full_name}</DialogTitle>
+                                      <DialogDescription className="text-sm sm:text-base text-muted-foreground truncate">
                                         Evaluación de Identidad y Riesgo
                                       </DialogDescription>
-                                      <div className="mt-3">
+                                      <div className="mt-2 sm:mt-3">
                                         {getStatusBadge(selectedCustomer.kyc_status)}
                                       </div>
                                     </div>
-                                  </div>
-                                  <div className="p-3 bg-background/50 rounded-full border border-border/50 shadow-inner">
-                                    {getStatusIcon(selectedCustomer.kyc_status)}
+                                    <div className="hidden sm:block p-3 bg-background/50 rounded-full border border-border/50 shadow-inner shrink-0">
+                                      {getStatusIcon(selectedCustomer.kyc_status)}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                               
-                              <div className="p-0">
-                                <Tabs defaultValue="perfil" className="w-full">
-                                  <div className="px-8 pt-4 border-b border-border/30 bg-muted/10">
-                                    <TabsList className="bg-transparent p-0 h-auto gap-4">
-                                      <TabsTrigger value="perfil" className="data-[state=active]:bg-background data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-border/50 px-4 py-2 rounded-t-lg rounded-b-none data-[state=active]:text-primary transition-colors">
-                                        <UserCheck className="w-4 h-4 mr-2" /> Perfil Completo
+                              <div className="p-0 flex-1 overflow-y-auto flex flex-col">
+                                <Tabs defaultValue="perfil" className="w-full flex flex-col">
+                                  <div className="px-4 sm:px-8 pt-4 border-b border-border/30 bg-muted/10 overflow-x-auto shrink-0 sticky top-0 z-10">
+                                    <TabsList className="bg-transparent p-0 h-auto gap-2 sm:gap-4 flex-nowrap min-w-max pb-1">
+                                      <TabsTrigger value="perfil" className="data-[state=active]:bg-background data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-border/50 px-3 sm:px-4 py-2 rounded-t-lg rounded-b-none data-[state=active]:text-primary transition-colors whitespace-nowrap text-xs sm:text-sm">
+                                        <UserCheck className="w-4 h-4 mr-1 sm:mr-2" /> Perfil
                                       </TabsTrigger>
-                                      <TabsTrigger value="kyc" className="data-[state=active]:bg-background data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-border/50 px-4 py-2 rounded-t-lg rounded-b-none data-[state=active]:text-primary transition-colors">
-                                        <ShieldAlert className="w-4 h-4 mr-2" /> KYC (Identidad)
+                                      <TabsTrigger value="kyc" className="data-[state=active]:bg-background data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-border/50 px-3 sm:px-4 py-2 rounded-t-lg rounded-b-none data-[state=active]:text-primary transition-colors whitespace-nowrap text-xs sm:text-sm">
+                                        <ShieldAlert className="w-4 h-4 mr-1 sm:mr-2" /> KYC
                                       </TabsTrigger>
-                                      <TabsTrigger value="historial" className="data-[state=active]:bg-background data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-border/50 px-4 py-2 rounded-t-lg rounded-b-none data-[state=active]:text-primary transition-colors">
-                                        <FileText className="w-4 h-4 mr-2" /> Historial
+                                      <TabsTrigger value="historial" className="data-[state=active]:bg-background data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-border/50 px-3 sm:px-4 py-2 rounded-t-lg rounded-b-none data-[state=active]:text-primary transition-colors whitespace-nowrap text-xs sm:text-sm">
+                                        <FileText className="w-4 h-4 mr-1 sm:mr-2" /> Historial
                                       </TabsTrigger>
-                                      <TabsTrigger value="acciones" className="data-[state=active]:bg-background data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-border/50 px-4 py-2 rounded-t-lg rounded-b-none data-[state=active]:text-primary transition-colors">
-                                        <Key className="w-4 h-4 mr-2" /> Acciones
+                                      <TabsTrigger value="acciones" className="data-[state=active]:bg-background data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-border/50 px-3 sm:px-4 py-2 rounded-t-lg rounded-b-none data-[state=active]:text-primary transition-colors whitespace-nowrap text-xs sm:text-sm">
+                                        <Key className="w-4 h-4 mr-1 sm:mr-2" /> Acciones
                                       </TabsTrigger>
                                     </TabsList>
                                   </div>
 
-                                  <TabsContent value="perfil" className="p-8 space-y-6 mt-0">
+                                  <TabsContent value="perfil" className="p-4 sm:p-8 space-y-6 mt-0">
                                     <h3 className="text-lg font-semibold flex items-center gap-2">
                                       <FileText className="w-5 h-5 text-primary" /> Información de Contacto
                                     </h3>
@@ -519,7 +519,7 @@ export default function Customers() {
                                     </div>
                                   </TabsContent>
 
-                                  <TabsContent value="kyc" className="p-8 space-y-8 mt-0">
+                                  <TabsContent value="kyc" className="p-4 sm:p-8 space-y-8 mt-0">
                                     {/* KYC Photos */}
                                     <div className="space-y-4">
                                       <h4 className="font-semibold flex items-center text-foreground/90">
@@ -617,11 +617,11 @@ export default function Customers() {
                                     </div>
                                   </TabsContent>
 
-                                  <TabsContent value="historial" className="p-8 mt-0">
+                                  <TabsContent value="historial" className="p-4 sm:p-8 mt-0">
                                     <CustomerHistory userId={selectedCustomer.user_id} phone={selectedCustomer.phone} />
                                   </TabsContent>
 
-                                  <TabsContent value="acciones" className="p-8 space-y-6 mt-0">
+                                  <TabsContent value="acciones" className="p-4 sm:p-8 space-y-6 mt-0">
                                     <h3 className="text-lg font-semibold flex items-center gap-2 text-red-400 mb-4">
                                       <ShieldAlert className="w-5 h-5" /> Panel de Seguridad y Peligro
                                     </h3>
