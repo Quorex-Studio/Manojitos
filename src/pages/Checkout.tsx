@@ -1019,12 +1019,24 @@ export default function Checkout() {
 
                       <div className="grid grid-cols-2 gap-2">
                         <div className="bg-background/50 rounded-lg p-2 text-center border border-border/50">
-                          <p className="text-xs text-muted-foreground">Cuota 1 (15d)</p>
+                          <p className="text-xs text-muted-foreground">
+                            Cuota 1 ({(() => {
+                              const d = new Date();
+                              d.setDate(d.getDate() + 15);
+                              return d.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit' });
+                            })()})
+                          </p>
                           <p className="font-semibold text-foreground text-xs mt-0.5">${montoCuota.toFixed(2)}</p>
                           <span className="text-[10px] text-muted-foreground">Pendiente</span>
                         </div>
                         <div className="bg-background/50 rounded-lg p-2 text-center border border-border/50">
-                          <p className="text-xs text-muted-foreground">Cuota 2 (30d)</p>
+                          <p className="text-xs text-muted-foreground">
+                            Cuota 2 ({(() => {
+                              const d = new Date();
+                              d.setDate(d.getDate() + 30);
+                              return d.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit' });
+                            })()})
+                          </p>
                           <p className="font-semibold text-foreground text-xs mt-0.5">${montoCuota.toFixed(2)}</p>
                           <span className="text-[10px] text-muted-foreground">Pendiente</span>
                         </div>
