@@ -87,6 +87,67 @@ export default function Credits() {
     }
   });
 
+  const { data: reportedRequests = [], isLoading: loadingReportedRequests } = useQuery({
+    queryKey: ['admin-reported-requests'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .like('notes', '[SOLICITUD_CREDITO]%')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const handleApproveRequest = async (requestOrder: any) => {
+    try {
+      const { data: profiles } = await supabase
+        .from('customer_profiles')
+        .select('user_id')
+        .eq('user_id', requestOrder.customer_user_id)
+        .maybeSingle();
+      
+      if (profiles) {
+        setSelectedProfileId(profiles.user_id);
+        setCreationMode('registered');
+      } else {
+        setCreationMode('manual');
+        setNewCredit(prev => ({
+          ...prev,
+          client_name: requestOrder.customer_name || '',
+          client_phone: requestOrder.customer_phone || '',
+          client_email: requestOrder.customer_email || ''
+        }));
+      }
+      setIsCreateOpen(true);
+      
+      await supabase
+        .from('orders')
+        .update({ status: 'confirmed' })
+        .eq('id', requestOrder.id);
+        
+      queryClient.invalidateQueries({ queryKey: ['admin-reported-requests'] });
+    } catch (e: any) {
+      toast.error('Error al procesar solicitud');
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', requestId);
+      toast.success('Solicitud rechazada');
+      queryClient.invalidateQueries({ queryKey: ['admin-reported-requests'] });
+    } catch (e: any) {
+      toast.error('Error al rechazar solicitud');
+    }
+  };
+
   const handleApproveReportedAbono = async (abonoOrder: any) => {
     try {
       // 1. Encontrar la cuenta de crédito correspondiente al cliente
@@ -599,7 +660,7 @@ export default function Credits() {
 
         {/* Tabs: Créditos | Abonos */}
         <Tabs defaultValue="creditos" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsList className="flex flex-wrap h-auto w-full max-w-3xl justify-start">
             <TabsTrigger value="creditos">
               <CreditCard className="h-4 w-4 mr-2" />
               Créditos
@@ -614,6 +675,15 @@ export default function Credits() {
               {reportedAbonos.length > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white animate-pulse">
                   {reportedAbonos.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="solicitudes" className="relative">
+              <Plus className="h-4 w-4 mr-2" />
+              Solicitudes
+              {reportedRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[10px] font-bold text-white animate-pulse">
+                  {reportedRequests.length}
                 </span>
               )}
             </TabsTrigger>
@@ -1069,6 +1139,84 @@ export default function Credits() {
                               onClick={() => handleApproveReportedAbono(abono)}
                             >
                               Aprobar y Aplicar
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="solicitudes" className="space-y-4">
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5 text-gold" />
+                  Solicitudes de Crédito
+                </CardTitle>
+                <CardDescription>
+                  Revisa y procesa las solicitudes de crédito enviadas por los clientes que han completado su KYC.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingReportedRequests ? (
+                  <div className="flex justify-center py-12">
+                    <Loader className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : reportedRequests.length === 0 ? (
+                  <div className="py-12 text-center text-muted-foreground">
+                    No hay solicitudes de crédito pendientes.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reportedRequests.map(request => {
+                      const matchNotes = request.notes?.replace('[SOLICITUD_CREDITO] ', '');
+
+                      return (
+                        <div
+                          key={request.id}
+                          className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-border bg-secondary/30 gap-4"
+                        >
+                          <div className="space-y-1 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-foreground">
+                                {request.customer_name}
+                              </h4>
+                              <Badge className="bg-gold/10 text-gold border border-gold/30 hover:bg-gold/15 text-[10px] px-2 py-0.5">
+                                Nueva Solicitud
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+                              <span>Fecha: <strong>{format(new Date(request.created_at), "dd MMM yyyy", { locale: es })}</strong></span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                              {matchNotes}
+                            </p>
+                            {request.customer_email && (
+                              <p className="text-[11px] text-muted-foreground mt-2">
+                                Email: {request.customer_email} {request.customer_phone && `• Tel: ${request.customer_phone}`}
+                              </p>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-2 self-end md:self-center">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs border-destructive/30 hover:bg-destructive/10 text-destructive hover:text-destructive"
+                              onClick={() => handleRejectRequest(request.id)}
+                            >
+                              Rechazar
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="text-xs bg-gold hover:bg-gold/90 text-white"
+                              onClick={() => handleApproveRequest(request)}
+                            >
+                              Procesar
                             </Button>
                           </div>
                         </div>

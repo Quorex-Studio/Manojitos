@@ -60,7 +60,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 // Sub-componente: vista cuando el cliente no tiene crédito aún
-function CreditRequestView({ user, profile, rate }: { user: any; profile: any; rate: number }) {
+function CreditRequestView({ user, profile, rate, hasPendingRequest }: { user: any; profile: any; rate: number; hasPendingRequest: boolean }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -90,7 +90,7 @@ function CreditRequestView({ user, profile, rate }: { user: any; profile: any; r
       if (error) throw error;
       toast.success('Solicitud enviada correctamente. Te contactaremos pronto.');
       setIsDialogOpen(false);
-      setMessage('');
+      queryClient.invalidateQueries({ queryKey: ['customer-pending-credit-requests'] });
     } catch (err: any) {
       toast.error(err.message || 'Error al enviar solicitud');
     } finally {
@@ -135,74 +135,84 @@ function CreditRequestView({ user, profile, rate }: { user: any; profile: any; r
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="btn-gold btn-shimmer rounded-full px-8 h-12">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Solicitar Crédito
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[85vh] overflow-y-auto glass-card max-w-md bg-background/95 backdrop-blur-md border border-border dark:border-white/10">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-xl">
-                      <CreditCard className="h-5 w-5 text-primary" />
-                      Solicitud de Línea de Crédito
-                    </DialogTitle>
-                    <DialogDescription>
-                      Tu solicitud será revisada por nuestro equipo. Te contactaremos a la brevedad.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-2">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
-                        <p className="text-muted-foreground text-xs">Nombre</p>
-                        <p className="font-medium">{profile?.full_name || 'N/A'}</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
-                        <p className="text-muted-foreground text-xs">Teléfono</p>
-                        <p className="font-medium">{profile?.phone || 'N/A'}</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
-                        <p className="text-muted-foreground text-xs">DNI / Cédula</p>
-                        <p className="font-medium">{profile?.dni || 'Pendiente'}</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
-                        <p className="text-muted-foreground text-xs">KYC</p>
-                        <p className="font-medium capitalize">{profile?.kyc_status || 'none'}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="credit-message">Mensaje adicional (opcional)</Label>
-                      <Textarea
-                        id="credit-message"
-                        placeholder="Cuéntanos sobre tu necesidad de crédito..."
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '').slice(0, 300))}
-                        rows={3}
-                        className="bg-background/50"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter className="gap-2">
-                    <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                    <Button
-                      className="btn-gold rounded-full"
-                      onClick={handleRequest}
-                      disabled={isSending}
-                    >
-                      {isSending ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                      Enviar Solicitud
+            {hasPendingRequest ? (
+              <div className="bg-gold/10 border border-gold/20 p-6 rounded-xl text-center space-y-3 mt-4">
+                <Clock className="w-12 h-12 text-gold mx-auto animate-pulse" />
+                <h3 className="text-xl font-medium text-gold">Solicitud en Proceso</h3>
+                <p className="text-sm text-gold/80 max-w-sm mx-auto">
+                  Su solicitud ha sido procesada exitosamente. Se le dará respuesta en un máximo de 10 días.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="btn-gold btn-shimmer rounded-full px-8 h-12">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Solicitar Crédito
                     </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-              <Link to="/cliente/perfil?tab=kyc">
-                <Button variant="outline" className="rounded-full px-6 h-12 border-border/20">
-                  Ver mi Perfil KYC
-                </Button>
-              </Link>
-            </div>
+                  </DialogTrigger>
+                  <DialogContent className="max-h-[85vh] overflow-y-auto glass-card max-w-md bg-background/95 backdrop-blur-md border border-border dark:border-white/10">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2 text-xl">
+                        <CreditCard className="h-5 w-5 text-primary" />
+                        Solicitud de Línea de Crédito
+                      </DialogTitle>
+                      <DialogDescription>
+                        Tu solicitud será revisada por nuestro equipo. Te contactaremos a la brevedad.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
+                          <p className="text-muted-foreground text-xs">Nombre</p>
+                          <p className="font-medium">{profile?.full_name || 'N/A'}</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
+                          <p className="text-muted-foreground text-xs">Teléfono</p>
+                          <p className="font-medium">{profile?.phone || 'N/A'}</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
+                          <p className="text-muted-foreground text-xs">DNI / Cédula</p>
+                          <p className="font-medium">{profile?.dni || 'Pendiente'}</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-muted/30 border border-border/10">
+                          <p className="text-muted-foreground text-xs">KYC</p>
+                          <p className="font-medium capitalize">{profile?.kyc_status || 'none'}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="credit-message">Mensaje adicional (opcional)</Label>
+                        <Textarea
+                          id="credit-message"
+                          placeholder="Cuéntanos sobre tu necesidad de crédito..."
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '').slice(0, 300))}
+                          rows={3}
+                          className="bg-background/50"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter className="gap-2">
+                      <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                      <Button
+                        className="btn-gold rounded-full"
+                        onClick={handleRequest}
+                        disabled={isSending}
+                      >
+                        {isSending ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                        Enviar Solicitud
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Link to="/cliente/perfil?tab=kyc">
+                  <Button variant="outline" className="rounded-full px-6 h-12 border-border/20">
+                    Ver mi Perfil KYC
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -221,6 +231,25 @@ export default function CustomerCredit() {
   const isKycComplete = profile?.dni && profile?.address && profile?.phone && profile?.kyc_status === 'approved';
   const isKycPending = profile?.kyc_status === 'pending' && (profile?.dni_photo_url || profile?.face_photo_url || profile?.verification_photo_url);
   const isKycRejected = profile?.kyc_status === 'rejected';
+
+  // Query para saber si ya solicitó crédito
+  const { data: pendingRequests = [] } = useQuery({
+    queryKey: ['customer-pending-credit-requests', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_user_id', user.id)
+        .like('notes', '[SOLICITUD_CREDITO]%')
+        .eq('status', 'pending');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+  
+  const hasPendingRequest = pendingRequests.length > 0;
 
   // Fecha de hoy como tope máximo (se recalcula cada render, no se queda fija)
   const todayStr = new Date().toISOString().split('T')[0];
@@ -392,6 +421,7 @@ export default function CustomerCredit() {
         user={user}
         profile={profile}
         rate={rate}
+        hasPendingRequest={hasPendingRequest}
       />
     );
   }
