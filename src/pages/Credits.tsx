@@ -491,13 +491,13 @@ export default function Credits() {
                             setSelectedProfileId(value);
                             const selected = customerProfiles.find(p => p.user_id === value);
                             if (selected) {
-                              setNewCredit(prev => ({
-                                ...prev,
-                                client_name: selected.full_name || '',
-                                client_phone: selected.phone || '',
-                                client_email: selected.email || '',
-                              }));
-                            }
+                               setNewCredit(prev => ({
+                                 ...prev,
+                                 client_name: selected.full_name || selected.email || 'Cliente',
+                                 client_phone: selected.phone || '',
+                                 client_email: selected.email || '',
+                               }));
+                             }
                           }}
                         >
                           <SelectTrigger id="customer_select" className="w-full">
@@ -506,7 +506,7 @@ export default function Credits() {
                           <SelectContent>
                             {customerProfiles.map(profile => (
                               <SelectItem key={profile.id} value={profile.user_id}>
-                                {profile.full_name} ({profile.email || 'Sin correo'})
+                                {profile.full_name || profile.email || 'Cliente sin nombre'} ({profile.email || 'Sin correo'})
                               </SelectItem>
                             ))}
                             {customerProfiles.length === 0 && (
@@ -526,7 +526,6 @@ export default function Credits() {
                     value={newCredit.client_name}
                     onChange={e => setNewCredit(prev => ({ ...prev, client_name: e.target.value }))}
                     placeholder="Nombre completo"
-                    disabled={creationMode === 'registered'}
                     aria-required="true"
                   />
                 </div>
@@ -539,7 +538,6 @@ export default function Credits() {
                       value={newCredit.client_phone}
                       onChange={e => setNewCredit(prev => ({ ...prev, client_phone: e.target.value }))}
                       placeholder="+58 412..."
-                      disabled={creationMode === 'registered'}
                     />
                   </div>
                   <div className="space-y-2">
@@ -550,7 +548,6 @@ export default function Credits() {
                       value={newCredit.client_email}
                       onChange={e => setNewCredit(prev => ({ ...prev, client_email: e.target.value }))}
                       placeholder="correo@ejemplo.com"
-                      disabled={creationMode === 'registered'}
                     />
                   </div>
                 </div>
@@ -608,7 +605,7 @@ export default function Credits() {
                 </Button>
                 <Button 
                   onClick={handleCreateCredit}
-                  disabled={!newCredit.client_name || createCredit.isPending || Number(newCredit.credit_limit) > totalInventoryValue}
+                  disabled={!newCredit.client_name?.trim() || !newCredit.credit_limit || parseFloat(newCredit.credit_limit) <= 0 || createCredit.isPending || (creationMode === 'registered' && !selectedProfileId)}
                 >
                   {createCredit.isPending && <Loader className="h-4 w-4 mr-2 animate-spin" />}
                   Crear Crédito
