@@ -218,7 +218,9 @@ export default function CustomerCredit() {
   const queryClient = useQueryClient();
   const { rate } = useExchangeRate();
 
-  const isKycComplete = profile?.dni && profile?.address && profile?.phone;
+  const isKycComplete = profile?.dni && profile?.address && profile?.phone && profile?.kyc_status === 'approved';
+  const isKycPending = profile?.kyc_status === 'pending' && (profile?.dni_photo_url || profile?.face_photo_url || profile?.verification_photo_url);
+  const isKycRejected = profile?.kyc_status === 'rejected';
 
   // Fecha de hoy como tope máximo (se recalcula cada render, no se queda fija)
   const todayStr = new Date().toISOString().split('T')[0];
@@ -230,7 +232,7 @@ export default function CustomerCredit() {
   const [paymentDate, setPaymentDate] = useState(todayStr);
   const [notes, setNotes] = useState('');
 
-  // Mutación para enviar el reporte de abono
+  // ... (useMutation y useQuery sin cambios) ...
   const reportPayment = useMutation({
     mutationFn: async () => {
       if (!credit || !user) throw new Error('No hay sesión o cuenta activa');
@@ -238,7 +240,6 @@ export default function CustomerCredit() {
       if (isNaN(amountNum) || amountNum <= 0) {
         throw new Error('El monto ingresado debe ser mayor a cero');
       }
-      // Validación: la fecha de pago no puede ser futura
       const today = new Date().toISOString().split('T')[0];
       if (paymentDate > today) {
         throw new Error('La fecha de pago no puede ser una fecha futura');
@@ -247,24 +248,15 @@ export default function CustomerCredit() {
         throw new Error('La referencia es obligatoria para este método de pago');
       }
 
-      // Crear la orden especial
       const { data, error } = await supabase
         .from('orders')
         .insert({
-          user_id: credit.user_id || '00000000-0000-0000-0000-000000000000', // Asignar al administrador del local
+          user_id: credit.user_id || '00000000-0000-0000-0000-000000000000',
           customer_user_id: user.id,
           customer_name: credit.client_name || user.email || 'Cliente',
           customer_phone: credit.client_phone || '',
           customer_email: user.email || '',
-          items: [
-            {
-              id: 'credit_payment',
-              name: 'Abono a Crédito',
-              quantity: 1,
-              price: amountNum,
-              price_usd: amountNum
-            }
-          ],
+          items: [{ id: 'credit_payment', name: 'Abono a Crédito', quantity: 1, price: amountNum, price_usd: amountNum }],
           subtotal: amountNum,
           discount: 0,
           total_usd: amountNum,
@@ -283,7 +275,6 @@ export default function CustomerCredit() {
     onSuccess: () => {
       toast.success('Abono reportado correctamente. En espera de verificación.');
       setIsReportModalOpen(false);
-      // Limpiar campos
       setAmount('');
       setReference('');
       setNotes('');
@@ -294,7 +285,6 @@ export default function CustomerCredit() {
     }
   });
 
-  // Query para obtener los abonos pendientes
   const { data: pendingAbonos = [] } = useQuery({
     queryKey: ['customer-pending-abonos', user?.id],
     queryFn: async () => {
@@ -339,26 +329,64 @@ export default function CustomerCredit() {
     );
   }
 
-  if (!isKycComplete && !hasCredit) {
-    return (
-      <StoreLayout>
-        <div className="container py-12 max-w-2xl text-center space-y-6">
-          <div className="mx-auto w-16 h-16 bg-destructive/10 text-destructive rounded-full flex items-center justify-center">
-            <ShieldAlert className="h-8 w-8" />
-          </div>
-          <h1 className="text-2xl font-bold">Verificación de Identidad Requerida</h1>
-          <p className="text-muted-foreground">
-            Para acceder al módulo de crédito, necesitas completar tu perfil con tu Cédula/RIF, Dirección y Teléfono.
-          </p>
-          <Link to="/cliente/perfil">
-            <Button className="btn-gold rounded-full px-8">Completar Mi Perfil KYC</Button>
-          </Link>
-        </div>
-      </StoreLayout>
-    );
-  }
-
   if (!hasCredit) {
+    if (isKycRejected) {
+      return (
+        <StoreLayout>
+          <div className="container py-12 max-w-2xl text-center space-y-6">
+            <div className="mx-auto w-16 h-16 bg-destructive/10 text-destructive rounded-full flex items-center justify-center">
+              <ShieldX className="h-8 w-8" />
+            </div>
+            <h1 className="text-2xl font-bold">Verificación KYC Rechazada</h1>
+            <p className="text-muted-foreground">
+              Tus documentos de identidad fueron rechazados. Por favor, revisa las fotos y vuelve a enviarlas para poder solicitar un crédito.
+            </p>
+            <Link to="/cliente/perfil?tab=kyc">
+              <Button className="btn-gold rounded-full px-8">Reenviar Documentos KYC</Button>
+            </Link>
+          </div>
+        </StoreLayout>
+      );
+    }
+
+    if (isKycPending) {
+      return (
+        <StoreLayout>
+          <div className="container py-12 max-w-2xl text-center space-y-6">
+            <div className="mx-auto w-16 h-16 bg-gold/10 text-gold rounded-full flex items-center justify-center">
+              <Clock className="h-8 w-8" />
+            </div>
+            <h1 className="text-2xl font-bold">Verificación KYC en Proceso</h1>
+            <p className="text-muted-foreground">
+              Tus documentos están siendo revisados por nuestro equipo. Te notificaremos en cuanto tu identidad sea aprobada para que puedas solicitar tu crédito.
+            </p>
+            <Link to="/cliente/perfil?tab=kyc">
+              <Button variant="outline" className="rounded-full px-8">Ver Estado de mi KYC</Button>
+            </Link>
+          </div>
+        </StoreLayout>
+      );
+    }
+
+    if (!isKycComplete) {
+      return (
+        <StoreLayout>
+          <div className="container py-12 max-w-2xl text-center space-y-6">
+            <div className="mx-auto w-16 h-16 bg-destructive/10 text-destructive rounded-full flex items-center justify-center">
+              <ShieldAlert className="h-8 w-8" />
+            </div>
+            <h1 className="text-2xl font-bold">Verificación de Identidad Requerida</h1>
+            <p className="text-muted-foreground">
+              Para acceder al módulo de crédito, necesitas completar tu perfil KYC (Cédula, Dirección, Teléfono, y fotos).
+            </p>
+            <Link to="/cliente/perfil?tab=kyc">
+              <Button className="btn-gold rounded-full px-8">Completar Mi Perfil KYC</Button>
+            </Link>
+          </div>
+        </StoreLayout>
+      );
+    }
+
     return (
       <CreditRequestView
         user={user}
