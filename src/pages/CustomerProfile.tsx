@@ -559,7 +559,10 @@ export default function CustomerProfile() {
                         <TickCircle className="h-5 w-5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-sm">¡Documentos Aprobados!</p>
-                          <p className="text-xs opacity-90">Tu verificación de identidad ha sido completada exitosamente. Ya puedes solicitar créditos.</p>
+                          <p className="text-xs opacity-90">
+                            Tu verificación de identidad ha sido completada exitosamente.
+                            {hasCredit ? ' Ya tienes tu línea de crédito activa.' : ' Ya puedes solicitar créditos.'}
+                          </p>
                         </div>
                       </div>
                       {!hasCredit && (
