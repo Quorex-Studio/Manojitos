@@ -15,7 +15,7 @@ Las tablas clave para el negocio, manejadas a través de Supabase:
 
 - **products**: Catálogo principal de productos (`id`, `name`, `sku`, `price`, `cost`, `stock`, `stock_min`, `stock_max`).
 - **customer_profiles**: Perfiles de clientes (`id`, `user_id`, `full_name`, `email`, `phone`, y campos KYC como `avatar_url`, `dni_photo_url`, `rif_photo_url`, `kyc_status`).
-- **orders**: Pedidos de compras o ventas (`id`, `customer_id`, `status`, `total`, `banco_origen`, `numero_referencia`, `tipo_venta`, `payment_method`).
+- **orders**: Pedidos de compras o ventas (`id`, `customer_user_id`, `status`, `total_usd`, `banco_origen`, `numero_referencia`, `payment_method`). Cuenta con políticas RLS para lectura propia (`customer_user_id = auth.uid()`), gestión total por admins (`is_admin()`), e inserción por clientes autenticados (`Customers can insert own orders`).
 - **order_items**: Detalle de productos por pedido.
 - **ledger**: Libro contable con ingresos, egresos y movimientos de la caja.
 - **credits**: Líneas de crédito (`id`, `client_user_id`, `client_name`, `credit_limit`, `current_balance`, `cut_off_day`, `status`).
