@@ -251,6 +251,7 @@ export default function Credits() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDescription, setPaymentDescription] = useState('');
   const [reminderType, setReminderType] = useState('3_DAYS_BEFORE');
+  const [customMessage, setCustomMessage] = useState('');
   const [activeTab, setActiveTab] = useState('credits');
   const [activeRequestOrderId, setActiveRequestOrderId] = useState<string | null>(null);
 
