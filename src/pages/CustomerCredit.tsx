@@ -397,7 +397,7 @@ export default function CustomerCredit() {
       );
     }
 
-    if (!isKycComplete) {
+    if (profile?.kyc_status !== 'approved') {
       return (
         <StoreLayout>
           <div className="container py-12 max-w-2xl text-center space-y-6">
@@ -596,139 +596,141 @@ export default function CustomerCredit() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-3 items-start md:items-end justify-between">
-                  <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="w-full md:w-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary/95 hover:to-primary/75 text-white shadow-lg flex items-center gap-2 hover:scale-[1.02] transition-transform">
-                        <Plus className="h-4 w-4" />
-                        Reportar Abono
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-h-[85vh] overflow-y-auto glass-card max-w-md bg-background/95 backdrop-blur-md border border-border dark:border-white/10 text-foreground">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
-                          <DollarSign className="h-5 w-5 text-primary animate-pulse" />
-                          Reportar Abono a Crédito
-                        </DialogTitle>
-                        <DialogDescription className="text-muted-foreground">
-                          Registra un pago para amortizar tu saldo de crédito pendiente.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="amount">Monto del Abono (USD)</Label>
-                          <div className="relative">
-                            <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              id="amount"
-                              type="text"
-                              inputMode="decimal"
-                              placeholder="0.00"
-                              value={amount}
-                              onChange={(e) => {
-                                let val = e.target.value.replace(/[^0-9.]/g, '');
-                                const parts = val.split('.');
-                                if (parts.length > 2) {
-                                  val = parts[0] + '.' + parts.slice(1).join('');
-                                }
-                                setAmount(val);
-                              }}
-                              className="pl-9 bg-background/50"
-                            />
-                          </div>
-                          {amount && rate && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Equivalente a: <span className="font-semibold text-primary">{formatBS(parseFloat(amount) * rate)}</span> (Tasa: {rate} Bs/$)
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="payment-method">Método de Pago</Label>
-                          <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                            <SelectTrigger className="bg-background/50">
-                              <SelectValue placeholder="Selecciona un método" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-background/95 border-border dark:border-white/10">
-                              <SelectItem value="pago_movil">Pago Móvil</SelectItem>
-                              <SelectItem value="zelle">Zelle</SelectItem>
-                              <SelectItem value="transferencia">Transferencia Bancaria</SelectItem>
-                              <SelectItem value="efectivo">Efectivo en Tienda</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {paymentMethod !== 'efectivo' && (
+                  {credit.current_balance > 0 && (
+                    <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="w-full md:w-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary/95 hover:to-primary/75 text-white shadow-lg flex items-center gap-2 hover:scale-[1.02] transition-transform">
+                          <Plus className="h-4 w-4" />
+                          Reportar Abono
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-h-[85vh] overflow-y-auto glass-card max-w-md bg-background/95 backdrop-blur-md border border-border dark:border-white/10 text-foreground">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
+                            <DollarSign className="h-5 w-5 text-primary animate-pulse" />
+                            Reportar Abono a Crédito
+                          </DialogTitle>
+                          <DialogDescription className="text-muted-foreground">
+                            Registra un pago para amortizar tu saldo de crédito pendiente.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
                           <div className="space-y-2">
-                            <Label htmlFor="reference">Número de Referencia</Label>
+                            <Label htmlFor="amount">Monto del Abono (USD)</Label>
+                            <div className="relative">
+                              <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                id="amount"
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="0.00"
+                                value={amount}
+                                onChange={(e) => {
+                                  let val = e.target.value.replace(/[^0-9.]/g, '');
+                                  const parts = val.split('.');
+                                  if (parts.length > 2) {
+                                    val = parts[0] + '.' + parts.slice(1).join('');
+                                  }
+                                  setAmount(val);
+                                }}
+                                className="pl-9 bg-background/50"
+                              />
+                            </div>
+                            {amount && rate && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Equivalente a: <span className="font-semibold text-primary">{formatBS(parseFloat(amount) * rate)}</span> (Tasa: {rate} Bs/$)
+                              </p>
+                            )}
+                          </div>
+  
+                          <div className="space-y-2">
+                            <Label htmlFor="payment-method">Método de Pago</Label>
+                            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                              <SelectTrigger className="bg-background/50">
+                                <SelectValue placeholder="Selecciona un método" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background/95 border-border dark:border-white/10">
+                                <SelectItem value="pago_movil">Pago Móvil</SelectItem>
+                                <SelectItem value="zelle">Zelle</SelectItem>
+                                <SelectItem value="transferencia">Transferencia Bancaria</SelectItem>
+                                <SelectItem value="efectivo">Efectivo en Tienda</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+  
+                          {paymentMethod !== 'efectivo' && (
+                            <div className="space-y-2">
+                              <Label htmlFor="reference">Número de Referencia</Label>
+                              <Input
+                                id="reference"
+                                placeholder="Ej: 12345678"
+                                value={reference}
+                                onChange={(e) => setReference(e.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+                                className="bg-background/50"
+                              />
+                            </div>
+                          )}
+  
+                          <div className="space-y-2">
+                            <Label htmlFor="payment-date">Fecha de Pago</Label>
                             <Input
-                              id="reference"
-                              placeholder="Ej: 12345678"
-                              value={reference}
-                              onChange={(e) => setReference(e.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+                              id="payment-date"
+                              type="date"
+                              value={paymentDate}
+                              max={todayStr}
+                              onChange={(e) => {
+                                // Doble protección: ignorar si el valor supera hoy
+                                if (e.target.value <= todayStr) {
+                                  setPaymentDate(e.target.value);
+                                }
+                              }}
+                              className="bg-background/50"
+                            />
+                            {paymentDate > todayStr && (
+                              <p className="text-xs text-destructive">
+                                La fecha de pago no puede ser una fecha futura.
+                              </p>
+                            )}
+                          </div>
+  
+                          <div className="space-y-2">
+                            <Label htmlFor="notes">Notas o Comentarios (Opcional)</Label>
+                            <Textarea
+                              id="notes"
+                              placeholder="Detalles adicionales del pago..."
+                              value={notes}
+                              onChange={(e) => setNotes(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, ''))}
+                              rows={3}
                               className="bg-background/50"
                             />
                           </div>
-                        )}
-
-                        <div className="space-y-2">
-                          <Label htmlFor="payment-date">Fecha de Pago</Label>
-                          <Input
-                            id="payment-date"
-                            type="date"
-                            value={paymentDate}
-                            max={todayStr}
-                            onChange={(e) => {
-                              // Doble protección: ignorar si el valor supera hoy
-                              if (e.target.value <= todayStr) {
-                                setPaymentDate(e.target.value);
-                              }
-                            }}
-                            className="bg-background/50"
-                          />
-                          {paymentDate > todayStr && (
-                            <p className="text-xs text-destructive">
-                              La fecha de pago no puede ser una fecha futura.
-                            </p>
-                          )}
                         </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="notes">Notas o Comentarios (Opcional)</Label>
-                          <Textarea
-                            id="notes"
-                            placeholder="Detalles adicionales del pago..."
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, ''))}
-                            rows={3}
-                            className="bg-background/50"
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter className="gap-2">
-                        <Button
-                          variant="ghost"
-                          onClick={() => setIsReportModalOpen(false)}
-                          disabled={reportPayment.isPending}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          onClick={() => reportPayment.mutate()}
-                          disabled={reportPayment.isPending}
-                          className="bg-primary text-white hover:bg-primary/90"
-                        >
-                          {reportPayment.isPending ? (
-                            <>
-                              <Loader className="mr-2 h-4 w-4 animate-spin" />
-                              Enviando...
-                            </>
-                          ) : (
-                            'Enviar Reporte'
-                          )}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                        <DialogFooter className="gap-2">
+                          <Button
+                            variant="ghost"
+                            onClick={() => setIsReportModalOpen(false)}
+                            disabled={reportPayment.isPending}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            onClick={() => reportPayment.mutate()}
+                            disabled={reportPayment.isPending}
+                            className="bg-primary text-white hover:bg-primary/90"
+                          >
+                            {reportPayment.isPending ? (
+                              <>
+                                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                Enviando...
+                              </>
+                            ) : (
+                              'Enviar Reporte'
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
 
                   <div className="text-left md:text-right">
                     <Badge className={cn(statusConfig.color, "text-white mb-2")}>
@@ -888,18 +890,30 @@ export default function CustomerCredit() {
                                 <ChartSuccess className="h-5 w-5 text-destructive" />
                               )}
                               <div>
-                                <p className="font-medium">{
+                                <div className="font-medium text-sm">{
                                   (() => {
                                     const desc = tx.description || tx.type;
                                     // Strip raw [ABONO_CREDITO] notes string from stored orders notes
                                     if (desc.startsWith('[ABONO_CREDITO]')) {
-                                      const refMatch = desc.match(/Referencia:\s*([^\.\n]+)/);
-                                      const ref = refMatch ? refMatch[1].trim() : '';
-                                      return ref ? `Abono reportado — Ref: ${ref}` : 'Abono reportado';
+                                      const refMatch = desc.match(/Referencia:\s*([^\.]+)/);
+                                      const methodMatch = desc.match(/Método:\s*([^\.]+)/);
+                                      const noteMatch = desc.match(/Notas:\s*(.*)/);
+                                      
+                                      const ref = refMatch ? refMatch[1].trim() : 'N/A';
+                                      const method = methodMatch ? methodMatch[1].trim().replace(/_/g, ' ') : '';
+                                      const note = noteMatch ? noteMatch[1].trim() : '';
+
+                                      return (
+                                        <div className="flex flex-col">
+                                          <span className="capitalize">Abono {method}</span>
+                                          <span className="text-xs text-muted-foreground font-normal">Ref: {ref}</span>
+                                          {note && <span className="text-[10px] text-muted-foreground/70 italic max-w-[220px] truncate">"{note}"</span>}
+                                        </div>
+                                      );
                                     }
                                     return desc;
                                   })()
-                                }</p>
+                                }</div>
                                 <p className="text-xs text-muted-foreground">
                                   {format(new Date(tx.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
                                 </p>

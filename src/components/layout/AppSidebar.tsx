@@ -27,7 +27,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const isMobile = useIsMobile();
 
   // Close sidebar when route changes on mobile
@@ -62,6 +62,8 @@ export function AppSidebar() {
 
       {/* Sidebar */}
       <aside
+        onMouseEnter={() => !isMobile && setIsCollapsed(false)}
+        onMouseLeave={() => !isMobile && setIsCollapsed(true)}
         className={cn(
           "relative h-full bg-sidebar border-r border-sidebar-border flex-shrink-0 transition-all duration-300",
           isCollapsed && !isMobile ? "w-[80px]" : "w-[280px]",
@@ -71,17 +73,7 @@ export function AppSidebar() {
           !isMobile && "sticky top-0"
         )}
       >
-        {/* Desktop collapse button */}
-        {!isMobile && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute top-8 -right-4 z-50 h-8 w-8 rounded-full bg-background shadow-md border border-border flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-          >
-            <Menu className="h-4 w-4" />
-          </Button>
-        )}
+
 
         <div className={cn("flex flex-col h-full", isCollapsed && !isMobile ? "p-3" : "p-6")}>
           {/* Logo */}

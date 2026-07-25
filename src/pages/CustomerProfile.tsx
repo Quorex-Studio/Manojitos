@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { Location, Gallery, TickCircle, Loader, User, Phone, Mailbox, Save, Refresh, ArrowLeft, Camera, ShieldCheck, Upload, Image as Gallery, CheckCircle } from 'reicon-react';
+import { Location, Gallery, TickCircle, Loader, User, Phone, Mailbox, Save, Refresh, ArrowLeft, Camera, ShieldCheck, Upload, ShoppingBag, CheckCircle } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -720,12 +720,21 @@ export default function CustomerProfile() {
                           ? purchase.items?.reduce((acc: number, item: any) => acc + (item.quantity || 1), 0) || 1
                           : purchase.quantity;
 
+                        const firstImageUrl = isOrder ? purchase.items?.[0]?.image_url : null;
+                        
                         return (
                           <div 
                             key={purchase.id}
-                            className="flex items-center justify-between p-4 rounded-xl bg-card/80 hover:bg-card/80 transition-colors duration-300"
+                            className="flex items-center gap-4 p-4 rounded-xl bg-card/80 hover:bg-card/80 transition-colors duration-300"
                           >
-                            <div>
+                            <div className="w-12 h-12 rounded-lg bg-muted/20 border border-border/10 flex items-center justify-center shrink-0 overflow-hidden">
+                              {firstImageUrl ? (
+                                <img src={firstImageUrl} alt={productName} className="w-full h-full object-cover" />
+                              ) : (
+                                <ShoppingBag className="w-5 h-5 text-muted-foreground/30" />
+                              )}
+                            </div>
+                            <div className="flex-1">
                               <p className="font-medium text-sm line-clamp-1">{productName}</p>
                               <p className="text-xs text-muted-foreground/40 tracking-wide">
                                 {format(new Date(purchase.created_at), 'PPP', { locale: es })}

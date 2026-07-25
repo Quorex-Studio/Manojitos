@@ -11,7 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { useCustomerOrders } from '@/hooks/useCustomerOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
@@ -145,6 +146,8 @@ export default function CustomerOrders() {
 
 function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['orders'] }) {
   const [trackingOrder, setTrackingOrder] = useState<string | null>(null);
+  const [receiptOrder, setReceiptOrder] = useState<any>(null);
+  const [detailsOrder, setDetailsOrder] = useState<any>(null);
 
   if (orders.length === 0) {
     return (
@@ -196,9 +199,9 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                 <div className="flex flex-col md:items-end">
                   <p className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold mb-0.5">Pedido n.º {order.id.slice(0, 8)}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-primary text-sm hover:underline cursor-pointer">Ver detalles del pedido</span>
+                    <span className="text-primary text-sm hover:underline cursor-pointer" onClick={() => setDetailsOrder(order)}>Ver detalles del pedido</span>
                     <span className="text-border/60">|</span>
-                    <span className="text-primary text-sm hover:underline cursor-pointer">Ver recibo</span>
+                    <span className="text-primary text-sm hover:underline cursor-pointer" onClick={() => setReceiptOrder(order)}>Ver recibo</span>
                   </div>
                 </div>
               </div>
@@ -217,8 +220,12 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                   <div className="flex-1 space-y-4">
                     {order.items.slice(0, 3).map((item, idx) => (
                       <div key={idx} className="flex gap-4 items-start">
-                        <div className="w-20 h-20 bg-muted/30 rounded-lg flex items-center justify-center border border-border/40 shrink-0">
-                          <ShoppingBag className="h-8 w-8 text-muted-foreground/30" />
+                        <div className="w-20 h-20 bg-muted/30 rounded-lg flex items-center justify-center border border-border/40 shrink-0 overflow-hidden">
+                          {item.image_url ? (
+                            <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover" />
+                          ) : (
+                            <ShoppingBag className="h-8 w-8 text-muted-foreground/30" />
+                          )}
                         </div>
                         <div>
                           <p className="font-medium text-primary hover:underline cursor-pointer line-clamp-2 leading-snug">
@@ -323,6 +330,123 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
             >
               Cerrar Detalles
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detalle del Pedido Modal */}
+      <Dialog open={!!detailsOrder} onOpenChange={(open) => !open && setDetailsOrder(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl bg-background border border-border/40 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-serif">Detalles del Pedido</DialogTitle>
+            <DialogDescription>
+              Pedido realizado el {detailsOrder ? format(new Date(detailsOrder.created_at), "d 'de' MMMM 'de' yyyy", { locale: es }) : ''} | 
+              N.º {detailsOrder?.id}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-border bg-card/40">
+                <h4 className="font-semibold mb-2">Dirección de envío</h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                  {detailsOrder?.shipping_address || 'Retiro en tienda (Acordado con el vendedor)'}
+                </p>
+              </div>
+              <div className="p-4 rounded-xl border border-border bg-card/40">
+                <h4 className="font-semibold mb-2">Método de pago</h4>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {detailsOrder?.payment_method?.replace('_', ' ') || 'No especificado'}
+                </p>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Artículos comprados</h4>
+              <div className="space-y-4">
+                {detailsOrder?.items?.map((item: any, idx: number) => (
+                  <div key={idx} className="flex gap-4 items-center p-3 rounded-lg border border-border/50">
+                    <div className="w-16 h-16 bg-muted/30 rounded-lg flex items-center justify-center border border-border/40 shrink-0 overflow-hidden">
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <ShoppingBag className="h-6 w-6 text-muted-foreground/30" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm line-clamp-1">{item.product_name || 'Producto'}</p>
+                      <p className="text-xs text-muted-foreground">Cantidad: {item.quantity}</p>
+                    </div>
+                    <div className="text-right">
+                      <PriceDisplay amountUsd={item.total || 0} primaryClassName="font-semibold text-sm" showSecondary={false} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+            <div className="flex justify-between items-center font-bold text-lg">
+              <span>Total del pedido</span>
+              <PriceDisplay amountUsd={detailsOrder?.total_usd || 0} primaryClassName="text-primary" showSecondary={true} amountBs={detailsOrder?.total_bs} />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recibo / Factura Modal */}
+      <Dialog open={!!receiptOrder} onOpenChange={(open) => !open && setReceiptOrder(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[400px] p-0 bg-background border border-border shadow-2xl">
+          <div className="p-8 bg-white text-black print-exact font-mono" id="receipt-content">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-serif font-bold">Manojitos</h2>
+              <p className="text-xs uppercase tracking-widest mt-1">Boutique & Lifestyle</p>
+              <div className="mt-4 text-sm">
+                <p>Recibo de Compra</p>
+                <p>Nº: {receiptOrder?.id.split('-')[0].toUpperCase()}</p>
+                <p>Fecha: {receiptOrder ? format(new Date(receiptOrder.created_at), "dd/MM/yyyy HH:mm") : ''}</p>
+              </div>
+            </div>
+            
+            <Separator className="bg-black/20 my-4" />
+            
+            <div className="space-y-3 mb-6">
+              {receiptOrder?.items?.map((item: any, idx: number) => (
+                <div key={idx} className="flex justify-between text-sm">
+                  <div className="flex-1">
+                    <p className="line-clamp-2">{item.quantity}x {item.product_name}</p>
+                  </div>
+                  <div className="text-right pl-4">
+                    <p>${(item.total || 0).toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Separator className="bg-black/20 my-4 border-dashed" />
+            
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>${(receiptOrder?.subtotal || receiptOrder?.total_usd || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-base mt-2">
+                <span>TOTAL USD</span>
+                <span>${(receiptOrder?.total_usd || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground mt-1">
+                <span>TOTAL BS</span>
+                <span>Bs {(receiptOrder?.total_bs || 0).toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="mt-8 text-center text-xs">
+              <p>¡Gracias por tu compra en Manojitos!</p>
+              <p className="mt-1 opacity-70">Conserva este recibo para reclamos o cambios.</p>
+            </div>
+          </div>
+          <div className="p-4 border-t border-border flex justify-end gap-2 bg-muted/20">
+            <Button variant="outline" onClick={() => setReceiptOrder(null)}>Cerrar</Button>
+            <Button onClick={() => window.print()}>Imprimir / PDF</Button>
           </div>
         </DialogContent>
       </Dialog>
