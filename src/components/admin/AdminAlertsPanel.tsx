@@ -215,7 +215,7 @@ export function DashboardAlertsDropdown() {
       <PopoverContent className="w-[380px] p-0" align="end">
         <div className="p-4 border-b border-border/40 bg-muted/20 flex items-center justify-between rounded-t-xl">
           <div className="flex items-center gap-2">
-            <h4 className="font-serif font-bold text-lg text-foreground">Insights</h4>
+            <h4 className="font-serif font-bold text-lg text-foreground">Alertas</h4>
           </div>
           <div className="flex gap-2">
             {activeCritical > 0 && (

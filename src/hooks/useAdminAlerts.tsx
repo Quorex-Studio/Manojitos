@@ -50,7 +50,7 @@ export function useAdminAlerts() {
         title: 'Productos agotados',
         message: `${outOfStockProducts.length} producto(s) sin stock`,
         icon: 'AlertTriangle',
-        action: { label: 'Ver productos', path: '/tienda' },
+        action: { label: 'Ver productos', path: '/products' },
         timestamp: now,
         data: outOfStockProducts
       });
@@ -64,7 +64,7 @@ export function useAdminAlerts() {
         title: 'Stock bajo',
         message: `${lowStockProducts.length} producto(s) con stock crítico (4 o menos)`,
         icon: 'AlertCircle',
-        action: { label: 'Reponer', path: '/tienda' },
+        action: { label: 'Reponer', path: '/products' },
         timestamp: now,
         data: lowStockProducts
       });
