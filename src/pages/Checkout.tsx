@@ -168,6 +168,7 @@ export default function Checkout() {
   const isEmpty = items.length === 0;
 
   const [casheaMethod, setCasheaMethod] = useState('pago_movil');
+  const [casheaBank, setCasheaBank] = useState('');
   const [casheaRef, setCasheaRef] = useState('');
   const [casheaPhone, setCasheaPhone] = useState('');
 
@@ -385,7 +386,7 @@ export default function Checkout() {
       }
 
       const notesPrefix = paymentMethod === 'credito'
-        ? `[Inicial Crédito Manojitos: $${montoInicialTotal.toFixed(2)} - Método: ${sanitizeText(casheaMethod)} - Ref: ${casheaRef ? sanitizeText(casheaRef) : 'N/A'}${casheaPhone ? ` - Tlf Emisor: ${sanitizeText(casheaPhone)}` : ''}] `
+        ? `[Inicial Crédito Manojitos: $${montoInicialTotal.toFixed(2)} - Método: ${sanitizeText(casheaMethod)} - Ref: ${casheaRef ? sanitizeText(casheaRef) : 'N/A'}${casheaBank ? ` - Banco: ${sanitizeText(casheaBank)}` : ''}${casheaPhone ? ` - Tlf Emisor: ${sanitizeText(casheaPhone)}` : ''}] `
         : '';
 
       const { error, saleIds } = await processCheckout(
@@ -1043,6 +1044,8 @@ export default function Checkout() {
                       </div>
 
                       <div className="border-t border-border/50 pt-3 space-y-3">
+                        <PaymentInfoPanel method={casheaMethod === 'pago_movil' ? 'pago_movil' : casheaMethod === 'transferencia' ? 'transferencia' : ''} />
+                        
                         <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Reportar Pago de la Inicial</h4>
                         
                         <div className="grid grid-cols-2 gap-2">
@@ -1065,16 +1068,46 @@ export default function Checkout() {
                           {casheaMethod !== 'efectivo_usd' && casheaMethod !== 'efectivo_bs' && (
                             <div className="col-span-2 grid grid-cols-2 gap-2">
                               {casheaMethod === 'pago_movil' && (
-                                <div>
-                                  <Label htmlFor="casheaPhone" className="text-xs">Teléfono Emisor</Label>
-                                  <Input
-                                    id="casheaPhone"
-                                    placeholder="Ej: 04141234567"
-                                    value={casheaPhone}
-                                    onChange={(e) => setCasheaPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
-                                    className="mt-1 h-9 text-xs"
-                                  />
-                                </div>
+                                <>
+                                  <div>
+                                    <Label htmlFor="casheaBank" className="text-xs">Banco Emisor</Label>
+                                    <select
+                                      id="casheaBank"
+                                      value={casheaBank}
+                                      onChange={(e) => setCasheaBank(e.target.value)}
+                                      className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                      <option value="">Seleccione Banco...</option>
+                                      <option value="Banesco" className="dark:bg-zinc-900">Banesco</option>
+                                      <option value="Mercantil" className="dark:bg-zinc-900">Mercantil</option>
+                                      <option value="Provincial" className="dark:bg-zinc-900">Provincial</option>
+                                      <option value="BDV" className="dark:bg-zinc-900">Banco de Venezuela (BDV)</option>
+                                      <option value="BNC" className="dark:bg-zinc-900">Banco Nacional de Crédito (BNC)</option>
+                                      <option value="Bancamiga" className="dark:bg-zinc-900">Bancamiga</option>
+                                      <option value="Bancaribe" className="dark:bg-zinc-900">Bancaribe</option>
+                                      <option value="Bicentenario" className="dark:bg-zinc-900">Banco Bicentenario</option>
+                                      <option value="Tesoro" className="dark:bg-zinc-900">Banco del Tesoro</option>
+                                      <option value="Banplus" className="dark:bg-zinc-900">Banplus</option>
+                                      <option value="Banco Plaza" className="dark:bg-zinc-900">Banco Plaza</option>
+                                      <option value="Banco Activo" className="dark:bg-zinc-900">Banco Activo</option>
+                                      <option value="100% Banco" className="dark:bg-zinc-900">100% Banco</option>
+                                      <option value="Banco Caroní" className="dark:bg-zinc-900">Banco Caroní</option>
+                                      <option value="Banco Sofitasa" className="dark:bg-zinc-900">Banco Sofitasa</option>
+                                      <option value="Banco Venezolano de Crédito" className="dark:bg-zinc-900">Banco Venezolano de Crédito</option>
+                                      <option value="Mi Banco" className="dark:bg-zinc-900">Mi Banco</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="casheaPhone" className="text-xs">Teléfono Emisor</Label>
+                                    <Input
+                                      id="casheaPhone"
+                                      placeholder="Ej: 04141234567"
+                                      value={casheaPhone}
+                                      onChange={(e) => setCasheaPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
+                                      className="mt-1 h-9 text-xs"
+                                    />
+                                  </div>
+                                </>
                               )}
                               <div className={casheaMethod !== 'pago_movil' ? 'col-span-2' : ''}>
                                 <Label htmlFor="casheaRef" className="text-xs">Referencia</Label>
