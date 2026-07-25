@@ -61,6 +61,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 // Sub-componente: vista cuando el cliente no tiene crédito aún
 function CreditRequestView({ user, profile, rate, hasPendingRequest }: { user: any; profile: any; rate: number; hasPendingRequest: boolean }) {
+  const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
