@@ -106,42 +106,48 @@ export default function Credits() {
     try {
       const { data: profiles } = await supabase
         .from('customer_profiles')
-        .select('user_id')
+        .select('*')
         .eq('user_id', requestOrder.customer_user_id)
         .maybeSingle();
       
+      setActiveRequestOrderId(requestOrder.id);
+
       if (profiles) {
         setSelectedProfileId(profiles.user_id);
         setCreationMode('registered');
+        setNewCredit({
+          client_name: requestOrder.customer_name || profiles.full_name || profiles.email || 'Cliente',
+          client_phone: requestOrder.customer_phone || profiles.phone || '',
+          client_email: requestOrder.customer_email || profiles.email || '',
+          credit_limit: '',
+          cut_off_day: '15',
+          notes: `Origen: Solicitud de Crédito (${requestOrder.id.slice(0, 8)})`,
+        });
       } else {
         setCreationMode('manual');
-        setNewCredit(prev => ({
-          ...prev,
-          client_name: requestOrder.customer_name || '',
+        setNewCredit({
+          client_name: requestOrder.customer_name || 'Cliente',
           client_phone: requestOrder.customer_phone || '',
-          client_email: requestOrder.customer_email || ''
-        }));
+          client_email: requestOrder.customer_email || '',
+          credit_limit: '',
+          cut_off_day: '15',
+          notes: `Origen: Solicitud de Crédito (${requestOrder.id.slice(0, 8)})`,
+        });
       }
       setIsCreateOpen(true);
-      
-      await supabase
-        .from('orders')
-        .update({ status: 'confirmed' })
-        .eq('id', requestOrder.id);
-        
-      queryClient.invalidateQueries({ queryKey: ['admin-reported-requests'] });
     } catch (e: any) {
       toast.error('Error al procesar solicitud');
     }
   };
 
   const handleRejectRequest = async (requestId: string) => {
+    if (!window.confirm('¿Estás seguro de rechazar esta solicitud de crédito?')) return;
     try {
       await supabase
         .from('orders')
         .update({ status: 'cancelled' })
         .eq('id', requestId);
-      toast.success('Solicitud rechazada');
+      toast.success('Solicitud rechazada correctamente.');
       queryClient.invalidateQueries({ queryKey: ['admin-reported-requests'] });
     } catch (e: any) {
       toast.error('Error al rechazar solicitud');
@@ -245,8 +251,8 @@ export default function Credits() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDescription, setPaymentDescription] = useState('');
   const [reminderType, setReminderType] = useState('3_DAYS_BEFORE');
-  const [customMessage, setCustomMessage] = useState('');
   const [activeTab, setActiveTab] = useState('credits');
+  const [activeRequestOrderId, setActiveRequestOrderId] = useState<string | null>(null);
 
   // --- Historial de abonos (todas las transacciones) ---
   const [abonosSearch, setAbonosSearch] = useState('');
@@ -308,6 +314,16 @@ export default function Credits() {
       cut_off_day: parseInt(newCredit.cut_off_day),
       notes: newCredit.notes ? sanitizeText(newCredit.notes) : null,
     });
+
+    if (activeRequestOrderId) {
+      await supabase
+        .from('orders')
+        .update({ status: 'confirmed' })
+        .eq('id', activeRequestOrderId);
+      queryClient.invalidateQueries({ queryKey: ['admin-reported-requests'] });
+      setActiveRequestOrderId(null);
+    }
+
     setIsCreateOpen(false);
     setNewCredit({
       client_name: '',
