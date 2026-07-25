@@ -224,7 +224,7 @@ export default function CustomerCredit() {
   // --- DERIVED ---
   const { user } = useAuth();
   const { credit, transactions, promises, hasCredit, hasPendingPayments, isLoading } = useCustomerCredit();
-  const { data: profile, isLoading: isProfileLoading } = useCustomerProfile();
+  const { profile, isLoading: isProfileLoading } = useCustomerProfile();
   const queryClient = useQueryClient();
   const { rate } = useExchangeRate();
 
