@@ -42,7 +42,6 @@ export default defineConfig(({ mode }: { mode: string }) => {
           manualChunks: {
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
             'vendor-supabase': ['@supabase/supabase-js'],
-            'vendor-framer': ['framer-motion'],
             'vendor-ui': ['reicon-react', 'clsx', 'tailwind-merge']
           },
         }
@@ -55,7 +54,6 @@ export default defineConfig(({ mode }: { mode: string }) => {
         'react-router-dom',
         '@tanstack/react-query',
         '@supabase/supabase-js',
-        'framer-motion',
       ],
     },
   };

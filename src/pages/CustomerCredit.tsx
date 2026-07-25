@@ -637,8 +637,8 @@ export default function CustomerCredit() {
                               />
                             </div>
                             {amount && rate && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Equivalente a: <span className="font-semibold text-primary">{formatBS(parseFloat(amount) * rate)}</span> (Tasa: {rate} Bs/$)
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Equivalente a: <span className="font-extrabold text-lg text-primary">{formatBS(parseFloat(amount) * rate)}</span> <span className="text-xs">(Tasa: {rate} Bs/$)</span>
                               </p>
                             )}
                           </div>
@@ -658,16 +658,38 @@ export default function CustomerCredit() {
                             </Select>
                           </div>
   
+                          {paymentMethod === 'pago_movil' && (
+                            <div className="text-xs bg-gold/10 p-3.5 rounded-xl border border-gold/30 text-foreground space-y-1">
+                              <p className="font-bold text-gold uppercase text-[11px] tracking-wider">Datos para Pago Móvil:</p>
+                              <p className="font-semibold text-sm">Banco: Bancamiga • Tlf: 04248780607</p>
+                              <p className="text-xs text-muted-foreground">C.I: 30785117 • Josmaris De Los Ángeles</p>
+                            </div>
+                          )}
+
                           {paymentMethod !== 'efectivo' && (
-                            <div className="space-y-2">
-                              <Label htmlFor="reference">Número de Referencia</Label>
-                              <Input
-                                id="reference"
-                                placeholder="Ej: 12345678"
-                                value={reference}
-                                onChange={(e) => setReference(e.target.value.replace(/[^A-Za-z0-9]/g, ''))}
-                                className="bg-background/50"
-                              />
+                            <div className="space-y-3">
+                              {paymentMethod === 'pago_movil' && (
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="issuer-phone" className="text-xs font-medium">Teléfono Emisor</Label>
+                                  <Input
+                                    id="issuer-phone"
+                                    placeholder="Ej: 04241234567"
+                                    value={notes}
+                                    onChange={(e) => setNotes(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
+                                    className="bg-background/50 text-xs"
+                                  />
+                                </div>
+                              )}
+                              <div className="space-y-1.5">
+                                <Label htmlFor="reference" className="text-xs font-medium">Número de Referencia</Label>
+                                <Input
+                                  id="reference"
+                                  placeholder="Ej: 12345678"
+                                  value={reference}
+                                  onChange={(e) => setReference(e.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+                                  className="bg-background/50 text-xs"
+                                />
+                              </div>
                             </div>
                           )}
   

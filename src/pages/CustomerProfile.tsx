@@ -584,11 +584,13 @@ export default function CustomerProfile() {
                   )}
 
                   {profile?.kyc_status === 'rejected' && (
-                    <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-lg flex items-center gap-3">
-                      <User className="h-5 w-5 flex-shrink-0" />
+                    <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl flex items-start gap-3">
+                      <User className="h-5 w-5 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-medium text-sm">Documentos Rechazados</p>
-                        <p className="text-xs opacity-90">Por favor, vuelve a subir los documentos asegurándote de que sean legibles y cumplan con los requisitos.</p>
+                        <p className="font-bold text-sm">Documentos KYC Rechazados</p>
+                        <p className="text-xs opacity-90 mt-0.5">
+                          Tus documentos anteriores fueron rechazados por el administrador. Por favor vuelve a seleccionar fotos claras y legibles de tu Cédula, Selfie y Foto sosteniendo tu Cédula para volver a procesar tu solicitud.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -609,7 +611,7 @@ export default function CustomerProfile() {
                         <Input
                           type="file"
                           accept="image/*"
-                          className="text-xs cursor-pointer bg-background"
+                          className="text-xs cursor-pointer bg-background file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                           onChange={(e) => handleKycFileChange('dni', e)}
                           disabled={(profile?.kyc_status === 'pending' && !!profile?.dni_photo_url) || profile?.kyc_status === 'approved'}
                         />
@@ -634,7 +636,7 @@ export default function CustomerProfile() {
                         <Input
                           type="file"
                           accept="image/*"
-                          className="text-xs cursor-pointer bg-background"
+                          className="text-xs cursor-pointer bg-background file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                           onChange={(e) => handleKycFileChange('face', e)}
                           disabled={(profile?.kyc_status === 'pending' && !!profile?.face_photo_url) || profile?.kyc_status === 'approved'}
                         />
@@ -659,7 +661,7 @@ export default function CustomerProfile() {
                         <Input
                           type="file"
                           accept="image/*"
-                          className="text-xs cursor-pointer bg-background"
+                          className="text-xs cursor-pointer bg-background file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                           onChange={(e) => handleKycFileChange('verification', e)}
                           disabled={(profile?.kyc_status === 'pending' && !!profile?.verification_photo_url) || profile?.kyc_status === 'approved'}
                         />
