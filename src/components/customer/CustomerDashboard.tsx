@@ -248,13 +248,13 @@ export function CustomerDashboard() {
 
       {/* Modal de Direcciones Estilo Amazon */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[600px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
-          <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center">
+        <DialogContent className="flex flex-col max-h-[85vh] sm:max-w-[600px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
+          <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center shrink-0">
             <DialogTitle className="text-xl font-medium tracking-tight">Tus direcciones</DialogTitle>
             <DialogDescription className="sr-only">Gestiona tus direcciones de envío</DialogDescription>
           </div>
 
-          <div className="p-6 max-h-[70vh] overflow-y-auto space-y-6">
+          <div className="p-6 flex-1 overflow-y-auto space-y-6">
 
             {/* Lista de direcciones guardadas (Simulado usando profile) */}
             <div className="border border-primary/20 rounded-xl p-4 bg-primary/5 relative">
@@ -349,7 +349,7 @@ export function CustomerDashboard() {
             </div>
           </div>
 
-          <div className="p-4 bg-muted/20 border-t border-border/40 flex justify-end gap-3 sticky bottom-0">
+          <div className="p-4 bg-background border-t border-border/40 flex justify-end gap-3 shrink-0">
             <Button variant="ghost" onClick={() => setIsAddressModalOpen(false)} className="hover:bg-muted/50">
               Cancelar
             </Button>
@@ -364,8 +364,8 @@ export function CustomerDashboard() {
       </Dialog>
       {/* Modal de Inicio de Sesión y Seguridad */}
       <Dialog open={isSecurityModalOpen} onOpenChange={setIsSecurityModalOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
-          <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex items-center gap-3">
+        <DialogContent className="flex flex-col max-h-[85vh] sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
+          <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex items-center gap-3 shrink-0">
             <div className="bg-primary/10 p-2 rounded-full">
               <Shield className="h-5 w-5 text-primary" />
             </div>
@@ -374,7 +374,7 @@ export function CustomerDashboard() {
               <DialogDescription className="text-xs">Actualiza tus credenciales y datos básicos</DialogDescription>
             </div>
           </div>
-          <div className="p-6 space-y-5">
+          <div className="p-6 flex-1 overflow-y-auto space-y-5">
             <div className="space-y-2">
               <Label className="font-semibold text-foreground/80">Nombre completo</Label>
               <Input defaultValue={profile?.full_name || ''} className="bg-muted/20 focus:border-primary/30" />
@@ -392,7 +392,7 @@ export function CustomerDashboard() {
               <Input type="password" placeholder="Nueva contraseña" className="bg-muted/20 focus:border-primary/30" />
             </div>
           </div>
-          <div className="p-4 bg-muted/20 border-t border-border/40 flex justify-end gap-3 sticky bottom-0">
+          <div className="p-4 bg-background border-t border-border/40 flex justify-end gap-3 shrink-0">
             <Button variant="ghost" onClick={() => setIsSecurityModalOpen(false)} className="hover:bg-muted/50">
               Cancelar
             </Button>
@@ -408,8 +408,8 @@ export function CustomerDashboard() {
 
       {/* Modal de Servicio al Cliente */}
       <Dialog open={isSupportModalOpen} onOpenChange={setIsSupportModalOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
-          <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex items-center gap-3">
+        <DialogContent className="flex flex-col max-h-[85vh] sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
+          <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex items-center gap-3 shrink-0">
             <div className="bg-primary/10 p-2 rounded-full">
               <Headphones className="h-5 w-5 text-primary" />
             </div>
@@ -418,7 +418,7 @@ export function CustomerDashboard() {
               <DialogDescription className="text-xs">¿En qué podemos ayudarte hoy?</DialogDescription>
             </div>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-6 flex-1 overflow-y-auto space-y-4">
             <div className="grid gap-3">
               <button className="flex items-center justify-between p-4 rounded-xl border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all text-left">
                 <div>
@@ -443,7 +443,7 @@ export function CustomerDashboard() {
               </button>
             </div>
           </div>
-          <div className="p-4 bg-muted/20 border-t border-border/40 text-center sticky bottom-0">
+          <div className="p-4 bg-background border-t border-border/40 text-center shrink-0">
             <Button variant="ghost" onClick={() => setIsSupportModalOpen(false)} className="w-full hover:bg-muted/50">
               Cerrar
             </Button>
