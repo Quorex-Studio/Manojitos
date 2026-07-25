@@ -594,24 +594,23 @@ export default function CustomerProfile() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Cédula de Identidad (Frente)</Label>
                     <div className="flex items-center gap-4">
-                      <div className="h-24 w-32 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center bg-muted/20 overflow-hidden relative">
+                      <div className="h-24 w-32 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center bg-muted/20 overflow-hidden shrink-0">
                         {kycPreviews.dni ? (
                           <img src={kycPreviews.dni} alt="Cédula" className="object-cover w-full h-full" />
                         ) : (
                           <Gallery className="h-8 w-8 text-muted-foreground/40" />
                         )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <p className="text-xs text-muted-foreground">Sube una foto clara de tu cédula por el frente.</p>
                         <Input
                           type="file"
                           accept="image/*"
-                          className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                          className="text-xs cursor-pointer bg-background"
                           onChange={(e) => handleKycFileChange('dni', e)}
                           disabled={(profile?.kyc_status === 'pending' && !!profile?.dni_photo_url) || profile?.kyc_status === 'approved'}
                         />
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-xs text-muted-foreground">Sube una foto clara de tu cédula por el frente.</p>
-                        {kycFiles.dni && <p className="text-xs text-primary font-medium">Archivo seleccionado: {kycFiles.dni.name}</p>}
-                        {profile?.dni_photo_url && !kycFiles.dni && <p className="text-xs text-green-500 flex items-center gap-1"><TickCircle className="w-3 h-3"/> Documento actual</p>}
+                        {profile?.dni_photo_url && !kycFiles.dni && <p className="text-xs text-green-500 flex items-center gap-1"><TickCircle className="w-3 h-3"/> Documento actual guardado</p>}
                       </div>
                     </div>
                   </div>
@@ -620,24 +619,23 @@ export default function CustomerProfile() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Foto de tu rostro (Selfie)</Label>
                     <div className="flex items-center gap-4">
-                      <div className="h-24 w-24 rounded-full border-2 border-dashed border-border/50 flex items-center justify-center bg-muted/20 overflow-hidden relative">
+                      <div className="h-24 w-24 rounded-full border-2 border-dashed border-border/50 flex items-center justify-center bg-muted/20 overflow-hidden shrink-0">
                         {kycPreviews.face ? (
                           <img src={kycPreviews.face} alt="Selfie" className="object-cover w-full h-full" />
                         ) : (
                           <User className="h-8 w-8 text-muted-foreground/40" />
                         )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <p className="text-xs text-muted-foreground">Sube una selfie donde tu rostro se vea claramente.</p>
                         <Input
                           type="file"
                           accept="image/*"
-                          className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                          className="text-xs cursor-pointer bg-background"
                           onChange={(e) => handleKycFileChange('face', e)}
                           disabled={(profile?.kyc_status === 'pending' && !!profile?.face_photo_url) || profile?.kyc_status === 'approved'}
                         />
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-xs text-muted-foreground">Sube una selfie donde tu rostro se vea claramente.</p>
-                        {kycFiles.face && <p className="text-xs text-primary font-medium">Archivo seleccionado: {kycFiles.face.name}</p>}
-                        {profile?.face_photo_url && !kycFiles.face && <p className="text-xs text-green-500 flex items-center gap-1"><TickCircle className="w-3 h-3"/> Documento actual</p>}
+                        {profile?.face_photo_url && !kycFiles.face && <p className="text-xs text-green-500 flex items-center gap-1"><TickCircle className="w-3 h-3"/> Documento actual guardado</p>}
                       </div>
                     </div>
                   </div>
@@ -646,24 +644,23 @@ export default function CustomerProfile() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Sosteniendo tu cédula</Label>
                     <div className="flex items-center gap-4">
-                      <div className="h-24 w-32 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center bg-muted/20 overflow-hidden relative">
+                      <div className="h-24 w-32 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center bg-muted/20 overflow-hidden shrink-0">
                         {kycPreviews.verification ? (
                           <img src={kycPreviews.verification} alt="Verificación" className="object-cover w-full h-full" />
                         ) : (
                           <ShieldCheck className="h-8 w-8 text-muted-foreground/40" />
                         )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <p className="text-xs text-muted-foreground">Sube una foto tuya sosteniendo tu cédula cerca de tu rostro.</p>
                         <Input
                           type="file"
                           accept="image/*"
-                          className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                          className="text-xs cursor-pointer bg-background"
                           onChange={(e) => handleKycFileChange('verification', e)}
                           disabled={(profile?.kyc_status === 'pending' && !!profile?.verification_photo_url) || profile?.kyc_status === 'approved'}
                         />
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-xs text-muted-foreground">Sube una foto tuya sosteniendo tu cédula cerca de tu rostro.</p>
-                        {kycFiles.verification && <p className="text-xs text-primary font-medium">Archivo seleccionado: {kycFiles.verification.name}</p>}
-                        {profile?.verification_photo_url && !kycFiles.verification && <p className="text-xs text-green-500 flex items-center gap-1"><TickCircle className="w-3 h-3"/> Documento actual</p>}
+                        {profile?.verification_photo_url && !kycFiles.verification && <p className="text-xs text-green-500 flex items-center gap-1"><TickCircle className="w-3 h-3"/> Documento actual guardado</p>}
                       </div>
                     </div>
                   </div>
