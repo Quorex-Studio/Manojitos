@@ -668,7 +668,7 @@ export default function CustomerProfile() {
                     </div>
                   </div>
 
-                  {profile?.kyc_status !== 'pending' && profile?.kyc_status !== 'approved' && (
+                  {!(profile?.kyc_status === 'approved' || (profile?.kyc_status === 'pending' && (profile?.dni_photo_url || profile?.face_photo_url || profile?.verification_photo_url))) && (
                     <Button 
                       onClick={handleKycSubmit}
                       disabled={kycUploading || (!kycFiles.dni && !kycFiles.face && !kycFiles.verification) || !profile?.dni}
