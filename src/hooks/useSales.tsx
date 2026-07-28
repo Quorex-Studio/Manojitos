@@ -191,6 +191,7 @@ export function useSales() {
     total_bs_rate?: number;
     banco_origen?: string;
     numero_referencia?: string;
+    delivery_fee?: number;
   }
 
   interface CheckoutResponse {
@@ -274,6 +275,7 @@ export function useSales() {
           total_bs_rate: number | null;
           p_banco_origen: string | null;
           p_numero_referencia: string | null;
+          p_delivery_fee: number;
         }
       ) => Promise<{ data: CheckoutResponse | null; error: Error | null }>)(
         'process_checkout',
@@ -286,6 +288,7 @@ export function useSales() {
           total_bs_rate: checkoutData.total_bs_rate || null,
           p_banco_origen: checkoutData.banco_origen || null,
           p_numero_referencia: checkoutData.numero_referencia || null,
+          p_delivery_fee: checkoutData.delivery_fee || 0,
         }
       );
 

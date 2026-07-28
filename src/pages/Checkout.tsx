@@ -196,8 +196,6 @@ export default function Checkout() {
 
   const subtotal = getSubtotal();
   const isEmpty = items.length === 0;
-  const deliveryFee = calcDeliveryFee(subtotal, shippingData.city, deliveryMethod);
-  const orderTotal = subtotal + deliveryFee;
 
   const [casheaMethod, setCasheaMethod] = useState('pago_movil');
   const [casheaBank, setCasheaBank] = useState('');
@@ -260,6 +258,8 @@ export default function Checkout() {
   const [isSelectingShipping, setIsSelectingShipping] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
+  const deliveryFee = calcDeliveryFee(subtotal, shippingData.city, deliveryMethod);
+  const orderTotal = subtotal + deliveryFee;
 
   // --- DERIVED / EFFECTS ---
 
@@ -427,9 +427,6 @@ export default function Checkout() {
         quantity: item.quantity,
         price_usd: item.price_usd
       }));
-      if (deliveryFee > 0) {
-        checkoutItems.push({ id: 'delivery_fee', name: `Delivery (${shippingData.city})`, quantity: 1, price_usd: deliveryFee });
-      }
 
       const { error, saleIds } = await processCheckout(
         checkoutItems,
@@ -440,7 +437,8 @@ export default function Checkout() {
           notes: `${notesPrefix}[${deliveryMethod === 'pickup' ? 'RETIRO EN TIENDA' : `DELIVERY - Municipio: ${shippingData.city} - Tarifa: $${deliveryFee.toFixed(2)}`}] ${deliveryMethod === 'delivery' ? `Dirección: ${shippingData.address}, ${shippingData.city}. ` : ''}${paymentMethod === 'pago_movil' ? `Tlf. Emisor PM: ${sanitizeText(telefonoEmisor)}. ` : ''}${shippingData.notes || ''}`,
           total_bs_rate: rate > 0 ? rate : undefined,
           banco_origen: paymentMethod === 'pago_movil' ? sanitizeText(bancoOrigen) : undefined,
-          numero_referencia: paymentMethod === 'pago_movil' ? sanitizeText(numeroReferencia) : undefined
+          numero_referencia: paymentMethod === 'pago_movil' ? sanitizeText(numeroReferencia) : undefined,
+          delivery_fee: deliveryMethod === 'delivery' ? deliveryFee : 0
         }
       );
 
@@ -761,7 +759,7 @@ export default function Checkout() {
                                             name="address"
                                             className="pl-9 w-full"
                                           />
-                                          <Location className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         </div>
                                         <Button 
                                           type="button" 
@@ -773,7 +771,7 @@ export default function Checkout() {
                                           {gettingGPS ? (
                                             <><Loader className="h-4 w-4 animate-spin mr-2" /> Detectando...</>
                                           ) : (
-                                            <><Location className="h-4 w-4 mr-2" /> Detectar Ubicación</>
+                                            <><MapPin className="h-4 w-4 mr-2" /> Detectar Ubicación</>
                                           )}
                                         </Button>
                                       </div>
