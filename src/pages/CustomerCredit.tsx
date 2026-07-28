@@ -47,28 +47,28 @@ import { sanitizeText } from '@/lib/validations';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 
 function getNextQuincenas(baseDate: Date, numQuincenas: number): Date[] {
-  const dates: Date[] = [];
-  let currentDate = new Date(baseDate);
-  
-  for (let idx = 0; idx < numQuincenas; idx++) {
-    const nextDate = new Date(currentDate);
-    const day = currentDate.getDate();
-    
-    if (day < 15) {
-      nextDate.setDate(15);
-    } else if (day < 30) {
-      const lastDayOfMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
-      nextDate.setDate(Math.min(30, lastDayOfMonth));
-    } else {
-      nextDate.setMonth(nextDate.getMonth() + 1);
-      nextDate.setDate(15);
-    }
-    dates.push(new Date(nextDate));
-    // Avanzamos un día para calcular la siguiente quincena
-    currentDate = new Date(nextDate);
-    currentDate.setDate(currentDate.getDate() + 1);
+  const day = baseDate.getDate();
+  const anchor = new Date(baseDate);
+  if (day > 15) {
+    anchor.setMonth(anchor.getMonth() + 1);
   }
-  return dates;
+  const year = anchor.getFullYear();
+  const month = anchor.getMonth();
+  const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+
+  const dates: Date[] = [new Date(year, month, 15), new Date(year, month, Math.min(30, lastDayOfMonth))];
+
+  // Si se piden más de 2 cuotas, continúa con los días 15/30 de los meses siguientes
+  while (dates.length < numQuincenas) {
+    const prevMonthOffset = Math.floor((dates.length) / 2);
+    const y = new Date(year, month + prevMonthOffset + 1, 1).getFullYear();
+    const m = new Date(year, month + prevMonthOffset + 1, 1).getMonth();
+    const lastDay = new Date(y, m + 1, 0).getDate();
+    dates.push(new Date(y, m, 15));
+    if (dates.length < numQuincenas) dates.push(new Date(y, m, Math.min(30, lastDay)));
+  }
+
+  return dates.slice(0, numQuincenas);
 }
 
 const TRUST_CONFIG = {

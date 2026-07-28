@@ -201,6 +201,7 @@ export default function Checkout() {
   const [casheaBank, setCasheaBank] = useState('');
   const [casheaRef, setCasheaRef] = useState('');
   const [casheaPhone, setCasheaPhone] = useState('');
+  const [acceptCreditTerms, setAcceptCreditTerms] = useState(false);
 
   // Estados de pago móvil (método regular)
   const [bancoOrigen, setBancoOrigen] = useState('');
@@ -1099,8 +1100,11 @@ export default function Checkout() {
                         <div className="bg-background/50 rounded-lg p-2 text-center border border-border/50">
                           <p className="text-xs text-muted-foreground">
                             Cuota 1 ({(() => {
-                              const d = new Date();
-                              d.setDate(d.getDate() + 15);
+                              const today = new Date();
+                              const day = today.getDate();
+                              const anchor = new Date(today);
+                              if (day > 15) anchor.setMonth(anchor.getMonth() + 1);
+                              const d = new Date(anchor.getFullYear(), anchor.getMonth(), 15);
                               return d.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit' });
                             })()})
                           </p>
@@ -1110,8 +1114,12 @@ export default function Checkout() {
                         <div className="bg-background/50 rounded-lg p-2 text-center border border-border/50">
                           <p className="text-xs text-muted-foreground">
                             Cuota 2 ({(() => {
-                              const d = new Date();
-                              d.setDate(d.getDate() + 30);
+                              const today = new Date();
+                              const day = today.getDate();
+                              const anchor = new Date(today);
+                              if (day > 15) anchor.setMonth(anchor.getMonth() + 1);
+                              const lastDay = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate();
+                              const d = new Date(anchor.getFullYear(), anchor.getMonth(), Math.min(30, lastDay));
                               return d.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit' });
                             })()})
                           </p>
@@ -1318,10 +1326,27 @@ export default function Checkout() {
                         {hasPendingPayments ? 'Tienes un pago en verificación. No puedes realizar nuevas compras hasta que se apruebe.' : 'Tienes cuotas vencidas. Por favor regulariza tu pago.'}
                       </div>
                     )}
+                    {paymentMethod === 'credito' && (
+                      <div className="flex items-start gap-2 mt-3">
+                        <input
+                          type="checkbox"
+                          id="accept-credit-terms"
+                          checked={acceptCreditTerms}
+                          onChange={(e) => setAcceptCreditTerms(e.target.checked)}
+                          className="mt-1"
+                        />
+                        <label htmlFor="accept-credit-terms" className="text-xs text-muted-foreground">
+                          He leído y estoy de acuerdo con los{' '}
+                          <Link to="/terminos" target="_blank" className="underline text-primary">
+                            Términos y Condiciones de Manojitos
+                          </Link>
+                        </label>
+                      </div>
+                    )}
                     <Button
                       size="lg"
                       className="w-full btn-gold h-14 text-base mt-2 shadow-xl"
-                      disabled={!isShippingValid || !isCasheaValid || !isKycValid || isCreditBlocked || creditLoading || loading}
+                      disabled={!isShippingValid || !isCasheaValid || !isKycValid || isCreditBlocked || creditLoading || loading || (paymentMethod === 'credito' && !acceptCreditTerms)}
                       onClick={handleSubmitOrder}
                     >
                       {loading ? (
