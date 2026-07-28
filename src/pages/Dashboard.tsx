@@ -48,9 +48,9 @@ export default function Dashboard() {
 
   // Chart data
   const salesChartData = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const last7Days = Array.from({ length: 7 }, (_, idx) => {
       const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
+      date.setDate(date.getDate() - (6 - idx));
       return date.toDateString();
     });
 
