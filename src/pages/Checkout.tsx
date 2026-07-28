@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { InfoCircle, CloseSquare, Loader, ArrowLeft, Check, CreditCard, Truck, Package, Store, User, Mailbox, Phone, Refresh, ShoppingBag, Shield, Copy, Mobile, Bank, Wallet, AlertTriangle, Edit, Plus, MapPin, Locate } from 'reicon-react';
+import { InfoCircle, CloseSquare, Loader, ArrowLeft, Check, CreditCard, Truck, Package, Store, User, Mailbox, Phone, Refresh, ShoppingBag, Shield, Copy, Mobile, Bank, Wallet, AlertTriangle, Edit, Plus, Location } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -759,7 +759,7 @@ export default function Checkout() {
                                             name="address"
                                             className="pl-9 w-full"
                                           />
-                                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                          <Location className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         </div>
                                         <Button 
                                           type="button" 
@@ -771,7 +771,7 @@ export default function Checkout() {
                                           {gettingGPS ? (
                                             <><Loader className="h-4 w-4 animate-spin mr-2" /> Detectando...</>
                                           ) : (
-                                            <><MapPin className="h-4 w-4 mr-2" /> Detectar Ubicación</>
+                                            <><Location className="h-4 w-4 mr-2" /> Detectar Ubicación</>
                                           )}
                                         </Button>
                                       </div>
