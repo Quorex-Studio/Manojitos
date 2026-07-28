@@ -18,6 +18,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useSales } from '@/hooks/useSales';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useToast } from '@/hooks/use-toast';
 import type { StockValidationError } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -178,6 +180,7 @@ export default function Checkout() {
   const { items, getSubtotal, clearCart } = useCart();
   const { rate, convertToBS } = useExchangeRate();
   const { processCheckout, validateStock } = useSales();
+  const { isSupported, permission, requestPermission } = usePushNotifications();
   const { toast } = useToast();
   const { gettingGPS, handleGetLocation } = useGeolocation();
   const { credit, hasCredit, hasPendingPayments, isLoading: creditLoading } = useCustomerCredit();
@@ -493,6 +496,23 @@ export default function Checkout() {
             <p className="text-muted-foreground mb-8">
               Tu pedido ha sido registrado exitosamente. Hemos recibido tu solicitud.
             </p>
+
+            {isSupported && permission !== 'granted' && (
+              <div className="mb-8 p-4 bg-primary/5 border border-primary/20 rounded-xl max-w-sm mx-auto">
+                <h3 className="font-semibold text-foreground mb-2 flex items-center justify-center gap-2">
+                  <span className="text-xl">🔔</span> Recibe alertas de tu pedido
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Activa las notificaciones para saber de inmediato cuando aprobemos o enviemos tu compra.
+                </p>
+                <Button 
+                  onClick={() => requestPermission()}
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  Activar Notificaciones
+                </Button>
+              </div>
+            )}
 
             <div className="glass-card rounded-2xl p-6 mb-6 text-left shadow-sm border border-border/60 bg-gradient-to-br from-background to-secondary/20">
               <h3 className="font-semibold text-lg text-foreground mb-4 border-b border-border/50 pb-2 flex items-center gap-2">

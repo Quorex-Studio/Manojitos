@@ -559,6 +559,16 @@ export default function Sales() {
            type: 'success',
            channel: 'internal'
         });
+
+        // Trigger push notification
+        supabase.functions.invoke('send-push', {
+          body: {
+            userId: approvedOrder.customer_user_id,
+            title: 'Pedido Aprobado',
+            message: message,
+            url: '/orders'
+          }
+        }).catch(console.error);
       }
     } catch (err) {
       console.error('Error approving order:', err);
@@ -604,6 +614,16 @@ export default function Sales() {
           type: 'error',
           channel: 'internal'
         });
+
+        // Trigger push notification
+        supabase.functions.invoke('send-push', {
+          body: {
+            userId: order.customer_user_id,
+            title: 'Pedido Rechazado',
+            message: `Su pedido ha sido rechazado. Motivo: ${rejectReason}`,
+            url: '/orders'
+          }
+        }).catch(console.error);
       }
       
       setRejectOrderId(null);
