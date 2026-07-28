@@ -151,9 +151,9 @@ export default function Debts() {
       <Dialog open={!!selectedDebt} onOpenChange={(open) => !open && setSelectedDebt(null)}>
         <DialogContent className="max-h-[85vh] overflow-y-auto glass-card border-border/50 max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-serif text-gradient-gold">Registrar Abono</DialogTitle>
+            <DialogTitle className="text-xl font-serif text-gradient-gold">Registrar Pago</DialogTitle>
             <DialogDescription className="text-muted-foreground text-sm">
-              Ingresa el monto del abono en USD para <strong>{selectedDebt?.client_name}</strong>.
+              Ingresa el monto del pago en USD para <strong>{selectedDebt?.client_name}</strong>.
             </DialogDescription>
           </DialogHeader>
 
@@ -171,7 +171,7 @@ export default function Debts() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="abono-amount" className="text-sm font-medium">Monto a abonar (USD)</Label>
+                <Label htmlFor="abono-amount" className="text-sm font-medium">Monto a pagar (USD)</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">$</span>
                   <Input
@@ -244,10 +244,10 @@ interface DebtCardProps {
 }
 
 function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, onAbono, convertToBS }: DebtCardProps) {
-  // Procesar notas para ver si contienen historial de abonos
+  // Procesar notas para ver si contienen historial de pagos
   const lines = debt.notes ? debt.notes.split('\n') : [];
   const mainNotes = lines.filter(l => !l.startsWith('[Abono:')).join('\n');
-  const abonosLogs = lines.filter(l => l.startsWith('[Abono:'));
+  const pagosLogs = lines.filter(l => l.startsWith('[Abono:'));
 
   return (
     <motion.div
@@ -286,11 +286,11 @@ function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, onAbono, con
                 </p>
                 {mainNotes && <p className="text-xs text-muted-foreground italic mt-1">{mainNotes}</p>}
 
-                {/* Mostrar historial de abonos si existen */}
-                {abonosLogs.length > 0 && (
+                {/* Mostrar historial de pagos si existen */}
+                {pagosLogs.length > 0 && (
                   <div className="mt-2 pl-2 border-l border-amber-500/30 space-y-1">
-                    <p className="text-[10px] text-amber-500 uppercase tracking-wider font-semibold">Historial de abonos:</p>
-                    {abonosLogs.map((log, i) => (
+                    <p className="text-[10px] text-amber-500 uppercase tracking-wider font-semibold">Historial de pagos:</p>
+                    {pagosLogs.map((log, i) => (
                       <p key={i} className="text-xs text-muted-foreground leading-relaxed">
                         {log.replace(/[\[\]]/g, '')}
                       </p>
@@ -325,7 +325,7 @@ function DebtCard({ debt, showActions = true, onMarkPaid, onDelete, onAbono, con
                       className="h-8 gap-1.5 rounded-lg border-amber-500/30 hover:border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-medium"
                     >
                       <DollarSign className="h-3.5 w-3.5" />
-                      <span>Abonar</span>
+                      <span>Pagar</span>
                     </Button>
                   )}
                   <Button

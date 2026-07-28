@@ -54,7 +54,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 
 // Mensajes de recordatorio predefinidos
 const REMINDER_TEMPLATES = {
-  '3_DAYS_BEFORE': `Estimado/a {cliente}, le recordamos que su próximo pago vence el {fecha}. El monto pendiente es de ${'{monto}'}. Agradecemos su puntualidad. - Manojitos`,
+  '3_DAYS_BEFORE': `Estimado/a {cliente}, le recordamos que su próxima cuota vence el {fecha}. El monto pendiente es de ${'{monto}'}. Agradecemos su puntualidad. - Manojitos`,
   'DUE_DATE': `Estimado/a {cliente}, hoy es la fecha de vencimiento de su pago. El monto pendiente es de ${'{monto}'}. Por favor, realice su pago lo antes posible. - Manojitos`,
   '1_DAY_AFTER': `Estimado/a {cliente}, su pago venció ayer. El monto pendiente es de ${'{monto}'}. Le invitamos a ponerse al día para evitar inconvenientes. - Manojitos`,
   '3_DAYS_AFTER': `Estimado/a {cliente}, su pago tiene 3 días de atraso. El monto pendiente es de ${'{monto}'}. Por favor, comuníquese con nosotros para regularizar su situación. Este es un aviso final antes de suspender el crédito. - Manojitos`,
@@ -71,14 +71,14 @@ export default function Credits() {
   
   const queryClient = useQueryClient();
 
-  // Obtener todos los abonos reportados pendientes (órdenes con prefijo [ABONO_CREDITO])
-  const { data: reportedAbonos = [], isLoading: loadingReportedAbonos } = useQuery({
-    queryKey: ['admin-reported-abonos'],
+  // Obtener todos los pagos reportados pendientes (órdenes con prefijo [pago_CREDITO])
+  const { data: reportedpagos = [], isLoading: loadingReportedpagos } = useQuery({
+    queryKey: ['admin-reported-pagos'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .like('notes', '[ABONO_CREDITO]%')
+        .like('notes', '[pago_CREDITO]%')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
@@ -154,32 +154,32 @@ export default function Credits() {
     }
   };
 
-  const handleApproveReportedAbono = async (abonoOrder: any) => {
+  const handleApproveReportedpago = async (pagoOrder: any) => {
     try {
       // 1. Encontrar la cuenta de crédito correspondiente al cliente
       let { data: targetCredit, error: creditError } = await supabase
         .from('credits')
         .select('*')
-        .eq('client_user_id', abonoOrder.customer_user_id)
+        .eq('client_user_id', pagoOrder.customer_user_id)
         .maybeSingle();
 
       if (creditError) throw creditError;
 
       // Fallback por email o teléfono si no tiene client_user_id
       if (!targetCredit) {
-        if (abonoOrder.customer_email) {
+        if (pagoOrder.customer_email) {
           const { data: emailData } = await supabase
             .from('credits')
             .select('*')
-            .eq('client_email', abonoOrder.customer_email)
+            .eq('client_email', pagoOrder.customer_email)
             .maybeSingle();
           targetCredit = emailData;
         }
-        if (!targetCredit && abonoOrder.customer_phone) {
+        if (!targetCredit && pagoOrder.customer_phone) {
           const { data: phoneData } = await supabase
             .from('credits')
             .select('*')
-            .eq('client_phone', abonoOrder.customer_phone)
+            .eq('client_phone', pagoOrder.customer_phone)
             .maybeSingle();
           targetCredit = phoneData;
         }
@@ -190,33 +190,33 @@ export default function Credits() {
         return;
       }
 
-      // 2. Registrar el abono en el crédito
+      // 2. Registrar el pago en el crédito
       await registerPayment.mutateAsync({
         creditId: targetCredit.id,
-        amount: abonoOrder.total_usd,
-        description: `Abono reportado (Ref: ${abonoOrder.notes || 'N/A'})`,
+        amount: pagoOrder.total_usd,
+        description: `pago reportado (Ref: ${pagoOrder.notes || 'N/A'})`,
       });
 
-      // 3. Confirmar la orden de abono
+      // 3. Confirmar la orden de pago
       const { error: orderError } = await supabase
         .from('orders')
         .update({
           status: 'confirmed',
           payment_status: 'paid'
         })
-        .eq('id', abonoOrder.id);
+        .eq('id', pagoOrder.id);
 
       if (orderError) throw orderError;
 
-      toast.success('Abono aprobado y aplicado correctamente.');
-      queryClient.invalidateQueries({ queryKey: ['admin-reported-abonos'] });
+      toast.success('pago aprobado y aplicado correctamente.');
+      queryClient.invalidateQueries({ queryKey: ['admin-reported-pagos'] });
       queryClient.invalidateQueries({ queryKey: ['credits'] });
     } catch (e: any) {
-      toast.error(`Error al aprobar abono: ${e.message}`);
+      toast.error(`Error al aprobar pago: ${e.message}`);
     }
   };
 
-  const handleRejectReportedAbono = async (abonoOrderId: string) => {
+  const handleRejectReportedpago = async (pagoOrderId: string) => {
     try {
       const { error: orderError } = await supabase
         .from('orders')
@@ -224,14 +224,14 @@ export default function Credits() {
           status: 'cancelled',
           payment_status: 'failed'
         })
-        .eq('id', abonoOrderId);
+        .eq('id', pagoOrderId);
 
       if (orderError) throw orderError;
       
-      toast.success('Abono rechazado correctamente.');
-      queryClient.invalidateQueries({ queryKey: ['admin-reported-abonos'] });
+      toast.success('pago rechazado correctamente.');
+      queryClient.invalidateQueries({ queryKey: ['admin-reported-pagos'] });
     } catch (e: any) {
-      toast.error(`Error al rechazar abono: ${e.message}`);
+      toast.error(`Error al rechazar pago: ${e.message}`);
     }
   };
 
@@ -255,9 +255,9 @@ export default function Credits() {
   const [activeTab, setActiveTab] = useState('credits');
   const [activeRequestOrderId, setActiveRequestOrderId] = useState<string | null>(null);
 
-  // --- Historial de abonos (todas las transacciones) ---
-  const [abonosSearch, setAbonosSearch] = useState('');
-  const [abonosTipoFilter, setAbonosTipoFilter] = useState('all');
+  // --- Historial de pagos (todas las transacciones) ---
+  const [pagosSearch, setpagosSearch] = useState('');
+  const [pagosTipoFilter, setpagosTipoFilter] = useState('all');
   
   // Canales de notificación seleccionados
   const [selectedChannels, setSelectedChannels] = useState<('internal' | 'email' | 'sms')[]>(['internal', 'email']);
@@ -288,18 +288,18 @@ export default function Credits() {
     });
   }, [credits, searchTerm, statusFilter]);
 
-  // Filtrar abonos
-  const filteredAbonos = useMemo(() => {
+  // Filtrar pagos
+  const filteredpagos = useMemo(() => {
     return allTransactions.filter(tx => {
-      const matchesSearch = tx.client_name.toLowerCase().includes(abonosSearch.toLowerCase()) ||
-        (tx.description || '').toLowerCase().includes(abonosSearch.toLowerCase());
-      const matchesTipo = abonosTipoFilter === 'all' || tx.type === abonosTipoFilter;
+      const matchesSearch = tx.client_name.toLowerCase().includes(pagosSearch.toLowerCase()) ||
+        (tx.description || '').toLowerCase().includes(pagosSearch.toLowerCase());
+      const matchesTipo = pagosTipoFilter === 'all' || tx.type === pagosTipoFilter;
       return matchesSearch && matchesTipo;
     });
-  }, [allTransactions, abonosSearch, abonosTipoFilter]);
+  }, [allTransactions, pagosSearch, pagosTipoFilter]);
 
-  // Total de abonos filtrados
-  const totalAbonos = filteredAbonos
+  // Total de pagos filtrados
+  const totalpagos = filteredpagos
     .filter(tx => tx.type === 'ABONO')
     .reduce((sum, tx) => sum + tx.amount, 0);
 
@@ -346,12 +346,12 @@ export default function Credits() {
     const credit = credits.find(c => c.id === selectedCredit);
     
     // Construir descripción enriquecida con tasa
-    let description = paymentDescription ? sanitizeText(paymentDescription) : 'Pago registrado';
+    let description = paymentDescription ? sanitizeText(paymentDescription) : 'pago registrado';
     if (rate > 0) {
       const amountBs = amount * rate;
       description += ` — ${formatBS(amountBs)} @ Tasa: Bs. ${rate.toFixed(2)}`;
     }
-    // Marcar sobrante si el abono supera el saldo
+    // Marcar sobrante si el pago supera el saldo
     if (credit && amount > credit.current_balance && credit.current_balance > 0) {
       const surplus = amount - credit.current_balance;
       description += ` [Sobrante: $${surplus.toFixed(2)}]`;
@@ -672,23 +672,23 @@ export default function Credits() {
           </Card>
         </div>
 
-        {/* Tabs: Créditos | Abonos */}
+        {/* Tabs: Créditos | pagos */}
         <Tabs defaultValue="creditos" className="space-y-4">
           <TabsList className="flex flex-wrap h-auto w-full max-w-3xl justify-start">
             <TabsTrigger value="creditos">
               <CreditCard className="h-4 w-4 mr-2" />
               Créditos
             </TabsTrigger>
-            <TabsTrigger value="abonos">
+            <TabsTrigger value="pagos">
               <Receipt className="h-4 w-4 mr-2" />
-              Historial de Abonos
+              Historial de pagos
             </TabsTrigger>
             <TabsTrigger value="reportados" className="relative">
               <Clock className="h-4 w-4 mr-2" />
-              Abonos Reportados
-              {reportedAbonos.length > 0 && (
+              pagos Reportados
+              {reportedpagos.length > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white animate-pulse">
-                  {reportedAbonos.length}
+                  {reportedpagos.length}
                 </span>
               )}
             </TabsTrigger>
@@ -921,27 +921,27 @@ export default function Credits() {
         )}
       </TabsContent>
 
-          {/* ====== TAB ABONOS ====== */}
-          <TabsContent value="abonos" className="space-y-4">
-            {/* Filtros abonos */}
+          {/* ====== TAB pagoS ====== */}
+          <TabsContent value="pagos" className="space-y-4">
+            {/* Filtros pagos */}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por cliente o descripción..."
-                  value={abonosSearch}
-                  onChange={e => setAbonosSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s@.+\-]/g, ''))}
+                  value={pagosSearch}
+                  onChange={e => setpagosSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s@.+\-]/g, ''))}
                   className="pl-10"
                 />
               </div>
-              <Select value={abonosTipoFilter} onValueChange={setAbonosTipoFilter}>
+              <Select value={pagosTipoFilter} onValueChange={setpagosTipoFilter}>
                 <SelectTrigger className="w-[160px]">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="ABONO">Abonos</SelectItem>
+                  <SelectItem value="pago">pagos</SelectItem>
                   <SelectItem value="CARGO">Cargos</SelectItem>
                   <SelectItem value="COMPRA">Compras</SelectItem>
                 </SelectContent>
@@ -952,22 +952,22 @@ export default function Credits() {
             <div className="grid grid-cols-3 gap-4">
               <Card>
                 <CardContent className="pt-4">
-                  <p className="text-2xl font-bold">{filteredAbonos.length}</p>
+                  <p className="text-2xl font-bold">{filteredpagos.length}</p>
                   <p className="text-xs text-muted-foreground">Movimientos</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-4">
-                  <p className="text-2xl font-bold text-primary">${totalAbonos.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-primary">${totalpagos.toFixed(2)}</p>
                   <p className="text-xs text-muted-foreground">Total abonado</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-4">
                   <p className="text-2xl font-bold">
-                    {filteredAbonos.filter(tx => tx.type === 'ABONO').length}
+                    {filteredpagos.filter(tx => tx.type === 'ABONO').length}
                   </p>
-                  <p className="text-xs text-muted-foreground">N° de abonos</p>
+                  <p className="text-xs text-muted-foreground">N° de pagos</p>
                 </CardContent>
               </Card>
             </div>
@@ -977,15 +977,15 @@ export default function Credits() {
               <div className="flex justify-center py-12">
                 <Loader className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : filteredAbonos.length === 0 ? (
+            ) : filteredpagos.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium">No hay movimientos</h3>
                   <p className="text-muted-foreground">
-                    {abonosSearch || abonosTipoFilter !== 'all'
+                    {pagosSearch || pagosTipoFilter !== 'all'
                       ? 'No se encontraron movimientos con los filtros aplicados'
-                      : 'Los abonos aparecerán aquí cuando se registren'}
+                      : 'Los pagos aparecerán aquí cuando se registren'}
                   </p>
                 </CardContent>
               </Card>
@@ -1000,7 +1000,7 @@ export default function Credits() {
                 <CardContent className="p-0">
                   <ScrollArea className="h-[500px]">
                     <div className="divide-y divide-border">
-                      {filteredAbonos.map(tx => {
+                      {filteredpagos.map(tx => {
                         // Parsear la descripción para extraer Bs, tasa y referencia
                         const desc = tx.description || tx.type;
                         const bsMatch = desc.match(/Bs\.\s*([\d,.]+)/);
@@ -1086,54 +1086,54 @@ export default function Credits() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-gold animate-pulse" />
-                  Abonos Reportados por Clientes
+                  pagos Reportados por Clientes
                 </CardTitle>
                 <CardDescription>
-                  Revisa y aprueba o rechaza los reportes de abono realizados por los clientes desde sus perfiles.
+                  Revisa y aprueba o rechaza los reportes de pago realizados por los clientes desde sus perfiles.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {loadingReportedAbonos ? (
+                {loadingReportedpagos ? (
                   <div className="flex justify-center py-12">
                     <Loader className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : reportedAbonos.length === 0 ? (
+                ) : reportedpagos.length === 0 ? (
                   <div className="py-12 text-center text-muted-foreground">
-                    No hay reportes de abonos pendientes de verificación.
+                    No hay reportes de pagos pendientes de verificación.
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {reportedAbonos.map(abono => {
-                      const matchRef = abono.notes?.match(/Referencia:\s*([^\.]+)/i);
-                      const matchMethod = abono.notes?.match(/Método:\s*([^\.]+)/i);
+                    {reportedpagos.map(pago => {
+                      const matchRef = pago.notes?.match(/Referencia:\s*([^\.]+)/i);
+                      const matchMethod = pago.notes?.match(/Método:\s*([^\.]+)/i);
                       const refText = matchRef ? matchRef[1] : 'N/A';
-                      const methodText = matchMethod ? matchMethod[1] : (abono.payment_method || 'N/A');
+                      const methodText = matchMethod ? matchMethod[1] : (pago.payment_method || 'N/A');
 
                       return (
                         <div
-                          key={abono.id}
+                          key={pago.id}
                           className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-border bg-secondary/30 gap-4"
                         >
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <h4 className="font-semibold text-foreground">
-                                {abono.customer_name}
+                                {pago.customer_name}
                               </h4>
                               <Badge className="bg-gold/10 text-gold border border-gold/30 hover:bg-gold/15 text-[10px] px-2 py-0.5">
                                 Pendiente
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              Monto Reportado: <span className="font-bold text-foreground">${abono.total_usd.toFixed(2)}</span>
+                              Monto Reportado: <span className="font-bold text-foreground">${pago.total_usd.toFixed(2)}</span>
                             </p>
                             <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
                               <span>Método: <strong>{methodText.toUpperCase()}</strong></span>
                               <span>Ref: <strong>{refText}</strong></span>
-                              <span>Fecha: <strong>{format(new Date(abono.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</strong></span>
+                              <span>Fecha: <strong>{format(new Date(pago.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</strong></span>
                             </div>
-                            {abono.customer_email && (
+                            {pago.customer_email && (
                               <p className="text-[11px] text-muted-foreground">
-                                Email de contacto: {abono.customer_email} {abono.customer_phone && `• Tel: ${abono.customer_phone}`}
+                                Email de contacto: {pago.customer_email} {pago.customer_phone && `• Tel: ${pago.customer_phone}`}
                               </p>
                             )}
                           </div>
@@ -1143,14 +1143,14 @@ export default function Credits() {
                               size="sm"
                               variant="outline"
                               className="text-xs border-destructive/30 hover:bg-destructive/10 text-destructive hover:text-destructive"
-                              onClick={() => handleRejectReportedAbono(abono.id)}
+                              onClick={() => handleRejectReportedpago(pago.id)}
                             >
                               Rechazar
                             </Button>
                             <Button
                               size="sm"
                               className="text-xs bg-primary text-white hover:bg-primary/95"
-                              onClick={() => handleApproveReportedAbono(abono)}
+                              onClick={() => handleApproveReportedpago(pago)}
                             >
                               Aprobar y Aplicar
                             </Button>
@@ -1247,18 +1247,18 @@ export default function Credits() {
         <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Registrar Pago</DialogTitle>
+              <DialogTitle>Registrar pago</DialogTitle>
               <DialogDescription>
                 {(() => {
                   const credit = credits.find(c => c.id === selectedCredit);
-                  return credit ? `Saldo actual: $${credit.current_balance.toFixed(2)}` : 'Registra un abono al crédito del cliente';
+                  return credit ? `Saldo actual: $${credit.current_balance.toFixed(2)}` : 'Registra un pago al crédito del cliente';
                 })()}
               </DialogDescription>
             </DialogHeader>
             
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="payment_amount">Monto del Pago (USD)</Label>
+                <Label htmlFor="payment_amount">Monto del pago (USD)</Label>
                 <Input
                   id="payment_amount"
                   type="number"
@@ -1280,7 +1280,7 @@ export default function Credits() {
                     <p className="text-xs text-muted-foreground">
                       Tasa del día: Bs. {rate.toFixed(2)} / $
                     </p>
-                    {/* Advertencia si el abono supera el saldo */}
+                    {/* Advertencia si el pago supera el saldo */}
                     {(() => {
                       const credit = credits.find(c => c.id === selectedCredit);
                       const amount = parseFloat(paymentAmount);
@@ -1318,7 +1318,7 @@ export default function Credits() {
                 disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || registerPayment.isPending}
               >
                 {registerPayment.isPending && <Loader className="h-4 w-4 mr-2 animate-spin" />}
-                Registrar Pago
+                Registrar pago
               </Button>
             </DialogFooter>
           </DialogContent>

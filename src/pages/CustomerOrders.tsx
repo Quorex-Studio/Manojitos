@@ -225,6 +225,17 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                   </Badge>
                 </h3>
 
+                {/* Motivo de rechazo */}
+                {order.status === 'cancelled' && order.notes?.includes('[MOTIVO_RECHAZO]') && (
+                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm flex gap-2 items-start">
+                    <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <span className="font-semibold block">Motivo del rechazo:</span>
+                      {order.notes.split('[MOTIVO_RECHAZO]')[1].trim()}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Items List */}
                   <div className="flex-1 space-y-4">

@@ -143,7 +143,7 @@ export default function Providers() {
               </DialogTrigger>
               <DialogContent className="max-h-[85vh] overflow-y-auto glass-card border-border/50">
                 <DialogHeader>
-                  <DialogTitle className="font-serif text-2xl">Nueva Compra</DialogTitle>
+                  <DialogTitle className="font-serif text-2xl">Nueva Inversión</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleAddPurchase} className="space-y-4 mt-4">
                   <div className="space-y-2">
@@ -201,7 +201,7 @@ export default function Providers() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Fecha de compra</Label>
+                    <Label>Fecha de inversión</Label>
                     <Input
                       type="date"
                       value={purchaseForm.purchase_date}
@@ -225,7 +225,7 @@ export default function Providers() {
                     />
                   </div>
                   <Button type="submit" className="w-full btn-gold rounded-xl" disabled={!purchaseForm.provider_id}>
-                    Registrar Compra
+                    Registrar Inversión
                   </Button>
                 </form>
               </DialogContent>
@@ -299,7 +299,7 @@ export default function Providers() {
             {purchases.length === 0 && (
               <div className="text-center py-16">
                 <Truck className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">No hay compras registradas</p>
+                <p className="text-muted-foreground">No hay inversiones registradas</p>
               </div>
             )}
           </TabsContent>

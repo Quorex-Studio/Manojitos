@@ -237,13 +237,58 @@ export function useNotifications() {
 
     notifChannelRegistry.set(channelName, { channel, refs: 1 });
 
+    // ── Admin Realtime subscription for Orders & KYC ──
+    const adminChannelName = `admin-events-${user.id}`;
+    if (isAdmin) {
+      const existingAdmin = notifChannelRegistry.get(adminChannelName);
+      if (!existingAdmin) {
+        const adminChannel = supabase
+          .channel(adminChannelName)
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'orders' },
+            async (payload) => {
+              const order = payload.new;
+              // Only alert if it's a customer placing an order online (status pending)
+              if (order.status === 'pending') {
+                toast('🛒 Nuevo Pedido Recibido', {
+                  description: `De: ${order.customer_name} | $${order.total_usd?.toFixed(2) || '0.00'}`,
+                  duration: 8000,
+                });
+                await showNotification(
+                  '🛒 Nuevo Pedido',
+                  `De: ${order.customer_name} | Monto: $${order.total_usd?.toFixed(2) || '0.00'}`,
+                  { tag: `order-${order.id}`, url: '/sales' }
+                );
+              }
+            }
+          )
+          .subscribe();
+        notifChannelRegistry.set(adminChannelName, { channel: adminChannel, refs: 1 });
+      } else {
+        existingAdmin.refs += 1;
+      }
+    }
+
     return () => {
       const entry = notifChannelRegistry.get(channelName);
-      if (!entry) return;
-      entry.refs -= 1;
-      if (entry.refs === 0) {
-        supabase.removeChannel(entry.channel);
-        notifChannelRegistry.delete(channelName);
+      if (entry) {
+        entry.refs -= 1;
+        if (entry.refs === 0) {
+          supabase.removeChannel(entry.channel);
+          notifChannelRegistry.delete(channelName);
+        }
+      }
+
+      if (isAdmin) {
+        const adminEntry = notifChannelRegistry.get(adminChannelName);
+        if (adminEntry) {
+          adminEntry.refs -= 1;
+          if (adminEntry.refs === 0) {
+            supabase.removeChannel(adminEntry.channel);
+            notifChannelRegistry.delete(adminChannelName);
+          }
+        }
       }
     };
   }, [user?.id]); // Only re-subscribe when the user ID changes

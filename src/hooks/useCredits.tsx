@@ -204,7 +204,7 @@ export function useCredits() {
         .from('credits')
         .update({
           credit_limit: newLimit,
-          notes: reason ? `Límite ajustado: ${reason}` : undefined,
+          notes: reason ? `Límite ajustado: ${sanitizeText(reason)}` : undefined,
         })
         .eq('id', id)
         .select()
@@ -227,7 +227,7 @@ export function useCredits() {
         .update({
           is_blocked: block,
           blocked_at: block ? new Date().toISOString() : null,
-          blocked_reason: block ? (reason || 'Bloqueado por el administrador') : null,
+          blocked_reason: block ? (reason ? sanitizeText(reason) : 'Bloqueado por el administrador') : null,
         })
         .eq('id', id)
         .select()
@@ -433,7 +433,7 @@ export function usePaymentPromises(creditId?: string) {
           user_id: user.id,
           promised_amount: promise.promisedAmount,
           promised_date: promise.promisedDate,
-          notes: promise.notes,
+          notes: promise.notes ? sanitizeText(promise.notes) : undefined,
         })
         .select()
         .single();

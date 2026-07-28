@@ -59,8 +59,8 @@ export default function FAQ() {
           a: "A partir del momento de tu compra, tus cuotas vencerán cada 14 o 15 días (según el plan). Podrás conocer las fechas de vencimiento en nuestra aplicación y te enviaremos recordatorios para que nunca olvides pagarlas a tiempo."
         },
         {
-          q: "¿Puedo pagar mis cuotas por adelantado o abonar una parte?",
-          a: "Siempre podrás adelantar el pago de tus cuotas pendientes e inclusive abonar parte de ellas. Lo importante es que al llegar la fecha de vencimiento de la cuota, esté pagada en su totalidad para evitar que tu cuenta sea pausada y apliquen cargos de reactivación."
+          q: "¿Puedo pagar mis cuotas por adelantado o pagar una parte?",
+          a: "Siempre podrás adelantar el pago de tus cuotas pendientes e inclusive pagar parte de ellas. Lo importante es que al llegar la fecha de vencimiento de la cuota, esté pagada en su totalidad para evitar que tu cuenta sea pausada y apliquen cargos de reactivación."
         }
       ]
     },

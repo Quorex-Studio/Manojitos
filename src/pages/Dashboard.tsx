@@ -14,6 +14,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { formatBS } from '@/lib/utils';
+import { isToday } from 'date-fns';
 
 // Dashboard admin — Premium editorial
 export default function Dashboard() {
@@ -26,8 +27,7 @@ export default function Dashboard() {
 
   // --- DERIVED ---
   const stats = useMemo(() => {
-    const today = new Date().toDateString();
-    const todaySales = sales.filter(s => new Date(s.created_at).toDateString() === today);
+    const todaySales = sales.filter(s => isToday(new Date(s.created_at)));
     const todayTotal = todaySales.reduce((acc, s) => acc + Number(s.total_usd), 0);
     const monthTotal = sales.reduce((acc, s) => acc + Number(s.total_usd), 0);
     const totalDebt = pendingDebts.reduce((acc, d) => acc + Number(d.amount_usd), 0);

@@ -94,6 +94,8 @@ export default function Sales() {
   const { addDebt } = useDebts();
   const { rate, convertToBS } = useExchangeRate();
   const [isOpen, setIsOpen] = useState(false);
+  const [rejectOrderId, setRejectOrderId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [search, setSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
@@ -523,14 +525,14 @@ export default function Sales() {
               amount: abonoAmount,
               previous_balance: previousBalance,
               new_balance: newBalance,
-              description: `Abono verificado (Pedido #${orderId.substring(0, 8)})`,
+              description: `Pago verificado (Pedido #${orderId.substring(0, 8)})`,
             });
 
           if (txErr) throw txErr;
 
-          toast.success(`Abono a Crédito verificado para ${targetCredit.client_name}: Saldo disminuido en $${abonoAmount.toFixed(2)}. Nuevo saldo: $${newBalance.toFixed(2)}.`);
+          toast.success(`Pago a Crédito verificado para ${targetCredit.client_name}: Saldo disminuido en $${abonoAmount.toFixed(2)}. Nuevo saldo: $${newBalance.toFixed(2)}.`);
         } else {
-          toast.warning('Se verificó el abono, pero no se encontró la cuenta de crédito asociada.');
+          toast.warning('Se verificó el pago, pero no se encontró la cuenta de crédito asociada.');
         }
       }
       
@@ -542,26 +544,77 @@ export default function Sales() {
       queryClient.invalidateQueries({ queryKey: ['credits'] });
       queryClient.invalidateQueries({ queryKey: ['customer-credit'] });
       queryClient.invalidateQueries({ queryKey: ['customer-pending-payments'] });
+      
+      // 4. Enviar notificación al cliente
+      if (approvedOrder?.customer_user_id) {
+        const isDelivery = approvedOrder.notes?.includes('[DELIVERY]');
+        const message = isDelivery 
+           ? 'Pedido aprobado, su delivery está siendo coordinado.' 
+           : 'Pedido aprobado, debe retirarlo en tienda. Nuestro horario laboral es de Lunes a Sábado, 8:00am - 5:00pm.';
+           
+        await supabase.from('notifications').insert({
+           user_id: approvedOrder.customer_user_id,
+           title: 'Pedido Aprobado',
+           message: message,
+           type: 'success',
+           channel: 'internal'
+        });
+      }
     } catch (err) {
       console.error('Error approving order:', err);
       toast.error(err instanceof Error ? err.message : 'Error al aprobar el pedido');
     }
   };
 
-  const handleRejectOrder = async (orderId: string) => {
-    if (!confirm('¿Rechazar y cancelar este pedido?')) return;
+  const handleRejectOrder = async () => {
+    if (!rejectOrderId) return;
+    if (!rejectReason.trim()) {
+      toast.error('Debe proporcionar un motivo de rechazo');
+      return;
+    }
 
+    setIsSubmitting(true);
     try {
-      const { error } = await supabase.rpc('reject_order', { p_order_id: orderId });
+      // Find current order notes
+      const order = orders.find(o => o.id === rejectOrderId);
+      const updatedNotes = order?.notes 
+        ? `${order.notes}\n\n[MOTIVO_RECHAZO] ${rejectReason}` 
+        : `[MOTIVO_RECHAZO] ${rejectReason}`;
+
+      // Update notes with the reason
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ notes: updatedNotes })
+        .eq('id', rejectOrderId);
+      
+      if (updateError) throw updateError;
+
+      // Reject the order
+      const { error } = await supabase.rpc('reject_order', { p_order_id: rejectOrderId });
       if (error) throw error;
 
-      toast.success('Pedido rechazado y cancelado 💔');
+      toast.success('Pedido rechazado y cancelado ❌');
       
+      // Enviar notificacion interna al cliente
+      if (order?.customer_user_id) {
+        await supabase.from('notifications').insert({
+          user_id: order.customer_user_id,
+          title: 'Pedido Rechazado',
+          message: `Su pedido ha sido rechazado. Motivo: ${rejectReason}`,
+          type: 'error',
+          channel: 'internal'
+        });
+      }
+      
+      setRejectOrderId(null);
+      setRejectReason('');
       refetchOrders();
       queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
     } catch (err) {
       console.error('Error rejecting order:', err);
       toast.error(err instanceof Error ? err.message : 'Error al rechazar el pedido');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1187,7 +1240,7 @@ export default function Sales() {
                               <div className="flex gap-2 w-full sm:w-auto">
                                 <Button 
                                   variant="outline" 
-                                  onClick={() => handleRejectOrder(order.id)}
+                                  onClick={() => setRejectOrderId(order.id)}
                                   className="border-destructive/30 hover:border-destructive text-destructive hover:bg-destructive/5 rounded-xl flex-1 sm:flex-initial"
                                 >
                                   <CloseSquare className="h-4 w-4 mr-2" />
@@ -1237,6 +1290,49 @@ export default function Sales() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Reject Order Dialog */}
+      <Dialog open={!!rejectOrderId} onOpenChange={(open) => {
+        if (!open) {
+          setRejectOrderId(null);
+          setRejectReason('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Motivo de Rechazo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="reject_reason">¿Por qué se rechaza este pedido?</Label>
+              <Textarea 
+                id="reject_reason" 
+                placeholder="Ej. Falta de stock, comprobante inválido..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => { setRejectOrderId(null); setRejectReason(''); }}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleRejectOrder}
+              disabled={!rejectReason.trim() || isSubmitting}
+            >
+              Confirmar Rechazo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

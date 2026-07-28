@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { Category, ShoppingBag, Search, Menu, CloseSquare, Bell, User, Logout, Settings, Layout } from 'reicon-react';
+import { Category, ShoppingCart, Search, Menu, CloseSquare, Bell, User, Logout, Settings, Layout } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -188,21 +188,15 @@ export function StoreHeader() {
             <CurrencyToggle />
 
             {/* Theme Toggle */}
-            <div className="hidden md:block">
-              <ThemeToggle />
-            </div>
+            <ThemeToggle />
 
             {/* Notification Bell — solo para clientes autenticados */}
             {user && (
-              <div className="hidden md:block">
-                <CustomerNotificationBell />
-              </div>
+              <CustomerNotificationBell />
             )}
 
             {/* User Menu */}
-            <div className="hidden md:block">
-              <UserMenu />
-            </div>
+            <UserMenu />
 
             {/* Cart con badge animado premium */}
             <Link to="/carrito" className="relative">
@@ -211,7 +205,7 @@ export function StoreHeader() {
                 whileTap={{ scale: 0.95 }}
               >
                 <Button variant="ghost" size="icon" className="relative h-9 w-9">
-                  <ShoppingBag className="h-4.5 w-4.5" />
+                  <ShoppingCart className="h-4.5 w-4.5" />
                   <AnimatePresence mode="wait">
                     {itemCount > 0 && (
                       <motion.div

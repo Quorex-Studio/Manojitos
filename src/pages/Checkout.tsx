@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { InfoCircle, CloseSquare, Loader, ArrowLeft, Check, CreditCard, Truck, Package, Store, User, Mailbox, Phone, Refresh, ShoppingBag, Shield, Copy, Mobile, Bank, Wallet, AlertTriangle, Edit, Plus } from 'reicon-react';
+import { InfoCircle, CloseSquare, Loader, ArrowLeft, Check, CreditCard, Truck, Package, Store, User, Mailbox, Phone, Refresh, ShoppingBag, Shield, Copy, Mobile, Bank, Wallet, AlertTriangle, Edit, Plus, MapPin, Locate } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,8 @@ import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useGeolocation } from '@/hooks/useGeolocation';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,6 +53,31 @@ const PAYMENT_INFO = {
   },
   contacto: '+58 426 3863042',
 };
+
+const NE_MUNICIPIOS = [
+  { value: 'Antolín del Campo', label: 'Antolín del Campo' },
+  { value: 'Arismendi', label: 'Arismendi' },
+  { value: 'Díaz', label: 'Díaz' },
+  { value: 'García', label: 'García' },
+  { value: 'Gómez', label: 'Gómez' },
+  { value: 'Maneiro', label: 'Maneiro' },
+  { value: 'Marcano', label: 'Marcano' },
+  { value: 'Mariño', label: 'Mariño' },
+  { value: 'Península de Macanao', label: 'Península de Macanao' },
+  { value: 'Tubores', label: 'Tubores' },
+  { value: 'Villalba', label: 'Villalba' },
+];
+const RUTA_CORTA = ['Gómez', 'Díaz'];
+const RUTA_GRATIS = ['Marcano'];
+
+function calcDeliveryFee(subtotal: number, municipio: string, method: 'delivery' | 'pickup'): number {
+  if (method === 'pickup') return 0;
+  if (!municipio) return 0;
+  if (subtotal > 30) return 0;
+  if (RUTA_GRATIS.includes(municipio)) return 0;
+  if (RUTA_CORTA.includes(municipio)) return 2;
+  return 4;
+}
 
 // Componente interno: Panel con datos de pago
 const PaymentInfoPanel = memo(function PaymentInfoPanel({ method }: { method: string }) {
@@ -152,6 +179,7 @@ export default function Checkout() {
   const { rate, convertToBS } = useExchangeRate();
   const { processCheckout, validateStock } = useSales();
   const { toast } = useToast();
+  const { gettingGPS, handleGetLocation } = useGeolocation();
   const { credit, hasCredit, hasPendingPayments, isLoading: creditLoading } = useCustomerCredit();
   const { preferredMethod, hasPaymentMethods, isLoading: methodsLoading } = useCustomerPaymentMethods();
 
@@ -166,6 +194,8 @@ export default function Checkout() {
 
   const subtotal = getSubtotal();
   const isEmpty = items.length === 0;
+  const deliveryFee = calcDeliveryFee(subtotal, shippingData.city, deliveryMethod);
+  const orderTotal = subtotal + deliveryFee;
 
   const [casheaMethod, setCasheaMethod] = useState('pago_movil');
   const [casheaBank, setCasheaBank] = useState('');
@@ -389,18 +419,23 @@ export default function Checkout() {
         ? `[Inicial Crédito Manojitos: $${montoInicialTotal.toFixed(2)} - Método: ${sanitizeText(casheaMethod)} - Ref: ${casheaRef ? sanitizeText(casheaRef) : 'N/A'}${casheaBank ? ` - Banco: ${sanitizeText(casheaBank)}` : ''}${casheaPhone ? ` - Tlf Emisor: ${sanitizeText(casheaPhone)}` : ''}] `
         : '';
 
+      const checkoutItems = items.map(item => ({
+        id: item.id,
+        name: item.size ? `${item.name} (Talla: ${item.size})` : item.name,
+        quantity: item.quantity,
+        price_usd: item.price_usd
+      }));
+      if (deliveryFee > 0) {
+        checkoutItems.push({ id: 'delivery_fee', name: `Delivery (${shippingData.city})`, quantity: 1, price_usd: deliveryFee });
+      }
+
       const { error, saleIds } = await processCheckout(
-        items.map(item => ({
-          id: item.id,
-          name: item.size ? `${item.name} (Talla: ${item.size})` : item.name,
-          quantity: item.quantity,
-          price_usd: item.price_usd
-        })),
+        checkoutItems,
         {
           payment_method: sanitizeText(paymentMethod),
           client_name: shippingData.fullName,
           client_phone: shippingData.phone,
-          notes: `${notesPrefix}[${deliveryMethod === 'pickup' ? 'RETIRO EN TIENDA' : 'DELIVERY'}] ${deliveryMethod === 'delivery' ? `Dirección: ${shippingData.address}, ${shippingData.city}. ` : ''}${paymentMethod === 'pago_movil' ? `Tlf. Emisor PM: ${sanitizeText(telefonoEmisor)}. ` : ''}${shippingData.notes || ''}`,
+          notes: `${notesPrefix}[${deliveryMethod === 'pickup' ? 'RETIRO EN TIENDA' : `DELIVERY - Municipio: ${shippingData.city} - Tarifa: $${deliveryFee.toFixed(2)}`}] ${deliveryMethod === 'delivery' ? `Dirección: ${shippingData.address}, ${shippingData.city}. ` : ''}${paymentMethod === 'pago_movil' ? `Tlf. Emisor PM: ${sanitizeText(telefonoEmisor)}. ` : ''}${shippingData.notes || ''}`,
           total_bs_rate: rate > 0 ? rate : undefined,
           banco_origen: paymentMethod === 'pago_movil' ? sanitizeText(bancoOrigen) : undefined,
           numero_referencia: paymentMethod === 'pago_movil' ? sanitizeText(numeroReferencia) : undefined
@@ -697,26 +732,51 @@ export default function Checkout() {
                                   >
                                     <div>
                                       <Label htmlFor="modal-address" className="text-sm">Dirección Exacta <span className="text-destructive">*</span></Label>
-                                      <Input
-                                        id="modal-address"
-                                        placeholder="Calle, número, punto de referencia..."
-                                        value={shippingData.address}
-                                        onChange={(e) => setShippingData(prev => ({...prev, address: e.target.value.replace(/[^A-Za-z0-9Á-Úá-úñÑ\s.,#-]/g, '').slice(0, 100)}))}
-                                        name="address"
-                                        className="mt-1"
-                                      />
+                                      <div className="flex flex-col sm:flex-row gap-2 mt-1">
+                                        <div className="relative flex-1">
+                                          <Input
+                                            id="modal-address"
+                                            placeholder="Calle, número, punto de referencia..."
+                                            value={shippingData.address}
+                                            onChange={(e) => setShippingData(prev => ({...prev, address: e.target.value.replace(/[^A-Za-z0-9Á-Úá-úñÑ\s.,#-]/g, '').slice(0, 100)}))}
+                                            name="address"
+                                            className="pl-9 w-full"
+                                          />
+                                          <Location className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                        <Button 
+                                          type="button" 
+                                          variant="outline" 
+                                          className="h-9 whitespace-nowrap text-xs bg-muted hover:bg-primary hover:text-primary-foreground border-primary/20 w-full sm:w-auto"
+                                          onClick={() => handleGetLocation((res) => setShippingData(prev => ({...prev, address: prev.address || res.addressString})))}
+                                          disabled={gettingGPS}
+                                        >
+                                          {gettingGPS ? (
+                                            <><Loader className="h-4 w-4 animate-spin mr-2" /> Detectando...</>
+                                          ) : (
+                                            <><Location className="h-4 w-4 mr-2" /> Detectar Ubicación</>
+                                          )}
+                                        </Button>
+                                      </div>
                                     </div>
 
                                     <div>
-                                      <Label htmlFor="modal-city" className="text-sm">Ciudad <span className="text-destructive">*</span></Label>
-                                      <Input
-                                        id="modal-city"
-                                        placeholder="Tu ciudad"
-                                        value={shippingData.city}
-                                        onChange={(e) => setShippingData(prev => ({...prev, city: e.target.value.replace(/[^A-Za-zÁ-Úá-úñÑ\s]/g, '').slice(0, 50)}))}
-                                        name="city"
-                                        className="mt-1"
-                                      />
+                                      <Label htmlFor="modal-city" className="text-sm">Municipio <span className="text-destructive">*</span></Label>
+                                      <Select value={shippingData.city} onValueChange={(val) => setShippingData(prev => ({...prev, city: val}))}>
+                                        <SelectTrigger className="mt-1">
+                                          <SelectValue placeholder="Selecciona tu municipio" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {NE_MUNICIPIOS.map(m => (
+                                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      {deliveryMethod === 'delivery' && shippingData.city && (
+                                        <p className="text-xs mt-1.5 text-muted-foreground">
+                                          Delivery: {deliveryFee === 0 ? <span className="text-primary font-medium">GRATIS</span> : <span className="font-medium">${deliveryFee.toFixed(2)}</span>}
+                                        </p>
+                                      )}
                                     </div>
                                   </motion.div>
                                 )}
@@ -1199,7 +1259,15 @@ export default function Checkout() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Envío</span>
-                  <span className="text-accent font-medium">Por coordinar</span>
+                  {deliveryMethod === 'pickup' ? (
+                    <span className="text-primary font-medium">Retiro en tienda</span>
+                  ) : !shippingData.city ? (
+                    <span className="text-muted-foreground/60 text-xs">Selecciona municipio</span>
+                  ) : deliveryFee === 0 ? (
+                    <span className="text-primary font-medium">GRATIS</span>
+                  ) : (
+                    <PriceDisplay amountUsd={deliveryFee} primaryClassName="font-medium text-foreground" showSecondary={false} />
+                  )}
                 </div>
               </div>
 
@@ -1208,7 +1276,7 @@ export default function Checkout() {
                   <span className="text-lg font-bold text-foreground">Total a Pagar</span>
                   <div className="text-right">
                     <PriceDisplay 
-                      amountUsd={subtotal}
+                      amountUsd={orderTotal}
                       primaryClassName="text-3xl font-serif font-bold text-accent"
                       secondaryClassName="text-right text-muted-foreground text-sm"
                     />

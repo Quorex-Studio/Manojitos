@@ -193,7 +193,7 @@ export default function Cart() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground/50">Envío</span>
-                  <span className="text-gold/80 text-xs tracking-wide">Calculado al pagar</span>
+                  <span className="text-gold/80 text-xs tracking-wide">Se calcula en el checkout</span>
                 </div>
 
                 <div className="h-px bg-border/10 my-2" />

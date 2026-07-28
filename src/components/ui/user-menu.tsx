@@ -78,8 +78,16 @@ export function UserMenu() {
         className="flex items-center gap-2 px-2"
       >
         {/* Avatar */}
-        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
-          {getInitials()}
+        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm overflow-hidden">
+          {user?.user_metadata?.avatar_url ? (
+            <img 
+              src={user.user_metadata.avatar_url} 
+              alt={getUserName()} 
+              className="h-full w-full object-cover" 
+            />
+          ) : (
+            getInitials()
+          )}
         </div>
         <span className="hidden md:inline text-sm font-medium max-w-24 truncate">
           {getUserName()}

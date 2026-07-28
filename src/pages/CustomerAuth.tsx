@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { useGeolocation } from '@/hooks/useGeolocation';
 import { supabase } from '@/integrations/supabase/client';
 import logoImage from '@/assets/logo.jpeg';
 
@@ -33,7 +34,7 @@ export default function CustomerAuth() {
   });
 
 
-  const [gettingGPS, setGettingGPS] = useState(false);
+  const [gettingGPSState, setGettingGPSState] = useState(false); // Used elsewhere or redundant now
   const [hasPromptedLocation, setHasPromptedLocation] = useState(false);
 
   const redirectTo = searchParams.get('redirect') || '/';
@@ -89,168 +90,16 @@ export default function CustomerAuth() {
     }));
   };
 
+  const { gettingGPS, handleGetLocation } = useGeolocation();
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      toast({
-        title: 'Geolocalización no soportada',
-        description: 'Tu navegador no permite capturar la ubicación por GPS.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setGettingGPS(true);
-
-    const successCallback = (position: any) => {
-      const { latitude, longitude } = position.coords;
-      const coordsStr = `${latitude},${longitude}`;
+  const handleGetLocationClick = () => {
+    handleGetLocation((result) => {
       setForm(prev => ({
         ...prev,
-        locationCoords: coordsStr,
-        address: prev.address || `Ubicación GPS: ${coordsStr}`
+        locationCoords: result.coordsStr,
+        address: prev.address || result.addressString
       }));
-      setGettingGPS(false);
-      toast({
-        title: 'Ubicación obtenida',
-        description: 'Coordenadas GPS registradas con éxito.'
-      });
-    };
-
-    const getIPLocation = async () => {
-      console.log('Starting IP geolocation fallbacks...');
-
-      // 1. Intentar con ipwho.is (CORS y HTTPS gratuito)
-      try {
-        console.log('Querying ipwho.is...');
-        const response = await fetch('https://ipwho.is/');
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.success && data.latitude && data.longitude) {
-            const coordsStr = `${data.latitude},${data.longitude}`;
-            setForm(prev => ({
-              ...prev,
-              locationCoords: coordsStr,
-              address: prev.address || `Ubicación estimada: ${data.city || ''}, ${data.region || ''}, ${data.country || ''}`.trim()
-            }));
-            setGettingGPS(false);
-            toast({
-              title: 'Ubicación aproximada obtenida',
-              description: 'Se usó tu dirección de red para estimar tu ubicación.'
-            });
-            console.log('ipwho.is geolocation succeeded:', coordsStr);
-            return;
-          } else {
-            console.log('ipwho.is returned success=false or missing coords:', data);
-          }
-        } else {
-          console.log('ipwho.is response status:', response.status);
-        }
-      } catch (err) {
-        console.log('ipwho.is query failed:', err);
-      }
-
-      // 2. Intentar con freeipapi.com (CORS y HTTPS gratuito)
-      try {
-        console.log('Querying freeipapi.com...');
-        const response = await fetch('https://freeipapi.com/api/json');
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.latitude && data.longitude) {
-            const coordsStr = `${data.latitude},${data.longitude}`;
-            setForm(prev => ({
-              ...prev,
-              locationCoords: coordsStr,
-              address: prev.address || `Ubicación estimada: ${data.cityName || ''}, ${data.regionName || ''}, ${data.countryName || ''}`.trim()
-            }));
-            setGettingGPS(false);
-            toast({
-              title: 'Ubicación aproximada obtenida',
-              description: 'Se usó tu dirección de red para estimar tu ubicación.'
-            });
-            console.log('freeipapi.com geolocation succeeded:', coordsStr);
-            return;
-          } else {
-            console.log('freeipapi.com missing coordinates:', data);
-          }
-        } else {
-          console.log('freeipapi.com response status:', response.status);
-        }
-      } catch (err) {
-        console.log('freeipapi.com query failed:', err);
-      }
-
-      // 3. Intentar con ipapi.co (CORS y HTTPS gratuito)
-      try {
-        console.log('Querying ipapi.co...');
-        const response = await fetch('https://ipapi.co/json/');
-        if (response.ok) {
-          const data = await response.json();
-          if (data && !data.error && data.latitude && data.longitude) {
-            const coordsStr = `${data.latitude},${data.longitude}`;
-            setForm(prev => ({
-              ...prev,
-              locationCoords: coordsStr,
-              address: prev.address || `Ubicación estimada: ${data.city || ''}, ${data.region || ''}, ${data.country_name || ''}`.trim()
-            }));
-            setGettingGPS(false);
-            toast({
-              title: 'Ubicación aproximada obtenida',
-              description: 'Se usó tu dirección de red para estimar tu ubicación.'
-            });
-            console.log('ipapi.co geolocation succeeded:', coordsStr);
-            return;
-          } else {
-            console.log('ipapi.co returned error or missing coordinates:', data);
-          }
-        } else {
-          console.log('ipapi.co response status:', response.status);
-        }
-      } catch (err) {
-        console.log('ipapi.co query failed:', err);
-      }
-
-      // Si todo falla, mostrar error manual
-      console.log('All IP geolocation fallbacks failed.');
-      setGettingGPS(false);
-      toast({
-        title: 'Error de ubicación',
-        description: 'No se pudo obtener la ubicación exacta. Por favor, escríbela o introduce las coordenadas manualmente.',
-        variant: 'destructive'
-      });
-    };
-
-    const errorCallbackLow = (error: any) => {
-      console.error('Low accuracy geolocation failed:', error);
-      // Intentar geolocalización por IP como recurso automático final
-      getIPLocation();
-    };
-
-    const errorCallbackHigh = (error: any) => {
-      if (error.code === 1) { // PERMISSION_DENIED
-        setGettingGPS(false);
-        toast({
-          title: 'Permiso de ubicación denegado',
-          description: 'No se pudo acceder al GPS porque los permisos están desactivados en tu navegador. Por favor, escribe tu dirección o introduce las coordenadas manualmente.',
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      console.warn('High accuracy geolocation failed, retrying with low accuracy...', error);
-      navigator.geolocation.getCurrentPosition(
-        successCallback,
-        errorCallbackLow,
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-      );
-    };
-
-    // Intentar primero con alta precisión y un timeout más corto (5s)
-    navigator.geolocation.getCurrentPosition(
-      successCallback,
-      errorCallbackHigh,
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-    );
+    });
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -336,12 +185,20 @@ export default function CustomerAuth() {
           return;
         }
 
+        // Normalización de Teléfono
+        let normalizedPhone = form.phone.trim().replace(/\s+/g, '');
+        if (normalizedPhone.startsWith('0')) {
+          normalizedPhone = '+58' + normalizedPhone.substring(1);
+        } else if (!normalizedPhone.startsWith('+') && normalizedPhone.length === 10) {
+          normalizedPhone = '+58' + normalizedPhone;
+        }
+
         // Validación estricta Teléfono
         const phoneRegex = /^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/;
-        if (!phoneRegex.test(form.phone)) {
+        if (!phoneRegex.test(normalizedPhone)) {
           toast({
             title: 'Formato de Teléfono Inválido',
-            description: 'Debe usar el formato +58 seguido del operador y número (Ej: +584121234567)',
+            description: 'Debe ingresar un número válido (Ej: 04121234567 o +584121234567)',
             variant: 'destructive'
           });
           setLoading(false);
@@ -362,7 +219,7 @@ export default function CustomerAuth() {
         // Validar unicidad antes de intentar registrar
         try {
           const { data, error: rpcError } = await supabase.rpc('check_unique_customer_data', {
-            p_phone: form.phone,
+            p_phone: normalizedPhone,
             p_dni: form.dni,
             p_email: form.email
           });
@@ -400,7 +257,7 @@ export default function CustomerAuth() {
           form.email, 
           form.password, 
           safeName, 
-          form.phone,
+          normalizedPhone,
           form.dni,
           undefined, // avatarUrl
           safeAddress,
@@ -597,12 +454,12 @@ export default function CustomerAuth() {
                           />
                           <Location className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         </div>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={handleGetLocation}
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="h-9 whitespace-nowrap text-xs bg-muted hover:bg-primary hover:text-primary-foreground border-primary/20 w-full sm:w-auto"
+                          onClick={handleGetLocationClick}
                           disabled={gettingGPS}
-                          className="w-full sm:w-auto bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
                         >
                           {gettingGPS ? (
                             <><Loader className="h-4 w-4 animate-spin mr-2" /> Detectando...</>

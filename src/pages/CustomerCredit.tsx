@@ -24,6 +24,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -45,6 +46,31 @@ import { cn } from '@/lib/utils';
 import { sanitizeText } from '@/lib/validations';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 
+function getNextQuincenas(baseDate: Date, numQuincenas: number): Date[] {
+  const dates: Date[] = [];
+  let currentDate = new Date(baseDate);
+  
+  for (let i = 0; i < numQuincenas; i++) {
+    const nextDate = new Date(currentDate);
+    const day = currentDate.getDate();
+    
+    if (day < 15) {
+      nextDate.setDate(15);
+    } else if (day < 30) {
+      const lastDayOfMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+      nextDate.setDate(Math.min(30, lastDayOfMonth));
+    } else {
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      nextDate.setDate(15);
+    }
+    dates.push(new Date(nextDate));
+    // Avanzamos un día para calcular la siguiente quincena
+    currentDate = new Date(nextDate);
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  return dates;
+}
+
 const TRUST_CONFIG = {
   CONFIABLE: { icon: Shield, color: 'text-primary', bg: 'bg-primary/10', label: 'Confiable' },
   RIESGO: { icon: ShieldAlert, color: 'text-gold', bg: 'bg-gold/10', label: 'En Riesgo' },
@@ -65,9 +91,14 @@ function CreditRequestView({ user, profile, rate, hasPendingRequest }: { user: a
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const handleRequest = async () => {
     if (!user) return;
+    if (!acceptTerms) {
+      toast.error('Debes aceptar los Términos y Condiciones para continuar.');
+      return;
+    }
     setIsSending(true);
     try {
       const { error } = await supabase
@@ -193,13 +224,24 @@ function CreditRequestView({ user, profile, rate, hasPendingRequest }: { user: a
                           className="bg-background/50"
                         />
                       </div>
+                      <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <Checkbox
+                          id="terms"
+                          checked={acceptTerms}
+                          onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
+                        />
+                        <div className="space-y-1 leading-none">
+                          <Label htmlFor="terms" className="text-sm font-medium">Acepto los Términos y Condiciones</Label>
+                          <p className="text-xs text-muted-foreground">Al solicitar esta línea de crédito, confirmas que los datos proporcionados son reales y verificables, y te comprometes a cumplir con las fechas de corte establecidas.</p>
+                        </div>
+                      </div>
                     </div>
                     <DialogFooter className="gap-2">
                       <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
                       <Button
                         className="btn-gold rounded-full"
                         onClick={handleRequest}
-                        disabled={isSending}
+                        disabled={isSending || !acceptTerms}
                       >
                         {isSending ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                         Enviar Solicitud
@@ -286,7 +328,7 @@ export default function CustomerCredit() {
           customer_name: credit.client_name || user.email || 'Cliente',
           customer_phone: credit.client_phone || '',
           customer_email: user.email || '',
-          items: [{ id: 'credit_payment', name: 'Abono a Crédito', quantity: 1, price: amountNum, price_usd: amountNum }],
+          items: [{ id: 'credit_payment', name: 'pago a Crédito', quantity: 1, price: amountNum, price_usd: amountNum }],
           subtotal: amountNum,
           discount: 0,
           total_usd: amountNum,
@@ -294,7 +336,7 @@ export default function CustomerCredit() {
           status: 'pending',
           payment_method: paymentMethod,
           payment_status: 'pending',
-          notes: `[ABONO_CREDITO] Referencia: ${reference ? sanitizeText(reference) : 'Efectivo'}. Método: ${paymentMethod.toUpperCase()}. Fecha: ${paymentDate}. Notas: ${notes ? sanitizeText(notes) : ''}`
+          notes: `[pago_CREDITO] Referencia: ${reference ? sanitizeText(reference) : 'Efectivo'}. Método: ${paymentMethod.toUpperCase()}. Fecha: ${paymentDate}. Notas: ${notes ? sanitizeText(notes) : ''}`
         })
         .select()
         .single();
@@ -303,7 +345,7 @@ export default function CustomerCredit() {
       return data;
     },
     onSuccess: () => {
-      toast.success('Abono reportado correctamente. En espera de verificación.');
+      toast.success('pago reportado correctamente. En espera de verificación.');
       setIsReportModalOpen(false);
       setAmount('');
       setReference('');
@@ -311,11 +353,11 @@ export default function CustomerCredit() {
       queryClient.invalidateQueries({ queryKey: ['customer-pending-abonos'] });
     },
     onError: (err: any) => {
-      toast.error(err.message || 'Error al reportar abono');
+      toast.error(err.message || 'Error al reportar pago');
     }
   });
 
-  const { data: pendingAbonos = [] } = useQuery({
+  const { data: pendingpagos = [] } = useQuery({
     queryKey: ['customer-pending-abonos', user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -323,7 +365,7 @@ export default function CustomerCredit() {
         .from('orders')
         .select('*')
         .eq('customer_user_id', user.id)
-        .like('notes', '[ABONO_CREDITO]%')
+        .like('notes', '[pago_CREDITO]%')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
@@ -443,6 +485,8 @@ export default function CustomerCredit() {
       const fechaCompra = new Date(tx.created_at);
 
       // Cuotas
+      const fechasCorte = getNextQuincenas(fechaCompra, 2);
+      
       const cuotas = [
         {
           numero: 1,
@@ -453,13 +497,13 @@ export default function CustomerCredit() {
         {
           numero: 2,
           monto: montoCuota,
-          fechaVencimiento: new Date(new Date(fechaCompra).getTime() + 15 * 24 * 60 * 60 * 1000),
+          fechaVencimiento: fechasCorte[0],
           estado: 'PENDIENTE',
         },
         {
           numero: 3,
           monto: montoCuota,
-          fechaVencimiento: new Date(new Date(fechaCompra).getTime() + 30 * 24 * 60 * 60 * 1000),
+          fechaVencimiento: fechasCorte[1],
           estado: 'PENDIENTE',
         }
       ];
@@ -514,7 +558,7 @@ export default function CustomerCredit() {
                     ⚠️ CUOTA VENCIDA DETECTADA
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Tienes cuotas vencidas (Retraso de {credit.daysOverdue} días). Por favor, realiza el abono correspondiente lo antes posible para mantener tu línea de crédito activa.
+                    Tienes cuotas vencidas (Retraso de {credit.daysOverdue} días). Por favor, realiza el pago correspondiente lo antes posible para mantener tu línea de crédito activa.
                   </p>
                 </div>
               </div>
@@ -523,7 +567,7 @@ export default function CustomerCredit() {
                 className="w-full md:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-1.5 shadow-md flex-shrink-0"
               >
                 <DollarSign className="h-4 w-4" />
-                Reportar Abono Ahora
+                Reportar pago Ahora
               </Button>
             </motion.div>
           )}
@@ -540,7 +584,7 @@ export default function CustomerCredit() {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm md:text-base text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                    ⏳ PAGO EN VERIFICACIÓN
+                    ⏳ pago EN VERIFICACIÓN
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Hemos recibido tu reporte de pago y estamos verificándolo. Tu estado de mora se actualizará pronto.
@@ -574,7 +618,7 @@ export default function CustomerCredit() {
                 className="w-full md:w-auto bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-1.5 shadow-md flex-shrink-0"
               >
                 <DollarSign className="h-4 w-4" />
-                Pagar Cuota
+                pagar Cuota
               </Button>
             </motion.div>
           )}
@@ -602,14 +646,14 @@ export default function CustomerCredit() {
                       <DialogTrigger asChild>
                         <Button className="w-full md:w-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary/95 hover:to-primary/75 text-white shadow-lg flex items-center gap-2 hover:scale-[1.02] transition-transform">
                           <Plus className="h-4 w-4" />
-                          Reportar Abono
+                          Reportar pago
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-h-[85vh] overflow-y-auto glass-card max-w-md bg-background/95 backdrop-blur-md border border-border dark:border-white/10 text-foreground">
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
                             <DollarSign className="h-5 w-5 text-primary animate-pulse" />
-                            Reportar Abono a Crédito
+                            Reportar pago a Crédito
                           </DialogTitle>
                           <DialogDescription className="text-muted-foreground">
                             Registra un pago para amortizar tu saldo de crédito pendiente.
@@ -617,7 +661,7 @@ export default function CustomerCredit() {
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                           <div className="space-y-2">
-                            <Label htmlFor="amount">Monto del Abono (USD)</Label>
+                            <Label htmlFor="amount">Monto del pago (USD)</Label>
                             <div className="relative">
                               <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                               <Input
@@ -695,7 +739,7 @@ export default function CustomerCredit() {
                           )}
   
                           <div className="space-y-2">
-                            <Label htmlFor="payment-date">Fecha de Pago</Label>
+                            <Label htmlFor="payment-date">Fecha de pago</Label>
                             <Input
                               id="payment-date"
                               type="date"
@@ -796,7 +840,7 @@ export default function CustomerCredit() {
               <CardContent className="p-4 flex items-center gap-3">
                 <Award className="h-6 w-6 text-primary" />
                 <div>
-                  <p className="font-semibold text-primary">Descuento por Pago Puntual</p>
+                  <p className="font-semibold text-primary">Descuento por pago Puntual</p>
                   <p className="text-sm text-muted-foreground">
                     Obtén un {credit.early_payment_discount}% de descuento al pagar antes del vencimiento
                   </p>
@@ -854,33 +898,33 @@ export default function CustomerCredit() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Abonos pendientes de verificación */}
-                  {pendingAbonos.length > 0 && (
+                  {/* pagos pendientes de verificación */}
+                  {pendingpagos.length > 0 && (
                     <div className="space-y-3">
                       <h3 className="text-sm font-semibold text-gold flex items-center gap-2">
                         <Clock className="h-4 w-4 animate-spin text-gold" />
-                        Abonos Pendientes de Verificación ({pendingAbonos.length})
+                        pagos Pendientes de Verificación ({pendingpagos.length})
                       </h3>
                       <div className="space-y-2 border-l-2 border-gold pl-3">
-                        {pendingAbonos.map(abono => {
-                          const matchRef = abono.notes?.match(/Referencia:\s*([^\.]+)/i);
-                          const matchMethod = abono.notes?.match(/Método:\s*([^\.]+)/i);
+                        {pendingpagos.map(pago => {
+                          const matchRef = pago.notes?.match(/Referencia:\s*([^\.]+)/i);
+                          const matchMethod = pago.notes?.match(/Método:\s*([^\.]+)/i);
                           const refText = matchRef ? matchRef[1] : 'N/A';
-                          const methodText = matchMethod ? matchMethod[1] : abono.payment_method;
+                          const methodText = matchMethod ? matchMethod[1] : pago.payment_method;
 
                           return (
-                            <div key={abono.id} className="flex justify-between items-center p-3 rounded-lg bg-gold/5 border border-gold/10">
+                            <div key={pago.id} className="flex justify-between items-center p-3 rounded-lg bg-gold/5 border border-gold/10">
                               <div>
-                                <p className="font-medium text-sm">Abono a Crédito (Reportado)</p>
+                                <p className="font-medium text-sm">pago a Crédito (Reportado)</p>
                                 <p className="text-xs text-muted-foreground">
                                   Ref: {refText} • Método: {methodText.toUpperCase()}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground">
-                                  {format(new Date(abono.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
+                                  {format(new Date(pago.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
                                 </p>
                               </div>
                               <div className="text-right flex items-center gap-2">
-                                <span className="font-bold text-gold">${abono.total_usd.toFixed(2)}</span>
+                                <span className="font-bold text-gold">${pago.total_usd.toFixed(2)}</span>
                                 <Badge variant="outline" className="text-gold border-gold/30 bg-gold/5 text-[10px] px-1.5 py-0.5">
                                   Pendiente
                                 </Badge>
@@ -916,8 +960,8 @@ export default function CustomerCredit() {
                                 <div className="font-medium text-sm">{
                                   (() => {
                                     const desc = tx.description || tx.type;
-                                    // Strip raw [ABONO_CREDITO] notes string from stored orders notes
-                                    if (desc.startsWith('[ABONO_CREDITO]')) {
+                                    // Strip raw [pago_CREDITO] notes string from stored orders notes
+                                    if (desc.startsWith('[pago_CREDITO]')) {
                                       const refMatch = desc.match(/Referencia:\s*([^\.]+)/);
                                       const methodMatch = desc.match(/Método:\s*([^\.]+)/);
                                       const noteMatch = desc.match(/Notas:\s*(.*)/);
@@ -928,7 +972,7 @@ export default function CustomerCredit() {
 
                                       return (
                                         <div className="flex flex-col">
-                                          <span className="capitalize">Abono {method}</span>
+                                          <span className="capitalize">pago {method}</span>
                                           <span className="text-xs text-muted-foreground font-normal">Ref: {ref}</span>
                                           {note && <span className="text-[10px] text-muted-foreground/70 italic max-w-[220px] truncate">"{note}"</span>}
                                         </div>
@@ -1062,7 +1106,7 @@ export default function CustomerCredit() {
             <TabsContent value="promises">
               <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle>Compromisos de Pago</CardTitle>
+                  <CardTitle>Compromisos de pago</CardTitle>
                   <CardDescription>
                     Acuerdos de pago programados
                   </CardDescription>
