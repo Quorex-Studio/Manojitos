@@ -52,7 +52,7 @@ export interface CreditReminderHistory {
 
 // Hook principal para notificaciones
 export function useNotifications() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
 
   // Obtener notificaciones del usuario
