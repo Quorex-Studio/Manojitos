@@ -50,7 +50,7 @@ function getNextQuincenas(baseDate: Date, numQuincenas: number): Date[] {
   const dates: Date[] = [];
   let currentDate = new Date(baseDate);
   
-  for (let i = 0; i < numQuincenas; i++) {
+  for (let idx = 0; idx < numQuincenas; idx++) {
     const nextDate = new Date(currentDate);
     const day = currentDate.getDate();
     

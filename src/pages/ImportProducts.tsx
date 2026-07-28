@@ -242,13 +242,13 @@ export default function ImportProducts() {
     const batches = [];
 
     // Dividir en lotes
-    for (let i = 0; i < validProducts.length; i += batchSize) {
-      batches.push(validProducts.slice(i, i + batchSize));
+    for (let idx = 0; idx < validProducts.length; idx += batchSize) {
+      batches.push(validProducts.slice(idx, idx + batchSize));
     }
 
     // Procesar cada lote
-    for (let i = 0; i < batches.length; i++) {
-      const batch = batches[i];
+    for (let idx = 0; idx < batches.length; idx++) {
+      const batch = batches[idx];
       
       try {
         const productsToInsert = batch.map(p => ({
