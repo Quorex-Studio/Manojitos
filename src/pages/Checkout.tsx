@@ -21,7 +21,6 @@ import { useSales } from '@/hooks/useSales';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useToast } from '@/hooks/use-toast';
 import type { StockValidationError } from '@/types';
-import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
