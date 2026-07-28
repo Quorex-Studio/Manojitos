@@ -40,25 +40,14 @@ export function useCustomerOrders() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      // 2. Get customer profile phone to search sales by phone too
-      const { data: profile } = await supabase
-        .from('customer_profiles')
-        .select('phone')
-        .eq('user_id', user!.id)
-        .maybeSingle();
-
-      // 3. Sales table — search by phone or email (checkout stores client_phone)
-      let salesQuery = supabase
+      // 2. Sales table — solo ventas vinculadas explícitamente a este cliente (customer_user_id)
+      //    o procesadas por esta misma cuenta (user_id), nunca por coincidencia de teléfono suelta.
+      const { data: salesData } = await supabase
         .from('sales')
         .select('*')
+        .or(`customer_user_id.eq.${user!.id},user_id.eq.${user!.id}`)
         .order('created_at', { ascending: false })
         .limit(50);
-
-      if (profile?.phone) {
-        salesQuery = salesQuery.or(`client_phone.eq.${profile.phone}`);
-      }
-
-      const { data: salesData } = await salesQuery;
 
       const fromOrders: Order[] = (ordersData || []).map(order => ({
         ...order,

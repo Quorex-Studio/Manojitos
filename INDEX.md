@@ -21,6 +21,7 @@ Las tablas clave para el negocio, manejadas a través de Supabase:
 - **credits**: Líneas de crédito (`id`, `client_user_id`, `client_name`, `credit_limit`, `current_balance`, `cut_off_day`, `status`).
 - **credit_transactions**: Historial de abonos y recargos (`id`, `credit_id`, `amount`, `type` [ABONO|CARGO]).
 - **business_rules**: Reglas de negocio (lealtad, descuentos) configuradas en la plataforma (`id`, `name`, `rule_type`, `conditions`, `actions`).
+- **sales**: Ventas presenciales registradas desde el panel admin (`id`, `user_id` [quien procesó], `customer_user_id` [cliente real, vinculado por trigger `trg_sales_autolink_customer` vía `normalize_ve_phone()`], `product_id`, `product_name`, `quantity`, `unit_price_usd`, `total_usd`, `total_bs`, `client_name`, `client_phone`, `payment_method`, `is_credit`, `status`, `notes`). RLS: SELECT por `user_id` (staff) o `customer_user_id` (cliente).
 
 ## 3. RPCs (Remote Procedure Calls) de Supabase
 Las RPCs principales usadas para aislar la lógica compleja y asegurar consistencia:

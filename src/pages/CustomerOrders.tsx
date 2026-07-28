@@ -149,6 +149,16 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
   const [receiptOrder, setReceiptOrder] = useState<any>(null);
   const [detailsOrder, setDetailsOrder] = useState<any>(null);
 
+  const getItemDisplay = (item: any): { name: string; total: number } => {
+    if (item.id === 'credit_payment') {
+      return { name: 'Abono a tu línea de crédito', total: Number(item.price ?? item.price_usd ?? 0) };
+    }
+    if (item.id === 'credit_request') {
+      return { name: 'Solicitud de línea de crédito', total: Number(item.price_usd ?? 0) };
+    }
+    return { name: item.product_name || 'Producto sin nombre', total: Number(item.total || 0) };
+  };
+
   if (orders.length === 0) {
     return (
       <Card className="glass-card">
@@ -229,12 +239,12 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                         </div>
                         <div>
                           <p className="font-medium text-primary hover:underline cursor-pointer line-clamp-2 leading-snug">
-                            {item.product_name || 'Producto sin nombre'}
+                            {getItemDisplay(item).name}
                           </p>
                           <p className="text-sm text-muted-foreground mt-1">
                             Cantidad: {item.quantity}
                           </p>
-                          <PriceDisplay amountUsd={item.total || 0} primaryClassName="text-sm font-semibold mt-1" showSecondary={false} />
+                          <PriceDisplay amountUsd={getItemDisplay(item).total} primaryClassName="text-sm font-semibold mt-1" showSecondary={false} />
                         </div>
                       </div>
                     ))}
@@ -373,11 +383,11 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-sm line-clamp-1">{item.product_name || 'Producto'}</p>
+                      <p className="font-medium text-sm line-clamp-1">{getItemDisplay(item).name}</p>
                       <p className="text-xs text-muted-foreground">Cantidad: {item.quantity}</p>
                     </div>
                     <div className="text-right">
-                      <PriceDisplay amountUsd={item.total || 0} primaryClassName="font-semibold text-sm" showSecondary={false} />
+                      <PriceDisplay amountUsd={getItemDisplay(item).total} primaryClassName="font-semibold text-sm" showSecondary={false} />
                     </div>
                   </div>
                 ))}
@@ -413,10 +423,10 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
               {receiptOrder?.items?.map((item: any, idx: number) => (
                 <div key={idx} className="flex justify-between text-sm">
                   <div className="flex-1">
-                    <p className="line-clamp-2">{item.quantity}x {item.product_name}</p>
+                    <p className="line-clamp-2">{item.quantity}x {getItemDisplay(item).name}</p>
                   </div>
                   <div className="text-right pl-4">
-                    <p>${(item.total || 0).toFixed(2)}</p>
+                    <p>${getItemDisplay(item).total.toFixed(2)}</p>
                   </div>
                 </div>
               ))}
