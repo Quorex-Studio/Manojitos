@@ -390,6 +390,26 @@ export default function Sales() {
 
       toast.success('Pedido aprobado y venta registrada correctamente 🩷');
 
+      // 2.1 Notificar al cliente según el tipo de entrega
+      if (approvedOrder.customer_user_id) {
+        const isPickup = approvedOrder.notes?.includes('[RETIRO EN TIENDA]');
+        const notifTitle = isPickup ? 'Tu pedido está listo para retirar' : 'Tu pedido fue aprobado';
+        const notifMessage = isPickup
+          ? 'Pedido aprobado, listo para retirar. Horario de atención: Lunes a Sábado, 9:00am - 6:00pm.'
+          : 'Pedido aprobado, tu delivery está siendo coordinado / en vía.';
+
+        await supabase.from('notifications').insert({
+          user_id: approvedOrder.customer_user_id,
+          title: notifTitle,
+          message: notifMessage,
+          type: 'success',
+          channel: 'internal',
+          is_read: false,
+          sent_at: new Date().toISOString(),
+          metadata: { order_id: orderId },
+        });
+      }
+
       // 3. Si el método es crédito, descontar/cargar a su cuenta de crédito
       if (approvedOrder.payment_method === 'credito') {
         // Encontrar cuenta de crédito por user_id, email, o teléfono
