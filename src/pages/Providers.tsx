@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
 export default function Providers() {
   // --- STATE ---
@@ -32,6 +33,15 @@ export default function Providers() {
   const paidPurchases = purchases.filter(p => p.status === 'paid');
   const totalPending = pendingPurchases.reduce((acc, p) => acc + Number(p.amount_usd), 0);
   const totalPaid = paidPurchases.reduce((acc, p) => acc + Number(p.amount_usd), 0);
+
+  const purchasesByDate = purchases.reduce((acc: Record<string, typeof purchases>, purchase) => {
+    const dateKey = purchase.purchase_date || 'Sin fecha';
+    if (!acc[dateKey]) acc[dateKey] = [];
+    acc[dateKey].push(purchase);
+    return acc;
+  }, {});
+
+  const sortedDates = Object.keys(purchasesByDate).sort((a, b) => (a < b ? 1 : -1)); // más reciente primero
 
   // --- HANDLERS ---
   const handleAddProvider = async (e: React.FormEvent) => {
@@ -245,58 +255,78 @@ export default function Providers() {
           </TabsList>
 
           <TabsContent value="purchases" className="space-y-3">
-            {purchases.map((purchase) => (
-              <motion.div
-                key={purchase.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="glass-card border-border/50">
-                  <CardContent className="p-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-lg ${purchase.status === 'paid' ? 'bg-primary/20' : 'gradient-gold'}`}>
-                          <Truck className={`h-5 w-5 ${purchase.status === 'paid' ? 'text-primary' : 'text-accent-foreground'}`} />
-                        </div>
-                        <div>
-                          <p className="font-medium">{purchase.provider_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(purchase.purchase_date).toLocaleDateString('es')}
-                          </p>
-                          {purchase.notes && <p className="text-xs text-muted-foreground italic">{purchase.notes}</p>}
-                        </div>
+            <Accordion type="single" collapsible className="space-y-2">
+              {sortedDates.map((dateKey) => {
+                const dayPurchases = purchasesByDate[dateKey];
+                const dayTotal = dayPurchases.reduce((sum, p) => sum + (Number(p.amount_usd) || 0), 0);
+                return (
+                  <AccordionItem key={dateKey} value={dateKey} className="border border-border/50 rounded-xl px-4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex justify-between items-center w-full pr-4">
+                        <span className="font-medium">
+                          Inversión realizada {dateKey !== 'Sin fecha' ? new Date(dateKey + 'T00:00:00').toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric' }) : dateKey}
+                        </span>
+                        <span className="text-gradient-gold font-bold">${dayTotal.toFixed(2)}</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="font-bold text-gradient-gold">${Number(purchase.amount_usd).toFixed(2)}</p>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "font-semibold border",
-                              purchase.status === 'paid'
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                                : "bg-destructive/10 text-destructive border-destructive/20"
-                            )}
-                          >
-                            {purchase.status === 'paid' ? 'Pagado' : 'Pendiente'}
-                          </Badge>
-                        </div>
-                        {purchase.status === 'pending' && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => markPurchaseAsPaid(purchase.id)}
-                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400 dark:hover:text-emerald-300"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-2 pt-2 pb-4">
+                      {dayPurchases.map((purchase) => (
+                        <motion.div
+                          key={purchase.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                        >
+                          <Card className="glass-card border-border/50">
+                            <CardContent className="p-4">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                  <div className={`p-2 rounded-lg ${purchase.status === 'paid' ? 'bg-primary/20' : 'gradient-gold'}`}>
+                                    <Truck className={`h-5 w-5 ${purchase.status === 'paid' ? 'text-primary' : 'text-accent-foreground'}`} />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">{purchase.provider_name}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {new Date(purchase.purchase_date).toLocaleDateString('es')}
+                                    </p>
+                                    {purchase.notes && <p className="text-xs text-muted-foreground italic">{purchase.notes}</p>}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <div className="text-right">
+                                    <p className="font-bold text-gradient-gold">${Number(purchase.amount_usd).toFixed(2)}</p>
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "font-semibold border",
+                                        purchase.status === 'paid'
+                                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                          : "bg-destructive/10 text-destructive border-destructive/20"
+                                      )}
+                                    >
+                                      {purchase.status === 'paid' ? 'Pagado' : 'Pendiente'}
+                                    </Badge>
+                                  </div>
+                                  {purchase.status === 'pending' && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => markPurchaseAsPaid(purchase.id)}
+                                      className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
             {purchases.length === 0 && (
               <div className="text-center py-16">
                 <Truck className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />

@@ -1382,7 +1382,12 @@ export default function Checkout() {
                     {!isShippingValid && (
                       <div className="mt-4 p-3 bg-destructive/10 text-destructive text-xs rounded-lg text-center flex items-center justify-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
-                        Por favor completa los campos de envío requeridos
+                        Faltan campos: {[
+                          !shippingData.fullName.trim() && 'Nombre completo',
+                          !shippingData.phone.trim() && 'Teléfono',
+                          deliveryMethod !== 'pickup' && !shippingData.address.trim() && 'Dirección',
+                          deliveryMethod !== 'pickup' && !shippingData.city.trim() && 'Ciudad'
+                        ].filter(Boolean).join(', ')}
                       </div>
                     )}
 
