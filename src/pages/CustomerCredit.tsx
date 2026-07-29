@@ -1103,57 +1103,6 @@ export default function CustomerCredit() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="promises">
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle>Compromisos de pago</CardTitle>
-                  <CardDescription>
-                    Acuerdos de pago programados
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {promises.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      No hay compromisos registrados
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {promises.map(promise => (
-                        <div
-                          key={promise.id}
-                          className={cn(
-                            "p-4 rounded-lg border",
-                            promise.status === 'CUMPLIDA' && "border-primary/30 bg-primary/5",
-                            promise.status === 'INCUMPLIDA' && "border-destructive/30 bg-destructive/5",
-                            promise.status === 'PENDIENTE' && "border-gold/30 bg-gold/5"
-                          )}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                {promise.status === 'CUMPLIDA' && <TickCircle className="h-4 w-4 text-primary" />}
-                                {promise.status === 'INCUMPLIDA' && <AlertTriangle className="h-4 w-4 text-destructive" />}
-                                {promise.status === 'PENDIENTE' && <Clock className="h-4 w-4 text-gold" />}
-                                <span className="font-medium">${promise.promised_amount.toFixed(2)}</span>
-                              </div>
-                              <p className="text-sm text-muted-foreground">
-                                Fecha: {format(new Date(promise.promised_date), "dd MMM yyyy", { locale: es })}
-                              </p>
-                            </div>
-                            <Badge variant={
-                              promise.status === 'CUMPLIDA' ? 'default' :
-                              promise.status === 'INCUMPLIDA' ? 'destructive' : 'secondary'
-                            }>
-                              {promise.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
 
             <TabsContent value="timeline">
               <CustomerTimeline customerPhone={credit.client_phone || undefined} limit={20} />

@@ -895,16 +895,7 @@ export default function Sales() {
                       </div>
                     </div>
 
-                    {/* ── TIPO DE PAGO ── */}
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/80">
-                      <Label className="cursor-pointer">¿Es Cuenta por Cobrar?</Label>
-                      <Switch
-                        checked={payment.is_credit}
-                        onCheckedChange={checked => setPayment(prev => ({ ...prev, is_credit: checked }))}
-                      />
-                    </div>
-
-                    {!payment.is_credit && (
+                    {true && (
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label>Método de pago *</Label>
