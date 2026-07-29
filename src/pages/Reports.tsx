@@ -12,17 +12,57 @@ import { StatCard } from '@/components/ui/stat-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatBS } from '@/lib/utils';
+import { toast } from 'sonner';
+import ExcelJS from 'exceljs';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function Reports() {
   // --- STATE ---
   const { sales } = useSales();
   const { convertToBS } = useExchangeRate();
+  const REPORT_LAUNCH_DATE = '2026-01-01';
+  const getTodayStr = () => new Date().toISOString().split('T')[0];
+
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
-    return d.toISOString().split('T')[0];
+    const iso = d.toISOString().split('T')[0];
+    return iso < REPORT_LAUNCH_DATE ? REPORT_LAUNCH_DATE : iso;
   });
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(() => getTodayStr());
+
+  const handleStartDateChange = (value: string) => {
+    const today = getTodayStr();
+    if (value > today) {
+      toast.error('No se pueden generar reportes con fecha futura.');
+      setStartDate(today);
+      return;
+    }
+    if (value < REPORT_LAUNCH_DATE) {
+      toast.error(`La fecha mínima permitida es ${REPORT_LAUNCH_DATE}.`);
+      setStartDate(REPORT_LAUNCH_DATE);
+      return;
+    }
+    if (value > endDate) setEndDate(value);
+    setStartDate(value);
+  };
+
+  const handleEndDateChange = (value: string) => {
+    const today = getTodayStr();
+    if (value > today) {
+      toast.error('No se pueden generar reportes con fecha futura.');
+      setEndDate(today);
+      return;
+    }
+    if (value < REPORT_LAUNCH_DATE) {
+      toast.error(`La fecha mínima permitida es ${REPORT_LAUNCH_DATE}.`);
+      setEndDate(REPORT_LAUNCH_DATE);
+      return;
+    }
+    if (value < startDate) setStartDate(value);
+    setEndDate(value);
+  };
 
   // --- DERIVED ---
 
@@ -72,22 +112,116 @@ export default function Reports() {
     link.click();
   };
 
-  const exportToJSON = () => {
-    const data = filteredSales.map(s => ({
-      fecha: new Date(s.created_at).toISOString(),
-      producto: s.product_name,
-      cantidad: s.quantity,
-      precio_unitario: Number(s.unit_price_usd),
-      total_usd: Number(s.total_usd),
-      metodo_pago: s.is_credit ? 'crédito' : s.payment_method,
-      cliente: s.client_name
-    }));
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const exportToExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Manojitos';
+    const sheet = workbook.addWorksheet('Ventas', { views: [{ state: 'frozen', ySplit: 4 }] });
+
+    sheet.mergeCells('A1:G1');
+    const titleCell = sheet.getCell('A1');
+    titleCell.value = 'MANOJITOS — Reporte de Ventas';
+    titleCell.font = { name: 'Georgia', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD69729' } };
+    sheet.getRow(1).height = 28;
+
+    sheet.mergeCells('A2:G2');
+    const subtitleCell = sheet.getCell('A2');
+    subtitleCell.value = `Período: ${startDate} al ${endDate}  ·  Generado: ${new Date().toLocaleString('es')}`;
+    subtitleCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF181013' } };
+    subtitleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    subtitleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3E9D7' } };
+    sheet.getRow(2).height = 18;
+
+    sheet.addRow([]);
+
+    const headers = ['Fecha', 'Producto', 'Cantidad', 'Precio Unit. ($)', 'Total ($)', 'Método de Pago', 'Cliente'];
+    const headerRow = sheet.addRow(headers);
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD36983' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = { bottom: { style: 'thin', color: { argb: 'FFAE4761' } } };
+    });
+
+    filteredSales.forEach((s, idx) => {
+      const row = sheet.addRow([
+        new Date(s.created_at).toLocaleDateString('es'),
+        s.product_name,
+        s.quantity,
+        Number(s.unit_price_usd),
+        Number(s.total_usd),
+        s.is_credit ? 'Crédito' : s.payment_method.replace('_', ' '),
+        s.client_name || '-'
+      ]);
+      const fillColor = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF9F1E7';
+      row.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
+      });
+      row.getCell(4).numFmt = '"$"#,##0.00';
+      row.getCell(5).numFmt = '"$"#,##0.00';
+    });
+
+    const totalRow = sheet.addRow(['', '', '', 'TOTAL', stats.totalUSD, '', '']);
+    totalRow.eachCell((cell) => {
+      cell.font = { bold: true };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3E9D7' } };
+    });
+    totalRow.getCell(5).numFmt = '"$"#,##0.00';
+
+    sheet.columns = [
+      { width: 14 }, { width: 30 }, { width: 10 }, { width: 16 }, { width: 14 }, { width: 18 }, { width: 24 }
+    ];
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `reporte_ventas_${startDate}_${endDate}.json`;
+    link.download = `reporte_ventas_manojitos_${startDate}_${endDate}.xlsx`;
     link.click();
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const goldColor: [number, number, number] = [214, 151, 41];
+    const roseColor: [number, number, number] = [211, 105, 131];
+    const darkColor: [number, number, number] = [24, 16, 19];
+
+    doc.setFillColor(...goldColor);
+    doc.rect(0, 0, 210, 26, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('MANOJITOS', 14, 14);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Boutique & Lifestyle — Reporte de Ventas', 14, 21);
+
+    doc.setTextColor(...darkColor);
+    doc.setFontSize(10);
+    doc.text(`Período: ${startDate} al ${endDate}`, 14, 34);
+    doc.text(`Generado: ${new Date().toLocaleString('es')}`, 14, 40);
+
+    autoTable(doc, {
+      startY: 46,
+      head: [['Fecha', 'Producto', 'Cant.', 'Precio Unit.', 'Total', 'Pago', 'Cliente']],
+      body: filteredSales.map((s) => [
+        new Date(s.created_at).toLocaleDateString('es'),
+        s.product_name,
+        String(s.quantity),
+        `$${Number(s.unit_price_usd).toFixed(2)}`,
+        `$${Number(s.total_usd).toFixed(2)}`,
+        s.is_credit ? 'Crédito' : s.payment_method.replace('_', ' '),
+        s.client_name || '-'
+      ]),
+      headStyles: { fillColor: roseColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [249, 241, 231] },
+      styles: { fontSize: 8, cellPadding: 3 },
+      foot: [['', '', '', 'TOTAL', `$${stats.totalUSD.toFixed(2)}`, '', '']],
+      footStyles: { fillColor: [243, 233, 215], textColor: darkColor, fontStyle: 'bold' },
+    });
+
+    doc.save(`reporte_ventas_manojitos_${startDate}_${endDate}.pdf`);
   };
 
   // --- RENDER ---
@@ -108,8 +242,9 @@ export default function Reports() {
                 <Input
                   type="date"
                   value={startDate}
-                  max={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  min={REPORT_LAUNCH_DATE}
+                  max={getTodayStr()}
+                  onChange={(e) => handleStartDateChange(e.target.value)}
                   className="input-glass rounded-xl"
                 />
               </div>
@@ -118,19 +253,24 @@ export default function Reports() {
                 <Input
                   type="date"
                   value={endDate}
-                  max={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  min={REPORT_LAUNCH_DATE}
+                  max={getTodayStr()}
+                  onChange={(e) => handleEndDateChange(e.target.value)}
                   className="input-glass rounded-xl"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button variant="outline" onClick={exportToCSV} className="rounded-xl gap-2">
                   <Download className="h-4 w-4" />
                   CSV
                 </Button>
-                <Button variant="outline" onClick={exportToJSON} className="rounded-xl gap-2">
+                <Button variant="outline" onClick={exportToExcel} className="rounded-xl gap-2">
                   <Download className="h-4 w-4" />
-                  JSON
+                  Excel
+                </Button>
+                <Button variant="outline" onClick={exportToPDF} className="rounded-xl gap-2">
+                  <Download className="h-4 w-4" />
+                  PDF
                 </Button>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale';
 import { TickCircle, Location, Loader, Package, Truck, CheckCircle, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
 
 import { useState } from 'react';
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -173,6 +174,59 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
       </Card>
     );
   }
+
+  const exportReceiptToPDF = () => {
+    if (!receiptOrder) return;
+    const goldColor: [number, number, number] = [214, 151, 41];
+    const darkColor: [number, number, number] = [24, 16, 19];
+    const itemCount = receiptOrder.items?.length || 0;
+    const pageHeight = 62 + itemCount * 6;
+    const doc = new jsPDF({ unit: 'mm', format: [80, pageHeight] });
+    let y = 8;
+
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(...goldColor);
+    doc.text('MANOJITOS', 40, y, { align: 'center' });
+    y += 5;
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...darkColor);
+    doc.text('BOUTIQUE & LIFESTYLE', 40, y, { align: 'center' });
+    y += 6;
+    doc.text('Recibo de Compra', 40, y, { align: 'center' });
+    y += 4;
+    doc.text(`Nº: ${receiptOrder.id.split('-')[0].toUpperCase()}`, 40, y, { align: 'center' });
+    y += 4;
+    doc.text(`Fecha: ${format(new Date(receiptOrder.created_at), 'dd/MM/yyyy HH:mm')}`, 40, y, { align: 'center' });
+    y += 4;
+    doc.setDrawColor(...goldColor);
+    doc.line(4, y, 76, y);
+    y += 5;
+
+    receiptOrder.items?.forEach((item: any) => {
+      doc.setFontSize(7);
+      doc.text(`${item.quantity}x ${item.product_name}`, 4, y);
+      doc.text(`$${(item.total || 0).toFixed(2)}`, 76, y, { align: 'right' });
+      y += 5;
+    });
+
+    doc.setDrawColor(...goldColor);
+    doc.line(4, y, 76, y);
+    y += 5;
+    doc.setFont('courier', 'bold');
+    doc.text('TOTAL USD', 4, y);
+    doc.text(`$${(receiptOrder.total_usd || 0).toFixed(2)}`, 76, y, { align: 'right' });
+    y += 5;
+    doc.setFont('courier', 'normal');
+    doc.text('TOTAL BS', 4, y);
+    doc.text(`Bs ${(receiptOrder.total_bs || 0).toFixed(2)}`, 76, y, { align: 'right' });
+    y += 7;
+    doc.setFontSize(6);
+    doc.text('¡Gracias por tu compra en Manojitos!', 40, y, { align: 'center' });
+
+    doc.save(`recibo_manojitos_${receiptOrder.id.split('-')[0]}.pdf`);
+  };
 
   return (
     <div className="space-y-6">
@@ -416,11 +470,12 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
 
       {/* Recibo / Factura Modal */}
       <Dialog open={!!receiptOrder} onOpenChange={(open) => !open && setReceiptOrder(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[400px] p-0 bg-background border border-border shadow-2xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[400px] p-0 bg-background border border-gold/30 shadow-2xl">
           <div className="p-8 bg-white text-black print-exact font-mono" id="receipt-content">
+            <div className="h-1.5 -mx-8 -mt-8 mb-6" style={{ background: 'linear-gradient(90deg, #D69729, #D36983)' }} />
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-serif font-bold">Manojitos</h2>
-              <p className="text-xs uppercase tracking-widest mt-1">Boutique & Lifestyle</p>
+              <h2 className="text-2xl font-serif font-bold" style={{ color: '#D69729' }}>Manojitos</h2>
+              <p className="text-xs uppercase tracking-widest mt-1" style={{ color: '#D36983' }}>Boutique & Lifestyle</p>
               <div className="mt-4 text-sm">
                 <p>Recibo de Compra</p>
                 <p>Nº: {receiptOrder?.id.split('-')[0].toUpperCase()}</p>
@@ -428,7 +483,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
               </div>
             </div>
             
-            <Separator className="bg-black/20 my-4" />
+            <Separator className="my-4" style={{ backgroundColor: '#D4B277' }} />
             
             <div className="space-y-3 mb-6">
               {receiptOrder?.items?.map((item: any, idx: number) => (
@@ -443,7 +498,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
               ))}
             </div>
 
-            <Separator className="bg-black/20 my-4 border-dashed" />
+            <Separator className="my-4 border-dashed" style={{ backgroundColor: '#D4B277' }} />
             
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
@@ -467,7 +522,8 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
           </div>
           <div className="p-4 border-t border-border flex justify-end gap-2 bg-muted/20">
             <Button variant="outline" onClick={() => setReceiptOrder(null)}>Cerrar</Button>
-            <Button onClick={() => window.print()}>Imprimir / PDF</Button>
+            <Button variant="outline" onClick={() => window.print()}>Imprimir</Button>
+            <Button onClick={exportReceiptToPDF}>Descargar PDF</Button>
           </div>
         </DialogContent>
       </Dialog>
