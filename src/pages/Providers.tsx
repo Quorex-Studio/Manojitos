@@ -31,6 +31,7 @@ export default function Providers() {
   const pendingPurchases = purchases.filter(p => p.status === 'pending');
   const paidPurchases = purchases.filter(p => p.status === 'paid');
   const totalPending = pendingPurchases.reduce((acc, p) => acc + Number(p.amount_usd), 0);
+  const totalPaid = paidPurchases.reduce((acc, p) => acc + Number(p.amount_usd), 0);
 
   // --- HANDLERS ---
   const handleAddProvider = async (e: React.FormEvent) => {
@@ -75,9 +76,9 @@ export default function Providers() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="page-header">Proveedores</h1>
+            <h1 className="page-header">Inversiones</h1>
             <p className="page-subtitle">
-              Pagos pendientes: <span className="text-gradient-gold font-bold">${totalPending.toFixed(2)}</span>
+              Total invertido: <span className="text-gradient-gold font-bold">${(totalPending + totalPaid).toFixed(2)}</span>
             </p>
           </div>
           
@@ -98,13 +99,13 @@ export default function Providers() {
                     <Label>Nombre *</Label>
                     <Input
                       value={providerForm.name}
-                      onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s]/g, '') })}
+                      onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value.replace(/[^a-zA-ZÃ¡Ã©Ã­Ã³ÃºÃÃ‰ÃÃ“ÃšÃ±Ã‘0-9\s]/g, '') })}
                       className="input-glass rounded-xl"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Teléfono</Label>
+                    <Label>TelÃ©fono</Label>
                     <Input
                       value={providerForm.phone}
                       onChange={(e) => setProviderForm({ ...providerForm, phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '') })}
@@ -124,7 +125,7 @@ export default function Providers() {
                     <Label>Notas</Label>
                     <Textarea
                       value={providerForm.notes}
-                      onChange={(e) => setProviderForm({ ...providerForm, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '') })}
+                      onChange={(e) => setProviderForm({ ...providerForm, notes: e.target.value.replace(/[^a-zA-ZÃ¡Ã©Ã­Ã³ÃºÃÃ‰ÃÃ“ÃšÃ±Ã‘0-9\s.,()-]/g, '') })}
                       className="input-glass rounded-xl resize-none"
                       rows={2}
                     />
@@ -143,7 +144,7 @@ export default function Providers() {
               </DialogTrigger>
               <DialogContent className="max-h-[85vh] overflow-y-auto glass-card border-border/50">
                 <DialogHeader>
-                  <DialogTitle className="font-serif text-2xl">Nueva Inversi�n</DialogTitle>
+                  <DialogTitle className="font-serif text-2xl">Nueva Inversión</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleAddPurchase} className="space-y-4 mt-4">
                   <div className="space-y-2">
@@ -201,7 +202,7 @@ export default function Providers() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Fecha de inversi�n</Label>
+                    <Label>Fecha de inversión</Label>
                     <Input
                       type="date"
                       value={purchaseForm.purchase_date}
@@ -219,13 +220,13 @@ export default function Providers() {
                     <Label>Notas</Label>
                     <Textarea
                       value={purchaseForm.notes}
-                      onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '') })}
+                      onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value.replace(/[^a-zA-ZÃ¡Ã©Ã­Ã³ÃºÃÃ‰ÃÃ“ÃšÃ±Ã‘0-9\s.,()-]/g, '') })}
                       className="input-glass rounded-xl resize-none"
                       rows={2}
                     />
                   </div>
                   <Button type="submit" className="w-full btn-gold rounded-xl" disabled={!purchaseForm.provider_id}>
-                    Registrar Inversi�n
+                    Registrar Inversión
                   </Button>
                 </form>
               </DialogContent>

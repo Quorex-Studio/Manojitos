@@ -418,8 +418,10 @@ export default function Checkout() {
         }, { onConflict: 'user_id' });
       }
 
+      const montoInicialBs = rate > 0 ? montoInicialTotal * rate : 0;
+      const metodoLegible = sanitizeText(casheaMethod).replace(/_/g, ' ');
       const notesPrefix = paymentMethod === 'credito'
-        ? `[Inicial Crédito Manojitos: $${montoInicialTotal.toFixed(2)} - Método: ${sanitizeText(casheaMethod)} - Ref: ${casheaRef ? sanitizeText(casheaRef) : 'N/A'}${casheaBank ? ` - Banco: ${sanitizeText(casheaBank)}` : ''}${casheaPhone ? ` - Tlf Emisor: ${sanitizeText(casheaPhone)}` : ''}] `
+        ? `Inicial de Crédito Manojitos: $${montoInicialTotal.toFixed(2)}${rate > 0 ? ` (Bs ${montoInicialBs.toFixed(2)} a tasa ${rate.toFixed(2)})` : ''}, Método: ${metodoLegible}, Referencia: ${casheaRef ? sanitizeText(casheaRef) : 'N/A'}${casheaBank ? `, Banco: ${sanitizeText(casheaBank)}` : ''}${casheaPhone ? `, Tlf. Emisor: ${sanitizeText(casheaPhone)}` : ''}. `
         : '';
 
       const checkoutItems = items.map(item => ({
