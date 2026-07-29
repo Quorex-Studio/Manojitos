@@ -15,7 +15,6 @@ const menuItems = [
   { icon: Package, label: 'Productos', path: '/products' },
   { icon: FileUp, label: 'Importar', path: '/import-products' },
   { icon: ShoppingCart, label: 'Ventas', path: '/sales' },
-  { icon: CreditCard, label: 'Cuentas por Cobrar', path: '/debts' },
   { icon: Wallet, label: 'Créditos', path: '/credits' },
   { icon: Truck, label: 'Proveedores', path: '/providers' },
   { icon: Users, label: 'Clientes', path: '/dashboard/clientes' },

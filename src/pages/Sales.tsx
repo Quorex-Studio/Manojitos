@@ -4,7 +4,7 @@ import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
-import { useDebts } from '@/hooks/useDebts';
+import { useCredits } from '@/hooks/useCredits';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,7 +91,7 @@ export default function Sales() {
   // --- STATE ---
   const { sales, addSale, deleteSale, refetch: refetchSales } = useSales();
   const { products, refetch: refetchProducts } = useProducts();
-  const { addDebt } = useDebts();
+  const { createCredit, registerCharge } = useCredits();
   const { rate, convertToBS } = useExchangeRate();
   const [isOpen, setIsOpen] = useState(false);
   const [rejectOrderId, setRejectOrderId] = useState<string | null>(null);
@@ -341,18 +341,50 @@ export default function Sales() {
       if (error) { hasError = true; break; }
 
       if (!error && payment.is_credit && client.name) {
-        await addDebt({
-          sale_id: data?.id || null,
-          client_name: sanitizeText(client.name),
-          client_dni: client.dni ? sanitizeText(client.dni) : null,
-          client_email: client.email ? sanitizeText(client.email) : null,
-          client_phone: client.phone ? sanitizeText(client.phone) : null,
-          client_address: client.address ? sanitizeText(client.address) : null,
-          amount_usd: item.subtotalUSD,
-          amount_bs: item.subtotalBS,
-          status: 'pending',
-          notes: client.notes ? sanitizeText(client.notes) : null,
-        });
+        try {
+          // Buscar si el cliente ya tiene una línea de crédito (por teléfono o email)
+          let existingCredit: any = null;
+          if (client.phone) {
+            const { data: byPhone } = await supabase
+              .from('credits')
+              .select('*')
+              .eq('client_phone', sanitizeText(client.phone))
+              .maybeSingle();
+            existingCredit = byPhone;
+          }
+          if (!existingCredit && client.email) {
+            const { data: byEmail } = await supabase
+              .from('credits')
+              .select('*')
+              .eq('client_email', sanitizeText(client.email))
+              .maybeSingle();
+            existingCredit = byEmail;
+          }
+
+          let creditId = existingCredit?.id;
+
+          if (!creditId) {
+            // No tiene línea de crédito: crear una nueva con límite = monto de esta venta
+            const newCredit = await createCredit.mutateAsync({
+              client_name: sanitizeText(client.name),
+              client_phone: client.phone ? sanitizeText(client.phone) : null,
+              client_email: client.email ? sanitizeText(client.email) : null,
+              credit_limit: item.subtotalUSD,
+              cut_off_day: 15,
+              notes: `Creado automáticamente desde venta POS (fiado). ${client.notes ? sanitizeText(client.notes) : ''}`.trim(),
+            });
+            creditId = newCredit.id;
+          }
+
+          await registerCharge.mutateAsync({
+            creditId,
+            amount: item.subtotalUSD,
+            description: `Venta POS ${item.product!.name} x${item.qty}`,
+            saleId: data?.id || undefined,
+          });
+        } catch (creditError: any) {
+          toast.error(`Venta registrada, pero hubo un error al cargarla al crédito: ${creditError.message}. Revisa el módulo de Créditos.`);
+        }
       }
     }
 

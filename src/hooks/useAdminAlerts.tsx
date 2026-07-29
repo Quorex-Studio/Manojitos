@@ -8,10 +8,9 @@ import { useMemo } from 'react';
 import { useProducts } from './useProducts';
 import { useSales } from './useSales';
 import { useCredits } from './useCredits';
-import { useDebts } from './useDebts';
 
 export type AlertType = 'critical' | 'warning' | 'info' | 'success';
-export type AlertCategory = 'stock' | 'sales' | 'credit' | 'debt' | 'performance';
+export type AlertCategory = 'stock' | 'sales' | 'credit' | 'performance';
 
 export interface AdminAlert {
   id: string;
@@ -32,7 +31,6 @@ export function useAdminAlerts() {
   const { products } = useProducts();
   const { sales } = useSales();
   const { credits, stats: creditStats } = useCredits();
-  const { pendingDebts } = useDebts();
 
   const alerts = useMemo(() => {
     const alertList: AdminAlert[] = [];
@@ -102,21 +100,6 @@ export function useAdminAlerts() {
       });
     }
 
-    // 💰 Alertas de deudas pendientes
-    if (pendingDebts.length > 0) {
-      const totalDebt = pendingDebts.reduce((sum, d) => sum + d.amount_usd, 0);
-      alertList.push({
-        id: 'debts-pending',
-        type: 'warning',
-        category: 'debt',
-        title: 'Cuentas por cobrar',
-        message: `${pendingDebts.length} cuenta(s) pendiente(s) - $${totalDebt.toFixed(2)}`,
-        icon: 'FileText',
-        action: { label: 'Ver cuentas', path: '/debts' },
-        timestamp: now,
-        data: pendingDebts
-      });
-    }
 
     // 📊 Alertas de ventas (últimas 24h)
     const today = new Date();
@@ -155,7 +138,7 @@ export function useAdminAlerts() {
       const priority = { critical: 0, warning: 1, info: 2, success: 3 };
       return priority[a.type] - priority[b.type];
     });
-  }, [products, sales, credits, pendingDebts]);
+  }, [products, sales, credits]);
 
   const criticalCount = alerts.filter(a => a.type === 'critical').length;
   const warningCount = alerts.filter(a => a.type === 'warning').length;

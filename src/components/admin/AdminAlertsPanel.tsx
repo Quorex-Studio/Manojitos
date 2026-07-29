@@ -128,12 +128,6 @@ function AlertItem({ alert, onDismiss }: { alert: AdminAlert; onDismiss?: () => 
                           <span className="font-bold text-destructive whitespace-nowrap">{item.stock} und</span>
                         </li>
                       ))}
-                      {alert.category === 'debt' && alert.data.map((item: any) => (
-                        <li key={item.id} className="text-xs flex items-center justify-between py-1 px-1 border-b border-border/30 last:border-0">
-                          <span className="truncate pr-2 font-medium text-foreground/80">{item.client_name || 'Desconocido'}</span>
-                          <span className="font-bold text-gold whitespace-nowrap">${item.amount_usd.toFixed(2)}</span>
-                        </li>
-                      ))}
                       {alert.category === 'credit' && alert.data.map((item: any) => (
                         <li key={item.id} className="text-xs flex items-center justify-between py-1 px-1 border-b border-border/30 last:border-0">
                           <span className="truncate pr-2 font-medium text-foreground/80">{item.client_name}</span>

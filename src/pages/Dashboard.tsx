@@ -8,9 +8,9 @@ import { CustomerOfMonthCard } from '@/components/credits/CustomerOfMonthCard';
 
 import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
-import { useDebts } from '@/hooks/useDebts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useCredits } from '@/hooks/useCredits';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { formatBS } from '@/lib/utils';
@@ -21,7 +21,7 @@ export default function Dashboard() {
   // --- STATE ---
   const { sales } = useSales();
   const { products } = useProducts();
-  const { pendingDebts } = useDebts();
+  const { credits } = useCredits();
   const { displayCurrency } = useCurrency();
   const { rate, convertToBS, calculateAllCurrencies } = useExchangeRate(displayCurrency === 'EUR' ? 'EUR' : 'USD');
 
@@ -30,21 +30,21 @@ export default function Dashboard() {
     const todaySales = sales.filter(s => isToday(new Date(s.created_at)));
     const todayTotal = todaySales.reduce((acc, s) => acc + Number(s.total_usd), 0);
     const monthTotal = sales.reduce((acc, s) => acc + Number(s.total_usd), 0);
-    const totalDebt = pendingDebts.reduce((acc, d) => acc + Number(d.amount_usd), 0);
+    const totalCreditBalance = credits.reduce((acc, c) => acc + Number(c.current_balance), 0);
     const lowStockProducts = products.filter(p => p.stock <= 5);
 
     return {
       todaySales: todaySales.length,
       todayTotal,
       monthTotal,
-      totalDebt,
+      totalCreditBalance,
       lowStockCount: lowStockProducts.length,
       totalProducts: products.length,
       todaySalesList: todaySales,
-      pendingDebtsList: pendingDebts,
+      pendingCreditsList: [...credits].sort((a, b) => b.current_balance - a.current_balance).filter(c => c.current_balance > 0),
       lowStockProductsList: lowStockProducts,
     };
-  }, [sales, products, pendingDebts]);
+  }, [sales, products, credits]);
 
   // Chart data
   const salesChartData = useMemo(() => {
@@ -178,30 +178,30 @@ export default function Dashboard() {
             }
           />
           <StatCard
-            title="Cuentas Pendientes"
-            value={formatCurrencyPair(stats.totalDebt).primary}
-            subtitle={`${stats.pendingDebtsList.length} clientes`}
-            tertiaryText={formatCurrencyPair(stats.totalDebt).secondary}
+            title="Créditos Pendientes"
+            value={formatCurrencyPair(stats.totalCreditBalance).primary}
+            subtitle={`${stats.pendingCreditsList.length} clientes`}
+            tertiaryText={formatCurrencyPair(stats.totalCreditBalance).secondary}
             icon={<CreditCard className="h-6 w-6" />}
             variant="default"
             delay={0.2}
-            href="/debts"
+            href="/credits"
             hoverContent={
-              stats.pendingDebtsList.length > 0 ? (
+              stats.pendingCreditsList.length > 0 ? (
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold border-b border-border/50 pb-2">Top Deudores</h4>
                   <ul className="text-sm space-y-1">
-                    {stats.pendingDebtsList.slice(0, 5).map(d => (
-                      <li key={d.id} className="flex justify-between items-center text-xs">
-                        <span className="truncate w-32">{d.client_name || 'Sin nombre'}</span>
-                        <span className="font-bold text-destructive">{formatCurrencyPair(Number(d.amount_usd)).primary}</span>
+                    {stats.pendingCreditsList.slice(0, 5).map(c => (
+                      <li key={c.id} className="flex justify-between items-center text-xs">
+                        <span className="truncate w-32">{c.client_name || 'Sin nombre'}</span>
+                        <span className="font-bold text-destructive">{formatCurrencyPair(Number(c.current_balance)).primary}</span>
                       </li>
                     ))}
                   </ul>
-                  {stats.pendingDebtsList.length > 5 && <p className="text-xs text-muted-foreground pt-1">+ {stats.pendingDebtsList.length - 5} más</p>}
+                  {stats.pendingCreditsList.length > 5 && <p className="text-xs text-muted-foreground pt-1">+ {stats.pendingCreditsList.length - 5} más</p>}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No hay deudas pendientes</p>
+                <p className="text-sm text-muted-foreground">No hay créditos pendientes</p>
               )
             }
           />

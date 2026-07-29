@@ -15,7 +15,6 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Products = lazy(() => import("./pages/Products"));
 const Sales = lazy(() => import("./pages/Sales"));
-const Debts = lazy(() => import("./pages/Debts"));
 const Providers = lazy(() => import("./pages/Providers"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -211,7 +210,6 @@ function AppRoutes() {
       <Route path="/dashboard/clientes" element={<LazyPage><ProtectedRoute><Customers /></ProtectedRoute></LazyPage>} />
       <Route path="/products" element={<LazyPage><ProtectedRoute><Products /></ProtectedRoute></LazyPage>} />
       <Route path="/sales" element={<LazyPage><ProtectedRoute><Sales /></ProtectedRoute></LazyPage>} />
-      <Route path="/debts" element={<LazyPage><ProtectedRoute><Debts /></ProtectedRoute></LazyPage>} />
       <Route path="/credits" element={<LazyPage><ProtectedRoute><Credits /></ProtectedRoute></LazyPage>} />
       <Route path="/providers" element={<LazyPage><ProtectedRoute><Providers /></ProtectedRoute></LazyPage>} />
       <Route path="/reports" element={<LazyPage><ProtectedRoute><Reports /></ProtectedRoute></LazyPage>} />
