@@ -523,7 +523,7 @@ export default function Checkout() {
                 )}
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                   <span className="text-muted-foreground">Método de Pago:</span>
-                  <span className="font-medium text-foreground">{paymentMethods.find(m => m.id === paymentMethod)?.label}</span>
+                  <span className="font-medium text-foreground">{allPaymentMethods.find(m => m.method_key === paymentMethod)?.label}</span>
                 </div>
               </div>
             </div>
@@ -843,10 +843,10 @@ export default function Checkout() {
                   </div>
                   <div className="ml-7 space-y-1">
                     <p className="font-semibold text-foreground text-sm">
-                      {paymentMethods.find(m => m.id === paymentMethod)?.label || 'Pago Móvil'}
+                      {allPaymentMethods.find(m => m.method_key === paymentMethod)?.label || 'Pago Móvil'}
                     </p>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      {paymentMethods.find(m => m.id === paymentMethod)?.description}
+                      {allPaymentMethods.find(m => m.method_key === paymentMethod)?.description}
                     </p>
                   </div>
                   
@@ -966,7 +966,7 @@ export default function Checkout() {
                     <div className="flex items-center gap-2">
                       <Wallet className="h-5 w-5 text-primary shrink-0" />
                       <p className="font-medium text-foreground">
-                        {preferredMethod.alias || paymentMethods.find(m => m.id === preferredMethod.method_type)?.label || 'Método Guardado'}
+                        {preferredMethod.alias || allPaymentMethods.find(m => m.method_key === preferredMethod.method_type)?.label || 'Método Guardado'}
                       </p>
                     </div>
                     {preferredMethod.details?.bank_name && (
