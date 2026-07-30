@@ -1071,7 +1071,7 @@ export default function CustomerCredit() {
                                   >
                                     <div className="flex justify-between items-center">
                                       <span className="text-xs font-semibold text-muted-foreground">
-                                        Cuota {cuota.numero}/3
+                                        {cuota.numero === 1 ? 'Inicial' : `Cuota ${cuota.numero - 1}/2`}
                                       </span>
                                       <Badge 
                                         variant={isPaid ? "default" : "outline"} 

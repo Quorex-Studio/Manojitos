@@ -41,18 +41,6 @@ const BASE_PAYMENT_METHODS = [
 
 // Datos de pago de Manojitos
 const PAYMENT_INFO = {
-  pagoMovil: {
-    ci: '30785117',
-    bank: 'Bancamiga',
-    phone: '04248780607',
-    name: 'Josmaris De Los Ángeles',
-  },
-  transferencia: {
-    bank: 'Banco de Venezuela',
-    accountNumber: '01020512310000243896',
-    ci: 'V-30785117',
-    name: 'Josmaris De Los Ángeles',
-  },
   contacto: '+58 426 3863042',
 };
 
@@ -82,7 +70,7 @@ function calcDeliveryFee(subtotal: number, municipio: string, method: 'delivery'
 }
 
 // Componente interno: Panel con datos de pago
-const PaymentInfoPanel = memo(function PaymentInfoPanel({ method }: { method: string }) {
+const PaymentInfoPanel = memo(function PaymentInfoPanel({ method, config }: { method: string; config?: Record<string, string> }) {
   const [copied, setCopied] = useState<string | null>(null);
 
   const copy = (text: string, label: string) => {
@@ -116,10 +104,10 @@ const PaymentInfoPanel = memo(function PaymentInfoPanel({ method }: { method: st
       {method === 'pago_movil' ? (
         <div className="space-y-2.5">
           {[
-            { label: 'Banco', value: PAYMENT_INFO.pagoMovil.bank },
-            { label: 'Teléfono', value: PAYMENT_INFO.pagoMovil.phone },
-            { label: 'C.I.', value: PAYMENT_INFO.pagoMovil.ci },
-            { label: 'Nombre', value: PAYMENT_INFO.pagoMovil.name },
+            { label: 'Banco', value: config?.bank || '' },
+            { label: 'Teléfono', value: config?.phone || '' },
+            { label: 'C.I.', value: config?.ci || '' },
+            { label: 'Nombre', value: config?.name || '' },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground min-w-[60px]">{label}</span>
@@ -137,10 +125,10 @@ const PaymentInfoPanel = memo(function PaymentInfoPanel({ method }: { method: st
       ) : (
         <div className="space-y-2.5">
           {[
-            { label: 'Banco', value: PAYMENT_INFO.transferencia.bank },
-            { label: 'N° Cuenta', value: PAYMENT_INFO.transferencia.accountNumber },
-            { label: 'C.I.', value: PAYMENT_INFO.transferencia.ci },
-            { label: 'Nombre', value: PAYMENT_INFO.transferencia.name },
+            { label: 'Banco', value: config?.bank || '' },
+            { label: 'N° Cuenta', value: config?.accountNumber || '' },
+            { label: 'C.I.', value: config?.ci || '' },
+            { label: 'Nombre', value: config?.name || '' },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground min-w-[70px]">{label}</span>
@@ -999,7 +987,7 @@ export default function Checkout() {
 
               {/* Panel de instrucciones de pago */}
               <AnimatePresence mode="wait">
-                <PaymentInfoPanel method={paymentMethod} />
+                <PaymentInfoPanel method={paymentMethod} config={allPaymentMethods.find(m => m.method_key === paymentMethod)?.config} />
 
                 {paymentMethod === 'pago_movil' && (
                   <motion.div
@@ -1133,7 +1121,7 @@ export default function Checkout() {
                       </div>
 
                       <div className="border-t border-border/50 pt-3 space-y-3">
-                        <PaymentInfoPanel method={casheaMethod === 'pago_movil' ? 'pago_movil' : casheaMethod === 'transferencia' ? 'transferencia' : ''} />
+                        <PaymentInfoPanel method={casheaMethod === 'pago_movil' ? 'pago_movil' : casheaMethod === 'transferencia' ? 'transferencia' : ''} config={allPaymentMethods.find(m => m.method_key === casheaMethod)?.config} />
                         
                         <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Reportar Pago de la Inicial</h4>
                         
@@ -1212,21 +1200,27 @@ export default function Checkout() {
                           )}
                         </div>
 
-                        {casheaMethod === 'pago_movil' && (
-                          <div className="col-span-2 text-sm bg-accent/5 p-3 rounded-lg border border-accent/20 text-muted-foreground space-y-1.5">
-                            <p className="font-semibold text-accent">Datos Pago Móvil:</p>
-                            <p>Banco: {PAYMENT_INFO.pagoMovil.bank} | Tlf: {PAYMENT_INFO.pagoMovil.phone}</p>
-                            <p>C.I: {PAYMENT_INFO.pagoMovil.ci} | {PAYMENT_INFO.pagoMovil.name}</p>
-                          </div>
-                        )}
+                        {casheaMethod === 'pago_movil' && (() => {
+                          const pmConfig = allPaymentMethods.find(m => m.method_key === 'pago_movil')?.config || {};
+                          return (
+                            <div className="col-span-2 text-sm bg-accent/5 p-3 rounded-lg border border-accent/20 text-muted-foreground space-y-1.5">
+                              <p className="font-semibold text-accent">Datos Pago Móvil:</p>
+                              <p>Banco: {pmConfig.bank} | Tlf: {pmConfig.phone}</p>
+                              <p>C.I: {pmConfig.ci} | {pmConfig.name}</p>
+                            </div>
+                          );
+                        })()}
 
-                        {casheaMethod === 'zelle' && (
-                          <div className="text-[11px] bg-accent/5 p-2.5 rounded-lg border border-accent/20 text-muted-foreground">
-                            <p className="font-semibold text-accent">Datos Zelle:</p>
-                            <p>Email: zelle@manojitos.com (Ejemplo - reportar por WhatsApp)</p>
-                            <p>Contacto de soporte: {PAYMENT_INFO.contacto}</p>
-                          </div>
-                        )}
+                        {casheaMethod === 'zelle' && (() => {
+                          const zelleConfig = allPaymentMethods.find(m => m.method_key === 'zelle')?.config || {};
+                          return (
+                            <div className="text-[11px] bg-accent/5 p-2.5 rounded-lg border border-accent/20 text-muted-foreground">
+                              <p className="font-semibold text-accent">Datos Zelle:</p>
+                              <p>Email: {zelleConfig.email}</p>
+                              <p>Contacto de soporte: {PAYMENT_INFO.contacto}</p>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </motion.div>
