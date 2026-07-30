@@ -226,18 +226,7 @@ export default function Checkout() {
     credit.calculatedStatus !== 'VENCIDO' &&
     (credit.credit_limit - credit.current_balance) >= montoFinanciado, [hasCredit, credit, hasPendingPayments, montoFinanciado]);
 
-  // Lista de métodos de pago (con crédito si el usuario posee una cuenta)
-  const paymentMethods = useMemo(() => hasCredit
-    ? [
-        ...BASE_PAYMENT_METHODS,
-        {
-          id: 'credito',
-          label: 'Crédito Manojitos (Pago en partes)',
-          description: `Crédito financia el 50%. Paga la Inicial hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales de $${montoCuota.toFixed(2)}.`,
-          disabled: !creditAvailable,
-        },
-      ]
-    : BASE_PAYMENT_METHODS, [hasCredit, creditAvailable, montoInicialTotal, montoCuota]);
+
 
   // Datos del formulario
   const [shippingData, setShippingData] = useState({
