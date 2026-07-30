@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChartSuccess, TickCircle, Loader, CreditCard, Plus, Search, Filter, Phone, Mailbox, Calendar, DollarSign, InfoCircle, CheckCircle, Clock, Ban, MessageSquare, Refresh, ChevronDown, X, Send, Lock, Unlock, Bell, ArrowDown, ArrowUp, Receipt } from 'reicon-react';
+import { ChartSuccess, TickCircle, Loader, CreditCard, Plus, Search, Filter, Phone, Mailbox, Calendar, DollarSign, InfoCircle, CheckCircle, Clock, Ban, MessageSquare, Refresh, ChevronDown, X, Send, Lock, Unlock, Bell, ArrowDown, ArrowUp, Receipt, Trophy } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,6 +43,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { sanitizeText } from '@/lib/validations';
+import { CustomerOfMonthCard } from '@/components/credits/CustomerOfMonthCard';
 
 // Configuración de estados con colores
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -687,6 +688,10 @@ export default function Credits() {
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="ranking">
+              <Trophy className="h-4 w-4 mr-2" />
+              Ranking
+            </TabsTrigger>
           </TabsList>
 
           {/* ====== TAB CRÉDITOS ====== */}
@@ -1235,6 +1240,11 @@ export default function Credits() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ====== TAB RANKING ====== */}
+          <TabsContent value="ranking" className="space-y-4">
+            <CustomerOfMonthCard />
           </TabsContent>
         </Tabs>
 
