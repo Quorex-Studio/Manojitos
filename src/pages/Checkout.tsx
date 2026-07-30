@@ -901,7 +901,7 @@ export default function Checkout() {
                               });
                             }
                           }} className="space-y-3">
-                            {[...allPaymentMethods, ...(hasCredit && creditAvailable >= (checkoutMode === 'pagos' ? montoInicialTotal : totalBS) ? [{ id: 'credito', method_key: 'credito', label: 'Línea de Crédito', description: `Disponible: $${creditAvailable.toFixed(2)}`, enabled: true }] : [])]
+                            {[...allPaymentMethods, ...(hasCredit ? [{ id: 'credito', method_key: 'credito', label: 'Crédito Manojitos (Pago en partes)', description: `Crédito financia el 50%. Paga la Inicial hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales de $${montoCuota.toFixed(2)}.`, disabled: !creditAvailable, enabled: true }] : [])]
                               .filter(m => m.enabled)
                               .map((method) => {
                               const isCreditMethod = method.id === 'credito';
