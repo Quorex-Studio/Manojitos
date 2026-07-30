@@ -70,7 +70,7 @@ export default function Providers() {
       provider_name: provider.name,
       amount_usd: Number(purchaseForm.amount_usd),
       amount_bs: convertToBS(Number(purchaseForm.amount_usd)),
-      status: 'pending',
+      status: 'paid',
       notes: purchaseForm.notes ? sanitizeText(purchaseForm.notes) : null,
       purchase_date: purchaseForm.purchase_date
     });

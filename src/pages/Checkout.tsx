@@ -24,6 +24,7 @@ import type { StockValidationError } from '@/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { useCustomerPaymentMethods } from '@/hooks/useCustomerPaymentMethods';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { sanitizeText } from '@/lib/validations';
@@ -177,6 +178,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { items, getSubtotal, clearCart } = useCart();
+  const { methods: allPaymentMethods } = usePaymentMethods();
   const { rate, convertToBS } = useExchangeRate();
   const { processCheckout, validateStock } = useSales();
   const { isSupported, permission, requestPermission } = usePushNotifications();
@@ -259,6 +261,7 @@ export default function Checkout() {
   const [isSelectingShipping, setIsSelectingShipping] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
+  const isCashMethod = (method: string) => method === 'efectivo_usd' || method === 'efectivo_bs';
   const deliveryFee = calcDeliveryFee(subtotal, shippingData.city, deliveryMethod);
   const orderTotal = subtotal + deliveryFee;
 
@@ -304,13 +307,14 @@ export default function Checkout() {
         .single();
       
       if (data && !error) {
+        const validMunicipio = NE_MUNICIPIOS.some(m => m.value === data.city) ? data.city : '';
         setShippingData(prev => ({
           ...prev,
           fullName: prev.fullName || data.full_name || '',
           phone: prev.phone || data.phone || '',
           email: prev.email || data.email || '',
           address: prev.address || data.address || '',
-          city: prev.city || data.city || ''
+          city: prev.city || validMunicipio
         }));
         
         if (data.dni_photo_url && data.face_photo_url && data.verification_photo_url) {
@@ -686,13 +690,13 @@ export default function Checkout() {
                             className="grid grid-cols-2 gap-4 mb-6"
                           >
                             <label
-                              className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all cursor-pointer ${
+                              className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${isCashMethod(paymentMethod) ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'cursor-pointer'} ${
                                 deliveryMethod === 'delivery'
                                   ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
                                   : 'border-border bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
                               }`}
                             >
-                              <RadioGroupItem value="delivery" className="sr-only" />
+                              <RadioGroupItem value="delivery" className="sr-only" disabled={isCashMethod(paymentMethod)} />
                               <Truck className={`h-6 w-6 ${deliveryMethod === 'delivery' ? 'text-primary' : 'text-muted-foreground'}`} />
                               <span className={`font-medium ${deliveryMethod === 'delivery' ? 'text-primary' : 'text-foreground'}`}>Delivery</span>
                             </label>
@@ -889,8 +893,17 @@ export default function Checkout() {
                           <RadioGroup value={paymentMethod} onValueChange={(val) => {
                             setPaymentMethod(val);
                             setIsEditingPayment(false);
+                            if (isCashMethod(val) && deliveryMethod === 'delivery') {
+                              setDeliveryMethod('pickup');
+                              toast({
+                                title: 'Método de entrega actualizado',
+                                description: 'Los pagos en efectivo solo están disponibles con Retiro en Tienda.',
+                              });
+                            }
                           }} className="space-y-3">
-                            {paymentMethods.map((method) => {
+                            {[...allPaymentMethods, ...(hasCredit && creditAvailable >= (checkoutMode === 'pagos' ? montoInicialTotal : totalBS) ? [{ id: 'credito', method_key: 'credito', label: 'Línea de Crédito', description: `Disponible: $${creditAvailable.toFixed(2)}`, enabled: true }] : [])]
+                              .filter(m => m.enabled)
+                              .map((method) => {
                               const isCreditMethod = method.id === 'credito';
                               const isDisabled = (method as any).disabled;
                               
@@ -910,7 +923,7 @@ export default function Checkout() {
                                   }`}
                                 >
                                   <RadioGroupItem 
-                                    value={method.id} 
+                                    value={method.method_key || method.id} 
                                     id={method.id} 
                                     className="mt-1" 
                                     disabled={isDisabled}

@@ -18,11 +18,24 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
-export function NotificationBell() {
+export function NotificationBell({ onOpenChange }: { onOpenChange?: (open: boolean) => void } = {}) {
   const navigate = useNavigate();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
+  const setOpen = (val: boolean) => {
+    setOpenState(val);
+    onOpenChange?.(val);
+  };
   const { permission, requestPermission } = usePushNotifications();
+
+  const goToNotification = (notif: { metadata: Record<string, unknown>; credit_id: string | null }) => {
+    setOpen(false);
+    if (notif.metadata?.order_id) {
+      navigate('/sales?tab=pedidos');
+    } else if (notif.credit_id) {
+      navigate('/credits');
+    }
+  };
 
   // Mostrar solo las últimas 5 notificaciones
   const recentNotifications = notifications.slice(0, 5);
@@ -51,7 +64,7 @@ export function NotificationBell() {
           </AnimatePresence>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-[calc(100vw-2rem)] max-w-80 p-0" align="end" sideOffset={8}>
         <div className="p-3 border-b flex items-center justify-between">
           <h4 className="font-semibold">Notificaciones</h4>
           {unreadCount > 0 && (
@@ -107,6 +120,7 @@ export function NotificationBell() {
                   )}
                   onClick={() => {
                     if (!notif.is_read) markAsRead.mutate(notif.id);
+                    goToNotification(notif);
                   }}
                 >
                   <div className="flex items-start gap-2.5">
@@ -147,7 +161,7 @@ export function NotificationBell() {
             className="w-full justify-between text-sm"
             onClick={() => {
               setOpen(false);
-              navigate('/credits');
+              navigate('/cliente/notificaciones');
             }}
           >
             Ver todas las notificaciones

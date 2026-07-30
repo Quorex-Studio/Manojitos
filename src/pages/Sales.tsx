@@ -20,6 +20,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatBS } from '@/lib/utils';
+import { useSearchParams } from 'react-router-dom';
 
 const paymentMethods = [
   { value: 'efectivo_usd', label: 'Efectivo USD' },
@@ -93,6 +94,9 @@ export default function Sales() {
   const { products, refetch: refetchProducts } = useProducts();
   const { createCredit, registerCharge } = useCredits();
   const { rate, convertToBS } = useExchangeRate();
+  const [searchParams] = useSearchParams();
+  const initialSalesTab = searchParams.get('tab') === 'pedidos' ? 'pedidos' : 'ventas';
+  const [activeSalesTab, setActiveSalesTab] = useState(initialSalesTab);
   const [isOpen, setIsOpen] = useState(false);
   const [rejectOrderId, setRejectOrderId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -694,12 +698,33 @@ export default function Sales() {
     if (!confirm(`¿Marcar este pedido como ${newStatus === 'shipped' ? 'Enviado' : 'Entregado'}?`)) return;
 
     try {
+      const { data: targetOrder } = await supabase
+        .from('orders')
+        .select('customer_user_id')
+        .eq('id', orderId)
+        .single();
+
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId);
 
       if (error) throw error;
+
+      if (targetOrder?.customer_user_id) {
+        await supabase.from('notifications').insert({
+          user_id: targetOrder.customer_user_id,
+          title: newStatus === 'shipped' ? 'Tu pedido fue enviado' : 'Tu pedido fue entregado',
+          message: newStatus === 'shipped'
+            ? 'Tu pedido está en camino. Te avisaremos cuando llegue.'
+            : '¡Tu pedido ha sido entregado! Gracias por tu compra en Manojitos.',
+          type: 'success',
+          channel: 'internal',
+          is_read: false,
+          sent_at: new Date().toISOString(),
+          metadata: { order_id: orderId },
+        });
+      }
 
       toast.success(`Pedido marcado como ${newStatus === 'shipped' ? 'Enviado 🚚' : 'Entregado ✅'}`);
       
@@ -720,7 +745,7 @@ export default function Sales() {
           <p className="page-subtitle">Gestiona las ventas del local y aprueba los pedidos de los clientes</p>
         </div>
 
-        <Tabs defaultValue="ventas" className="w-full">
+        <Tabs value={activeSalesTab} onValueChange={setActiveSalesTab} className="w-full">
           <TabsList className="grid grid-cols-2 max-w-md bg-secondary rounded-xl mb-6">
             <TabsTrigger value="ventas" className="rounded-lg">
               <ShoppingCart className="h-4 w-4 mr-2" />

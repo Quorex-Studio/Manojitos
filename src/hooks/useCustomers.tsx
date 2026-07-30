@@ -65,10 +65,23 @@ export function useCustomers() {
         description: `El estado KYC ha sido marcado como ${variables.status === 'approved' ? 'Aprobado' : variables.status === 'rejected' ? 'Rechazado' : 'Pendiente'}.`,
       });
 
-      // Send email notification if approved or rejected
+      // Notificación interna (campanita) + email si aprobado o rechazado
       if (variables.status === 'approved' || variables.status === 'rejected') {
         const action = variables.status === 'approved' ? 'kyc_approved' : 'kyc_rejected';
-        
+
+        await supabase.from('notifications').insert({
+          user_id: variables.userId,
+          title: variables.status === 'approved' ? 'Tu identidad fue verificada ✅' : 'Verificación de identidad rechazada',
+          message: variables.status === 'approved'
+            ? 'Tu verificación KYC fue aprobada. Ya puedes solicitar tu línea de crédito Manojitos.'
+            : 'Tu verificación KYC fue rechazada. Por favor revisa tus fotos y vuelve a enviarlas.',
+          type: variables.status === 'approved' ? 'success' : 'warning',
+          channel: 'internal',
+          is_read: false,
+          sent_at: new Date().toISOString(),
+          metadata: {},
+        });
+
         // Find user email from current state
         const customers = queryClient.getQueryData(['customers']) as CustomerProfile[] || [];
         const customer = customers.find(c => c.user_id === variables.userId);

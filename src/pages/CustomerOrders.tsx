@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { TickCircle, Location, Loader, Package, Truck, CheckCircle, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag } from 'reicon-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
@@ -18,6 +18,7 @@ import { useCustomerOrders } from '@/hooks/useCustomerOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { cn } from '@/lib/utils';
+import { useCart } from '@/contexts/CartContext';
 
 const ORDER_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending: { label: 'En revisión', color: 'bg-gold/20 text-gold border-gold/30' },
@@ -125,6 +126,7 @@ export default function CustomerOrders() {
               <TabsTrigger value="all">Todos</TabsTrigger>
               <TabsTrigger value="active">Activos</TabsTrigger>
               <TabsTrigger value="completed">Completados</TabsTrigger>
+              <TabsTrigger value="rejected">Rechazados</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all">
@@ -136,7 +138,11 @@ export default function CustomerOrders() {
             </TabsContent>
 
             <TabsContent value="completed">
-              <OrderList orders={orders.filter(o => ['delivered', 'cancelled'].includes(o.status))} />
+              <OrderList orders={orders.filter(o => o.status === 'delivered')} />
+            </TabsContent>
+
+            <TabsContent value="rejected">
+              <OrderList orders={orders.filter(o => o.status === 'cancelled')} />
             </TabsContent>
           </Tabs>
         </motion.div>
@@ -146,6 +152,29 @@ export default function CustomerOrders() {
 }
 
 function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['orders'] }) {
+  const navigate = useNavigate();
+  const { addItem } = useCart();
+  const handleReorder = (order: any) => {
+    const reorderableItems = (order.items || []).filter(
+      (it: any) => it.product_id && it.id !== 'credit_payment' && it.id !== 'credit_request'
+    );
+    if (reorderableItems.length === 0) {
+      toast.error('No se pudo volver a agregar los productos de este pedido.');
+      return;
+    }
+    reorderableItems.forEach((it: any) => {
+      addItem({
+        id: it.product_id,
+        name: it.product_name,
+        price_usd: Number(it.unit_price),
+        quantity: it.quantity,
+        image_url: it.image_url || null,
+        stock: 999,
+      });
+    });
+    toast.success('Productos agregados al carrito');
+    navigate('/carrito');
+  };
   const [trackingOrder, setTrackingOrder] = useState<string | null>(null);
   const [receiptOrder, setReceiptOrder] = useState<any>(null);
   const [detailsOrder, setDetailsOrder] = useState<any>(null);
@@ -334,7 +363,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                     </Button>
                     <Button 
                       variant="outline" 
-                      onClick={() => toast.info('La función de volver a comprar estará disponible pronto.')}
+                      onClick={() => handleReorder(order)}
                       className="w-full bg-background hover:bg-muted/50"
                     >
                       Comprar de nuevo

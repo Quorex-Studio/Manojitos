@@ -13,12 +13,12 @@ import logoImage from '@/assets/logo.jpeg';
 const menuItems = [
   { icon: Layout, label: 'Panel General', path: '/dashboard' },
   { icon: Package, label: 'Productos', path: '/products' },
-  { icon: FileUp, label: 'Importar', path: '/import-products' },
   { icon: ShoppingCart, label: 'Ventas', path: '/sales' },
   { icon: Wallet, label: 'Créditos', path: '/credits' },
   { icon: Truck, label: 'Proveedores', path: '/providers' },
   { icon: Users, label: 'Clientes', path: '/dashboard/clientes' },
   { icon: FileText, label: 'Reportes', path: '/reports' },
+  { icon: FileUp, label: 'Importar', path: '/import-products' },
   { icon: Settings, label: 'Configuración', path: '/settings' },
 ];
 
@@ -27,6 +27,7 @@ export function AppSidebar() {
   const { signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [notifOpen, setNotifOpen] = useState(false);
   const isMobile = useIsMobile();
 
   // Close sidebar when route changes on mobile
@@ -62,7 +63,7 @@ export function AppSidebar() {
       {/* Sidebar */}
       <aside
         onMouseEnter={() => !isMobile && setIsCollapsed(false)}
-        onMouseLeave={() => !isMobile && setIsCollapsed(true)}
+        onMouseLeave={() => !isMobile && !notifOpen && setIsCollapsed(true)}
         className={cn(
           "relative h-full bg-sidebar border-r border-sidebar-border flex-shrink-0 transition-all duration-300",
           isCollapsed && !isMobile ? "w-[80px]" : "w-[280px]",
@@ -132,7 +133,7 @@ export function AppSidebar() {
 
           {/* Actions */}
           <div className={cn("flex items-center gap-2 mb-4", isCollapsed && !isMobile ? "flex-col" : "")}>
-            <NotificationBell />
+            <NotificationBell onOpenChange={setNotifOpen} />
             <ThemeToggle />
           </div>
 

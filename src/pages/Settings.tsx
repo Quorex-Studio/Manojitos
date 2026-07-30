@@ -16,6 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatBS } from '@/lib/utils';
 import { AlertTriangle } from 'reicon-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { usePaymentMethods, PaymentMethodRow } from '@/hooks/usePaymentMethods';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 
 export default function Settings() {
   // --- STATE ---
@@ -23,6 +25,10 @@ export default function Settings() {
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>('USD');
   const { rates, loading: rateLoading, lastUpdate, refetch, autoFetching, updateRate } = useExchangeRate(selectedCurrency as 'USD' | 'EUR');
   
+  const { methods: allPaymentMethods, updateMethod, createMethod, deleteMethod } = usePaymentMethods(true);
+  const [editingMethod, setEditingMethod] = useState<PaymentMethodRow | null>(null);
+  const [isCreatingMethod, setIsCreatingMethod] = useState(false);
+  const [newMethodDraft, setNewMethodDraft] = useState({ method_key: '', label: '', description: '', configPairs: [{ key: '', value: '' }] });
   // Rate para la UI de configuración de BCV
   const rateInfo = selectedCurrency === 'EUR' ? rates?.EUR : rates?.USD;
   const rate = rateInfo?.rate ?? 0;
@@ -271,6 +277,124 @@ export default function Settings() {
             </CardContent>
           </Card>
         </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+          <Card className="glass-card border-border/50">
+            <CardHeader>
+              <CardTitle className="font-serif flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Métodos de Pago
+              </CardTitle>
+              <CardDescription>Activa, edita o agrega los métodos de pago disponibles en el checkout</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {allPaymentMethods.map(m => (
+                <div key={m.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/80">
+                  <div>
+                    <p className="font-medium">{m.label}</p>
+                    <p className="text-xs text-muted-foreground">{m.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={m.enabled} onCheckedChange={(v) => updateMethod.mutate({ id: m.id, enabled: v })} />
+                    <Button size="sm" variant="ghost" onClick={() => setEditingMethod(m)}>Editar</Button>
+                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => {
+                      if (confirm(`¿Eliminar "${m.label}"?`)) deleteMethod.mutate(m.id);
+                    }}>Eliminar</Button>
+                  </div>
+                </div>
+              ))}
+              <Button variant="outline" className="w-full mt-2" onClick={() => setIsCreatingMethod(true)}>
+                + Agregar método de pago
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {editingMethod && (
+          <Dialog open={!!editingMethod} onOpenChange={(o) => !o && setEditingMethod(null)}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Editar {editingMethod.label}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Nombre</Label>
+                  <Input value={editingMethod.label} onChange={e => setEditingMethod({ ...editingMethod, label: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Descripción</Label>
+                  <Input value={editingMethod.description || ''} onChange={e => setEditingMethod({ ...editingMethod, description: e.target.value })} />
+                </div>
+                {Object.entries(editingMethod.config || {}).map(([key, value]) => (
+                  <div className="space-y-1" key={key}>
+                    <Label className="capitalize">{key}</Label>
+                    <Input
+                      value={value}
+                      onChange={e => setEditingMethod({ ...editingMethod, config: { ...editingMethod.config, [key]: e.target.value } })}
+                    />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditingMethod(null)}>Cancelar</Button>
+                <Button onClick={() => {
+                  updateMethod.mutate({ id: editingMethod.id, label: editingMethod.label, description: editingMethod.description, config: editingMethod.config });
+                  setEditingMethod(null);
+                }}>Guardar</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        <Dialog open={isCreatingMethod} onOpenChange={setIsCreatingMethod}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Nuevo método de pago</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>Clave interna (sin espacios, ej: binance_pay)</Label>
+                <Input value={newMethodDraft.method_key} onChange={e => setNewMethodDraft({ ...newMethodDraft, method_key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Nombre visible</Label>
+                <Input value={newMethodDraft.label} onChange={e => setNewMethodDraft({ ...newMethodDraft, label: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Descripción</Label>
+                <Input value={newMethodDraft.description} onChange={e => setNewMethodDraft({ ...newMethodDraft, description: e.target.value })} />
+              </div>
+              {newMethodDraft.configPairs.map((pair, idx) => (
+                <div className="flex gap-2" key={idx}>
+                  <Input placeholder="clave (ej: wallet)" value={pair.key} onChange={e => {
+                    const copy = [...newMethodDraft.configPairs]; copy[idx].key = e.target.value;
+                    setNewMethodDraft({ ...newMethodDraft, configPairs: copy });
+                  }} />
+                  <Input placeholder="valor" value={pair.value} onChange={e => {
+                    const copy = [...newMethodDraft.configPairs]; copy[idx].value = e.target.value;
+                    setNewMethodDraft({ ...newMethodDraft, configPairs: copy });
+                  }} />
+                </div>
+              ))}
+              <Button size="sm" variant="outline" onClick={() => setNewMethodDraft({ ...newMethodDraft, configPairs: [...newMethodDraft.configPairs, { key: '', value: '' }] })}>
+                + Agregar campo
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreatingMethod(false)}>Cancelar</Button>
+              <Button onClick={() => {
+                const config: Record<string, string> = {};
+                newMethodDraft.configPairs.forEach(p => { if (p.key) config[p.key] = p.value; });
+                createMethod.mutate({
+                  method_key: newMethodDraft.method_key,
+                  label: newMethodDraft.label,
+                  description: newMethodDraft.description,
+                  enabled: true,
+                  display_order: allPaymentMethods.length + 1,
+                  config,
+                });
+                setIsCreatingMethod(false);
+                setNewMethodDraft({ method_key: '', label: '', description: '', configPairs: [{ key: '', value: '' }] });
+              }}>Crear</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

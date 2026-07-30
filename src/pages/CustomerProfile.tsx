@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { Location, Gallery, TickCircle, Loader, User, Phone, Mailbox, Save, Refresh, ArrowLeft, Camera, ShieldCheck, Upload, ShoppingBag, CheckCircle } from 'reicon-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatBS } from '@/lib/utils';
@@ -48,6 +48,11 @@ export default function CustomerProfile() {
   const { purchases, totalSpent, totalPurchases, isLoading: purchasesLoading } = useCustomerPurchaseHistory();
   const { hasCredit } = useCustomerCredit();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const initialTab = ['dashboard', 'profile', 'kyc', 'purchases'].includes(searchParams.get('tab') || '')
+    ? searchParams.get('tab')!
+    : 'dashboard';
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   // --- KYC STATE ---
   const [kycFiles, setKycFiles] = useState<{
@@ -335,7 +340,7 @@ export default function CustomerProfile() {
             </div>
           </div>
 
-          <Tabs defaultValue="dashboard" className="space-y-8">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
             <TabsList className="grid w-full grid-cols-4 p-1 bg-card/80 backdrop-blur-sm border border-border/10 rounded-full h-11">
               <TabsTrigger value="dashboard" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Inicio</TabsTrigger>
               <TabsTrigger value="profile" className="rounded-full text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Perfil</TabsTrigger>

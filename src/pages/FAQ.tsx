@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Category, HelpCircle, CreditCard, ShieldCheck, UserCheck, ShoppingBag, ArrowLeft, Building2 } from 'reicon-react';
+import { Category, HelpCircle, CreditCard, ShieldCheck, UserCheck, ShoppingBag, ArrowLeft } from 'reicon-react';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import {
   Accordion,
@@ -152,9 +152,8 @@ export default function FAQ() {
               >
                 <Tabs defaultValue="usuarios" className="w-full">
                   <div className="flex justify-center mb-8">
-                    <TabsList className="grid w-full max-w-md grid-cols-2">
+                    <TabsList className="grid w-full max-w-md grid-cols-1">
                       <TabsTrigger value="usuarios" className="text-base font-medium">Usuarios</TabsTrigger>
-                      <TabsTrigger value="comercios" className="text-base font-medium">Comercios</TabsTrigger>
                     </TabsList>
                   </div>
 
@@ -182,15 +181,7 @@ export default function FAQ() {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="comercios" className="mt-0">
-                    <div className="flex flex-col items-center justify-center py-16 text-center border rounded-xl border-dashed border-border bg-card/30">
-                      <Building2 className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                      <h3 className="text-xl font-bold text-foreground mb-2">Próximamente</h3>
-                      <p className="text-muted-foreground max-w-sm">
-                        Estamos preparando el centro de soluciones exclusivo para nuestros comercios aliados.
-                      </p>
-                    </div>
-                  </TabsContent>
+
                 </Tabs>
               </motion.div>
             ) : (

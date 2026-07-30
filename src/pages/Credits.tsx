@@ -21,6 +21,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -68,6 +69,8 @@ export default function Credits() {
   const { data: customerProfiles = [], isLoading: isLoadingProfiles } = useAllCustomerProfiles();
   const { data: allTransactions = [], isLoading: loadingTransactions } = useAllCreditTransactions();
   const { rate } = useExchangeRate();
+  const [profileDrawerCreditId, setProfileDrawerCreditId] = useState<string | null>(null);
+  const { data: allProfiles } = useAllCustomerProfiles();
   
   const queryClient = useQueryClient();
 
@@ -569,40 +572,23 @@ export default function Credits() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="credit_limit">Límite de Crédito ($) <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="credit_limit"
-                      type="number"
-                      value={newCredit.credit_limit}
-                      onChange={e => setNewCredit(prev => ({ ...prev, credit_limit: e.target.value }))}
-                      placeholder="100.00"
-                      aria-required="true"
-                      className={cn(Number(newCredit.credit_limit) > totalInventoryValue && "border-destructive focus-visible:ring-destructive")}
-                    />
-                    {Number(newCredit.credit_limit) > totalInventoryValue && (
-                      <p className="text-[10px] text-destructive flex items-center gap-1">
-                        <InfoCircle className="h-3 w-3" />
-                        El límite no puede superar el valor del inventario (${totalInventoryValue.toFixed(2)})
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cut_off_day">Día de Corte</Label>
-                    <Select
-                      value={newCredit.cut_off_day}
-                      onValueChange={value => setNewCredit(prev => ({ ...prev, cut_off_day: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="15">Día 15</SelectItem>
-                        <SelectItem value="30">Día 30</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="credit_limit">Límite de Crédito ($) <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="credit_limit"
+                    type="number"
+                    value={newCredit.credit_limit}
+                    onChange={e => setNewCredit(prev => ({ ...prev, credit_limit: e.target.value }))}
+                    placeholder="100.00"
+                    aria-required="true"
+                    className={cn(Number(newCredit.credit_limit) > totalInventoryValue && "border-destructive focus-visible:ring-destructive")}
+                  />
+                  {Number(newCredit.credit_limit) > totalInventoryValue && (
+                    <p className="text-[10px] text-destructive flex items-center gap-1">
+                      <InfoCircle className="h-3 w-3" />
+                      El límite no puede superar el valor del inventario (${totalInventoryValue.toFixed(2)})
+                    </p>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
@@ -862,6 +848,15 @@ export default function Credits() {
 
                           {/* Acciones */}
                           <div className="flex flex-wrap gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setProfileDrawerCreditId(credit.id)}
+                            >
+                              <InfoCircle className="h-4 w-4 mr-1" />
+                              Ver perfil
+                            </Button>
+
                             <Button
                               variant="outline"
                               size="sm"
@@ -1407,6 +1402,91 @@ export default function Credits() {
           </DialogContent>
         </Dialog>
       </motion.div>
+
+      <CreditProfileDrawer
+        creditId={profileDrawerCreditId}
+        onClose={() => setProfileDrawerCreditId(null)}
+        credit={credits.find(c => c.id === profileDrawerCreditId)}
+        kycStatus={allProfiles?.find(p => p.user_id === credits.find(c => c.id === profileDrawerCreditId)?.client_user_id)?.kyc_status}
+      />
     </AppLayout>
+  );
+}
+
+function CreditProfileDrawer({ creditId, onClose, credit, kycStatus }: {
+  creditId: string | null;
+  onClose: () => void;
+  credit: any;
+  kycStatus: string | undefined;
+}) {
+  const { data: transactions, isLoading } = useCreditTransactions(creditId || '');
+  const utilization = credit ? Math.min(100, (Number(credit.current_balance) / Number(credit.credit_limit || 1)) * 100) : 0;
+
+  return (
+    <Sheet open={!!creditId} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{credit?.client_name || 'Cliente'}</SheetTitle>
+          <SheetDescription>Perfil crediticio resumido</SheetDescription>
+        </SheetHeader>
+        {credit && (
+          <div className="space-y-4 mt-4">
+            <div className="flex flex-wrap gap-2 text-sm">
+              {credit.client_phone && <Badge variant="outline">{credit.client_phone}</Badge>}
+              {credit.client_email && <Badge variant="outline">{credit.client_email}</Badge>}
+              <Badge variant={kycStatus === 'approved' ? 'default' : 'destructive'}>
+                KYC: {kycStatus === 'approved' ? 'Verificado' : kycStatus === 'pending' ? 'En revisión' : 'No verificado'}
+              </Badge>
+              {credit.is_blocked && <Badge variant="destructive">Bloqueado</Badge>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg bg-secondary/50 text-center">
+                <p className="text-lg font-bold text-destructive">${Number(credit.current_balance).toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">Saldo pendiente</p>
+              </div>
+              <div className="p-3 rounded-lg bg-secondary/50 text-center">
+                <p className="text-lg font-bold">${Number(credit.credit_limit).toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">Límite</p>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Utilización</span>
+                <span>{utilization.toFixed(0)}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                <div
+                  className={cn("h-full rounded-full", utilization > 90 ? "bg-destructive" : utilization > 60 ? "bg-gold" : "bg-primary")}
+                  style={{ width: `${utilization}%` }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold mb-2">Historial de transacciones</h4>
+              {isLoading ? (
+                <p className="text-xs text-muted-foreground">Cargando...</p>
+              ) : (
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {(transactions || []).map(t => (
+                    <div key={t.id} className="flex justify-between items-center text-xs p-2 rounded bg-secondary/30">
+                      <span>{t.type === 'CARGO' ? 'Cargo' : 'Abono'} · {new Date(t.created_at).toLocaleDateString('es-VE')}</span>
+                      <span className={cn("font-semibold", t.type === 'CARGO' ? "text-destructive" : "text-primary")}>
+                        {t.type === 'CARGO' ? '+' : '-'}${Number(t.amount).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                  {(!transactions || transactions.length === 0) && (
+                    <p className="text-xs text-muted-foreground">Sin transacciones registradas.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
   );
 }
