@@ -214,6 +214,10 @@ export default function Checkout() {
     credit.calculatedStatus !== 'VENCIDO' &&
     (credit.credit_limit - credit.current_balance) >= montoFinanciado, [hasCredit, credit, hasPendingPayments, montoFinanciado]);
 
+  const allMethodsWithCredit = useMemo(() => [
+    ...allPaymentMethods,
+    ...(hasCredit ? [{ id: 'credito', method_key: 'credito', label: 'Crédito Manojitos (Pago en partes)', description: `Crédito financia el 50%. Paga la Inicial hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales de $${montoCuota.toFixed(2)}.`, disabled: !creditAvailable, enabled: true }] : [])
+  ].filter(m => m.enabled), [allPaymentMethods, hasCredit, creditAvailable, montoInicialTotal, montoCuota]);
 
 
   // Datos del formulario
@@ -523,7 +527,7 @@ export default function Checkout() {
                 )}
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                   <span className="text-muted-foreground">Método de Pago:</span>
-                  <span className="font-medium text-foreground">{allPaymentMethods.find(m => m.method_key === paymentMethod)?.label}</span>
+                  <span className="font-medium text-foreground">{allMethodsWithCredit.find(m => m.method_key === paymentMethod)?.label}</span>
                 </div>
               </div>
             </div>
@@ -843,10 +847,10 @@ export default function Checkout() {
                   </div>
                   <div className="ml-7 space-y-1">
                     <p className="font-semibold text-foreground text-sm">
-                      {allPaymentMethods.find(m => m.method_key === paymentMethod)?.label || 'Pago Móvil'}
+                      {allMethodsWithCredit.find(m => m.method_key === paymentMethod)?.label || 'Pago Móvil'}
                     </p>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      {allPaymentMethods.find(m => m.method_key === paymentMethod)?.description}
+                      {allMethodsWithCredit.find(m => m.method_key === paymentMethod)?.description}
                     </p>
                   </div>
                   
@@ -878,9 +882,7 @@ export default function Checkout() {
                               });
                             }
                           }} className="space-y-3">
-                            {[...allPaymentMethods, ...(hasCredit ? [{ id: 'credito', method_key: 'credito', label: 'Crédito Manojitos (Pago en partes)', description: `Crédito financia el 50%. Paga la Inicial hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales de $${montoCuota.toFixed(2)}.`, disabled: !creditAvailable, enabled: true }] : [])]
-                              .filter(m => m.enabled)
-                              .map((method) => {
+                            {allMethodsWithCredit.map((method) => {
                               const isCreditMethod = method.id === 'credito';
                               const isDisabled = (method as any).disabled;
                               
@@ -966,7 +968,7 @@ export default function Checkout() {
                     <div className="flex items-center gap-2">
                       <Wallet className="h-5 w-5 text-primary shrink-0" />
                       <p className="font-medium text-foreground">
-                        {preferredMethod.alias || allPaymentMethods.find(m => m.method_key === preferredMethod.method_type)?.label || 'Método Guardado'}
+                        {preferredMethod.alias || allMethodsWithCredit.find(m => m.method_key === preferredMethod.method_type)?.label || 'Método Guardado'}
                       </p>
                     </div>
                     {preferredMethod.details?.bank_name && (

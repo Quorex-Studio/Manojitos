@@ -13,6 +13,9 @@ export const sanitizeText = (text: string): string => {
 export const productSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(200, 'Máximo 200 caracteres').transform(sanitizeText),
   price_usd: z.number().nonnegative('El precio no puede ser negativo').max(1000000, 'Precio máximo excedido'),
+  cost_usd: z.number().nonnegative('El costo no puede ser negativo').max(1000000).default(0),
+  price_wholesale_eur: z.number().nonnegative('El precio mayorista no puede ser negativo').max(1000000).default(0),
+  price_retail_eur: z.number().nonnegative('El precio detal no puede ser negativo').max(1000000).default(0),
   stock: z.number().int('El stock debe ser entero').nonnegative('El stock no puede ser negativo'),
   description: z.string().max(2000, 'Máximo 2000 caracteres').optional().nullable().transform(val => val ? sanitizeText(val) : val),
   category: z.string().max(100, 'Máximo 100 caracteres').optional().nullable().transform(val => val ? sanitizeText(val) : val),

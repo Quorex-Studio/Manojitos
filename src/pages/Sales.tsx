@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh } from 'reicon-react';
+import { getNextTwoCutoffDates, getNextThreeCutoffDates, formatCutoffDate } from '@/lib/cutoffDates';
+import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
@@ -94,6 +96,7 @@ export default function Sales() {
   const { products, refetch: refetchProducts } = useProducts();
   const { createCredit, registerCharge } = useCredits();
   const { rate, convertToBS } = useExchangeRate();
+  const { config: pricingConfig } = usePricingConfig();
   const [searchParams] = useSearchParams();
   const initialSalesTab = searchParams.get('tab') === 'pedidos' ? 'pedidos' : 'ventas';
   const [activeSalesTab, setActiveSalesTab] = useState(initialSalesTab);
@@ -116,6 +119,10 @@ export default function Sales() {
     amount_received: '',
     is_credit: false,
   });
+
+  // Modalidad de venta: contado | dos_partes | financiamiento
+  type SaleModality = 'contado' | 'dos_partes' | 'financiamiento';
+  const [saleModality, setSaleModality] = useState<SaleModality>('contado');
 
   // Datos del cliente (DNI primero)
   const [client, setClient] = useState({
@@ -304,6 +311,7 @@ export default function Sales() {
     setPayment({ method: '', amount_received: '', is_credit: false });
     setClient({ dni: '', name: '', phone: '', email: '', address: '', notes: '' });
     setDniLookupState('idle');
+    setSaleModality('contado');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -314,7 +322,7 @@ export default function Sales() {
 
     const { sanitizeText } = await import('@/lib/validations');
     let finalNotes = client.notes;
-    if (!payment.is_credit && isEfectivo && amountReceived > 0) {
+    if (saleModality === 'contado' && !payment.is_credit && isEfectivo && amountReceived > 0) {
       const currency = payment.method === 'efectivo_usd' ? '$' : 'Bs';
       const changeText = payment.method === 'efectivo_usd' ? `$${changeUSD.toFixed(2)}` : `Bs ${changeBS.toFixed(2)}`;
       const exchangeText = rate > 0 ? ` (Tasa: Bs ${rate.toFixed(2)})` : '';
@@ -322,72 +330,85 @@ export default function Sales() {
       finalNotes = finalNotes ? `${receiptInfo} - ${finalNotes}` : receiptInfo;
     }
 
+    const isFinanced = saleModality === 'dos_partes' || saleModality === 'financiamiento';
+    const isCreditSale = payment.is_credit || isFinanced;
+    const creditSurcharge = saleModality === 'financiamiento' ? (pricingConfig?.credit_surcharge_pct || 10) : 0;
+
+    if (saleModality === 'dos_partes') {
+      const [cuota1Date] = getNextTwoCutoffDates();
+      finalNotes = `[EN 2 PARTES - 50% contado, 50% al ${formatCutoffDate(cuota1Date)}] ${finalNotes || ''}`.trim();
+    } else if (saleModality === 'financiamiento') {
+      const [c1, c2] = getNextTwoCutoffDates();
+      finalNotes = `[FINANCIAMIENTO MANOJITOS +${creditSurcharge}% - Inicial 33%, Cuota 1: ${formatCutoffDate(c1)}, Cuota 2: ${formatCutoffDate(c2)}] ${finalNotes || ''}`.trim();
+    }
+
     let hasError = false;
     for (const item of validItems) {
+      const unitPriceUsd = saleModality === 'financiamiento'
+        ? Number(item.product!.price_usd) * (1 + creditSurcharge / 100)
+        : Number(item.product!.price_usd);
+      const itemTotalUsd = unitPriceUsd * item.qty;
+      const itemTotalBs = convertToBS(itemTotalUsd);
+
       const saleData = {
         product_id: item.product_id,
         product_name: item.product!.name,
         quantity: item.qty,
-        unit_price_usd: Number(item.product!.price_usd),
-        total_usd: item.subtotalUSD,
-        total_bs: item.subtotalBS,
-        payment_method: payment.is_credit ? 'credito' : payment.method,
+        unit_price_usd: unitPriceUsd,
+        total_usd: itemTotalUsd,
+        total_bs: itemTotalBs,
+        payment_method: isCreditSale ? 'credito' : payment.method,
         client_name: client.name ? sanitizeText(client.name) : null,
         client_dni: client.dni ? sanitizeText(client.dni) : null,
         client_email: client.email ? sanitizeText(client.email) : null,
         client_phone: client.phone ? sanitizeText(client.phone) : null,
         client_address: client.address ? sanitizeText(client.address) : null,
-        is_credit: payment.is_credit,
+        is_credit: isCreditSale,
         notes: finalNotes ? sanitizeText(finalNotes) : null,
       };
 
       const { data, error } = await addSale(saleData);
       if (error) { hasError = true; break; }
 
-      if (!error && payment.is_credit && client.name) {
+      if (!error && isCreditSale && client.name) {
         try {
-          // Buscar si el cliente ya tiene una línea de crédito (por teléfono o email)
           let existingCredit: any = null;
           if (client.phone) {
-            const { data: byPhone } = await supabase
-              .from('credits')
-              .select('*')
-              .eq('client_phone', sanitizeText(client.phone))
-              .maybeSingle();
+            const { data: byPhone } = await supabase.from('credits').select('*').eq('client_phone', sanitizeText(client.phone)).maybeSingle();
             existingCredit = byPhone;
           }
           if (!existingCredit && client.email) {
-            const { data: byEmail } = await supabase
-              .from('credits')
-              .select('*')
-              .eq('client_email', sanitizeText(client.email))
-              .maybeSingle();
+            const { data: byEmail } = await supabase.from('credits').select('*').eq('client_email', sanitizeText(client.email)).maybeSingle();
             existingCredit = byEmail;
           }
 
           let creditId = existingCredit?.id;
-
           if (!creditId) {
-            // No tiene línea de crédito: crear una nueva con límite = monto de esta venta
             const newCredit = await createCredit.mutateAsync({
               client_name: sanitizeText(client.name),
               client_phone: client.phone ? sanitizeText(client.phone) : null,
               client_email: client.email ? sanitizeText(client.email) : null,
-              credit_limit: item.subtotalUSD,
+              credit_limit: itemTotalUsd,
               cut_off_day: 15,
-              notes: `Creado automáticamente desde venta POS (fiado). ${client.notes ? sanitizeText(client.notes) : ''}`.trim(),
+              notes: `Creado automáticamente (${saleModality}). ${client.notes ? sanitizeText(client.notes) : ''}`.trim(),
             });
             creditId = newCredit.id;
           }
 
-          await registerCharge.mutateAsync({
-            creditId,
-            amount: item.subtotalUSD,
-            description: `Venta POS ${item.product!.name} x${item.qty}`,
-            saleId: data?.id || undefined,
-          });
+          if (saleModality === 'dos_partes') {
+            const pendingAmount = itemTotalUsd / 2;
+            const [dueDate] = getNextTwoCutoffDates();
+            await registerCharge.mutateAsync({ creditId, amount: pendingAmount, description: `En 2 partes - Pendiente ${item.product!.name} x${item.qty} (vence ${formatCutoffDate(dueDate)})`, saleId: data?.id || undefined });
+          } else if (saleModality === 'financiamiento') {
+            const installment = Math.round((itemTotalUsd * 2 / 3 / 2) * 100) / 100;
+            const [c1, c2] = getNextTwoCutoffDates();
+            await registerCharge.mutateAsync({ creditId, amount: installment, description: `Financiamiento Cuota 1/2 ${item.product!.name} (vence ${formatCutoffDate(c1)})`, saleId: data?.id || undefined });
+            await registerCharge.mutateAsync({ creditId, amount: installment, description: `Financiamiento Cuota 2/2 ${item.product!.name} (vence ${formatCutoffDate(c2)})`, saleId: data?.id || undefined });
+          } else {
+            await registerCharge.mutateAsync({ creditId, amount: itemTotalUsd, description: `Venta POS ${item.product!.name} x${item.qty}`, saleId: data?.id || undefined });
+          }
         } catch (creditError: any) {
-          toast.error(`Venta registrada, pero hubo un error al cargarla al crédito: ${creditError.message}. Revisa el módulo de Créditos.`);
+          toast.error(`Venta registrada, pero error al cargar crédito: ${creditError.message}`);
         }
       }
     }
@@ -603,10 +624,10 @@ export default function Sales() {
       
       // 4. Enviar notificación al cliente
       if (approvedOrder?.customer_user_id) {
-        const isDelivery = approvedOrder.notes?.includes('[DELIVERY]');
-        const message = isDelivery 
+        const isPickup = approvedOrder.notes?.includes('[RETIRO EN TIENDA]');
+        const message = !isPickup 
            ? 'Pedido aprobado, su delivery está siendo coordinado.' 
-           : 'Pedido aprobado, debe retirarlo en tienda. Nuestro horario laboral es de Lunes a Sábado, 8:00am - 5:00pm.';
+           : 'Pedido aprobado, debe retirarlo en tienda. Nuestro horario laboral es de Lunes a Sábado, 9:00am - 6:00pm.';
            
         await supabase.from('notifications').insert({
            user_id: approvedOrder.customer_user_id,
@@ -998,6 +1019,59 @@ export default function Sales() {
                         )}
                       </div>
                     )}
+
+                    {/* ── MODALIDAD DE VENTA ── */}
+                    <div className="space-y-3">
+                      <Label className="text-base font-semibold">Modalidad de Venta</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { key: 'contado' as const, label: 'Contado', icon: '🟢', desc: 'Pago completo' },
+                          { key: 'dos_partes' as const, label: 'En 2 Partes', icon: '🔵', desc: '50% ahora + 50% al 15/30' },
+                          { key: 'financiamiento' as const, label: 'Financiamiento', icon: '🟡', desc: `Inicial 33% + 2 cuotas (+${pricingConfig?.credit_surcharge_pct || 10}%)` },
+                        ]).map(mod => (
+                          <button
+                            key={mod.key}
+                            type="button"
+                            onClick={() => setSaleModality(mod.key)}
+                            className={[
+                              'p-3 rounded-xl border text-left transition-all text-sm',
+                              saleModality === mod.key
+                                ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                                : 'border-border/40 bg-card/50 hover:border-primary/40',
+                            ].join(' ')}
+                          >
+                            <span className="text-lg">{mod.icon}</span>
+                            <p className="font-medium mt-1">{mod.label}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{mod.desc}</p>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Info de cuotas para modalidades de financiamiento */}
+                      {saleModality === 'dos_partes' && totalUSD > 0 && (
+                        <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm space-y-1">
+                          <p className="font-semibold text-blue-600 dark:text-blue-400">Resumen: En 2 Partes</p>
+                          <p>Pago hoy: <strong>${(totalUSD / 2).toFixed(2)}</strong></p>
+                          <p>Pendiente al {formatCutoffDate(getNextTwoCutoffDates()[0])}: <strong>${(totalUSD / 2).toFixed(2)}</strong></p>
+                        </div>
+                      )}
+                      {saleModality === 'financiamiento' && totalUSD > 0 && (() => {
+                        const surcharge = pricingConfig?.credit_surcharge_pct || 10;
+                        const totalWithSurcharge = totalUSD * (1 + surcharge / 100);
+                        const initial = totalWithSurcharge / 3;
+                        const installment = (totalWithSurcharge - initial) / 2;
+                        const [c1, c2] = getNextTwoCutoffDates();
+                        return (
+                          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm space-y-1">
+                            <p className="font-semibold text-amber-600 dark:text-amber-400">Resumen: Financiamiento Manojitos (+{surcharge}%)</p>
+                            <p>Precio total con recargo: <strong>${totalWithSurcharge.toFixed(2)}</strong></p>
+                            <p>Inicial hoy (33%): <strong>${initial.toFixed(2)}</strong></p>
+                            <p>Cuota 1 ({formatCutoffDate(c1)}): <strong>${installment.toFixed(2)}</strong></p>
+                            <p>Cuota 2 ({formatCutoffDate(c2)}): <strong>${installment.toFixed(2)}</strong></p>
+                          </div>
+                        );
+                      })()}
+                    </div>
 
                     {/* ── NOTAS ── */}
                     <div className="space-y-2">

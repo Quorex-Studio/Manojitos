@@ -46,6 +46,9 @@ export function useProducts() {
         .insert([{
           name: validated.name,
           price_usd: validated.price_usd,
+          cost_usd: validated.cost_usd ?? 0,
+          price_wholesale_eur: validated.price_wholesale_eur ?? 0,
+          price_retail_eur: validated.price_retail_eur ?? 0,
           stock: validated.stock,
           description: validated.description,
           category: validated.category,

@@ -455,6 +455,15 @@ function CustomerNotificationBell() {
   const [open, setOpen] = useState(false);
   const recent = notifications.slice(0, 5);
 
+  const goToNotification = (notif: { metadata: Record<string, unknown> | null; credit_id: string | null }) => {
+    setOpen(false);
+    if (notif.metadata?.order_id) {
+      navigate('/cliente/pedidos');
+    } else if (notif.credit_id) {
+      navigate('/cliente/credito');
+    }
+  };
+
   return (
     <div className="relative">
       <Button
@@ -492,7 +501,7 @@ function CustomerNotificationBell() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -8 }}
               transition={{ duration: 0.15 }}
-              className="absolute right-0 top-full mt-2 w-80 z-50 bg-card/95 backdrop-blur-xl border border-border/20 rounded-2xl shadow-2xl overflow-hidden"
+              className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-80 z-50 bg-card/95 backdrop-blur-xl border border-border/20 rounded-2xl shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between p-4 border-b border-border/10">
                 <h4 className="font-semibold text-sm">Notificaciones</h4>
@@ -516,7 +525,7 @@ function CustomerNotificationBell() {
                 ) : recent.map(n => (
                   <div
                     key={n.id}
-                    onClick={() => { if (!n.is_read) markAsRead.mutate(n.id); }}
+                    onClick={() => { if (!n.is_read) markAsRead.mutate(n.id); goToNotification(n); }}
                     className={`p-3 cursor-pointer hover:bg-muted/40 transition-colors ${!n.is_read ? 'bg-primary/5' : ''}`}
                   >
                     <div className="flex items-start gap-2">

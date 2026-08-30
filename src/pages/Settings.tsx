@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Loader, Settings as SettingsIcon, Refresh, DollarSign, Moon, Sun, Euro } from 'reicon-react';
+import { Loader, Settings as SettingsIcon, Refresh, DollarSign, Moon, Sun, Euro, Calculator } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
+import { usePricingConfig } from '@/hooks/usePricingConfig';
 type Currency = 'USD' | 'EUR' | 'VES';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import { AlertTriangle } from 'reicon-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { usePaymentMethods, PaymentMethodRow } from '@/hooks/usePaymentMethods';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Settings() {
   // --- STATE ---
@@ -37,6 +39,42 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
   const [fetchingRate, setFetchingRate] = useState(false);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  // Pricing config
+  const { config: pricingConfig, loading: pricingLoading, updateConfig: savePricingConfig } = usePricingConfig();
+  const [pricingForm, setPricingForm] = useState({
+    usd_to_eur_multiplier: '2',
+    rounding_mode: 'ceil' as 'ceil' | 'round' | 'floor',
+    retail_markup_pct: '15',
+    credit_surcharge_pct: '10',
+  });
+  const [savingPricing, setSavingPricing] = useState(false);
+
+  // Sync pricing form with loaded config
+  useEffect(() => {
+    if (pricingConfig) {
+      setPricingForm({
+        usd_to_eur_multiplier: String(pricingConfig.usd_to_eur_multiplier),
+        rounding_mode: pricingConfig.rounding_mode,
+        retail_markup_pct: String(pricingConfig.retail_markup_pct),
+        credit_surcharge_pct: String(pricingConfig.credit_surcharge_pct),
+      });
+    }
+  }, [pricingConfig]);
+
+  const handleSavePricing = async () => {
+    setSavingPricing(true);
+    try {
+      await savePricingConfig({
+        usd_to_eur_multiplier: Number(pricingForm.usd_to_eur_multiplier) || 2,
+        rounding_mode: pricingForm.rounding_mode,
+        retail_markup_pct: Number(pricingForm.retail_markup_pct) || 15,
+        credit_surcharge_pct: Number(pricingForm.credit_surcharge_pct) || 10,
+      });
+    } finally {
+      setSavingPricing(false);
+    }
+  };
 
   // --- HANDLERS ---
 
@@ -106,10 +144,7 @@ export default function Settings() {
         </div>
 
         {/* Preferencia de Moneda de Visualización */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <Card className="glass-card-gold border-gold/30">
             <CardHeader>
               <CardTitle className="font-serif flex items-center gap-2">
@@ -131,37 +166,22 @@ export default function Settings() {
         </motion.div>
 
         {/* Exchange Rate */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card className="glass-card-gold border-gold/30">
             <CardHeader>
               <CardTitle className="font-serif flex items-center gap-2">
-                {selectedCurrency === 'USD' ? (
-                  <DollarSign className="h-5 w-5" />
-                ) : (
-                  <Euro className="h-5 w-5" />
-                )}
+                {selectedCurrency === 'USD' ? <DollarSign className="h-5 w-5" /> : <Euro className="h-5 w-5" />}
                 Tasa de Cambio
               </CardTitle>
               <CardDescription>Configura la tasa de cambio para conversiones</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Currency Selector */}
               <div className="space-y-2">
                 <Label>Moneda Base</Label>
                 <Tabs value={selectedCurrency} onValueChange={(v) => setSelectedCurrency(v as Currency)}>
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="USD" className="gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      Dólar (USD)
-                    </TabsTrigger>
-                    <TabsTrigger value="EUR" className="gap-2">
-                      <Euro className="h-4 w-4" />
-                      Euro (EUR)
-                    </TabsTrigger>
+                    <TabsTrigger value="USD" className="gap-2"><DollarSign className="h-4 w-4" /> Dólar (USD)</TabsTrigger>
+                    <TabsTrigger value="EUR" className="gap-2"><Euro className="h-4 w-4" /> Euro (EUR)</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -175,29 +195,17 @@ export default function Settings() {
                     </p>
                     {newLastUpdate && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Última actualización: {newLastUpdate.toLocaleDateString('es', {
-                          day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                        })}
+                        Última actualización: {newLastUpdate.toLocaleDateString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     )}
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={handleFetchRate}
-                    disabled={fetchingRate}
-                    className="rounded-xl gap-2 shrink-0"
-                  >
-                    {fetchingRate ? (
-                      <Loader className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Refresh className="h-4 w-4" />
-                    )}
+                  <Button variant="outline" onClick={handleFetchRate} disabled={fetchingRate} className="rounded-xl gap-2 shrink-0">
+                    {fetchingRate ? <Loader className="h-4 w-4 animate-spin" /> : <Refresh className="h-4 w-4" />}
                     Obtener {selectedCurrency}
                   </Button>
                 </div>
               </div>
 
-              {/* Formulario de actualización manual */}
               <div className="mt-4 border-t border-border/10 pt-4">
                 <Alert variant="default" className="mb-4 bg-gold/10 border-gold/30 text-gold-foreground">
                   <AlertTriangle className="h-4 w-4 text-gold" />
@@ -207,16 +215,7 @@ export default function Settings() {
                   </AlertDescription>
                 </Alert>
                 <form onSubmit={handleUpdateRate} className="flex flex-wrap gap-2">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={newRate}
-                    onChange={(e) => setNewRate(e.target.value.replace(/[^0-9.]/g, ''))}
-                    placeholder={`Nueva tasa ${selectedCurrency} manual`}
-                    className="input-glass rounded-xl min-w-0 flex-1"
-                    aria-label="Tasa manual"
-                  />
+                  <Input type="number" step="0.01" min="0" value={newRate} onChange={(e) => setNewRate(e.target.value.replace(/[^0-9.]/g, ''))} placeholder={`Nueva tasa ${selectedCurrency} manual`} className="input-glass rounded-xl min-w-0 flex-1" aria-label="Tasa manual" />
                   <Button type="submit" disabled={loading || !newRate} className="btn-gold rounded-xl shrink-0">
                     {loading ? <Loader className="h-4 w-4 animate-spin" /> : 'Fijar Tasa Manual'}
                   </Button>
@@ -226,12 +225,55 @@ export default function Settings() {
           </Card>
         </motion.div>
 
+        {/* Pricing Configuration */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <Card className="glass-card-gold border-gold/30">
+            <CardHeader>
+              <CardTitle className="font-serif flex items-center gap-2">
+                <Calculator className="h-5 w-5 text-primary" />
+                Costos y Precios
+              </CardTitle>
+              <CardDescription>Parámetros de cálculo automático de precios para productos</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">Factor USD → EUR</Label>
+                  <Input type="number" step="0.1" min="0.1" value={pricingForm.usd_to_eur_multiplier} onChange={e => setPricingForm(prev => ({ ...prev, usd_to_eur_multiplier: e.target.value }))} placeholder="2" className="input-glass rounded-xl" />
+                  <p className="text-xs text-muted-foreground">Costo redondeado × factor = Precio Mayor EUR</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Tipo de Redondeo</Label>
+                  <Select value={pricingForm.rounding_mode} onValueChange={v => setPricingForm(prev => ({ ...prev, rounding_mode: v as 'ceil' | 'round' | 'floor' }))}>
+                    <SelectTrigger className="input-glass rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ceil">Arriba (ceil)</SelectItem>
+                      <SelectItem value="round">Estándar (round)</SelectItem>
+                      <SelectItem value="floor">Abajo (floor)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">Recargo Detal (%)</Label>
+                  <Input type="number" step="1" min="0" max="100" value={pricingForm.retail_markup_pct} onChange={e => setPricingForm(prev => ({ ...prev, retail_markup_pct: e.target.value }))} placeholder="15" className="input-glass rounded-xl" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Recargo Crédito (%)</Label>
+                  <Input type="number" step="1" min="0" max="100" value={pricingForm.credit_surcharge_pct} onChange={e => setPricingForm(prev => ({ ...prev, credit_surcharge_pct: e.target.value }))} placeholder="10" className="input-glass rounded-xl" />
+                </div>
+              </div>
+              <Button onClick={handleSavePricing} disabled={savingPricing} className="btn-gold rounded-xl w-full">
+                {savingPricing ? <Loader className="h-4 w-4 animate-spin mr-2" /> : null}
+                Guardar Configuración de Precios
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Appearance */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="glass-card border-border/50">
             <CardHeader>
               <CardTitle className="font-serif flex items-center gap-2">
@@ -253,11 +295,7 @@ export default function Settings() {
         </motion.div>
 
         {/* Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
           <Card className="glass-card border-border/50">
             <CardHeader>
               <CardTitle className="font-serif flex items-center gap-2">
@@ -278,6 +316,7 @@ export default function Settings() {
           </Card>
         </motion.div>
 
+        {/* Payment Methods */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
           <Card className="glass-card border-border/50">
             <CardHeader>
@@ -326,10 +365,7 @@ export default function Settings() {
                 {Object.entries(editingMethod.config || {}).map(([key, value]) => (
                   <div className="space-y-1" key={key}>
                     <Label className="capitalize">{key}</Label>
-                    <Input
-                      value={value}
-                      onChange={e => setEditingMethod({ ...editingMethod, config: { ...editingMethod.config, [key]: e.target.value } })}
-                    />
+                    <Input value={value} onChange={e => setEditingMethod({ ...editingMethod, config: { ...editingMethod.config, [key]: e.target.value } })} />
                   </div>
                 ))}
               </div>

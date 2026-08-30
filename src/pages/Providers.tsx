@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Truck, Search, Trash2, Check, Phone, Mailbox } from 'reicon-react';
-import { cn } from '@/lib/utils';
+import { Plus, Truck, Search, Trash2, Phone, Mailbox } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProviders } from '@/hooks/useProviders';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
@@ -12,13 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
 export default function Providers() {
   // --- STATE ---
-  const { providers, purchases, addProvider, deleteProvider, addPurchase, markPurchaseAsPaid } = useProviders();
+  const { providers, purchases, addProvider, deleteProvider, addPurchase } = useProviders();
   const { rate, convertToBS } = useExchangeRate();
   const [isProviderOpen, setIsProviderOpen] = useState(false);
   const [isPurchaseOpen, setIsPurchaseOpen] = useState(false);
@@ -291,31 +290,8 @@ export default function Providers() {
                                     {purchase.notes && <p className="text-xs text-muted-foreground italic">{purchase.notes}</p>}
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                  <div className="text-right">
-                                    <p className="font-bold text-gradient-gold">${Number(purchase.amount_usd).toFixed(2)}</p>
-                                    <Badge
-                                      variant="outline"
-                                      className={cn(
-                                        "font-semibold border",
-                                        purchase.status === 'paid'
-                                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                                          : "bg-destructive/10 text-destructive border-destructive/20"
-                                      )}
-                                    >
-                                      {purchase.status === 'paid' ? 'Pagado' : 'Pendiente'}
-                                    </Badge>
-                                  </div>
-                                  {purchase.status === 'pending' && (
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() => markPurchaseAsPaid(purchase.id)}
-                                      className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400 dark:hover:text-emerald-300"
-                                    >
-                                      <Check className="h-4 w-4" />
-                                    </Button>
-                                  )}
+                                <div className="text-right">
+                                  <p className="font-bold text-gradient-gold">${Number(purchase.amount_usd).toFixed(2)}</p>
                                 </div>
                               </div>
                             </CardContent>
