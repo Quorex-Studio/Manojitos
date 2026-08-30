@@ -821,13 +821,16 @@ export type Database = {
       products: {
         Row: {
           category: string | null
+          cost_usd: number | null
           created_at: string
           description: string | null
           id: string
           image_url: string | null
           minimum_stock: number | null
           name: string
+          price_retail_eur: number | null
           price_usd: number
+          price_wholesale_eur: number | null
           sizes: string[] | null
           sold_count: number
           stock: number
@@ -836,13 +839,16 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          cost_usd?: number | null
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
           minimum_stock?: number | null
           name: string
+          price_retail_eur?: number | null
           price_usd?: number
+          price_wholesale_eur?: number | null
           sizes?: string[] | null
           sold_count?: number
           stock?: number
@@ -851,13 +857,16 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          cost_usd?: number | null
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
           minimum_stock?: number | null
           name?: string
+          price_retail_eur?: number | null
           price_usd?: number
+          price_wholesale_eur?: number | null
           sizes?: string[] | null
           sold_count?: number
           stock?: number
