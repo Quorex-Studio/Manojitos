@@ -391,6 +391,7 @@ export default function Sales() {
       if (data?.id) {
         await confirmSale(data.id);
       }
+    }
 
     setIsSubmitting(false);
     if (!hasError) {
