@@ -120,8 +120,8 @@ export default function Sales() {
     is_credit: false,
   });
 
-  // Modalidad de venta: contado | dos_partes | financiamiento
-  type SaleModality = 'contado' | 'dos_partes' | 'financiamiento';
+  // Modalidad de venta: contado | dos_partes | financiamiento | fiado
+  type SaleModality = 'contado' | 'dos_partes' | 'financiamiento' | 'fiado';
   const [saleModality, setSaleModality] = useState<SaleModality>('contado');
 
   // Datos del cliente (DNI primero)
@@ -330,7 +330,7 @@ export default function Sales() {
       finalNotes = finalNotes ? `${receiptInfo} - ${finalNotes}` : receiptInfo;
     }
 
-    const isFinanced = saleModality === 'dos_partes' || saleModality === 'financiamiento';
+    const isFinanced = saleModality === 'dos_partes' || saleModality === 'financiamiento' || saleModality === 'fiado';
     const isCreditSale = payment.is_credit || isFinanced;
     const creditSurcharge = saleModality === 'financiamiento' ? (pricingConfig?.credit_surcharge_pct || 10) : 0;
 
@@ -340,6 +340,9 @@ export default function Sales() {
     } else if (saleModality === 'financiamiento') {
       const [c1, c2] = getNextTwoCutoffDates();
       finalNotes = `[FINANCIAMIENTO MANOJITOS +${creditSurcharge}% - Inicial 33%, Cuota 1: ${formatCutoffDate(c1)}, Cuota 2: ${formatCutoffDate(c2)}] ${finalNotes || ''}`.trim();
+    } else if (saleModality === 'fiado') {
+      const [dueDate] = getNextTwoCutoffDates();
+      finalNotes = `[FIADO QUINCENA - 100% al ${formatCutoffDate(dueDate)}] ${finalNotes || ''}`.trim();
     }
 
     let hasError = false;
@@ -404,6 +407,9 @@ export default function Sales() {
             const [c1, c2] = getNextTwoCutoffDates();
             await registerCharge.mutateAsync({ creditId, amount: installment, description: `Financiamiento Cuota 1/2 ${item.product!.name} (vence ${formatCutoffDate(c1)})`, saleId: data?.id || undefined });
             await registerCharge.mutateAsync({ creditId, amount: installment, description: `Financiamiento Cuota 2/2 ${item.product!.name} (vence ${formatCutoffDate(c2)})`, saleId: data?.id || undefined });
+          } else if (saleModality === 'fiado') {
+            const [dueDate] = getNextTwoCutoffDates();
+            await registerCharge.mutateAsync({ creditId, amount: itemTotalUsd, description: `Fiado - 100% Pendiente ${item.product!.name} x${item.qty} (vence ${formatCutoffDate(dueDate)})`, saleId: data?.id || undefined });
           } else {
             await registerCharge.mutateAsync({ creditId, amount: itemTotalUsd, description: `Venta POS ${item.product!.name} x${item.qty}`, saleId: data?.id || undefined });
           }
@@ -1023,11 +1029,12 @@ export default function Sales() {
                     {/* ── MODALIDAD DE VENTA ── */}
                     <div className="space-y-3">
                       <Label className="text-base font-semibold">Modalidad de Venta</Label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         {([
                           { key: 'contado' as const, label: 'Contado', icon: '🟢', desc: 'Pago completo' },
                           { key: 'dos_partes' as const, label: 'En 2 Partes', icon: '🔵', desc: '50% ahora + 50% al 15/30' },
                           { key: 'financiamiento' as const, label: 'Financiamiento', icon: '🟡', desc: `Inicial 33% + 2 cuotas (+${pricingConfig?.credit_surcharge_pct || 10}%)` },
+                          { key: 'fiado' as const, label: 'Fiado Quincena', icon: '🟣', desc: '0% ahora, 100% al 15/30' },
                         ]).map(mod => (
                           <button
                             key={mod.key}
@@ -1071,6 +1078,13 @@ export default function Sales() {
                           </div>
                         );
                       })()}
+                      {saleModality === 'fiado' && totalUSD > 0 && (
+                        <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-sm space-y-1">
+                          <p className="font-semibold text-purple-600 dark:text-purple-400">Resumen: Fiado Quincena</p>
+                          <p>Pago hoy: <strong>$0.00</strong></p>
+                          <p>Pendiente total al {formatCutoffDate(getNextTwoCutoffDates()[0])}: <strong>${totalUSD.toFixed(2)}</strong></p>
+                        </div>
+                      )}
                     </div>
 
                     {/* ── NOTAS ── */}
