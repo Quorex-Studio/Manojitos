@@ -90,6 +90,9 @@ export const saleSchema = z.object({
   client_phone: z.string().regex(/^\+58(?:412|414|422|424|416|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').optional().nullable().or(z.literal('')).transform(val => val ? sanitizeText(val) : val),
   client_address: z.string().max(200).optional().nullable().transform(val => val ? sanitizeText(val) : val),
   is_credit: z.boolean().default(false),
+  sale_modality: z.string().optional().nullable().default('contado'),
+  amount_paid: z.number().nonnegative().default(0),
+  payment_status: z.enum(['pending', 'partial', 'paid']).default('paid'),
   notes: z.string().max(1000).optional().nullable().transform(val => val ? sanitizeText(val) : val),
   status: z.enum(SALE_STATUSES).default('pending'),
 });

@@ -70,6 +70,9 @@ export function useSales() {
           client_phone: validated.client_phone,
           client_address: validated.client_address,
           is_credit: validated.is_credit,
+          sale_modality: validated.sale_modality,
+          amount_paid: validated.amount_paid,
+          payment_status: validated.payment_status,
           notes: validated.notes,
           status: validated.status,
           user_id: user.id
@@ -352,6 +355,33 @@ export function useSales() {
     },
   });
 
+  const registerSalePayment = useMutation({
+    mutationFn: async ({ saleId, amount, isFullPayment }: { saleId: string; amount: number; isFullPayment?: boolean }) => {
+      const sale = sales.find(s => s.id === saleId);
+      if (!sale) throw new Error('Venta no encontrada');
+
+      const newAmountPaid = isFullPayment ? sale.total_usd : (sale.amount_paid || 0) + amount;
+      const newStatus = newAmountPaid >= sale.total_usd ? 'paid' : 'partial';
+
+      const { data, error } = await supabase
+        .from('sales')
+        .update({ amount_paid: newAmountPaid, payment_status: newStatus })
+        .eq('id', saleId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      invalidateSales();
+      toast({ title: 'Éxito', description: 'Abono registrado correctamente' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message || 'No se pudo registrar el abono', variant: 'destructive' });
+    },
+  });
+
   // Las mutaciones ya invalidan el caché automáticamente vía invalidateSales().
   // No se necesita suscripción realtime.
 
@@ -364,6 +394,7 @@ export function useSales() {
     processCheckout,
     validateStock,
     deleteSale: deleteSale.mutateAsync,
+    registerSalePayment: registerSalePayment.mutateAsync,
     refetch,
   };
 }

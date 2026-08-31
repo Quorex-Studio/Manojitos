@@ -92,9 +92,8 @@ interface SaleLineItem {
 
 export default function Sales() {
   // --- STATE ---
-  const { sales, addSale, confirmSale, deleteSale, refetch: refetchSales } = useSales();
+  const { sales, addSale, confirmSale, deleteSale, registerSalePayment, refetch: refetchSales } = useSales();
   const { products, refetch: refetchProducts } = useProducts();
-  const { createCredit, registerCharge } = useCredits();
   const { rate, convertToBS } = useExchangeRate();
   const { config: pricingConfig } = usePricingConfig();
   const [searchParams] = useSearchParams();
@@ -108,6 +107,7 @@ export default function Sales() {
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [orderDateFilter, setOrderDateFilter] = useState('all');
   const [orderSort, setOrderSort] = useState('date_desc');
+  const [saleModalityFilter, setSaleModalityFilter] = useState('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Carrito multi-producto
@@ -230,10 +230,13 @@ export default function Sales() {
     return Array.from(clientsMap.entries()).map(([name, phone]) => ({ name, phone }));
   }, [sales]);
 
-  const filteredSales = sales.filter(s =>
-    s.product_name.toLowerCase().includes(search.toLowerCase()) ||
-    s.client_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredSales = sales.filter(s => {
+    const matchesSearch = s.product_name.toLowerCase().includes(search.toLowerCase()) || s.client_name?.toLowerCase().includes(search.toLowerCase());
+    const matchesModality = saleModalityFilter === 'all' || s.sale_modality === saleModalityFilter;
+    return matchesSearch && matchesModality;
+  });
+
+  const posReceivables = sales.filter(s => s.payment_status !== 'paid' && s.sale_modality !== 'contado');
 
   const groupedSales = useMemo(() => {
     const groups: any[] = [];
@@ -354,6 +357,14 @@ export default function Sales() {
       const itemTotalUsd = unitPriceUsd * item.qty;
       const itemTotalBs = convertToBS(itemTotalUsd);
 
+      let initialAmountPaid = 0;
+      if (saleModality === 'contado') initialAmountPaid = itemTotalUsd;
+      else if (saleModality === 'dos_partes') initialAmountPaid = itemTotalUsd / 2;
+      else if (saleModality === 'financiamiento') initialAmountPaid = itemTotalUsd / 3;
+      else if (saleModality === 'fiado') initialAmountPaid = 0;
+
+      const paymentStatus = initialAmountPaid >= itemTotalUsd ? 'paid' : (initialAmountPaid > 0 ? 'partial' : 'pending');
+
       const saleData = {
         product_id: item.product_id,
         product_name: item.product!.name,
@@ -361,13 +372,16 @@ export default function Sales() {
         unit_price_usd: unitPriceUsd,
         total_usd: itemTotalUsd,
         total_bs: itemTotalBs,
-        payment_method: isCreditSale ? 'credito' : payment.method,
+        payment_method: payment.method || 'efectivo_usd',
         client_name: client.name ? sanitizeText(client.name) : null,
         client_dni: client.dni ? sanitizeText(client.dni) : null,
         client_email: client.email ? sanitizeText(client.email) : null,
         client_phone: client.phone ? sanitizeText(client.phone) : null,
         client_address: client.address ? sanitizeText(client.address) : null,
         is_credit: isCreditSale,
+        sale_modality: saleModality,
+        amount_paid: initialAmountPaid,
+        payment_status: paymentStatus,
         notes: finalNotes ? sanitizeText(finalNotes) : null,
       };
 
@@ -377,52 +391,6 @@ export default function Sales() {
       if (data?.id) {
         await confirmSale(data.id);
       }
-
-      if (!error && isCreditSale && client.name) {
-        try {
-          let existingCredit: any = null;
-          if (client.phone) {
-            const { data: byPhone } = await supabase.from('credits').select('*').eq('client_phone', sanitizeText(client.phone)).maybeSingle();
-            existingCredit = byPhone;
-          }
-          if (!existingCredit && client.email) {
-            const { data: byEmail } = await supabase.from('credits').select('*').eq('client_email', sanitizeText(client.email)).maybeSingle();
-            existingCredit = byEmail;
-          }
-
-          let creditId = existingCredit?.id;
-          if (!creditId) {
-            const newCredit = await createCredit.mutateAsync({
-              client_name: sanitizeText(client.name),
-              client_phone: client.phone ? sanitizeText(client.phone) : null,
-              client_email: client.email ? sanitizeText(client.email) : null,
-              credit_limit: itemTotalUsd,
-              cut_off_day: 15,
-              notes: `Creado automáticamente (${saleModality}). ${client.notes ? sanitizeText(client.notes) : ''}`.trim(),
-            });
-            creditId = newCredit.id;
-          }
-
-          if (saleModality === 'dos_partes') {
-            const pendingAmount = itemTotalUsd / 2;
-            const [dueDate] = getNextTwoCutoffDates();
-            await registerCharge.mutateAsync({ creditId, amount: pendingAmount, description: `En 2 partes - Pendiente ${item.product!.name} x${item.qty} (vence ${formatCutoffDate(dueDate)})`, saleId: data?.id || undefined });
-          } else if (saleModality === 'financiamiento') {
-            const installment = Math.round((itemTotalUsd * 2 / 3 / 2) * 100) / 100;
-            const [c1, c2] = getNextTwoCutoffDates();
-            await registerCharge.mutateAsync({ creditId, amount: installment, description: `Financiamiento Cuota 1/2 ${item.product!.name} (vence ${formatCutoffDate(c1)})`, saleId: data?.id || undefined });
-            await registerCharge.mutateAsync({ creditId, amount: installment, description: `Financiamiento Cuota 2/2 ${item.product!.name} (vence ${formatCutoffDate(c2)})`, saleId: data?.id || undefined });
-          } else if (saleModality === 'fiado') {
-            const [dueDate] = getNextTwoCutoffDates();
-            await registerCharge.mutateAsync({ creditId, amount: itemTotalUsd, description: `Fiado - 100% Pendiente ${item.product!.name} x${item.qty} (vence ${formatCutoffDate(dueDate)})`, saleId: data?.id || undefined });
-          } else {
-            await registerCharge.mutateAsync({ creditId, amount: itemTotalUsd, description: `Venta POS ${item.product!.name} x${item.qty}`, saleId: data?.id || undefined });
-          }
-        } catch (creditError: any) {
-          toast.error(`Venta registrada, pero error al cargar crédito: ${creditError.message}`);
-        }
-      }
-    }
 
     setIsSubmitting(false);
     if (!hasError) {
@@ -778,14 +746,23 @@ export default function Sales() {
         </div>
 
         <Tabs value={activeSalesTab} onValueChange={setActiveSalesTab} className="w-full">
-          <TabsList className="grid grid-cols-2 max-w-md bg-secondary rounded-xl mb-6">
+          <TabsList className="grid grid-cols-3 max-w-2xl bg-secondary rounded-xl mb-6">
             <TabsTrigger value="ventas" className="rounded-lg">
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Ventas de Caja
+              <ShoppingCart className="h-4 w-4 mr-2 hidden sm:inline" />
+              Ventas
+            </TabsTrigger>
+            <TabsTrigger value="cuentas-cobrar" className="rounded-lg relative">
+              <ClipboardList className="h-4 w-4 mr-2 hidden sm:inline" />
+              Cuentas por Cobrar
+              {sales.filter(s => s.payment_status !== 'paid').length > 0 && (
+                <Badge variant="destructive" className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full">
+                  {sales.filter(s => s.payment_status !== 'paid').length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="pedidos" className="rounded-lg relative">
-              <ClipboardList className="h-4 w-4 mr-2" />
-              Pedidos Clientes
+              <ClipboardList className="h-4 w-4 mr-2 hidden sm:inline" />
+              Pedidos
               {orders.filter(o => o.status === 'pending').length > 0 && (
                 <Badge variant="destructive" className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full">
                   {orders.filter(o => o.status === 'pending').length}
@@ -797,14 +774,28 @@ export default function Sales() {
           {/* TAB: VENTAS DIRECTAS */}
           <TabsContent value="ventas" className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="relative max-w-md flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar ventas..."
-                  className="pl-10 input-glass rounded-xl"
-                />
+              <div className="flex flex-1 flex-col sm:flex-row gap-2 max-w-2xl">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Buscar ventas..."
+                    className="pl-10 input-glass rounded-xl w-full"
+                  />
+                </div>
+                <Select value={saleModalityFilter} onValueChange={setSaleModalityFilter}>
+                  <SelectTrigger className="w-full sm:w-[180px] input-glass rounded-xl">
+                    <SelectValue placeholder="Modalidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las Modalidades</SelectItem>
+                    <SelectItem value="contado">Contado</SelectItem>
+                    <SelectItem value="fiado">Fiado Quincena</SelectItem>
+                    <SelectItem value="dos_partes">En 2 Partes</SelectItem>
+                    <SelectItem value="financiamiento">Financiamiento</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
@@ -1218,6 +1209,82 @@ export default function Sales() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* TAB: CUENTAS POR COBRAR */}
+          <TabsContent value="cuentas-cobrar" className="space-y-6">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+              <div>
+                <h2 className="text-xl font-bold">Cuentas por Cobrar (Caja)</h2>
+                <p className="text-sm text-muted-foreground">Ventas pendientes de pago (Fiado, 2 Partes, Financiamiento)</p>
+              </div>
+            </div>
+
+            {posReceivables.length === 0 ? (
+              <div className="text-center py-16">
+                <TickCircle className="h-16 w-16 text-green-500/50 mx-auto mb-4" />
+                <p className="text-muted-foreground font-medium text-lg">Todo está al día</p>
+                <p className="text-muted-foreground text-sm">No hay ventas con saldo pendiente</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {posReceivables.map(sale => {
+                  const pendingAmount = sale.total_usd - (sale.amount_paid || 0);
+                  const isPartial = sale.payment_status === 'partial';
+                  
+                  return (
+                    <Card key={sale.id} className="glass-card overflow-hidden">
+                      <div className={`h-1.5 w-full ${sale.sale_modality === 'fiado' ? 'bg-purple-500' : sale.sale_modality === 'dos_partes' ? 'bg-blue-500' : 'bg-amber-500'}`} />
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-bold flex items-center gap-1.5">
+                              <User className="h-4 w-4 text-primary" />
+                              {sale.client_name || 'Cliente sin nombre'}
+                            </p>
+                            <Badge variant="outline" className="mt-1 capitalize">
+                              {sale.sale_modality?.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">Deuda Total</p>
+                            <p className="font-bold text-lg text-destructive">${pendingAmount.toFixed(2)}</p>
+                          </div>
+                        </div>
+
+                        <div className="bg-secondary/50 rounded-lg p-2 text-sm flex justify-between items-center">
+                          <span className="text-muted-foreground truncate flex-1" title={sale.product_name}>
+                            {sale.product_name} x{sale.quantity}
+                          </span>
+                          <span className="font-medium ml-2">${sale.total_usd.toFixed(2)}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/10 pt-2">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {new Date(sale.created_at).toLocaleDateString()}
+                          </span>
+                          <span>Pagado: ${Number(sale.amount_paid || 0).toFixed(2)}</span>
+                        </div>
+
+                        <Button 
+                          className="w-full mt-2" 
+                          variant={isPartial ? "default" : "secondary"}
+                          onClick={async () => {
+                            if (confirm(`¿Marcar la deuda de $${pendingAmount.toFixed(2)} como pagada en su totalidad?`)) {
+                              await registerSalePayment({ saleId: sale.id, amount: pendingAmount, isFullPayment: true });
+                            }
+                          }}
+                        >
+                          <TickCircle className="h-4 w-4 mr-2" />
+                          Marcar como Pagado
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
 
           {/* TAB: PEDIDOS DE CLIENTES */}

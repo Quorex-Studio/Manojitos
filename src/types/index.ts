@@ -91,6 +91,9 @@ export interface Sale {
   client_phone: string | null;
   client_address: string | null;
   is_credit: boolean;
+  sale_modality: string | null;
+  amount_paid: number;
+  payment_status: string;
   notes: string | null;
   status: SaleStatus;
   created_at: string;

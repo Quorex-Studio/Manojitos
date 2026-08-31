@@ -988,9 +988,12 @@ export type Database = {
           is_credit: boolean
           notes: string | null
           payment_method: string
+          payment_status: string | null
           product_id: string | null
           product_name: string
           quantity: number
+          sale_modality: string | null
+          amount_paid: number
           status: string
           total_bs: number | null
           total_usd: number
@@ -1005,9 +1008,12 @@ export type Database = {
           is_credit?: boolean
           notes?: string | null
           payment_method: string
+          payment_status?: string | null
           product_id?: string | null
           product_name: string
           quantity?: number
+          sale_modality?: string | null
+          amount_paid?: number
           status?: string
           total_bs?: number | null
           total_usd: number
@@ -1022,9 +1028,12 @@ export type Database = {
           is_credit?: boolean
           notes?: string | null
           payment_method?: string
+          payment_status?: string | null
           product_id?: string | null
           product_name?: string
           quantity?: number
+          sale_modality?: string | null
+          amount_paid?: number
           status?: string
           total_bs?: number | null
           total_usd?: number
