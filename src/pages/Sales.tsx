@@ -133,6 +133,7 @@ export default function Sales() {
     address: '',
     notes: '',
   });
+  const [clientType, setClientType] = useState<'registered' | 'new'>('registered');
   const [dniLookupState, setDniLookupState] = useState<'idle' | 'loading' | 'found' | 'notfound'>('idle');
 
   const queryClient = useQueryClient();
@@ -896,84 +897,114 @@ export default function Sales() {
                       )}
                     </div>
 
-                    {/* ── DATOS DEL CLIENTE (DNI primero) ── */}
+                    {/* ── DATOS DEL CLIENTE ── */}
                     <div className="space-y-3 p-4 rounded-xl border border-primary/20 bg-primary/5">
-                      <h4 className="font-semibold text-primary flex items-center gap-2">
+                      <h4 className="font-semibold text-primary flex items-center gap-2 mb-2">
                         <User className="h-4 w-4" />
                         Datos del Cliente
                       </h4>
 
-                      {/* CÉDULA PRIMERO */}
-                      <div className="space-y-1.5">
-                        <Label>Cédula / RIF *</Label>
-                        <div className="relative">
-                          <Input
-                            value={client.dni}
-                            onChange={e => {
-                              setClient(prev => ({ ...prev, dni: e.target.value.replace(/[^0-9VJEG-]/ig, '').toUpperCase().slice(0, 15) }));
-                              setDniLookupState('idle');
-                            }}
-                            onBlur={handleDniBlur}
-                            placeholder="Ej: V-12345678"
-                            className="input-glass rounded-xl pr-9"
-                          />
-                          {dniLookupState === 'loading' && (
-                            <Loader className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
-                          )}
-                          {dniLookupState === 'found' && (
-                            <Check className="absolute right-3 top-2.5 h-4 w-4 text-primary" />
-                          )}
-                        </div>
-                        {dniLookupState === 'found' && (
-                          <p className="text-xs text-primary">✓ Cliente encontrado y datos auto-completados</p>
-                        )}
-                        {dniLookupState === 'notfound' && (
-                          <p className="text-xs text-muted-foreground">Cliente no registrado — completa los datos manualmente</p>
-                        )}
-                      </div>
+                      <Tabs value={clientType} onValueChange={(v: any) => { 
+                        setClientType(v); 
+                        setClient({ dni: '', name: '', phone: '', email: '', address: '', notes: '' }); 
+                        setDniLookupState('idle'); 
+                      }}>
+                        <TabsList className="grid w-full grid-cols-2 mb-4 bg-background/50">
+                          <TabsTrigger value="registered">Ya Registrado</TabsTrigger>
+                          <TabsTrigger value="new">Cliente Nuevo</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="registered" className="space-y-4">
+                          <div className="space-y-1.5">
+                            <Label>Buscar por Cédula / RIF *</Label>
+                            <div className="relative">
+                              <Input
+                                value={client.dni}
+                                onChange={e => {
+                                  setClient(prev => ({ ...prev, dni: e.target.value.replace(/[^0-9VJEG-]/ig, '').toUpperCase().slice(0, 15) }));
+                                  setDniLookupState('idle');
+                                }}
+                                onBlur={handleDniBlur}
+                                placeholder="Ej: V-12345678"
+                                className="input-glass rounded-xl pr-9"
+                              />
+                              {dniLookupState === 'loading' && (
+                                <Loader className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                              )}
+                              {dniLookupState === 'found' && (
+                                <Check className="absolute right-3 top-2.5 h-4 w-4 text-primary" />
+                              )}
+                            </div>
+                            {dniLookupState === 'found' && (
+                              <div className="mt-3 p-3 bg-primary/10 rounded-xl border border-primary/20 space-y-1">
+                                <p className="font-bold text-primary">{client.name}</p>
+                                {(client.phone || client.email) && (
+                                  <p className="text-sm text-muted-foreground">
+                                    {client.phone} {client.phone && client.email && '•'} {client.email}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {dniLookupState === 'notfound' && (
+                              <p className="text-sm text-destructive font-medium mt-1">Cliente no encontrado. Por favor, regístralo como Cliente Nuevo.</p>
+                            )}
+                          </div>
+                        </TabsContent>
 
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="space-y-1.5">
-                          <Label>Nombre del cliente *</Label>
-                          <Input
-                            value={client.name}
-                            onChange={e => setClient(prev => ({ ...prev, name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50) }))}
-                            placeholder="Nombre completo"
-                            className="input-glass rounded-xl"
-                            required
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <Label>Teléfono</Label>
-                            <Input
-                              value={client.phone}
-                              onChange={e => setClient(prev => ({ ...prev, phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '').slice(0, 20) }))}
-                              placeholder="+584141234567"
-                              className="input-glass rounded-xl"
-                            />
+                        <TabsContent value="new" className="space-y-3">
+                          <div className="grid grid-cols-1 gap-3">
+                            <div className="space-y-1.5">
+                              <Label>Cédula / RIF</Label>
+                              <Input
+                                value={client.dni}
+                                onChange={e => setClient(prev => ({ ...prev, dni: e.target.value.replace(/[^0-9VJEG-]/ig, '').toUpperCase().slice(0, 15) }))}
+                                placeholder="Ej: V-12345678"
+                                className="input-glass rounded-xl"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label>Nombre del cliente *</Label>
+                              <Input
+                                value={client.name}
+                                onChange={e => setClient(prev => ({ ...prev, name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50) }))}
+                                placeholder="Nombre completo"
+                                className="input-glass rounded-xl"
+                                required={clientType === 'new'}
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1.5">
+                                <Label>Teléfono</Label>
+                                <Input
+                                  value={client.phone}
+                                  onChange={e => setClient(prev => ({ ...prev, phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '').slice(0, 20) }))}
+                                  placeholder="+584141234567"
+                                  className="input-glass rounded-xl"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label>Email</Label>
+                                <Input
+                                  type="email"
+                                  value={client.email}
+                                  onChange={e => setClient(prev => ({ ...prev, email: e.target.value.slice(0, 100) }))}
+                                  placeholder="correo@ejemplo.com"
+                                  className="input-glass rounded-xl"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label>Dirección</Label>
+                              <Textarea
+                                value={client.address}
+                                onChange={e => setClient(prev => ({ ...prev, address: e.target.value.slice(0, 150) }))}
+                                placeholder="Dirección completa del cliente..."
+                                className="input-glass rounded-xl resize-none h-14"
+                              />
+                            </div>
                           </div>
-                          <div className="space-y-1.5">
-                            <Label>Email</Label>
-                            <Input
-                              type="email"
-                              value={client.email}
-                              onChange={e => setClient(prev => ({ ...prev, email: e.target.value.slice(0, 100) }))}
-                              placeholder="correo@ejemplo.com"
-                              className="input-glass rounded-xl"
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label>Dirección</Label>
-                          <Textarea
-                            value={client.address}
-                            onChange={e => setClient(prev => ({ ...prev, address: e.target.value.slice(0, 150) }))}
-                            placeholder="Dirección completa del cliente..."
-                            className="input-glass rounded-xl resize-none h-14"
-                          />
-                        </div>
-                      </div>
+                        </TabsContent>
+                      </Tabs>
                     </div>
 
                     {true && (
@@ -1102,7 +1133,8 @@ export default function Sales() {
                       disabled={
                         isSubmitting ||
                         resolvedItems.filter(i => i.product).length === 0 ||
-                        (!isCreditSale && !payment.method)
+                        (!isCreditSale && !payment.method) ||
+                        (clientType === 'registered' && !client.name)
                       }
                     >
                       {isSubmitting ? (
