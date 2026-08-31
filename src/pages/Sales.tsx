@@ -92,7 +92,7 @@ interface SaleLineItem {
 
 export default function Sales() {
   // --- STATE ---
-  const { sales, addSale, deleteSale, refetch: refetchSales } = useSales();
+  const { sales, addSale, confirmSale, deleteSale, refetch: refetchSales } = useSales();
   const { products, refetch: refetchProducts } = useProducts();
   const { createCredit, registerCharge } = useCredits();
   const { rate, convertToBS } = useExchangeRate();
@@ -198,6 +198,9 @@ export default function Sales() {
       changeUSD = changeBS > 0 && rate > 0 ? changeBS / rate : 0;
     }
   }
+  
+  const isFinanced = saleModality === 'dos_partes' || saleModality === 'financiamiento' || saleModality === 'fiado';
+  const isCreditSale = payment.is_credit || isFinanced;
   const { data: orders = [], isLoading: isLoadingOrders, refetch: refetchOrders } = useQuery({
     queryKey: ['admin-orders-list'],
     queryFn: async () => {
@@ -330,8 +333,6 @@ export default function Sales() {
       finalNotes = finalNotes ? `${receiptInfo} - ${finalNotes}` : receiptInfo;
     }
 
-    const isFinanced = saleModality === 'dos_partes' || saleModality === 'financiamiento' || saleModality === 'fiado';
-    const isCreditSale = payment.is_credit || isFinanced;
     const creditSurcharge = saleModality === 'financiamiento' ? (pricingConfig?.credit_surcharge_pct || 10) : 0;
 
     if (saleModality === 'dos_partes') {
@@ -372,6 +373,10 @@ export default function Sales() {
 
       const { data, error } = await addSale(saleData);
       if (error) { hasError = true; break; }
+
+      if (data?.id) {
+        await confirmSale(data.id);
+      }
 
       if (!error && isCreditSale && client.name) {
         try {
@@ -1105,7 +1110,7 @@ export default function Sales() {
                       disabled={
                         isSubmitting ||
                         resolvedItems.filter(i => i.product).length === 0 ||
-                        (!payment.is_credit && !payment.method)
+                        (!isCreditSale && !payment.method)
                       }
                     >
                       {isSubmitting ? (
