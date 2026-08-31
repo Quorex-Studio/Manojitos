@@ -1259,24 +1259,47 @@ export default function Sales() {
                 <p className="text-muted-foreground font-medium text-lg">Todo está al día</p>
                 <p className="text-muted-foreground text-sm">No hay ventas con saldo pendiente</p>
               </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {posReceivables.map(sale => {
-                  const pendingAmount = sale.total_usd - (sale.amount_paid || 0);
-                  const isPartial = sale.payment_status === 'partial';
+            ) : (() => {
+              const groups = new Map<string, any>();
+              posReceivables.forEach(sale => {
+                 const dateStr = new Date(sale.created_at).toLocaleDateString();
+                 const key = `${sale.client_name || 'Desconocido'}_${sale.sale_modality}_${dateStr}`;
+                 if (!groups.has(key)) {
+                   groups.set(key, {
+                     id: key,
+                     client_name: sale.client_name,
+                     sale_modality: sale.sale_modality,
+                     created_at: sale.created_at,
+                     sales: [],
+                     total_usd: 0,
+                     amount_paid: 0,
+                   });
+                 }
+                 const group = groups.get(key);
+                 group.sales.push(sale);
+                 group.total_usd += Number(sale.total_usd || 0);
+                 group.amount_paid += Number(sale.amount_paid || 0);
+              });
+              const groupedReceivables = Array.from(groups.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+              return (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {groupedReceivables.map(group => {
+                    const pendingAmount = group.total_usd - group.amount_paid;
+                    const isPartial = group.amount_paid > 0 && group.amount_paid < group.total_usd;
                   
                   return (
-                    <Card key={sale.id} className="glass-card overflow-hidden">
-                      <div className={`h-1.5 w-full ${sale.sale_modality === 'fiado' ? 'bg-purple-500' : sale.sale_modality === 'dos_partes' ? 'bg-blue-500' : 'bg-amber-500'}`} />
+                    <Card key={group.id} className="glass-card overflow-hidden">
+                      <div className={`h-1.5 w-full ${group.sale_modality === 'fiado' ? 'bg-purple-500' : group.sale_modality === 'dos_partes' ? 'bg-blue-500' : 'bg-amber-500'}`} />
                       <CardContent className="p-4 space-y-3">
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="font-bold flex items-center gap-1.5">
                               <User className="h-4 w-4 text-primary" />
-                              {sale.client_name || 'Cliente sin nombre'}
+                              {group.client_name || 'Cliente sin nombre'}
                             </p>
                             <Badge variant="outline" className="mt-1 capitalize">
-                              {sale.sale_modality?.replace('_', ' ')}
+                              {group.sale_modality?.replace('_', ' ')}
                             </Badge>
                           </div>
                           <div className="text-right">
@@ -1285,39 +1308,49 @@ export default function Sales() {
                           </div>
                         </div>
 
-                        <div className="bg-secondary/50 rounded-lg p-2 text-sm flex justify-between items-center">
-                          <span className="text-muted-foreground truncate flex-1" title={sale.product_name}>
-                            {sale.product_name} x{sale.quantity}
-                          </span>
-                          <span className="font-medium ml-2">${sale.total_usd.toFixed(2)}</span>
+                        <div className="space-y-1">
+                          {group.sales.map((sale: any) => (
+                            <div key={sale.id} className="bg-secondary/50 rounded-lg p-2 text-sm flex justify-between items-center">
+                              <span className="text-muted-foreground truncate flex-1" title={sale.product_name}>
+                                {sale.product_name} x{sale.quantity}
+                              </span>
+                              <span className="font-medium ml-2">${Number(sale.total_usd).toFixed(2)}</span>
+                            </div>
+                          ))}
                         </div>
 
                         <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/10 pt-2">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3.5 w-3.5" />
-                            {new Date(sale.created_at).toLocaleDateString()}
+                            {new Date(group.created_at).toLocaleDateString()}
                           </span>
-                          <span>Pagado: ${Number(sale.amount_paid || 0).toFixed(2)}</span>
+                          <span>Pagado: ${Number(group.amount_paid).toFixed(2)}</span>
                         </div>
 
                         <Button 
                           className="w-full mt-2" 
                           variant={isPartial ? "default" : "secondary"}
                           onClick={async () => {
-                            if (confirm(`¿Marcar la deuda de $${pendingAmount.toFixed(2)} como pagada en su totalidad?`)) {
-                              await registerSalePayment({ saleId: sale.id, amount: pendingAmount, isFullPayment: true });
+                            if (confirm(`¿Marcar la deuda total de $${pendingAmount.toFixed(2)} como pagada en su totalidad?`)) {
+                              for (const sale of group.sales) {
+                                const salePending = Number(sale.total_usd) - Number(sale.amount_paid || 0);
+                                if (salePending > 0) {
+                                  await registerSalePayment({ saleId: sale.id, amount: salePending, isFullPayment: true });
+                                }
+                              }
                             }
                           }}
                         >
                           <TickCircle className="h-4 w-4 mr-2" />
-                          Marcar como Pagado
+                          Marcar todo como Pagado
                         </Button>
                       </CardContent>
                     </Card>
                   );
-                })}
-              </div>
-            )}
+                  })}
+                </div>
+              );
+            })}
           </TabsContent>
 
           {/* TAB: PEDIDOS DE CLIENTES */}
