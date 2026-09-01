@@ -899,8 +899,8 @@ export default function Sales() {
                                 />
                               </div>
                               {ri?.product && (
-                                <span className="text-xs font-bold text-primary w-16 text-right flex-shrink-0">
-                                  ${ri.subtotalUSD.toFixed(2)}
+                                <span className="text-xs font-bold text-primary text-right flex-shrink-0 min-w-[4rem]">
+                                  {isBsPayment && rate > 0 ? formatBS(ri.subtotalBS) : `$${ri.subtotalUSD.toFixed(2)}`}
                                 </span>
                               )}
                               {items.length > 1 && (
@@ -921,16 +921,31 @@ export default function Sales() {
 
                       {/* Total del carrito */}
                       {totalUSD > 0 && (
-                        <div className="p-3 rounded-xl bg-secondary/80 space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground font-medium">Total USD:</span>
-                            <span className="font-bold text-gradient-gold text-lg">${totalUSD.toFixed(2)}</span>
-                          </div>
-                          {rate > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground text-sm">Total Bs:</span>
-                              <span className="font-medium text-sm">{formatBS(totalBS)}</span>
-                            </div>
+                        <div className="p-4 rounded-xl bg-secondary/80 space-y-2 shadow-inner">
+                          {isBsPayment && rate > 0 ? (
+                            <>
+                              <div className="flex justify-between items-center">
+                                <span className="text-foreground font-semibold">Total a pagar (Bs):</span>
+                                <span className="font-bold text-primary text-2xl">{formatBS(totalBS)}</span>
+                              </div>
+                              <div className="flex justify-between items-center pt-1 border-t border-border/50">
+                                <span className="text-muted-foreground text-sm">Monto protegido USD:</span>
+                                <span className="font-medium text-sm text-gradient-gold">${totalUSD.toFixed(2)}</span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex justify-between items-center">
+                                <span className="text-foreground font-semibold">Total USD:</span>
+                                <span className="font-bold text-gradient-gold text-2xl">${totalUSD.toFixed(2)}</span>
+                              </div>
+                              {rate > 0 && (
+                                <div className="flex justify-between items-center pt-1 border-t border-border/50">
+                                  <span className="text-muted-foreground text-sm">Referencial Bs:</span>
+                                  <span className="font-medium text-sm">{formatBS(totalBS)}</span>
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       )}
@@ -1080,12 +1095,19 @@ export default function Sales() {
                             {amountReceived > 0 && (
                               <div className="mt-3 p-3 rounded-lg bg-background/50 border border-border/50">
                                 <p className="text-sm text-muted-foreground mb-1">Vuelto a entregar:</p>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-2xl font-bold text-gradient-gold">${changeUSD.toFixed(2)}</span>
-                                  {rate > 0 && (
-                                    <span className="text-sm font-medium">{formatBS(changeBS)}</span>
-                                  )}
-                                </div>
+                                {payment.method === 'efectivo_bs' && rate > 0 ? (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-2xl font-bold text-primary">{formatBS(changeBS)}</span>
+                                    <span className="text-sm font-medium text-gradient-gold">${changeUSD.toFixed(2)}</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-2xl font-bold text-gradient-gold">${changeUSD.toFixed(2)}</span>
+                                    {rate > 0 && (
+                                      <span className="text-sm font-medium">{formatBS(changeBS)}</span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
