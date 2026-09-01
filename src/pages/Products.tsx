@@ -530,6 +530,64 @@ export default function Products() {
                   </div>
                 </div>
 
+                {/* ── DESGLOSE MANUAL (SI NO SE USA LA CALCULADORA) ── */}
+                {!showCalculator && (Number(form.price_usd) > 0 || Number(form.price_bs_usd) > 0) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-3 space-y-2"
+                  >
+                    <p className="text-xs text-primary font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                      <TrendUp className="h-3.5 w-3.5" />
+                      Precios de Venta Calculados (Manual)
+                    </p>
+
+                    <div className="space-y-1.5">
+                      {/* Base */}
+                      {Number(form.price_usd) > 0 && (
+                        <div className="flex items-center justify-between py-1.5 border-b border-border/20">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Precio Venta (Base)</p>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm">
+                            {usdRate > 0 && eurRate > 0 && (
+                              <>
+                                <span className="font-bold text-gradient-gold">
+                                  {formatEur((Number(form.price_usd) * usdRate) / eurRate)}
+                                </span>
+                                <span className="text-muted-foreground">≈ {formatUsd(Number(form.price_usd))}</span>
+                                <span className="text-muted-foreground text-xs">{formatBS(Number(form.price_usd) * usdRate)}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Equivalente en Bs (Precio Protegido) */}
+                      {Number(form.price_bs_usd) > 0 && (
+                        <div className="flex items-center justify-between py-1.5 border-b border-border/20 bg-primary/10 rounded px-2 -mx-2">
+                          <div>
+                            <p className="text-xs font-semibold text-primary">Si pagan en Bs</p>
+                            {Number(form.price_usd) > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                Margen manual: {Math.round((Number(form.price_bs_usd) / Number(form.price_usd) - 1) * 100)}%
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-sm">
+                            <span className="font-bold text-primary">
+                              {formatUsd(Number(form.price_bs_usd))}
+                            </span>
+                            {usdRate > 0 && (
+                              <span className="text-muted-foreground text-xs">{formatBS(Number(form.price_bs_usd) * usdRate)}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* ── CATEGORÍA, IMAGEN, TALLAS ── */}
                 <div className="space-y-2">
                   <Label>Categoría</Label>
