@@ -40,6 +40,7 @@ export default function Products() {
     name: '',
     description: '',
     price_usd: '',
+    price_bs_usd: '',
     stock: '',
     category: '',
     image_url: '',
@@ -124,7 +125,7 @@ export default function Products() {
 
   // --- HANDLERS ---
   const resetForm = () => {
-    setForm({ name: '', description: '', price_usd: '', stock: '', category: '', image_url: '', sizes: [] });
+    setForm({ name: '', description: '', price_usd: '', price_bs_usd: '', stock: '', category: '', image_url: '', sizes: [] });
     setCostCalc({ purchaseUnits: '', purchaseTotalUsd: '', addToStock: true });
     setCalculatedPrices({ costPerUnit: 0, costRounded: 0, priceWholesaleEur: 0, priceRetailEur: 0, priceCreditEur: 0 });
     setShowCalculator(false);
@@ -142,6 +143,7 @@ export default function Products() {
       name: product.name,
       description: product.description || '',
       price_usd: String(product.price_usd),
+      price_bs_usd: product.price_bs_usd !== null && product.price_bs_usd !== undefined ? String(product.price_bs_usd) : '',
       stock: String(product.stock),
       category: product.category || '',
       image_url: product.image_url || '',
@@ -173,6 +175,7 @@ export default function Products() {
       name: sanitizeText(form.name),
       description: form.description ? sanitizeText(form.description) : null,
       price_usd: Number(form.price_usd),
+      price_bs_usd: form.price_bs_usd ? Number(form.price_bs_usd) : null,
       cost_usd: calculatedPrices.costRounded || calculatedPrices.costPerUnit || 0,
       price_wholesale_eur: calculatedPrices.priceWholesaleEur || 0,
       price_retail_eur: calculatedPrices.priceRetailEur || 0,
@@ -427,7 +430,7 @@ export default function Products() {
                 </div>
 
                 {/* ── PRECIO Y STOCK ── */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Precio Venta (USD) *</Label>
                     <Input
@@ -445,6 +448,21 @@ export default function Products() {
                         Auto-calculado desde Detal EUR
                       </p>
                     )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Precio Bolívares (USD)*</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.price_bs_usd}
+                      onChange={(e) => setForm({ ...form, price_bs_usd: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) })}
+                      placeholder="Ej: 13.00"
+                      className="input-glass rounded-xl"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Monto base en USD al pagar en Bs (Opcional)
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label>Stock *</Label>

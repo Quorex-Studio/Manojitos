@@ -830,6 +830,7 @@ export type Database = {
           name: string
           price_retail_eur: number | null
           price_usd: number
+          price_bs_usd: number | null
           price_wholesale_eur: number | null
           sizes: string[] | null
           sold_count: number
@@ -848,6 +849,7 @@ export type Database = {
           name: string
           price_retail_eur?: number | null
           price_usd?: number
+          price_bs_usd?: number | null
           price_wholesale_eur?: number | null
           sizes?: string[] | null
           sold_count?: number
@@ -866,6 +868,7 @@ export type Database = {
           name?: string
           price_retail_eur?: number | null
           price_usd?: number
+          price_bs_usd?: number | null
           price_wholesale_eur?: number | null
           sizes?: string[] | null
           sold_count?: number

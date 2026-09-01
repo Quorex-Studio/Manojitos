@@ -205,13 +205,15 @@ export default function Sales() {
     }
   }, [client.dni]);
 
-  // --- DERIVED ---
+  const isBsPayment = ['efectivo_bs', 'pago_movil', 'transferencia'].includes(payment.method);
+  
   const resolvedItems = items.map(item => {
     const product = products.find(p => p.id === item.product_id);
     const qty = Math.max(1, parseInt(item.quantity) || 1);
-    const subtotalUSD = product ? Number(product.price_usd) * qty : 0;
+    const unitPrice = product ? (isBsPayment && product.price_bs_usd != null && product.price_bs_usd > 0 ? Number(product.price_bs_usd) : Number(product.price_usd)) : 0;
+    const subtotalUSD = unitPrice * qty;
     const subtotalBS = convertToBS(subtotalUSD);
-    return { ...item, product, qty, subtotalUSD, subtotalBS };
+    return { ...item, product, qty, unitPrice, subtotalUSD, subtotalBS };
   });
 
   const totalUSD = resolvedItems.reduce((sum, i) => sum + i.subtotalUSD, 0);
@@ -384,9 +386,13 @@ export default function Sales() {
 
     let hasError = false;
     for (const item of validItems) {
-      const unitPriceUsd = saleModality === 'financiamiento'
-        ? Number(item.product!.price_usd) * (1 + creditSurcharge / 100)
+      const basePrice = (isBsPayment && item.product!.price_bs_usd != null && item.product!.price_bs_usd > 0) 
+        ? Number(item.product!.price_bs_usd) 
         : Number(item.product!.price_usd);
+      
+      const unitPriceUsd = saleModality === 'financiamiento'
+        ? basePrice * (1 + creditSurcharge / 100)
+        : basePrice;
       const itemTotalUsd = unitPriceUsd * item.qty;
       const itemTotalBs = convertToBS(itemTotalUsd);
 
@@ -415,6 +421,7 @@ export default function Sales() {
         sale_modality: saleModality,
         amount_paid: initialAmountPaid,
         payment_status: paymentStatus,
+        status: isCreditSale ? 'confirmed' : 'pending',
         notes: finalNotes ? sanitizeText(finalNotes) : null,
       };
 

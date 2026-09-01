@@ -45,6 +45,7 @@ export interface Product {
   name: string;
   description: string | null;
   price_usd: number;
+  price_bs_usd?: number;
   cost_usd: number;
   price_wholesale_eur: number;
   price_retail_eur: number;
