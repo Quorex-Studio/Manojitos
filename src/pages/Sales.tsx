@@ -109,6 +109,38 @@ export default function Sales() {
   const [orderSort, setOrderSort] = useState('date_desc');
   const [saleModalityFilter, setSaleModalityFilter] = useState('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [abonoGroup, setAbonoGroup] = useState<any | null>(null);
+  const [abonoAmount, setAbonoAmount] = useState<string>('');
+
+  const handleSubmitAbono = async () => {
+    if (!abonoGroup) return;
+    const amount = Number(abonoAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Ingrese un monto válido');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      let remaining = amount;
+      for (const sale of abonoGroup.sales) {
+        if (remaining <= 0) break;
+        const salePending = Number(sale.total_usd) - Number(sale.amount_paid || 0);
+        if (salePending > 0) {
+          const toPay = Math.min(salePending, remaining);
+          await registerSalePayment({ saleId: sale.id, amount: toPay, isFullPayment: toPay === salePending });
+          remaining -= toPay;
+        }
+      }
+      toast.success('Abono registrado correctamente');
+      setAbonoGroup(null);
+      setAbonoAmount('');
+    } catch (error) {
+      console.error('Error al registrar abono:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Carrito multi-producto
   const [items, setItems] = useState<SaleLineItem[]>([{ id: crypto.randomUUID(), product_id: '', quantity: '1' }]);
@@ -1327,23 +1359,36 @@ export default function Sales() {
                           <span>Pagado: ${Number(group.amount_paid).toFixed(2)}</span>
                         </div>
 
-                        <Button 
-                          className="w-full mt-2" 
-                          variant={isPartial ? "default" : "secondary"}
-                          onClick={async () => {
-                            if (confirm(`¿Marcar la deuda total de $${pendingAmount.toFixed(2)} como pagada en su totalidad?`)) {
-                              for (const sale of group.sales) {
-                                const salePending = Number(sale.total_usd) - Number(sale.amount_paid || 0);
-                                if (salePending > 0) {
-                                  await registerSalePayment({ saleId: sale.id, amount: salePending, isFullPayment: true });
+                        <div className="flex gap-2 w-full mt-2">
+                          <Button 
+                            className="flex-1" 
+                            variant="outline"
+                            onClick={() => {
+                              setAbonoGroup(group);
+                              setAbonoAmount('');
+                            }}
+                          >
+                            <DollarSign className="h-4 w-4 mr-2" />
+                            Reportar Abono
+                          </Button>
+                          <Button 
+                            className="flex-1" 
+                            variant={isPartial ? "default" : "secondary"}
+                            onClick={async () => {
+                              if (confirm(`¿Marcar la deuda total de $${pendingAmount.toFixed(2)} como pagada en su totalidad?`)) {
+                                for (const sale of group.sales) {
+                                  const salePending = Number(sale.total_usd) - Number(sale.amount_paid || 0);
+                                  if (salePending > 0) {
+                                    await registerSalePayment({ saleId: sale.id, amount: salePending, isFullPayment: true });
+                                  }
                                 }
                               }
-                            }
-                          }}
-                        >
-                          <TickCircle className="h-4 w-4 mr-2" />
-                          Marcar todo como Pagado
-                        </Button>
+                            }}
+                          >
+                            <TickCircle className="h-4 w-4 mr-2" />
+                            Marcar Pagado
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   );
@@ -1643,6 +1688,57 @@ export default function Sales() {
               disabled={!rejectReason.trim() || isSubmitting}
             >
               Confirmar Rechazo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Abono Dialog */}
+      <Dialog open={!!abonoGroup} onOpenChange={(open) => {
+        if (!open) {
+          setAbonoGroup(null);
+          setAbonoAmount('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reportar Abono</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Monto a abonar (USD)</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="0.00"
+                  className="pl-9"
+                  value={abonoAmount}
+                  onChange={(e) => setAbonoAmount(e.target.value)}
+                />
+              </div>
+              {abonoGroup && (
+                <p className="text-xs text-muted-foreground">
+                  Deuda pendiente: ${(abonoGroup.total_usd - abonoGroup.amount_paid).toFixed(2)}
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => { setAbonoGroup(null); setAbonoAmount(''); }}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSubmitAbono}
+              disabled={!abonoAmount || Number(abonoAmount) <= 0 || isSubmitting}
+            >
+              Confirmar Abono
             </Button>
           </DialogFooter>
         </DialogContent>
