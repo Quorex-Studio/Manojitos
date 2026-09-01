@@ -237,7 +237,7 @@ export default function Sales() {
     return matchesSearch && matchesModality;
   });
 
-  const posReceivables = sales.filter(s => s.payment_status !== 'paid' && s.sale_modality !== 'contado');
+  const posReceivables = sales.filter(s => s.payment_status !== 'paid');
 
   const groupedSales = useMemo(() => {
     const groups: any[] = [];
@@ -1350,7 +1350,7 @@ export default function Sales() {
                   })}
                 </div>
               );
-            })}
+            })()}
           </TabsContent>
 
           {/* TAB: PEDIDOS DE CLIENTES */}
