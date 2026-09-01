@@ -82,7 +82,7 @@ export default function Products() {
 
       // Auto-set price_usd from retail EUR → USD conversion, and calculate protected Bs price
       if (eurRate > 0 && usdRate > 0) {
-        const priceUsd = eurToUsd(prices.priceRetailEur, usdRate, eurRate);
+        const priceUsd = eurToUsd(prices.priceWholesaleEur, usdRate, eurRate);
         const priceBsUsd = priceUsd * (1 + surchargePct / 100);
         setForm(prev => ({ 
           ...prev, 
@@ -400,8 +400,6 @@ export default function Products() {
                                   <span className="text-muted-foreground">× {pricingConfig.usd_to_eur_multiplier} (factor EUR):</span>
                                   <span className="font-medium text-right">{formatEur(calculatedPrices.priceWholesaleEur)}</span>
 
-                                  <span className="text-muted-foreground">+ {pricingConfig.retail_markup_pct}% detal:</span>
-                                  <span className="font-medium text-right">{formatEur(calculatedPrices.priceRetailEur)}</span>
                                 </div>
                               </div>
 
@@ -413,32 +411,17 @@ export default function Products() {
                                 </p>
 
                                 <div className="space-y-1.5">
-                                  {/* Mayor */}
+                                  {/* Base */}
                                   <div className="flex items-center justify-between py-1.5 border-b border-border/20">
                                     <div>
-                                      <p className="text-xs text-muted-foreground">Precio Mayor</p>
+                                      <p className="text-xs text-muted-foreground">Precio Venta (Base)</p>
                                     </div>
                                     <div className="flex items-center gap-3 text-sm">
-                                      <span className="font-bold text-primary">{formatEur(calculatedPrices.priceWholesaleEur)}</span>
+                                      <span className="font-bold text-gradient-gold">{formatEur(calculatedPrices.priceWholesaleEur)}</span>
                                       {usdRate > 0 && eurRate > 0 && (
                                         <>
                                           <span className="text-muted-foreground">≈ {formatUsd(eurToUsd(calculatedPrices.priceWholesaleEur, usdRate, eurRate))}</span>
                                           <span className="text-muted-foreground text-xs">{formatBS(calculatedPrices.priceWholesaleEur * eurRate)}</span>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Detal */}
-                                  <div className="flex items-center justify-between py-1.5 border-b border-border/20">
-                                    <div>
-                                      <p className="text-xs text-muted-foreground">Precio Detal</p>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-sm">
-                                      <span className="font-bold text-gradient-gold">{formatEur(calculatedPrices.priceRetailEur)}</span>
-                                      {usdRate > 0 && eurRate > 0 && (
-                                        <>
-                                          <span className="text-muted-foreground">≈ {formatUsd(eurToUsd(calculatedPrices.priceRetailEur, usdRate, eurRate))}</span>
                                         </>
                                       )}
                                     </div>
@@ -453,7 +436,7 @@ export default function Products() {
                                       </div>
                                       <div className="flex items-center gap-3 text-sm">
                                         <span className="font-bold text-primary">
-                                          {formatUsd(eurToUsd(calculatedPrices.priceRetailEur, usdRate, eurRate) * (1 + (parseFloat(costCalc.bsSurchargePct) || 15) / 100))}
+                                          {formatUsd(eurToUsd(calculatedPrices.priceWholesaleEur, usdRate, eurRate) * (1 + (parseFloat(costCalc.bsSurchargePct) || 15) / 100))}
                                         </span>
                                       </div>
                                     </div>

@@ -126,8 +126,8 @@ export function usePricingConfig() {
     }
 
     const priceWholesaleEur = costRounded * cfg.usd_to_eur_multiplier;
-    const priceRetailEur = Math.round(priceWholesaleEur * (1 + cfg.retail_markup_pct / 100) * 100) / 100;
-    const priceCreditEur = Math.round(priceRetailEur * (1 + cfg.credit_surcharge_pct / 100) * 100) / 100;
+    const priceRetailEur = priceWholesaleEur; // Legacy field, now equals base EUR price
+    const priceCreditEur = Math.round(priceWholesaleEur * (1 + cfg.credit_surcharge_pct / 100) * 100) / 100;
 
     return {
       costPerUnit: Math.round(costPerUnit * 100) / 100,
