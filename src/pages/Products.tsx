@@ -49,8 +49,10 @@ export default function Products() {
 
   // Cost calculator fields
   const [costCalc, setCostCalc] = useState({
+    purchaseMerchUsd: '',
+    purchaseShippingUsd: '',
     purchaseUnits: '',
-    purchaseTotalUsd: '',
+    bsSurchargePct: '15',
     addToStock: true,
   });
 
@@ -67,17 +69,26 @@ export default function Products() {
 
   // --- Recalculate prices when cost fields change ---
   useEffect(() => {
+    const merch = parseFloat(costCalc.purchaseMerchUsd) || 0;
+    const shipping = parseFloat(costCalc.purchaseShippingUsd) || 0;
     const units = parseInt(costCalc.purchaseUnits) || 0;
-    const total = parseFloat(costCalc.purchaseTotalUsd) || 0;
+    const surchargePct = parseFloat(costCalc.bsSurchargePct) || 15;
+    
+    const total = merch + shipping;
 
     if (units > 0 && total > 0) {
       const prices = calculatePrices(units, total);
       setCalculatedPrices(prices);
 
-      // Auto-set price_usd from retail EUR → USD conversion
+      // Auto-set price_usd from retail EUR → USD conversion, and calculate protected Bs price
       if (eurRate > 0 && usdRate > 0) {
         const priceUsd = eurToUsd(prices.priceRetailEur, usdRate, eurRate);
-        setForm(prev => ({ ...prev, price_usd: priceUsd.toFixed(2) }));
+        const priceBsUsd = priceUsd * (1 + surchargePct / 100);
+        setForm(prev => ({ 
+          ...prev, 
+          price_usd: priceUsd.toFixed(2),
+          price_bs_usd: priceBsUsd.toFixed(2) 
+        }));
       }
 
       // Auto-add stock if enabled
@@ -87,7 +98,7 @@ export default function Products() {
     } else {
       setCalculatedPrices({ costPerUnit: 0, costRounded: 0, priceWholesaleEur: 0, priceRetailEur: 0, priceCreditEur: 0 });
     }
-  }, [costCalc.purchaseUnits, costCalc.purchaseTotalUsd, pricingConfig, eurRate, usdRate]);
+  }, [costCalc.purchaseMerchUsd, costCalc.purchaseShippingUsd, costCalc.purchaseUnits, costCalc.bsSurchargePct, pricingConfig, eurRate, usdRate]);
 
   // --- DERIVED ---
   const filteredProducts = products.filter(p =>
@@ -126,7 +137,7 @@ export default function Products() {
   // --- HANDLERS ---
   const resetForm = () => {
     setForm({ name: '', description: '', price_usd: '', price_bs_usd: '', stock: '', category: '', image_url: '', sizes: [] });
-    setCostCalc({ purchaseUnits: '', purchaseTotalUsd: '', addToStock: true });
+    setCostCalc({ purchaseMerchUsd: '', purchaseShippingUsd: '', purchaseUnits: '', bsSurchargePct: '15', addToStock: true });
     setCalculatedPrices({ costPerUnit: 0, costRounded: 0, priceWholesaleEur: 0, priceRetailEur: 0, priceCreditEur: 0 });
     setShowCalculator(false);
     setEditingProduct(null);
@@ -153,6 +164,18 @@ export default function Products() {
     // If product has cost data, populate the calculator
     if (product.cost_usd && product.cost_usd > 0) {
       setShowCalculator(true);
+      
+      let derivedSurcharge = '15';
+      if (product.price_bs_usd && product.price_usd && product.price_usd > 0) {
+        derivedSurcharge = Math.round(((product.price_bs_usd / product.price_usd) - 1) * 100).toString();
+      }
+      
+      setCostCalc(prev => ({
+        ...prev,
+        purchaseUnits: String(product.stock), // Estimate based on current stock
+        bsSurchargePct: derivedSurcharge
+      }));
+
       setCalculatedPrices({
         costPerUnit: product.cost_usd,
         costRounded: Math.ceil(product.cost_usd),
@@ -291,25 +314,49 @@ export default function Products() {
                             </p>
                             <div className="grid grid-cols-2 gap-3">
                               <div className="space-y-1.5">
+                                <Label className="text-xs">Costo Mercancía ($)</Label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={costCalc.purchaseMerchUsd}
+                                  onChange={e => setCostCalc(prev => ({ ...prev, purchaseMerchUsd: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) }))}
+                                  placeholder="Ej: 200"
+                                  className="input-glass rounded-lg text-sm"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs">Costo Envío ($)</Label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={costCalc.purchaseShippingUsd}
+                                  onChange={e => setCostCalc(prev => ({ ...prev, purchaseShippingUsd: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) }))}
+                                  placeholder="Ej: 33"
+                                  className="input-glass rounded-lg text-sm"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
                                 <Label className="text-xs">Unidades compradas</Label>
                                 <Input
                                   type="number"
                                   min="1"
                                   value={costCalc.purchaseUnits}
                                   onChange={e => setCostCalc(prev => ({ ...prev, purchaseUnits: e.target.value.replace(/[^0-9]/g, '').slice(0, 6) }))}
-                                  placeholder="Ej: 12"
+                                  placeholder="Ej: 50"
                                   className="input-glass rounded-lg text-sm"
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <Label className="text-xs">Total pagado (USD)</Label>
+                                <Label className="text-xs">Margen extra pago Bs (%)</Label>
                                 <Input
                                   type="number"
-                                  step="0.01"
                                   min="0"
-                                  value={costCalc.purchaseTotalUsd}
-                                  onChange={e => setCostCalc(prev => ({ ...prev, purchaseTotalUsd: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) }))}
-                                  placeholder="Ej: 36.00"
+                                  max="100"
+                                  value={costCalc.bsSurchargePct}
+                                  onChange={e => setCostCalc(prev => ({ ...prev, bsSurchargePct: e.target.value.replace(/[^0-9]/g, '').slice(0, 3) }))}
+                                  placeholder="Ej: 15"
                                   className="input-glass rounded-lg text-sm"
                                 />
                               </div>
@@ -341,6 +388,9 @@ export default function Products() {
                                   Desglose del Cálculo
                                 </p>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                  <span className="text-muted-foreground">Costo de Mercancía + Envío:</span>
+                                  <span className="font-medium text-right">{formatUsd((parseFloat(costCalc.purchaseMerchUsd) || 0) + (parseFloat(costCalc.purchaseShippingUsd) || 0))}</span>
+
                                   <span className="text-muted-foreground">Costo unitario real:</span>
                                   <span className="font-medium text-right">{formatUsd(calculatedPrices.costPerUnit)}</span>
 
@@ -389,11 +439,25 @@ export default function Products() {
                                       {usdRate > 0 && eurRate > 0 && (
                                         <>
                                           <span className="text-muted-foreground">≈ {formatUsd(eurToUsd(calculatedPrices.priceRetailEur, usdRate, eurRate))}</span>
-                                          <span className="text-muted-foreground text-xs">{formatBS(calculatedPrices.priceRetailEur * eurRate)}</span>
                                         </>
                                       )}
                                     </div>
                                   </div>
+
+                                  {/* Equivalente en Bs (Precio Protegido) */}
+                                  {usdRate > 0 && eurRate > 0 && (
+                                    <div className="flex items-center justify-between py-1.5 border-b border-border/20 bg-primary/10 rounded px-2 -mx-2">
+                                      <div>
+                                        <p className="text-xs font-semibold text-primary">Si pagan en Bs</p>
+                                        <p className="text-[10px] text-muted-foreground">Base USD protegida (+{costCalc.bsSurchargePct}%)</p>
+                                      </div>
+                                      <div className="flex items-center gap-3 text-sm">
+                                        <span className="font-bold text-primary">
+                                          {formatUsd(eurToUsd(calculatedPrices.priceRetailEur, usdRate, eurRate) * (1 + (parseFloat(costCalc.bsSurchargePct) || 15) / 100))}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
 
                                   {/* Crédito */}
                                   <div className="flex items-center justify-between py-1.5">
