@@ -2038,6 +2038,11 @@ export default function Sales() {
                         Bolívares: {formatBS(payment.amount_bs)} (Tasa: {payment.exchange_rate})
                       </p>
                     )}
+                    {payment.usdt_bought > 0 && (
+                      <p className="text-xs text-muted-foreground mb-1">
+                        USDT Comprados: {payment.usdt_bought} (Tasa: {payment.usdt_rate})
+                      </p>
+                    )}
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="outline" className="text-[10px] capitalize">
                         {payment.payment_method.replace('_', ' ')}
