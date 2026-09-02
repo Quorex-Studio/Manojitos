@@ -1053,6 +1053,53 @@ export type Database = {
           },
         ]
       }
+      sale_payments: {
+        Row: {
+          id: string
+          sale_id: string
+          amount_usd: number
+          amount_bs: number | null
+          exchange_rate: number | null
+          usdt_rate: number | null
+          usdt_bought: number | null
+          payment_method: string
+          created_at: string
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          sale_id: string
+          amount_usd: number
+          amount_bs?: number | null
+          exchange_rate?: number | null
+          usdt_rate?: number | null
+          usdt_bought?: number | null
+          payment_method: string
+          created_at?: string
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          sale_id?: string
+          amount_usd?: number
+          amount_bs?: number | null
+          exchange_rate?: number | null
+          usdt_rate?: number | null
+          usdt_bought?: number | null
+          payment_method?: string
+          created_at?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wishlist: {
         Row: {
           created_at: string

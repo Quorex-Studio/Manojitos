@@ -356,19 +356,31 @@ export function useSales() {
   });
 
   const registerSalePayment = useMutation({
-    mutationFn: async ({ saleId, amount, isFullPayment }: { saleId: string; amount: number; isFullPayment?: boolean }) => {
+    mutationFn: async ({ 
+      saleId, amountUsd, amountBs, exchangeRate, usdtRate, usdtBought, paymentMethod, notes 
+    }: { 
+      saleId: string; 
+      amountUsd: number; 
+      amountBs?: number;
+      exchangeRate?: number;
+      usdtRate?: number;
+      usdtBought?: number;
+      paymentMethod: string;
+      notes?: string;
+    }) => {
       const sale = sales.find(s => s.id === saleId);
       if (!sale) throw new Error('Venta no encontrada');
 
-      const newAmountPaid = isFullPayment ? sale.total_usd : (sale.amount_paid || 0) + amount;
-      const newStatus = newAmountPaid >= sale.total_usd ? 'paid' : 'partial';
-
-      const { data, error } = await supabase
-        .from('sales')
-        .update({ amount_paid: newAmountPaid, payment_status: newStatus })
-        .eq('id', saleId)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('process_pos_abono', {
+        p_sale_id: saleId,
+        p_amount_usd: amountUsd,
+        p_amount_bs: amountBs || 0,
+        p_exchange_rate: exchangeRate || 0,
+        p_usdt_rate: usdtRate || 0,
+        p_usdt_bought: usdtBought || 0,
+        p_payment_method: paymentMethod,
+        p_notes: notes || ''
+      });
 
       if (error) throw error;
       return data;

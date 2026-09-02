@@ -8,6 +8,7 @@ import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
 import { useCredits } from '@/hooks/useCredits';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,13 +25,7 @@ import { toast } from 'sonner';
 import { formatBS } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
 
-const paymentMethods = [
-  { value: 'efectivo_usd', label: 'Efectivo USD' },
-  { value: 'efectivo_bs', label: 'Efectivo Bs' },
-  { value: 'zelle', label: 'Zelle' },
-  { value: 'pago_movil', label: 'Pago Móvil' },
-  { value: 'transferencia', label: 'Transferencia' },
-];
+// Removed hardcoded paymentMethods array
 
 const formatPaymentMethod = (method: string) => {
   if (!method) return '';
@@ -95,6 +90,7 @@ export default function Sales() {
   const { sales, addSale, confirmSale, deleteSale, registerSalePayment, refetch: refetchSales } = useSales();
   const { products, refetch: refetchProducts } = useProducts();
   const { rate, convertToBS } = useExchangeRate();
+  const { methods: activePaymentMethods } = usePaymentMethods(false);
   const { config: pricingConfig } = usePricingConfig();
   const [searchParams] = useSearchParams();
   const initialSalesTab = searchParams.get('tab') === 'pedidos' ? 'pedidos' : 'ventas';
@@ -110,13 +106,30 @@ export default function Sales() {
   const [saleModalityFilter, setSaleModalityFilter] = useState('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [abonoGroup, setAbonoGroup] = useState<any | null>(null);
-  const [abonoAmount, setAbonoAmount] = useState<string>('');
+  const [abonoAmount, setAbonoAmount] = useState<string>(''); // amount in USD
+  const [abonoAmountBs, setAbonoAmountBs] = useState<string>('');
+  const [abonoExchangeRate, setAbonoExchangeRate] = useState<string>('');
+  const [abonoUsdtRate, setAbonoUsdtRate] = useState<string>('');
+  const [abonoUsdtBought, setAbonoUsdtBought] = useState<string>('');
+  const [abonoPaymentMethod, setAbonoPaymentMethod] = useState<string>('pago_movil');
+  const [abonoNotes, setAbonoNotes] = useState<string>('');
+
+  const resetAbonoForm = () => {
+    setAbonoGroup(null);
+    setAbonoAmount('');
+    setAbonoAmountBs('');
+    setAbonoExchangeRate('');
+    setAbonoUsdtRate('');
+    setAbonoUsdtBought('');
+    setAbonoPaymentMethod('pago_movil');
+    setAbonoNotes('');
+  };
 
   const handleSubmitAbono = async () => {
     if (!abonoGroup) return;
     const amount = Number(abonoAmount);
     if (isNaN(amount) || amount <= 0) {
-      toast.error('Ingrese un monto válido');
+      toast.error('Ingrese un monto en USD válido');
       return;
     }
     
@@ -128,13 +141,23 @@ export default function Sales() {
         const salePending = Number(sale.total_usd) - Number(sale.amount_paid || 0);
         if (salePending > 0) {
           const toPay = Math.min(salePending, remaining);
-          await registerSalePayment({ saleId: sale.id, amount: toPay, isFullPayment: toPay === salePending });
+          const fraction = toPay / amount; // proportion of the total abono applied to this sale
+          
+          await registerSalePayment({ 
+            saleId: sale.id, 
+            amountUsd: toPay,
+            amountBs: abonoAmountBs ? Number(abonoAmountBs) * fraction : undefined,
+            exchangeRate: abonoExchangeRate ? Number(abonoExchangeRate) : rate,
+            usdtRate: abonoUsdtRate ? Number(abonoUsdtRate) : undefined,
+            usdtBought: abonoUsdtBought ? Number(abonoUsdtBought) * fraction : undefined,
+            paymentMethod: abonoPaymentMethod,
+            notes: abonoNotes
+          });
           remaining -= toPay;
         }
       }
       toast.success('Abono registrado correctamente');
-      setAbonoGroup(null);
-      setAbonoAmount('');
+      resetAbonoForm();
     } catch (error) {
       console.error('Error al registrar abono:', error);
     } finally {
@@ -1070,8 +1093,8 @@ export default function Sales() {
                               <SelectValue placeholder="Seleccionar método" />
                             </SelectTrigger>
                             <SelectContent>
-                              {paymentMethods.map(m => (
-                                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                              {activePaymentMethods.map(m => (
+                                <SelectItem key={m.method_key} value={m.method_key}>{m.label}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -1128,7 +1151,12 @@ export default function Sales() {
                           <button
                             key={mod.key}
                             type="button"
-                            onClick={() => setSaleModality(mod.key)}
+                            onClick={() => {
+                              setSaleModality(mod.key);
+                              if (['fiado', 'dos_partes', 'financiamiento'].includes(mod.key)) {
+                                setPayment(prev => ({ ...prev, method: 'pago_movil' }));
+                              }
+                            }}
                             className={[
                               'p-3 rounded-xl border text-left transition-all text-sm',
                               saleModality === mod.key
@@ -1334,20 +1362,25 @@ export default function Sales() {
                      sales: [],
                      total_usd: 0,
                      amount_paid: 0,
+                     total_bs: 0,
+                     payment_method: sale.payment_method,
                    });
                  }
                  const group = groups.get(key);
                  group.sales.push(sale);
                  group.total_usd += Number(sale.total_usd || 0);
                  group.amount_paid += Number(sale.amount_paid || 0);
+                 group.total_bs += Number(sale.total_bs || 0);
               });
               const groupedReceivables = Array.from(groups.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
               return (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {groupedReceivables.map(group => {
-                    const pendingAmount = group.total_usd - group.amount_paid;
+                    const pendingAmountUsd = group.total_usd - group.amount_paid;
                     const isPartial = group.amount_paid > 0 && group.amount_paid < group.total_usd;
+                    const isBsPayment = ['pago_movil', 'efectivo_bs', 'transferencia', 'credito'].includes(group.payment_method);
+                    const remainingBs = group.total_bs ? (group.total_bs * (pendingAmountUsd / group.total_usd)) : 0;
                   
                   return (
                     <Card key={group.id} className="glass-card overflow-hidden">
@@ -1365,7 +1398,14 @@ export default function Sales() {
                           </div>
                           <div className="text-right">
                             <p className="text-sm text-muted-foreground">Deuda Total</p>
-                            <p className="font-bold text-lg text-destructive">${pendingAmount.toFixed(2)}</p>
+                            {isBsPayment && group.total_bs > 0 ? (
+                              <>
+                                <p className="font-bold text-lg text-destructive">{formatBS(remainingBs)}</p>
+                                <p className="text-xs text-muted-foreground">${pendingAmountUsd.toFixed(2)}</p>
+                              </>
+                            ) : (
+                              <p className="font-bold text-lg text-destructive">${pendingAmountUsd.toFixed(2)}</p>
+                            )}
                           </div>
                         </div>
 
@@ -1404,13 +1444,18 @@ export default function Sales() {
                             className="flex-1" 
                             variant={isPartial ? "default" : "secondary"}
                             onClick={async () => {
-                              if (confirm(`¿Marcar la deuda total de $${pendingAmount.toFixed(2)} como pagada en su totalidad?`)) {
+                              if (confirm(`¿Marcar la deuda total de $${pendingAmountUsd.toFixed(2)} como pagada en su totalidad?`)) {
                                 for (const sale of group.sales) {
                                   const salePending = Number(sale.total_usd) - Number(sale.amount_paid || 0);
                                   if (salePending > 0) {
-                                    await registerSalePayment({ saleId: sale.id, amount: salePending, isFullPayment: true });
+                                    await registerSalePayment({ 
+                                      saleId: sale.id, 
+                                      amountUsd: salePending, 
+                                      paymentMethod: sale.payment_method || 'pago_movil'
+                                    });
                                   }
                                 }
+
                               }
                             }}
                           >
@@ -1724,18 +1769,30 @@ export default function Sales() {
 
       {/* Abono Dialog */}
       <Dialog open={!!abonoGroup} onOpenChange={(open) => {
-        if (!open) {
-          setAbonoGroup(null);
-          setAbonoAmount('');
-        }
+        if (!open) resetAbonoForm();
       }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reportar Abono</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            
             <div className="space-y-2">
-              <Label>Monto a abonar (USD)</Label>
+              <Label>Método de Pago del Abono</Label>
+              <Select value={abonoPaymentMethod} onValueChange={setAbonoPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione el método de pago" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activePaymentMethods.map(m => (
+                    <SelectItem key={m.method_key} value={m.method_key}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Monto a descontar de la deuda (USD)</Label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -1743,22 +1800,77 @@ export default function Sales() {
                   step="0.01"
                   min="0.01"
                   placeholder="0.00"
-                  className="pl-9"
+                  className="pl-9 font-bold text-primary"
                   value={abonoAmount}
                   onChange={(e) => setAbonoAmount(e.target.value)}
                 />
               </div>
               {abonoGroup && (
                 <p className="text-xs text-muted-foreground">
-                  Deuda pendiente: ${(abonoGroup.total_usd - abonoGroup.amount_paid).toFixed(2)}
+                  Deuda pendiente actual: ${(abonoGroup.total_usd - abonoGroup.amount_paid).toFixed(2)}
                 </p>
               )}
             </div>
+
+            <div className="space-y-2">
+              <Label>Monto real cobrado (Bolívares o Moneda Local)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="Opcional. Ej. 500"
+                value={abonoAmountBs}
+                onChange={(e) => setAbonoAmountBs(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tasa de Cobro</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder={rate.toString()}
+                  value={abonoExchangeRate}
+                  onChange={(e) => setAbonoExchangeRate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Tasa de Compra USDT</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="Opcional"
+                  value={abonoUsdtRate}
+                  onChange={(e) => setAbonoUsdtRate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>USDT Comprados (Opcional)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="Opcional"
+                value={abonoUsdtBought}
+                onChange={(e) => setAbonoUsdtBought(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notas Adicionales</Label>
+              <Input
+                placeholder="Referencia o detalles del pago"
+                value={abonoNotes}
+                onChange={(e) => setAbonoNotes(e.target.value)}
+              />
+            </div>
+
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button 
               variant="outline" 
-              onClick={() => { setAbonoGroup(null); setAbonoAmount(''); }}
+              onClick={resetAbonoForm}
               disabled={isSubmitting}
             >
               Cancelar
@@ -1766,6 +1878,7 @@ export default function Sales() {
             <Button 
               onClick={handleSubmitAbono}
               disabled={!abonoAmount || Number(abonoAmount) <= 0 || isSubmitting}
+              className="btn-gold"
             >
               Confirmar Abono
             </Button>

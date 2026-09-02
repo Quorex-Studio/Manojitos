@@ -4,8 +4,6 @@ import { ChartSuccess, DollarSign, ShoppingBag, ArrowUp, InfoCircle, Package, Cr
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/ui/stat-card';
 import { DashboardAlertsDropdown } from '@/components/admin/AdminAlertsPanel';
-import { CustomerOfMonthCard } from '@/components/credits/CustomerOfMonthCard';
-
 import { useSales } from '@/hooks/useSales';
 import { useProducts } from '@/hooks/useProducts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
@@ -15,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { formatBS } from '@/lib/utils';
 import { isToday } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 // Dashboard admin — Premium editorial
 export default function Dashboard() {
@@ -24,6 +24,24 @@ export default function Dashboard() {
   const { credits } = useCredits();
   const { displayCurrency } = useCurrency();
   const { rate, convertToBS, calculateAllCurrencies } = useExchangeRate(displayCurrency === 'EUR' ? 'EUR' : 'USD');
+
+  const { data: todayPayments = [] } = useQuery({
+    queryKey: ['today-payments'],
+    queryFn: async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const { data, error } = await supabase
+        .from('sale_payments')
+        .select(`
+          id, amount_usd, payment_method, created_at,
+          sale:sales(client_name, product_name)
+        `)
+        .gte('created_at', today.toISOString());
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
 
   // --- DERIVED ---
   const stats = useMemo(() => {
@@ -114,13 +132,8 @@ export default function Dashboard() {
           <DashboardAlertsDropdown />
         </div>
 
-        {/* Highlight Section (Customer of month) */}
-        <div className="w-full">
-          <CustomerOfMonthCard />
-        </div>
-
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <StatCard
             title="Ventas Hoy"
             value={formatCurrencyPair(stats.todayTotal).primary}
@@ -146,6 +159,34 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No hay ventas hoy</p>
+              )
+            }
+          />
+          <StatCard
+            title="Abonos Hoy"
+            value={formatCurrencyPair(todayPayments.reduce((acc, p) => acc + Number(p.amount_usd), 0)).primary}
+            subtitle={`${todayPayments.length} abonos`}
+            tertiaryText={formatCurrencyPair(todayPayments.reduce((acc, p) => acc + Number(p.amount_usd), 0)).secondary}
+            icon={<ArrowUp className="h-6 w-6" />}
+            variant="default"
+            delay={0.05}
+            href="/sales"
+            hoverContent={
+              todayPayments.length > 0 ? (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold border-b border-border/50 pb-2">Abonos de Hoy</h4>
+                  <ul className="text-sm space-y-1">
+                    {todayPayments.slice(0, 5).map(p => (
+                      <li key={p.id} className="flex justify-between items-center text-xs">
+                        <span className="truncate w-32">{p.sale?.client_name || 'Desconocido'}</span>
+                        <span className="font-bold text-gradient-gold">${Number(p.amount_usd).toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {todayPayments.length > 5 && <p className="text-xs text-muted-foreground pt-1">+ {todayPayments.length - 5} más</p>}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No hay abonos hoy</p>
               )
             }
           />

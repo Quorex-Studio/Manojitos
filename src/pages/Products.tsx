@@ -40,6 +40,7 @@ export default function Products() {
     name: '',
     description: '',
     price_usd: '',
+    price_eur: '',
     price_bs_usd: '',
     stock: '',
     category: '',
@@ -84,9 +85,12 @@ export default function Products() {
       if (eurRate > 0 && usdRate > 0) {
         const priceUsd = eurToUsd(prices.priceWholesaleEur, usdRate, eurRate);
         const priceBsUsd = priceUsd * (1 + surchargePct / 100);
+        // Only auto-fill form if they are empty, OR if we are actively using the calculator to drive prices
+        // Since this runs when costCalc changes, we assume the user WANTS the calculator to drive prices.
         setForm(prev => ({ 
           ...prev, 
           price_usd: priceUsd.toFixed(2),
+          price_eur: prices.priceWholesaleEur.toFixed(2),
           price_bs_usd: priceBsUsd.toFixed(2) 
         }));
       }
@@ -135,8 +139,94 @@ export default function Products() {
   } = useClientPagination(filteredProducts, { pageSize: 10 });
 
   // --- HANDLERS ---
+  const handlePriceUsdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/[^0-9.]/g, '').slice(0, 10);
+    setForm(prev => ({ ...prev, price_usd: val }));
+  };
+
+  const handlePriceEurChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/[^0-9.]/g, '').slice(0, 10);
+    setForm(prev => ({ ...prev, price_eur: val }));
+  };
+
+  // --- REVERSE CALCULATE ON BLUR TO AVOID INFINITE LOOPS ---
+  const handlePriceUsdBlur = () => {
+    if (showCalculator && usdRate > 0 && eurRate > 0) {
+      const usdPrice = parseFloat(form.price_usd) || 0;
+      if (usdPrice > 0) {
+        const eurPrice = (usdPrice * usdRate) / eurRate;
+        const multiplier = pricingConfig?.usd_to_eur_multiplier || 2;
+        const targetCost = eurPrice / multiplier;
+        
+        const units = parseInt(costCalc.purchaseUnits) || 1;
+        const shipping = parseFloat(costCalc.purchaseShippingUsd) || 0;
+        const merch = (targetCost * units) - shipping;
+        
+        if (merch >= 0) {
+          setCostCalc(prev => ({
+            ...prev,
+            purchaseUnits: String(units),
+            purchaseMerchUsd: merch.toFixed(2),
+          }));
+        }
+      }
+    } else {
+      // If calculator is closed, auto-fill EUR if it's empty
+      const usdPrice = parseFloat(form.price_usd) || 0;
+      if (usdPrice > 0 && !form.price_eur && usdRate > 0 && eurRate > 0) {
+        const eurPrice = (usdPrice * usdRate) / eurRate;
+        setForm(prev => ({ ...prev, price_eur: eurPrice.toFixed(2) }));
+      }
+    }
+  };
+
+  const handlePriceEurBlur = () => {
+    if (showCalculator && usdRate > 0 && eurRate > 0) {
+      const eurPrice = parseFloat(form.price_eur) || 0;
+      if (eurPrice > 0) {
+        const multiplier = pricingConfig?.usd_to_eur_multiplier || 2;
+        const targetCost = eurPrice / multiplier;
+        
+        const units = parseInt(costCalc.purchaseUnits) || 1;
+        const shipping = parseFloat(costCalc.purchaseShippingUsd) || 0;
+        const merch = (targetCost * units) - shipping;
+        
+        if (merch >= 0) {
+          setCostCalc(prev => ({
+            ...prev,
+            purchaseUnits: String(units),
+            purchaseMerchUsd: merch.toFixed(2),
+          }));
+        }
+      }
+    } else {
+      // If calculator is closed, auto-fill USD if it's empty
+      const eurPrice = parseFloat(form.price_eur) || 0;
+      if (eurPrice > 0 && !form.price_usd && eurRate > 0 && usdRate > 0) {
+        const usdPrice = eurToUsd(eurPrice, usdRate, eurRate);
+        setForm(prev => ({ ...prev, price_usd: usdPrice.toFixed(2) }));
+      }
+    }
+  };
+
+  // --- REVERSE CALCULATE ONCE WHEN CALCULATOR OPENS ---
+  useEffect(() => {
+    if (showCalculator && usdRate > 0 && eurRate > 0) {
+      const usdPrice = parseFloat(form.price_usd) || 0;
+      const eurPrice = parseFloat(form.price_eur) || 0;
+      const merchStr = costCalc.purchaseMerchUsd.trim();
+      if ((usdPrice > 0 || eurPrice > 0) && merchStr === '') {
+        if (eurPrice > 0) {
+          handlePriceEurBlur();
+        } else {
+          handlePriceUsdBlur();
+        }
+      }
+    }
+  }, [showCalculator]);
+
   const resetForm = () => {
-    setForm({ name: '', description: '', price_usd: '', price_bs_usd: '', stock: '', category: '', image_url: '', sizes: [] });
+    setForm({ name: '', description: '', price_usd: '', price_eur: '', price_bs_usd: '', stock: '', category: '', image_url: '', sizes: [] });
     setCostCalc({ purchaseMerchUsd: '', purchaseShippingUsd: '', purchaseUnits: '', bsSurchargePct: '15', addToStock: true });
     setCalculatedPrices({ costPerUnit: 0, costRounded: 0, priceWholesaleEur: 0, priceRetailEur: 0, priceCreditEur: 0 });
     setShowCalculator(false);
@@ -154,6 +244,7 @@ export default function Products() {
       name: product.name,
       description: product.description || '',
       price_usd: String(product.price_usd),
+      price_eur: product.price_wholesale_eur ? String(product.price_wholesale_eur) : (eurRate > 0 && usdRate > 0 ? String(((product.price_usd * usdRate) / eurRate).toFixed(2)) : ''),
       price_bs_usd: product.price_bs_usd !== null && product.price_bs_usd !== undefined ? String(product.price_bs_usd) : '',
       stock: String(product.stock),
       category: product.category || '',
@@ -200,8 +291,10 @@ export default function Products() {
       price_usd: Number(form.price_usd),
       price_bs_usd: form.price_bs_usd ? Number(form.price_bs_usd) : null,
       cost_usd: calculatedPrices.costRounded || calculatedPrices.costPerUnit || 0,
-      price_wholesale_eur: calculatedPrices.priceWholesaleEur || 0,
-      price_retail_eur: calculatedPrices.priceRetailEur || 0,
+      price_wholesale_eur: Number(form.price_eur) || calculatedPrices.priceWholesaleEur || 0,
+      price_retail_eur: Number(form.price_eur) 
+        ? Number(form.price_eur) * (pricingConfig?.retail_multiplier || 1.15) 
+        : (calculatedPrices.priceRetailEur || 0),
       stock: Number(form.stock),
       category: form.category ? sanitizeText(form.category) : null,
       image_url: form.image_url ? sanitizeText(form.image_url) : null,
@@ -477,7 +570,7 @@ export default function Products() {
                 </div>
 
                 {/* ── PRECIO Y STOCK ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label>Precio Venta (USD) *</Label>
                     <Input
@@ -485,7 +578,8 @@ export default function Products() {
                       step="0.01"
                       min="0"
                       value={form.price_usd}
-                      onChange={(e) => setForm({ ...form, price_usd: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) })}
+                      onChange={handlePriceUsdChange}
+                      onBlur={handlePriceUsdBlur}
                       placeholder="0.00"
                       className="input-glass rounded-xl"
                       required
@@ -495,6 +589,19 @@ export default function Products() {
                         Auto-calculado desde Detal EUR
                       </p>
                     )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Precio Venta (EUR)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.price_eur}
+                      onChange={handlePriceEurChange}
+                      onBlur={handlePriceEurBlur}
+                      placeholder="0.00"
+                      className="input-glass rounded-xl"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Precio Bolívares (USD)*</Label>
@@ -530,8 +637,8 @@ export default function Products() {
                   </div>
                 </div>
 
-                {/* ── DESGLOSE MANUAL (SI NO SE USA LA CALCULADORA) ── */}
-                {!showCalculator && (Number(form.price_usd) > 0 || Number(form.price_bs_usd) > 0) && (
+                {/* ── DESGLOSE (MANUAL O SI CALCULADORA NO TIENE COSTOS) ── */}
+                {(!showCalculator || calculatedPrices.costPerUnit === 0) && (Number(form.price_usd) > 0 || Number(form.price_bs_usd) > 0) && (
                   <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -580,6 +687,28 @@ export default function Products() {
                             </span>
                             {usdRate > 0 && (
                               <span className="text-muted-foreground text-xs">{formatBS(Number(form.price_bs_usd) * usdRate)}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Crédito */}
+                      {Number(form.price_usd) > 0 && (
+                        <div className="flex items-center justify-between py-1.5">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Precio Crédito (+{pricingConfig.credit_surcharge_pct}%)</p>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm">
+                            {usdRate > 0 && eurRate > 0 && (
+                              <>
+                                <span className="font-bold text-amber-500">
+                                  {formatEur(((Number(form.price_usd) * usdRate) / eurRate) * (1 + pricingConfig.credit_surcharge_pct / 100))}
+                                </span>
+                                <span className="text-muted-foreground">≈ {formatUsd(Number(form.price_usd) * (1 + pricingConfig.credit_surcharge_pct / 100))}</span>
+                                <span className="text-muted-foreground text-xs">
+                                  {formatBS(Number(form.price_usd) * (1 + pricingConfig.credit_surcharge_pct / 100) * usdRate)}
+                                </span>
+                              </>
                             )}
                           </div>
                         </div>
