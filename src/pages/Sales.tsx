@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh } from 'reicon-react';
+import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle } from 'reicon-react';
 import { getNextTwoCutoffDates, getNextThreeCutoffDates, formatCutoffDate } from '@/lib/cutoffDates';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -120,6 +120,29 @@ export default function Sales() {
     total_usd: '',
     total_bs: '',
   });
+
+  const [detailsGroup, setDetailsGroup] = useState<any>(null);
+  const [groupPayments, setGroupPayments] = useState<any[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+
+  const loadGroupPayments = async (group: any) => {
+    setIsLoadingPayments(true);
+    try {
+      const saleIds = group.sales.map((s: any) => s.id);
+      const { data, error } = await supabase
+        .from('sale_payments')
+        .select('*')
+        .in('sale_id', saleIds)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setGroupPayments(data || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  };
 
   const handleUpdateSale = async () => {
     if (!editingSale) return;
@@ -1415,10 +1438,23 @@ export default function Sales() {
                       <CardContent className="p-4 space-y-3">
                         <div className="flex justify-between items-start">
                           <div>
-                            <p className="font-bold flex items-center gap-1.5">
-                              <User className="h-4 w-4 text-primary" />
-                              {group.client_name || 'Cliente sin nombre'}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold flex items-center gap-1.5">
+                                <User className="h-4 w-4 text-primary" />
+                                {group.client_name || 'Cliente sin nombre'}
+                              </p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-primary hover:bg-primary/20 bg-primary/10 rounded-full"
+                                onClick={() => {
+                                  setDetailsGroup(group);
+                                  loadGroupPayments(group);
+                                }}
+                              >
+                                <InfoCircle className="h-3 w-3" />
+                              </Button>
+                            </div>
                             <Badge variant="outline" className="mt-1 capitalize">
                               {group.sale_modality?.replace('_', ' ')}
                             </Badge>
@@ -1971,6 +2007,51 @@ export default function Sales() {
             </Button>
             <Button onClick={handleUpdateSale} disabled={isSubmitting} className="btn-gold">
               Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL HISTORIAL DE ABONOS */}
+      <Dialog open={!!detailsGroup} onOpenChange={(open) => !open && setDetailsGroup(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Historial de Abonos</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
+            {isLoadingPayments ? (
+              <div className="flex justify-center p-4">
+                <Loader className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : groupPayments.length === 0 ? (
+              <p className="text-center text-muted-foreground text-sm py-4">No hay abonos registrados en el historial para esta cuenta.</p>
+            ) : (
+              <div className="space-y-3">
+                {groupPayments.map(payment => (
+                  <div key={payment.id} className="bg-secondary/50 rounded-lg p-3 border border-border/50 text-sm">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-bold text-gradient-gold">${Number(payment.amount_usd).toFixed(2)}</span>
+                      <span className="text-xs text-muted-foreground">{new Date(payment.created_at).toLocaleDateString()} {new Date(payment.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    {payment.amount_bs > 0 && (
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Bolívares: {formatBS(payment.amount_bs)} (Tasa: {payment.exchange_rate})
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="outline" className="text-[10px] capitalize">
+                        {payment.payment_method.replace('_', ' ')}
+                      </Badge>
+                      {payment.notes && <span className="text-xs text-muted-foreground truncate">{payment.notes}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailsGroup(null)}>
+              Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>
