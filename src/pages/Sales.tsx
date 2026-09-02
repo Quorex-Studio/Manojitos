@@ -87,7 +87,7 @@ interface SaleLineItem {
 
 export default function Sales() {
   // --- STATE ---
-  const { sales, addSale, confirmSale, deleteSale, registerSalePayment, refetch: refetchSales } = useSales();
+  const { sales, addSale, confirmSale, deleteSale, registerSalePayment, updateSale, refetch: refetchSales } = useSales();
   const { products, refetch: refetchProducts } = useProducts();
   const { rate, convertToBS } = useExchangeRate();
   const { methods: activePaymentMethods } = usePaymentMethods(false);
@@ -113,6 +113,33 @@ export default function Sales() {
   const [abonoUsdtBought, setAbonoUsdtBought] = useState<string>('');
   const [abonoPaymentMethod, setAbonoPaymentMethod] = useState<string>('pago_movil');
   const [abonoNotes, setAbonoNotes] = useState<string>('');
+
+  const [editingSale, setEditingSale] = useState<any>(null);
+  const [editSaleForm, setEditSaleForm] = useState({
+    amount_paid: '',
+    total_usd: '',
+    total_bs: '',
+  });
+
+  const handleUpdateSale = async () => {
+    if (!editingSale) return;
+    setIsSubmitting(true);
+    try {
+      await updateSale({
+        id: editingSale.id,
+        updates: {
+          amount_paid: Number(editSaleForm.amount_paid) || 0,
+          total_usd: Number(editSaleForm.total_usd) || 0,
+          total_bs: Number(editSaleForm.total_bs) || 0,
+        }
+      });
+      setEditingSale(null);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const resetAbonoForm = () => {
     setAbonoGroup(null);
@@ -1411,11 +1438,28 @@ export default function Sales() {
 
                         <div className="space-y-1">
                           {group.sales.map((sale: any) => (
-                            <div key={sale.id} className="bg-secondary/50 rounded-lg p-2 text-sm flex justify-between items-center">
+                            <div key={sale.id} className="bg-secondary/50 rounded-lg p-2 text-sm flex justify-between items-center group/sale">
                               <span className="text-muted-foreground truncate flex-1" title={sale.product_name}>
                                 {sale.product_name} x{sale.quantity}
                               </span>
-                              <span className="font-medium ml-2">${Number(sale.total_usd).toFixed(2)}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium ml-2">${Number(sale.total_usd).toFixed(2)}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 py-0 text-xs opacity-0 group-hover/sale:opacity-100 transition-opacity"
+                                  onClick={() => {
+                                    setEditingSale(sale);
+                                    setEditSaleForm({
+                                      amount_paid: sale.amount_paid ? String(sale.amount_paid) : '0',
+                                      total_usd: sale.total_usd ? String(sale.total_usd) : '0',
+                                      total_bs: sale.total_bs ? String(sale.total_bs) : '0',
+                                    });
+                                  }}
+                                >
+                                  Editar
+                                </Button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1881,6 +1925,52 @@ export default function Sales() {
               className="btn-gold"
             >
               Confirmar Abono
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL EDITAR VENTA */}
+      <Dialog open={!!editingSale} onOpenChange={(open) => !open && setEditingSale(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Venta / Cuenta por Cobrar</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Deuda Total USD</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={editSaleForm.total_usd}
+                onChange={(e) => setEditSaleForm(prev => ({ ...prev, total_usd: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Deuda Total Bs</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={editSaleForm.total_bs}
+                onChange={(e) => setEditSaleForm(prev => ({ ...prev, total_bs: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Total Pagado USD (Abonos acumulados)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={editSaleForm.amount_paid}
+                onChange={(e) => setEditSaleForm(prev => ({ ...prev, amount_paid: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingSale(null)} disabled={isSubmitting}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateSale} disabled={isSubmitting} className="btn-gold">
+              Guardar Cambios
             </Button>
           </DialogFooter>
         </DialogContent>

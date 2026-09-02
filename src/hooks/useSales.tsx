@@ -355,6 +355,27 @@ export function useSales() {
     },
   });
 
+  const updateSale = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Sale> }) => {
+      const { data, error } = await supabase
+        .from('sales')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      invalidateSales();
+      toast({ title: 'Éxito', description: 'Venta actualizada correctamente' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message || 'No se pudo actualizar la venta', variant: 'destructive' });
+    },
+  });
+
   const registerSalePayment = useMutation({
     mutationFn: async ({ 
       saleId, amountUsd, amountBs, exchangeRate, usdtRate, usdtBought, paymentMethod, notes 
@@ -406,6 +427,7 @@ export function useSales() {
     processCheckout,
     validateStock,
     deleteSale: deleteSale.mutateAsync,
+    updateSale: updateSale.mutateAsync,
     registerSalePayment: registerSalePayment.mutateAsync,
     refetch,
   };

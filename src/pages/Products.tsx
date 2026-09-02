@@ -209,6 +209,20 @@ export default function Products() {
     }
   };
 
+  const handlePriceBsUsdBlur = () => {
+    if (showCalculator && form.price_usd && form.price_bs_usd) {
+      const usdPrice = parseFloat(form.price_usd);
+      const bsUsdPrice = parseFloat(form.price_bs_usd);
+      if (usdPrice > 0 && bsUsdPrice >= usdPrice) {
+        const derivedSurcharge = Math.round(((bsUsdPrice / usdPrice) - 1) * 100);
+        setCostCalc(prev => ({
+          ...prev,
+          bsSurchargePct: derivedSurcharge.toString()
+        }));
+      }
+    }
+  };
+
   // --- REVERSE CALCULATE ONCE WHEN CALCULATOR OPENS ---
   useEffect(() => {
     if (showCalculator && usdRate > 0 && eurRate > 0) {
@@ -611,6 +625,7 @@ export default function Products() {
                       min="0"
                       value={form.price_bs_usd}
                       onChange={(e) => setForm({ ...form, price_bs_usd: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) })}
+                      onBlur={handlePriceBsUsdBlur}
                       placeholder="Ej: 13.00"
                       className="input-glass rounded-xl"
                     />
