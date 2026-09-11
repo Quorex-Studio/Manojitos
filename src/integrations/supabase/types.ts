@@ -996,6 +996,7 @@ export type Database = {
           product_name: string
           quantity: number
           sale_modality: string | null
+          sale_group_id: string | null
           amount_paid: number
           status: string
           total_bs: number | null
@@ -1016,6 +1017,7 @@ export type Database = {
           product_name: string
           quantity?: number
           sale_modality?: string | null
+          sale_group_id?: string | null
           amount_paid?: number
           status?: string
           total_bs?: number | null
@@ -1036,6 +1038,7 @@ export type Database = {
           product_name?: string
           quantity?: number
           sale_modality?: string | null
+          sale_group_id?: string | null
           amount_paid?: number
           status?: string
           total_bs?: number | null
@@ -1059,6 +1062,7 @@ export type Database = {
           sale_id: string
           amount_usd: number
           amount_bs: number | null
+          sale_group_id: string | null
           exchange_rate: number | null
           usdt_rate: number | null
           usdt_bought: number | null
@@ -1071,6 +1075,7 @@ export type Database = {
           sale_id: string
           amount_usd: number
           amount_bs?: number | null
+          sale_group_id?: string | null
           exchange_rate?: number | null
           usdt_rate?: number | null
           usdt_bought?: number | null
@@ -1083,6 +1088,7 @@ export type Database = {
           sale_id?: string
           amount_usd?: number
           amount_bs?: number | null
+          sale_group_id?: string | null
           exchange_rate?: number | null
           usdt_rate?: number | null
           usdt_bought?: number | null

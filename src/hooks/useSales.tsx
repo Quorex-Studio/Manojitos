@@ -338,9 +338,9 @@ export function useSales() {
 
   const registerSalePayment = useMutation({
     mutationFn: async ({ 
-      saleId, amountUsd, amountBs, exchangeRate, usdtRate, usdtBought, paymentMethod, notes 
+      saleGroupId, amountUsd, amountBs, exchangeRate, usdtRate, usdtBought, paymentMethod, notes 
     }: { 
-      saleId: string; 
+      saleGroupId: string; 
       amountUsd: number; 
       amountBs?: number;
       exchangeRate?: number;
@@ -349,11 +349,12 @@ export function useSales() {
       paymentMethod: string;
       notes?: string;
     }) => {
-      const sale = sales.find(s => s.id === saleId);
-      if (!sale) throw new Error('Venta no encontrada');
+      // Find the group just for basic validation
+      const sale = sales.find(s => s.sale_group_id === saleGroupId || s.id === saleGroupId);
+      if (!sale) throw new Error('Venta o grupo no encontrado');
 
-      const { data, error } = await supabase.rpc('process_pos_abono', {
-        p_sale_id: saleId,
+      const { data, error } = await supabase.rpc('process_group_abono', {
+        p_sale_group_id: saleGroupId,
         p_amount_usd: amountUsd,
         p_amount_bs: amountBs || 0,
         p_exchange_rate: exchangeRate || 0,
@@ -375,6 +376,27 @@ export function useSales() {
     },
   });
 
+  const updateSalePayment = useMutation({
+    mutationFn: async ({ id, updates }: { id: string, updates: Partial<SalePayment> }) => {
+      const { data, error } = await supabase
+        .from('sale_payments')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      invalidateSales();
+      toast({ title: 'Éxito', description: 'Abono actualizado correctamente' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message || 'No se pudo actualizar el abono', variant: 'destructive' });
+    }
+  });
+
   // Las mutaciones ya invalidan el caché automáticamente vía invalidateSales().
   // No se necesita suscripción realtime.
 
@@ -389,6 +411,7 @@ export function useSales() {
     deleteSale: deleteSale.mutateAsync,
     updateSale: updateSale.mutateAsync,
     registerSalePayment: registerSalePayment.mutateAsync,
+    updateSalePayment: updateSalePayment.mutateAsync,
     refetch,
   };
 }

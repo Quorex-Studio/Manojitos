@@ -9,6 +9,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useCredits } from '@/hooks/useCredits';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { useProductSummary, useProductDebtors } from '@/hooks/useProductSummary';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,18 +20,21 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatBS } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
-import { Sale, Product, CheckoutItem, OrderItem } from '@/types';
+import { ProductSummaryTab } from '@/components/sales/ProductSummaryTab';
+import { Sale, Product, CheckoutItem, OrderItem, ProductDebtor } from '@/types';
 
 export interface SalePayment {
   id: string;
   sale_id: string;
   amount_usd: number;
   amount_bs: number | null;
+  sale_group_id: string | null;
   exchange_rate: number | null;
   usdt_rate: number | null;
   usdt_bought: number | null;
@@ -119,6 +123,8 @@ interface SaleLineItem {
 }
 
 export default function Sales() {
+  const [receivableTab, setReceivableTab] = useState('pending');
+  const navigate = useNavigate();
   // --- STATE ---
   const { sales, addSale, confirmSale, deleteSale, registerSalePayment, updateSale, refetch: refetchSales } = useSales();
   const { products, refetch: refetchProducts } = useProducts();
@@ -154,6 +160,15 @@ export default function Sales() {
     total_bs: '',
   });
 
+  const [editingPayment, setEditingPayment] = useState<SalePayment | null>(null);
+  const [editPaymentForm, setEditPaymentForm] = useState({
+    amount_usd: '',
+    amount_bs: '',
+    exchange_rate: '',
+    payment_method: '',
+    notes: '',
+  });
+
   const [detailsGroup, setDetailsGroup] = useState<GroupedSale | null>(null);
   const [groupPayments, setGroupPayments] = useState<SalePayment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
@@ -165,7 +180,7 @@ export default function Sales() {
       const { data, error } = await supabase
         .from('sale_payments')
         .select('*')
-        .in('sale_id', saleIds)
+        .or(`sale_group_id.eq.${group.id},sale_id.in.(${saleIds.join(',')})`)
         .order('created_at', { ascending: false });
         
       if (error) throw error;
@@ -184,12 +199,36 @@ export default function Sales() {
       await updateSale({
         id: editingSale.id,
         updates: {
-          amount_paid: Number(editSaleForm.amount_paid) || 0,
           total_usd: Number(editSaleForm.total_usd) || 0,
           total_bs: Number(editSaleForm.total_bs) || 0,
         }
       });
       setEditingSale(null);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdatePayment = async () => {
+    if (!editingPayment) return;
+    setIsSubmitting(true);
+    try {
+      await updateSalePayment({
+        id: editingPayment.id,
+        updates: {
+          amount_usd: Number(editPaymentForm.amount_usd) || 0,
+          amount_bs: Number(editPaymentForm.amount_bs) || null,
+          exchange_rate: Number(editPaymentForm.exchange_rate) || null,
+          payment_method: editPaymentForm.payment_method,
+          notes: editPaymentForm.notes,
+        }
+      });
+      if (detailsGroup) {
+        await loadGroupPayments(detailsGroup);
+      }
+      setEditingPayment(null);
     } catch (e) {
       console.error(e);
     } finally {
@@ -218,27 +257,16 @@ export default function Sales() {
     
     setIsSubmitting(true);
     try {
-      let remaining = amount;
-      for (const sale of abonoGroup.sales) {
-        if (remaining <= 0) break;
-        const salePending = Number(sale.total_usd) - Number(sale.amount_paid || 0);
-        if (salePending > 0) {
-          const toPay = Math.min(salePending, remaining);
-          const fraction = toPay / amount; // proportion of the total abono applied to this sale
-          
-          await registerSalePayment({ 
-            saleId: sale.id, 
-            amountUsd: toPay,
-            amountBs: abonoAmountBs ? Number(abonoAmountBs) * fraction : undefined,
-            exchangeRate: abonoExchangeRate ? Number(abonoExchangeRate) : rate,
-            usdtRate: abonoUsdtRate ? Number(abonoUsdtRate) : undefined,
-            usdtBought: abonoUsdtBought ? Number(abonoUsdtBought) * fraction : undefined,
-            paymentMethod: abonoPaymentMethod,
-            notes: abonoNotes
-          });
-          remaining -= toPay;
-        }
-      }
+      await registerSalePayment({ 
+        saleGroupId: abonoGroup.id, 
+        amountUsd: amount,
+        amountBs: abonoAmountBs ? Number(abonoAmountBs) : undefined,
+        exchangeRate: abonoExchangeRate ? Number(abonoExchangeRate) : rate,
+        usdtRate: abonoUsdtRate ? Number(abonoUsdtRate) : undefined,
+        usdtBought: abonoUsdtBought ? Number(abonoUsdtBought) : undefined,
+        paymentMethod: abonoPaymentMethod,
+        notes: abonoNotes
+      });
       toast.success('Abono registrado correctamente');
       resetAbonoForm();
     } catch (error) {
@@ -392,14 +420,19 @@ export default function Sales() {
     return matchesSearch && matchesModality;
   });
 
-  const posReceivables = sales.filter(s => s.payment_status !== 'paid');
+  const posReceivables = sales.filter(s => 
+    receivableTab === 'paid' ? s.payment_status === 'paid' : s.payment_status !== 'paid'
+  );
 
   const groupedSales = useMemo(() => {
-    const groups: GroupedSale[] = [];
+    const groupsMap = new Map<string, GroupedSale>();
+    
     filteredSales.forEach(sale => {
-      if (groups.length === 0) {
-        groups.push({
-          id: sale.id,
+      const groupId = sale.sale_group_id || sale.id; 
+      
+      if (!groupsMap.has(groupId)) {
+        groupsMap.set(groupId, {
+          id: groupId,
           client_name: sale.client_name,
           payment_method: sale.payment_method,
           is_credit: sale.is_credit,
@@ -408,30 +441,16 @@ export default function Sales() {
           items: [sale]
         });
       } else {
-        const lastGroup = groups[groups.length - 1];
-        const timeDiff = Math.abs(new Date(lastGroup.created_at).getTime() - new Date(sale.created_at).getTime());
-        
-        if (
-          lastGroup.client_name === sale.client_name &&
-          lastGroup.payment_method === sale.payment_method &&
-          timeDiff <= 60000 // Within 1 minute
-        ) {
-          lastGroup.total_usd += Number(sale.total_usd);
-          lastGroup.items.push(sale);
-        } else {
-          groups.push({
-            id: sale.id,
-            client_name: sale.client_name,
-            payment_method: sale.payment_method,
-            is_credit: sale.is_credit,
-            created_at: sale.created_at,
-            total_usd: Number(sale.total_usd),
-            items: [sale]
-          });
-        }
+        const group = groupsMap.get(groupId)!;
+        group.total_usd += Number(sale.total_usd);
+        group.items.push(sale);
       }
     });
-    return groups;
+    
+    // Sort groups by created_at descending
+    return Array.from(groupsMap.values()).sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
   }, [filteredSales]);
 
   const filteredOrders = orders.filter(o => {
@@ -506,6 +525,7 @@ export default function Sales() {
     }
 
     let hasError = false;
+    const saleGroupId = crypto.randomUUID();
     for (const item of validItems) {
       const basePrice = (isBsPayment && item.product!.price_bs_usd != null && item.product!.price_bs_usd > 0) 
         ? Number(item.product!.price_bs_usd) 
@@ -540,6 +560,7 @@ export default function Sales() {
         client_address: client.address ? sanitizeText(client.address) : null,
         is_credit: isCreditSale,
         sale_modality: saleModality,
+        sale_group_id: saleGroupId,
         amount_paid: initialAmountPaid,
         payment_status: paymentStatus,
         status: isCreditSale ? 'confirmed' : 'pending',
@@ -983,6 +1004,27 @@ export default function Sales() {
     }
   };
 
+  const handleViewDebtorAccount = (debtor: ProductDebtor) => {
+    const groupSales = sales.filter(s => s.sale_group_id === debtor.sale_group_id);
+    if (groupSales.length > 0) {
+      const totalUsd = groupSales.reduce((sum, s) => sum + s.total_usd, 0);
+      const totalPaid = groupSales.reduce((sum, s) => sum + s.amount_paid, 0);
+      const grouped = {
+        client_name: debtor.client_name || 'Desconocido',
+        total_usd: totalUsd,
+        total_pending: totalUsd - totalPaid,
+        sales: groupSales,
+        created_at: groupSales[0].created_at
+      };
+      
+      setActiveSalesTab('cuentas-cobrar');
+      setReceivableTab('pending');
+      setAbonoGroup(grouped);
+    } else {
+      toast.error('No se pudo cargar la cuenta. Puede que ya esté pagada o no exista.');
+    }
+  };
+
   // --- RENDER ---
   return (
     <AppLayout>
@@ -993,21 +1035,21 @@ export default function Sales() {
         </div>
 
         <Tabs value={activeSalesTab} onValueChange={setActiveSalesTab} className="w-full">
-          <TabsList className="grid grid-cols-3 max-w-2xl bg-secondary rounded-xl mb-6">
-            <TabsTrigger value="ventas" className="rounded-lg">
+          <TabsList className="grid grid-cols-1 sm:grid-cols-4 w-full max-w-4xl bg-secondary rounded-xl mb-6">
+            <TabsTrigger value="ventas" className="rounded-lg text-xs sm:text-sm">
               <ShoppingCart className="h-4 w-4 mr-2 hidden sm:inline" />
               Ventas
             </TabsTrigger>
-            <TabsTrigger value="cuentas-cobrar" className="rounded-lg relative">
+            <TabsTrigger value="cuentas-cobrar" className="rounded-lg relative text-xs sm:text-sm">
               <ClipboardList className="h-4 w-4 mr-2 hidden sm:inline" />
-              Cuentas por Cobrar
+              CxC
               {sales.filter(s => s.payment_status !== 'paid').length > 0 && (
                 <Badge variant="destructive" className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full">
                   {sales.filter(s => s.payment_status !== 'paid').length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="pedidos" className="rounded-lg relative">
+            <TabsTrigger value="pedidos" className="rounded-lg relative text-xs sm:text-sm">
               <ClipboardList className="h-4 w-4 mr-2 hidden sm:inline" />
               Pedidos
               {orders.filter(o => o.status === 'pending').length > 0 && (
@@ -1015,6 +1057,10 @@ export default function Sales() {
                   {orders.filter(o => o.status === 'pending').length}
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="resumen-producto" className="rounded-lg text-xs sm:text-sm">
+              <Package className="h-4 w-4 mr-2 hidden sm:inline" />
+              Resumen
             </TabsTrigger>
           </TabsList>
 
@@ -1521,6 +1567,25 @@ export default function Sales() {
                 <h2 className="text-xl font-bold">Cuentas por Cobrar (Caja)</h2>
                 <p className="text-sm text-muted-foreground">Ventas pendientes de pago (Fiado, 2 Partes, Financiamiento)</p>
               </div>
+              
+              <div className="flex bg-secondary/50 p-1 rounded-xl">
+                <Button
+                  variant={receivableTab === 'pending' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setReceivableTab('pending')}
+                  className={receivableTab === 'pending' ? 'shadow-sm' : ''}
+                >
+                  Por Cobrar
+                </Button>
+                <Button
+                  variant={receivableTab === 'paid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setReceivableTab('paid')}
+                  className={receivableTab === 'paid' ? 'shadow-sm' : ''}
+                >
+                  Pagadas
+                </Button>
+              </div>
             </div>
 
             {posReceivables.length === 0 ? (
@@ -1532,8 +1597,7 @@ export default function Sales() {
             ) : (() => {
               const groups = new Map<string, GroupedReceivable>();
               posReceivables.forEach(sale => {
-                 const dateStr = new Date(sale.created_at).toLocaleDateString();
-                 const key = `${sale.client_name || 'Desconocido'}_${sale.sale_modality}_${dateStr}`;
+                 const key = sale.sale_group_id || sale.id;
                  if (!groups.has(key)) {
                    groups.set(key, {
                      id: key,
@@ -1547,7 +1611,7 @@ export default function Sales() {
                      payment_method: sale.payment_method,
                    });
                  }
-                 const group = groups.get(key);
+                 const group = groups.get(key)!;
                  group.sales.push(sale);
                  group.total_usd += Number(sale.total_usd || 0);
                  group.amount_paid += Number(sale.amount_paid || 0);
@@ -1656,17 +1720,11 @@ export default function Sales() {
                             variant={isPartial ? "default" : "secondary"}
                             onClick={async () => {
                               if (confirm(`¿Marcar la deuda total de $${pendingAmountUsd.toFixed(2)} como pagada en su totalidad?`)) {
-                                for (const sale of group.sales) {
-                                  const salePending = Number(sale.total_usd) - Number(sale.amount_paid || 0);
-                                  if (salePending > 0) {
-                                    await registerSalePayment({ 
-                                      saleId: sale.id, 
-                                      amountUsd: salePending, 
-                                      paymentMethod: sale.payment_method || 'pago_movil'
-                                    });
-                                  }
-                                }
-
+                                await registerSalePayment({ 
+                                  saleGroupId: group.id, 
+                                  amountUsd: pendingAmountUsd, 
+                                  paymentMethod: group.payment_method || 'pago_movil'
+                                });
                               }
                             }}
                           >
@@ -1932,6 +1990,12 @@ export default function Sales() {
               </div>
             )}
           </TabsContent>
+
+          {/* TAB: RESUMEN POR PRODUCTO */}
+          <TabsContent value="resumen-producto" className="space-y-6">
+            <ProductSummaryTab onViewDebtorAccount={handleViewDebtorAccount} />
+          </TabsContent>
+
         </Tabs>
       </div>
 
@@ -2122,15 +2186,6 @@ export default function Sales() {
                 onChange={(e) => setEditSaleForm(prev => ({ ...prev, total_bs: e.target.value }))}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Total Pagado USD (Abonos acumulados)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={editSaleForm.amount_paid}
-                onChange={(e) => setEditSaleForm(prev => ({ ...prev, amount_paid: e.target.value }))}
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingSale(null)} disabled={isSubmitting}>
@@ -2162,7 +2217,26 @@ export default function Sales() {
                   <div key={payment.id} className="bg-secondary/50 rounded-lg p-3 border border-border/50 text-sm">
                     <div className="flex justify-between items-start mb-1">
                       <span className="font-bold text-gradient-gold">${Number(payment.amount_usd).toFixed(2)}</span>
-                      <span className="text-xs text-muted-foreground">{new Date(payment.created_at).toLocaleDateString()} {new Date(payment.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{new Date(payment.created_at).toLocaleDateString()} {new Date(payment.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-primary hover:bg-primary/20"
+                          onClick={() => {
+                            setEditingPayment(payment);
+                            setEditPaymentForm({
+                              amount_usd: String(payment.amount_usd),
+                              amount_bs: payment.amount_bs ? String(payment.amount_bs) : '',
+                              exchange_rate: payment.exchange_rate ? String(payment.exchange_rate) : '',
+                              payment_method: payment.payment_method,
+                              notes: payment.notes || ''
+                            });
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </Button>
+                      </div>
                     </div>
                     {payment.amount_bs > 0 && (
                       <p className="text-xs text-muted-foreground mb-1">
@@ -2188,6 +2262,74 @@ export default function Sales() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDetailsGroup(null)}>
               Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!editingPayment} onOpenChange={(open) => !open && setEditingPayment(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Abono</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Monto USD</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={editPaymentForm.amount_usd}
+                onChange={(e) => setEditPaymentForm(prev => ({ ...prev, amount_usd: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Monto Bs</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editPaymentForm.amount_bs}
+                  onChange={(e) => setEditPaymentForm(prev => ({ ...prev, amount_bs: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Tasa de Cambio</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editPaymentForm.exchange_rate}
+                  onChange={(e) => setEditPaymentForm(prev => ({ ...prev, exchange_rate: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Método de Pago</Label>
+              <Select value={editPaymentForm.payment_method} onValueChange={v => setEditPaymentForm(prev => ({ ...prev, payment_method: v }))}>
+                <SelectTrigger className="input-glass">
+                  <SelectValue placeholder="Seleccionar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pago_movil">Pago Móvil</SelectItem>
+                  <SelectItem value="transferencia">Transferencia Bs</SelectItem>
+                  <SelectItem value="efectivo_usd">Efectivo USD</SelectItem>
+                  <SelectItem value="efectivo_bs">Efectivo Bs</SelectItem>
+                  <SelectItem value="zelle">Zelle</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Notas</Label>
+              <Input
+                value={editPaymentForm.notes}
+                onChange={(e) => setEditPaymentForm(prev => ({ ...prev, notes: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingPayment(null)} disabled={isSubmitting}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdatePayment} disabled={isSubmitting} className="btn-gold">
+              Guardar Cambios
             </Button>
           </DialogFooter>
         </DialogContent>

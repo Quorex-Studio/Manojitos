@@ -95,6 +95,7 @@ export interface Sale {
   sale_modality: string | null;
   amount_paid: number | null;
   payment_status: string | null;
+  sale_group_id: string | null;
   notes: string | null;
   status: SaleStatus;
   created_at: string;
@@ -367,5 +368,29 @@ export interface BusinessRuleInput {
   priority?: number;
 }
 
+export interface ProductSummary {
+  product_id: string;
+  product_name: string;
+  category: string | null;
+  vendido: number;
+  ventas: number;
+  por_cobrar: number;
+  pedidos: number;
+  total_usd: number;
+  total_bs: number;
+  cobrado: number;
+  pendiente: number;
+}
 
-
+export interface ProductDebtor {
+  sale_id: string;
+  sale_group_id: string;
+  client_name: string;
+  client_phone: string | null;
+  created_at: string;
+  quantity: number;
+  total_usd: number;
+  amount_paid: number;
+  pending_usd: number;
+  sale_modality: string | null;
+}
