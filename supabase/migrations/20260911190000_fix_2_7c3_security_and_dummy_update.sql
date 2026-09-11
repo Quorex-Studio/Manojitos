@@ -557,12 +557,3 @@ BEGIN
     RETURN NULL;
 END;
 $$;
-
--- Register in migration history
-INSERT INTO supabase_migrations.schema_migrations (version, name, statements)
-VALUES (
-    '20260911190000',
-    'fix_2_7c3_security_and_dummy_update',
-    ARRAY['FASE 2.7C-3 corrections applied via MCP execute_sql']
-)
-ON CONFLICT (version) DO NOTHING;
