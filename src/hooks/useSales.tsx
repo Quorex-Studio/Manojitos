@@ -91,59 +91,20 @@ export function useSales() {
     }
   };
 
-  // Confirmar venta - actualiza stock y crea entrada en ledger
+  // Confirmar venta - operación atómica via RPC (stock + ledger en una sola transacción)
   const confirmSale = async (saleId: string) => {
     if (!user) return { error: new Error('No autenticado') };
 
-    // Obtener venta
-    const { data: sale, error: fetchError } = await supabase
-      .from('sales')
-      .select('*')
-      .eq('id', saleId)
-      .single();
+    const { data, error } = await supabase.rpc('confirm_pos_sale', {
+      p_sale_id: saleId,
+    });
 
-    if (fetchError || !sale) {
-      toast({ title: 'Error', description: 'Venta no encontrada', variant: 'destructive' });
-      return { error: fetchError || new Error('Venta no encontrada') };
+    if (error) {
+      toast({ title: 'Error', description: error.message || 'No se pudo confirmar la venta', variant: 'destructive' });
+      return { error };
     }
 
-    if (sale.status !== 'pending') {
-      toast({ title: 'Error', description: 'La venta ya fue procesada', variant: 'destructive' });
-      return { error: new Error('La venta ya fue procesada') };
-    }
-
-    // Actualizar estado a confirmed
-    const { error: updateError } = await supabase
-      .from('sales')
-      .update({ status: 'confirmed' })
-      .eq('id', saleId);
-
-    if (updateError) {
-      toast({ title: 'Error', description: 'No se pudo confirmar la venta', variant: 'destructive' });
-      return { error: updateError };
-    }
-
-    // Actualizar stock del producto
-    if (sale.product_id) {
-      const { data: product } = await supabase
-        .from('products')
-        .select('stock, sold_count')
-        .eq('id', sale.product_id)
-        .single();
-
-      if (product) {
-        await supabase
-          .from('products')
-          .update({
-            stock: Math.max(0, product.stock - sale.quantity),
-            sold_count: product.sold_count + sale.quantity
-          })
-          .eq('id', sale.product_id);
-      }
-    }
-
-    toast({ title: 'Éxito', description: 'Venta confirmada' });
-    return { data: sale, error: null };
+    return { data, error: null };
   };
 
   // Cancelar venta pendiente

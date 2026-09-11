@@ -249,18 +249,32 @@ export default function Sales() {
   const updateItem = (id: string, field: 'product_id' | 'quantity', value: string) =>
     setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i));
 
-  // Auto-buscar cliente por DNI en customer_profiles
+  // Auto-buscar cliente por DNI en customer_profiles (búsqueda exacta, con fallback sin prefijo)
   const handleDniBlur = useCallback(async () => {
-    const dni = client.dni.trim();
-    if (!dni || dni.length < 4) return;
+    const dniRaw = client.dni.trim().toUpperCase();
+    if (!dniRaw || dniRaw.length < 4) return;
     setDniLookupState('loading');
     try {
-      const { data } = await supabase
+      // Búsqueda exacta primero (el UNIQUE constraint garantiza exactitud)
+      let { data } = await supabase
         .from('customer_profiles')
         .select('full_name, phone, email, address')
-        .ilike('dni', `%${dni}%`)
-        .limit(1)
+        .eq('dni', dniRaw)
         .maybeSingle();
+
+      // Fallback: si el usuario ingresó sin prefijo (ej. "12345678"), intentar con prefijos comunes
+      if (!data && /^\d+$/.test(dniRaw)) {
+        for (const prefix of ['V-', 'J-', 'E-', 'G-']) {
+          const withPrefix = prefix + dniRaw;
+          const { data: prefixed } = await supabase
+            .from('customer_profiles')
+            .select('full_name, phone, email, address')
+            .eq('dni', withPrefix)
+            .maybeSingle();
+          if (prefixed) { data = prefixed; break; }
+        }
+      }
+
       if (data) {
         setClient(prev => ({
           ...prev,
@@ -277,6 +291,7 @@ export default function Sales() {
       setDniLookupState('idle');
     }
   }, [client.dni]);
+
 
   const isBsPayment = ['efectivo_bs', 'pago_movil', 'transferencia'].includes(payment.method);
   
@@ -503,6 +518,87 @@ export default function Sales() {
 
       if (data?.id) {
         await confirmSale(data.id);
+      }
+    }
+
+    // Si el cliente es nuevo y la venta se registró sin errores,
+    // crear/actualizar su perfil en customer_profiles para que
+    // pueda encontrarse en búsquedas futuras ("Ya Registrado").
+    if (!hasError && clientType === 'new' && client.name.trim()) {
+      try {
+        const cleanDni = client.dni.trim() || null;
+        const cleanPhone = client.phone.trim() || null;
+        const cleanEmail = client.email.trim() || null;
+        const cleanAddress = client.address.trim() || null;
+        const cleanName = sanitizeText(client.name.trim());
+
+        // Intentar upsert: si ya existe un perfil con ese DNI lo actualiza,
+        // si no existe lo crea. La columna user_id acepta cualquier UUID
+        // (no tiene FK a auth.users) por lo que podemos generar uno.
+        const profileData = {
+          user_id: crypto.randomUUID(),
+          full_name: cleanName,
+          dni: cleanDni,
+          phone: cleanPhone,
+          email: cleanEmail,
+          address: cleanAddress,
+        };
+
+        // Primero intentar por DNI (más confiable)
+        if (cleanDni) {
+          const { data: existing } = await supabase
+            .from('customer_profiles')
+            .select('id, user_id')
+            .eq('dni', cleanDni)
+            .maybeSingle();
+
+          if (existing) {
+            // Actualizar el perfil existente con los datos más recientes
+            await supabase
+              .from('customer_profiles')
+              .update({
+                full_name: cleanName,
+                phone: cleanPhone ?? undefined,
+                email: cleanEmail ?? undefined,
+                address: cleanAddress ?? undefined,
+              })
+              .eq('id', existing.id);
+          } else {
+            // Crear nuevo perfil
+            await supabase.from('customer_profiles').insert(profileData);
+          }
+        } else if (cleanPhone) {
+          // Sin DNI, intentar por teléfono
+          const { data: existing } = await supabase
+            .from('customer_profiles')
+            .select('id, user_id')
+            .eq('phone', cleanPhone)
+            .maybeSingle();
+
+          if (existing) {
+            await supabase
+              .from('customer_profiles')
+              .update({
+                full_name: cleanName,
+                email: cleanEmail ?? undefined,
+                address: cleanAddress ?? undefined,
+              })
+              .eq('id', existing.id);
+          } else {
+            await supabase.from('customer_profiles').insert(profileData);
+          }
+        } else {
+          // Sin DNI ni teléfono, insertar directamente (solo nombre)
+          await supabase.from('customer_profiles').insert(profileData);
+        }
+
+        // Invalidar cache de customer_profiles para que búsquedas futuras
+        // reflejen el nuevo perfil inmediatamente
+        queryClient.invalidateQueries({ queryKey: ['customers'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-customer-profiles'] });
+      } catch (profileErr) {
+        // No interrumpir el flujo de venta por un error en el perfil
+        console.warn('[Sales] No se pudo crear perfil de cliente nuevo:', profileErr);
       }
     }
 
