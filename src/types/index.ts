@@ -382,6 +382,21 @@ export interface ProductSummary {
   pendiente: number;
 }
 
+export interface SalePayment {
+  id: string;
+  sale_id: string | null;
+  sale_group_id: string | null;
+  amount_usd: number;
+  amount_bs: number | null;
+  exchange_rate: number | null;
+  usdt_rate: number | null;
+  usdt_bought: number | null;
+  payment_method: string;
+  created_at: string;
+  notes: string | null;
+  status?: string;
+}
+
 export interface ProductDebtor {
   sale_id: string;
   sale_group_id: string;

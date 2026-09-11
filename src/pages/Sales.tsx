@@ -25,23 +25,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatBS } from '@/lib/utils';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ProductSummaryTab } from '@/components/sales/ProductSummaryTab';
-import { Sale, Product, CheckoutItem, OrderItem, ProductDebtor } from '@/types';
-
-export interface SalePayment {
-  id: string;
-  sale_id: string;
-  amount_usd: number;
-  amount_bs: number | null;
-  sale_group_id: string | null;
-  exchange_rate: number | null;
-  usdt_rate: number | null;
-  usdt_bought: number | null;
-  payment_method: string;
-  created_at: string;
-  notes: string | null;
-}
+import { Sale, Product, CheckoutItem, OrderItem, ProductDebtor, SaleStatus, SalePayment } from '@/types';
 
 export interface GroupedReceivable {
   client_name: string;
@@ -126,7 +112,7 @@ export default function Sales() {
   const [receivableTab, setReceivableTab] = useState('pending');
   const navigate = useNavigate();
   // --- STATE ---
-  const { sales, addSale, confirmSale, deleteSale, registerSalePayment, updateSale, refetch: refetchSales } = useSales();
+  const { sales, addSale, confirmSale, deleteSale, registerSalePayment, updateSale, updateSalePayment, voidSalePayment, refetch: refetchSales } = useSales();
   const { products, refetch: refetchProducts } = useProducts();
   const { rate, convertToBS } = useExchangeRate();
   const { methods: activePaymentMethods } = usePaymentMethods(false);
@@ -204,6 +190,23 @@ export default function Sales() {
         }
       });
       setEditingSale(null);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVoidPayment = async (paymentId: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas anular este abono? El saldo de la cuenta se recalculará automáticamente.')) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await voidSalePayment(paymentId);
+      if (detailsGroup) {
+        await loadGroupPayments(detailsGroup);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -420,9 +423,39 @@ export default function Sales() {
     return matchesSearch && matchesModality;
   });
 
-  const posReceivables = sales.filter(s => 
-    receivableTab === 'paid' ? s.payment_status === 'paid' : s.payment_status !== 'paid'
-  );
+  const groupedReceivables = useMemo(() => {
+    const groups = new Map<string, GroupedReceivable>();
+    sales.forEach(sale => {
+      const key = sale.sale_group_id || sale.id;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          id: key,
+          client_name: sale.client_name || '',
+          sale_modality: sale.sale_modality || '',
+          created_at: sale.created_at,
+          sales: [],
+          total_usd: 0,
+          amount_paid: 0,
+          total_bs: 0,
+          payment_method: sale.payment_method,
+        });
+      }
+      const group = groups.get(key)!;
+      group.sales.push(sale);
+      group.total_usd += Number(sale.total_usd || 0);
+      group.amount_paid += Number(sale.amount_paid || 0);
+      group.total_bs += Number(sale.total_bs || 0);
+    });
+
+    const allGroups = Array.from(groups.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    return allGroups.filter(group => {
+      const pendingAmountUsd = group.total_usd - group.amount_paid;
+      // Por cobrar si pendingAmountUsd > 0. Pagado si pendingAmountUsd <= 0.
+      if (receivableTab === 'paid') return pendingAmountUsd <= 0;
+      return pendingAmountUsd > 0;
+    });
+  }, [sales, receivableTab]);
 
   const groupedSales = useMemo(() => {
     const groupsMap = new Map<string, GroupedSale>();
@@ -1588,40 +1621,15 @@ export default function Sales() {
               </div>
             </div>
 
-            {posReceivables.length === 0 ? (
+            {groupedReceivables.length === 0 ? (
               <div className="text-center py-16">
                 <TickCircle className="h-16 w-16 text-green-500/50 mx-auto mb-4" />
                 <p className="text-muted-foreground font-medium text-lg">Todo está al día</p>
                 <p className="text-muted-foreground text-sm">No hay ventas con saldo pendiente</p>
               </div>
-            ) : (() => {
-              const groups = new Map<string, GroupedReceivable>();
-              posReceivables.forEach(sale => {
-                 const key = sale.sale_group_id || sale.id;
-                 if (!groups.has(key)) {
-                   groups.set(key, {
-                     id: key,
-                     client_name: sale.client_name,
-                     sale_modality: sale.sale_modality,
-                     created_at: sale.created_at,
-                     sales: [],
-                     total_usd: 0,
-                     amount_paid: 0,
-                     total_bs: 0,
-                     payment_method: sale.payment_method,
-                   });
-                 }
-                 const group = groups.get(key)!;
-                 group.sales.push(sale);
-                 group.total_usd += Number(sale.total_usd || 0);
-                 group.amount_paid += Number(sale.amount_paid || 0);
-                 group.total_bs += Number(sale.total_bs || 0);
-              });
-              const groupedReceivables = Array.from(groups.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-              return (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {groupedReceivables.map(group => {
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {groupedReceivables.map(group => {
                     const pendingAmountUsd = group.total_usd - group.amount_paid;
                     const isPartial = group.amount_paid > 0 && group.amount_paid < group.total_usd;
                     const isBsPayment = ['pago_movil', 'efectivo_bs', 'transferencia', 'credito'].includes(group.payment_method);
@@ -1736,9 +1744,8 @@ export default function Sales() {
                     </Card>
                   );
                   })}
-                </div>
-              );
-            })()}
+              </div>
+            )}
           </TabsContent>
 
           {/* TAB: PEDIDOS DE CLIENTES */}
@@ -2219,23 +2226,38 @@ export default function Sales() {
                       <span className="font-bold text-gradient-gold">${Number(payment.amount_usd).toFixed(2)}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">{new Date(payment.created_at).toLocaleDateString()} {new Date(payment.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6 text-primary hover:bg-primary/20"
-                          onClick={() => {
-                            setEditingPayment(payment);
-                            setEditPaymentForm({
-                              amount_usd: String(payment.amount_usd),
-                              amount_bs: payment.amount_bs ? String(payment.amount_bs) : '',
-                              exchange_rate: payment.exchange_rate ? String(payment.exchange_rate) : '',
-                              payment_method: payment.payment_method,
-                              notes: payment.notes || ''
-                            });
-                          }}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                        </Button>
+                        {payment.status === 'void' ? (
+                          <Badge variant="destructive" className="text-[10px] scale-90">Anulado</Badge>
+                        ) : (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 text-primary hover:bg-primary/20"
+                              onClick={() => {
+                                setEditingPayment(payment);
+                                setEditPaymentForm({
+                                  amount_usd: String(payment.amount_usd),
+                                  amount_bs: payment.amount_bs ? String(payment.amount_bs) : '',
+                                  exchange_rate: payment.exchange_rate ? String(payment.exchange_rate) : '',
+                                  payment_method: payment.payment_method,
+                                  notes: payment.notes || ''
+                                });
+                              }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 text-destructive hover:bg-destructive/20"
+                              onClick={() => handleVoidPayment(payment.id)}
+                              disabled={isSubmitting}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                     {payment.amount_bs > 0 && (

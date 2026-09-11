@@ -14,7 +14,8 @@ import type {
   Sale, 
   SaleStatus, 
   SaleInput, 
-  StockValidationError 
+  StockValidationError,
+  SalePayment
 } from '@/types';
 
 
@@ -317,15 +318,29 @@ export function useSales() {
 
   const updateSale = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Sale> }) => {
-      const { data, error } = await supabase
-        .from('sales')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      if (updates.total_usd !== undefined) {
+        const { data, error } = await supabase.rpc('edit_sale_total', {
+          p_sale_id: id,
+          p_new_total_usd: updates.total_usd,
+          p_notes: updates.notes || ''
+        });
+        if (error) throw error;
+        // Also update total_bs if provided
+        if (updates.total_bs !== undefined) {
+           await supabase.from('sales').update({ total_bs: updates.total_bs }).eq('id', id);
+        }
+        return data;
+      } else {
+        const { data, error } = await supabase
+          .from('sales')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+  
+        if (error) throw error;
+        return data;
+      }
     },
     onSuccess: () => {
       invalidateSales();
@@ -378,12 +393,14 @@ export function useSales() {
 
   const updateSalePayment = useMutation({
     mutationFn: async ({ id, updates }: { id: string, updates: Partial<SalePayment> }) => {
-      const { data, error } = await supabase
-        .from('sale_payments')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('edit_group_abono', {
+        p_abono_id: id,
+        p_amount_usd: updates.amount_usd || 0,
+        p_amount_bs: updates.amount_bs || 0,
+        p_exchange_rate: updates.exchange_rate || 0,
+        p_payment_method: updates.payment_method || 'efectivo_usd',
+        p_notes: updates.notes || ''
+      });
       
       if (error) throw error;
       return data;
@@ -394,6 +411,23 @@ export function useSales() {
     },
     onError: (error: Error) => {
       toast({ title: 'Error', description: error.message || 'No se pudo actualizar el abono', variant: 'destructive' });
+    }
+  });
+
+  const voidSalePayment = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.rpc('void_group_abono', {
+        p_abono_id: id
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      invalidateSales();
+      toast({ title: 'Éxito', description: 'Abono anulado correctamente' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message || 'No se pudo anular el abono', variant: 'destructive' });
     }
   });
 
@@ -412,6 +446,7 @@ export function useSales() {
     updateSale: updateSale.mutateAsync,
     registerSalePayment: registerSalePayment.mutateAsync,
     updateSalePayment: updateSalePayment.mutateAsync,
+    voidSalePayment: voidSalePayment.mutateAsync,
     refetch,
   };
 }
