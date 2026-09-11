@@ -19,11 +19,13 @@ export function useCustomerCredit() {
       if (!user) return null;
 
       // 1. Intentar buscar por client_user_id
-      let { data, error } = await supabase
+      const { data: initialData, error } = await supabase
         .from('credits')
         .select('*')
         .eq('client_user_id', user.id)
         .maybeSingle();
+
+      let data = initialData;
 
       if (error) throw error;
 
@@ -57,11 +59,13 @@ export function useCustomerCredit() {
       const phoneToSearch = user.user_metadata?.phone || user.phone || profilePhone;
       if (!data && phoneToSearch) {
         // Intento 1: Coincidencia exacta
-        let { data: phoneData, error: phoneError } = await supabase
+        const { data: initialPhoneData, error: phoneError } = await supabase
           .from('credits')
           .select('*')
           .eq('client_phone', phoneToSearch)
           .maybeSingle();
+
+        const phoneData = initialPhoneData;
 
         if (phoneError) throw phoneError;
         data = phoneData;

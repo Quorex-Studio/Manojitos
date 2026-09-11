@@ -30,7 +30,7 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
   const canAdd = remainingStock > 0;
   const navigate = useNavigate();
 
-  const bsPrice = useMemo(() => convertToBS(product.price_usd), [product.price_usd, rate]);
+  const bsPrice = useMemo(() => convertToBS(product.price_usd), [product.price_usd, convertToBS]);
   const availableSizes = getAvailableSizes(product.name, product.category || '');
   const requiresSize = availableSizes.length > 0 && availableSizes[0] !== 'Única';
 

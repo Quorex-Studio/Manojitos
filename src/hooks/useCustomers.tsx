@@ -39,7 +39,7 @@ export function useCustomers() {
       }
       
       // Mapear los estados nulos a 'none'
-      return (data as any[]).map(c => ({
+      return (data as Record<string, unknown>[]).map(c => ({
         ...c,
         kyc_status: c.kyc_status || 'none'
       })) as CustomerProfile[];
@@ -101,7 +101,7 @@ export function useCustomers() {
         }
       }
     },
-    onError: (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error al actualizar',
         description: error.message,

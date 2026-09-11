@@ -23,6 +23,14 @@ import { useCustomerPurchaseHistory } from '@/hooks/useCustomerProfile';
 import { useCustomerCredit } from '@/hooks/useCustomerCredit';
 import { useAuth } from '@/hooks/useAuth';
 import { CustomerDashboard } from '@/components/customer/CustomerDashboard';
+
+type PurchaseHistoryItem = {
+  id: string;
+  items?: { product_name: string; quantity?: number; image_url?: string }[];
+  product_name?: string;
+  quantity?: number;
+  [key: string]: unknown;
+};
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { sanitizeText } from '@/lib/validations';
@@ -717,14 +725,14 @@ export default function CustomerProfile() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {purchases.slice(0, 10).map((purchase: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+                      {(purchases as PurchaseHistoryItem[]).slice(0, 10).map((purchase: PurchaseHistoryItem) => {
                         const isOrder = !!purchase.items;
                         const productName = isOrder 
-                          ? (purchase.items?.map((i: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => i.product_name).join(', ') || `Pedido #${purchase.id.slice(0, 8)}`)
+                          ? (purchase.items?.map((i) => i.product_name).join(', ') || `Pedido #${purchase.id.slice(0, 8)}`)
                           : purchase.product_name;
                         
                         const quantity = isOrder 
-                          ? purchase.items?.reduce((acc: number, item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => acc + (item.quantity || 1), 0) || 1
+                          ? purchase.items?.reduce((acc: number, item) => acc + (item.quantity || 1), 0) || 1
                           : purchase.quantity;
 
                         const firstImageUrl = isOrder ? purchase.items?.[0]?.image_url : null;

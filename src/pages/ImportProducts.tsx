@@ -84,13 +84,13 @@ export default function ImportProducts() {
   // --- HANDLERS ---
 
   // Normalizar nombre de columna
-  const normalizeColumnName = (name: string): string => {
+  const normalizeColumnName = useCallback((name: string): string => {
     const normalized = name.toLowerCase().trim().replace(/\s+/g, '_');
     return COLUMN_MAPPINGS[normalized] || normalized;
-  };
+  }, []);
 
   // Validar un producto
-  const validateProduct = (row: Record<string, unknown>, rowIndex: number): ParsedProduct => {
+  const validateProduct = useCallback((row: Record<string, unknown>, rowIndex: number): ParsedProduct => {
     const errors: string[] = [];
     
     // Mapear columnas
@@ -148,10 +148,10 @@ export default function ImportProducts() {
       isValid: errors.length === 0,
       errors,
     };
-  };
+  }, [normalizeColumnName]);
 
   // Procesar archivo Excel/CSV
-  const processFile = async (selectedFile: File) => {
+  const processFile = useCallback(async (selectedFile: File) => {
     setIsProcessing(true);
     setFile(selectedFile);
 
@@ -184,7 +184,7 @@ export default function ImportProducts() {
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [validateProduct]);
 
   // Manejar drag & drop
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -210,7 +210,7 @@ export default function ImportProducts() {
         toast.error('Formato no soportado. Usa .xlsx, .xls o .csv');
       }
     }
-  }, []);
+  }, [processFile]);
 
   // Manejar selección de archivo
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

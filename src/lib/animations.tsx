@@ -4,42 +4,42 @@ import { ReactNode } from 'react';
 // ============= VARIANTES DE ANIMACIÓN REUTILIZABLES =============
 
 // Fade in con movimiento sutil
-export const fadeInUp: Variants = {
+const fadeInUp: Variants = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -10 }
 };
 
 // Fade simple
-export const fadeIn: Variants = {
+const fadeIn: Variants = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
   exit: { opacity: 0 }
 };
 
 // Scale con fade
-export const scaleIn: Variants = {
+const scaleIn: Variants = {
   initial: { opacity: 0, scale: 0.95 },
   animate: { opacity: 1, scale: 1 },
   exit: { opacity: 0, scale: 0.95 }
 };
 
 // Slide desde la derecha
-export const slideInRight: Variants = {
+const slideInRight: Variants = {
   initial: { opacity: 0, x: 30 },
   animate: { opacity: 1, x: 0 },
   exit: { opacity: 0, x: 30 }
 };
 
 // Slide desde la izquierda
-export const slideInLeft: Variants = {
+const slideInLeft: Variants = {
   initial: { opacity: 0, x: -30 },
   animate: { opacity: 1, x: 0 },
   exit: { opacity: 0, x: -30 }
 };
 
 // Stagger children - para listas animadas
-export const staggerContainer: Variants = {
+const staggerContainer: Variants = {
   initial: { /* empty */ },
   animate: {
     transition: {
@@ -50,7 +50,7 @@ export const staggerContainer: Variants = {
 };
 
 // Item para stagger
-export const staggerItem: Variants = {
+const staggerItem: Variants = {
   initial: { opacity: 0, y: 20 },
   animate: { 
     opacity: 1, 
@@ -64,18 +64,18 @@ export const staggerItem: Variants = {
 
 // ============= TRANSICIONES COMUNES =============
 
-export const springTransition = {
+const springTransition = {
   type: 'spring' as const,
   stiffness: 300,
   damping: 30
 };
 
-export const smoothTransition = {
+const smoothTransition = {
   duration: 0.3,
   ease: 'easeOut' as const
 };
 
-export const fastTransition = {
+const fastTransition = {
   duration: 0.2,
   ease: 'easeOut' as const
 };

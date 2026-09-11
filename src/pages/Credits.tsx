@@ -44,6 +44,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { sanitizeText } from '@/lib/validations';
 import { CustomerOfMonthCard } from '@/components/credits/CustomerOfMonthCard';
+import { Order, Credit } from '@/types';
 
 // Configuración de estados con colores
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -106,7 +107,7 @@ export default function Credits() {
     }
   });
 
-  const handleApproveRequest = async (requestOrder: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+  const handleApproveRequest = async (requestOrder: Order) => {
     try {
       const { data: profiles } = await supabase
         .from('customer_profiles')
@@ -158,14 +159,16 @@ export default function Credits() {
     }
   };
 
-  const handleApproveReportedpago = async (pagoOrder: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+  const handleApproveReportedpago = async (pagoOrder: Order) => {
     try {
       // 1. Encontrar la cuenta de crédito correspondiente al cliente
-      let { data: targetCredit, error: creditError } = await supabase
+      const { data: initialCredit, error: creditError } = await supabase
         .from('credits')
         .select('*')
         .eq('client_user_id', pagoOrder.customer_user_id)
         .maybeSingle();
+
+      let targetCredit = initialCredit;
 
       if (creditError) throw creditError;
 
@@ -1426,7 +1429,7 @@ export default function Credits() {
 function CreditProfileDrawer({ creditId, onClose, credit, kycStatus }: {
   creditId: string | null;
   onClose: () => void;
-  credit: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */;
+  credit: Credit;
   kycStatus: string | undefined;
 }) {
   const { data: transactions, isLoading } = useCreditTransactions(creditId || '');

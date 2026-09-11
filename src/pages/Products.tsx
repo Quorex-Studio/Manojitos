@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gallery, Plus, Search, Package, Edit2, Trash2, AlertTriangle, Calculator, DollarSign, TrendUp, ArrowRight } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -102,7 +102,7 @@ export default function Products() {
     } else {
       setCalculatedPrices({ costPerUnit: 0, costRounded: 0, priceWholesaleEur: 0, priceRetailEur: 0, priceCreditEur: 0 });
     }
-  }, [costCalc.purchaseMerchUsd, costCalc.purchaseShippingUsd, costCalc.purchaseUnits, costCalc.bsSurchargePct, pricingConfig, eurRate, usdRate]);
+  }, [costCalc.purchaseMerchUsd, costCalc.purchaseShippingUsd, costCalc.purchaseUnits, costCalc.bsSurchargePct, pricingConfig, eurRate, usdRate, calculatePrices, costCalc.addToStock, editingProduct]);
 
   // --- DERIVED ---
   const filteredProducts = products.filter(p =>
@@ -150,7 +150,7 @@ export default function Products() {
   };
 
   // --- REVERSE CALCULATE ON BLUR TO AVOID INFINITE LOOPS ---
-  const handlePriceUsdBlur = () => {
+  const handlePriceUsdBlur = useCallback(() => {
     if (showCalculator && usdRate > 0 && eurRate > 0) {
       const usdPrice = parseFloat(form.price_usd) || 0;
       if (usdPrice > 0) {
@@ -178,9 +178,9 @@ export default function Products() {
         setForm(prev => ({ ...prev, price_eur: eurPrice.toFixed(2) }));
       }
     }
-  };
+  }, [showCalculator, usdRate, eurRate, form.price_usd, form.price_eur, pricingConfig, costCalc.purchaseUnits, costCalc.purchaseShippingUsd]);
 
-  const handlePriceEurBlur = () => {
+  const handlePriceEurBlur = useCallback(() => {
     if (showCalculator && usdRate > 0 && eurRate > 0) {
       const eurPrice = parseFloat(form.price_eur) || 0;
       if (eurPrice > 0) {
@@ -207,7 +207,7 @@ export default function Products() {
         setForm(prev => ({ ...prev, price_usd: usdPrice.toFixed(2) }));
       }
     }
-  };
+  }, [showCalculator, usdRate, eurRate, form.price_eur, form.price_usd, pricingConfig, costCalc.purchaseUnits, costCalc.purchaseShippingUsd]);
 
   const handlePriceBsUsdBlur = () => {
     if (showCalculator && form.price_usd && form.price_bs_usd) {
@@ -224,8 +224,10 @@ export default function Products() {
   };
 
   // --- REVERSE CALCULATE ONCE WHEN CALCULATOR OPENS ---
+  const hasReversed = useRef(false);
   useEffect(() => {
-    if (showCalculator && usdRate > 0 && eurRate > 0) {
+    if (showCalculator && !hasReversed.current && usdRate > 0 && eurRate > 0) {
+      hasReversed.current = true;
       const usdPrice = parseFloat(form.price_usd) || 0;
       const eurPrice = parseFloat(form.price_eur) || 0;
       const merchStr = costCalc.purchaseMerchUsd.trim();
@@ -237,7 +239,10 @@ export default function Products() {
         }
       }
     }
-  }, [showCalculator]);
+    if (!showCalculator) {
+      hasReversed.current = false;
+    }
+  }, [showCalculator, costCalc.purchaseMerchUsd, eurRate, form.price_eur, form.price_usd, handlePriceEurBlur, handlePriceUsdBlur, usdRate]);
 
   const resetForm = () => {
     setForm({ name: '', description: '', price_usd: '', price_eur: '', price_bs_usd: '', stock: '', category: '', image_url: '', sizes: [] });

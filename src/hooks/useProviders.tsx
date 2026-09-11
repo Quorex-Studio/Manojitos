@@ -4,7 +4,7 @@
  * Validations: `providerSchema`, `purchaseSchema` via Zod.
  * Returns: { providers, purchases, loading, addProvider, deleteProvider, addPurchase, markPurchaseAsPaid }
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -18,7 +18,7 @@ export function useProviders() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchProviders = async () => {
+  const fetchProviders = useCallback(async () => {
     if (!user) return;
 
     const { data, error } = await supabase
@@ -30,10 +30,13 @@ export function useProviders() {
     if (!error) {
       setProviders(data || []);
     }
-  };
+  }, [user]);
 
-  const fetchPurchases = async () => {
-    if (!user) return;
+  const fetchPurchases = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from('purchases')
@@ -45,7 +48,7 @@ export function useProviders() {
       setPurchases(data || []);
     }
     setLoading(false);
-  };
+  }, [user]);
 
   const addProvider = async (provider: Omit<Provider, 'id' | 'user_id' | 'created_at'>) => {
     if (!user) return { error: new Error('No autenticado') };
@@ -54,13 +57,14 @@ export function useProviders() {
     try {
       const validated = validateInput(providerSchema, provider);
 
+      const valProvider = validated as Omit<Provider, 'id' | 'user_id' | 'created_at'>;
       const { data, error } = await supabase
         .from('providers')
         .insert([{
-          name: (validated as any).name,
-          phone: (validated as any).phone,
-          email: (validated as any).email || null,
-          notes: (validated as any).notes,
+          name: valProvider.name,
+          phone: valProvider.phone,
+          email: valProvider.email || null,
+          notes: valProvider.notes,
           user_id: user.id
         }])
         .select()
@@ -100,16 +104,17 @@ export function useProviders() {
     try {
       const validated = validateInput(purchaseSchema, purchase);
 
+      const valPurchase = validated as Omit<Purchase, 'id' | 'user_id' | 'created_at' | 'paid_at'>;
       const { data, error } = await supabase
         .from('purchases')
         .insert([{
-          provider_id: (validated as any).provider_id,
-          provider_name: (validated as any).provider_name,
-          amount_usd: (validated as any).amount_usd,
-          amount_bs: (validated as any).amount_bs,
-          purchase_date: (validated as any).purchase_date,
-          status: (validated as any).status,
-          notes: (validated as any).notes,
+          provider_id: valPurchase.provider_id,
+          provider_name: valPurchase.provider_name,
+          amount_usd: valPurchase.amount_usd,
+          amount_bs: valPurchase.amount_bs,
+          purchase_date: valPurchase.purchase_date,
+          status: valPurchase.status,
+          notes: valPurchase.notes,
           user_id: user.id
         }])
         .select()
@@ -147,7 +152,7 @@ export function useProviders() {
       fetchProviders();
       fetchPurchases();
     }
-  }, [user]);
+  }, [user, fetchProviders, fetchPurchases]);
 
   return {
     providers,

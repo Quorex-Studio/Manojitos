@@ -291,7 +291,7 @@ export function useNotifications() {
         }
       }
     };
-  }, [user?.id]); // Only re-subscribe when the user ID changes
+  }, [user, isAdmin, queryClient, showNotification]);
 
   return {
     notifications,

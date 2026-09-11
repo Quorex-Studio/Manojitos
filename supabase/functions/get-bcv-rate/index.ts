@@ -32,7 +32,7 @@ serve(async (req) => {
     }
 
     let rate: number | null = manualRate;
-    let source = manualRate ? 'manual' : 'BCV';
+    const source = manualRate ? 'manual' : 'BCV';
 
     // Only fetch from BCV API if no manual rate provided
     if (!manualRate) {

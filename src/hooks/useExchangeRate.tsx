@@ -5,7 +5,7 @@
  * Edge Function: `get-bcv-rate`
  * Returns: { rate, loading, lastUpdate, updateRate, convertToBS, convertFromBS, autoFetching, refetch }
  */
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -57,7 +57,7 @@ export function useExchangeRate(requestedCurrency: 'USD' | 'EUR' = 'USD') {
   const lastUpdate = rateInfo?.lastUpdate ?? null;
 
   // Auto-fetch from BCV API if rate is outdated (>24h)
-  const autoFetchBCV = async () => {
+  const autoFetchBCV = useCallback(async () => {
     if (autoFetchAttempted.current[requestedCurrency]) return;
     autoFetchAttempted.current[requestedCurrency] = true;
 
@@ -84,7 +84,7 @@ export function useExchangeRate(requestedCurrency: 'USD' | 'EUR' = 'USD') {
     } finally {
       setAutoFetching(false);
     }
-  };
+  }, [requestedCurrency, rateInfo, queryClient]);
 
   // Trigger auto-fetch on mount if needed
   useEffect(() => {
@@ -100,13 +100,13 @@ export function useExchangeRate(requestedCurrency: 'USD' | 'EUR' = 'USD') {
         }
       }
     }
-  }, [rates, isLoading, requestedCurrency]);
+  }, [rates, isLoading, requestedCurrency, rateInfo, autoFetchBCV]);
 
-  const convertToBS = (amount: number) => rate ? amount * rate : 0;
-  const convertFromBS = (bs: number) => rate ? bs / rate : 0;
+  const convertToBS = useCallback((amount: number) => rate ? amount * rate : 0, [rate]);
+  const convertFromBS = useCallback((bs: number) => rate ? bs / rate : 0, [rate]);
   
   // Para PriceDisplay.tsx (calcula todas las monedas de un solo tiro desde el precio base en USD)
-  const calculateAllCurrencies = (amountUsd: number) => {
+  const calculateAllCurrencies = useCallback((amountUsd: number) => {
     const usdRate = rates?.USD?.rate || 0;
     const eurRate = rates?.EUR?.rate || 0;
     
@@ -118,7 +118,7 @@ export function useExchangeRate(requestedCurrency: 'USD' | 'EUR' = 'USD') {
       VES: ves,
       EUR: eur
     };
-  };
+  }, [rates]);
 
   return {
     rate,

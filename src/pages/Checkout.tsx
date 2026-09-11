@@ -888,7 +888,7 @@ export default function Checkout() {
                           }} className="space-y-3">
                             {allMethodsWithCredit.map((method) => {
                               const isCreditMethod = method.id === 'credito';
-                              const isDisabled = (method as any).disabled;
+                              const isDisabled = (method as { disabled?: boolean }).disabled;
                               
                               return (
                                 <label

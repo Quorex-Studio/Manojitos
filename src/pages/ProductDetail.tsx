@@ -258,7 +258,7 @@ export default function ProductDetail() {
                   price_usd: product.price_usd,
                   category: product.category
                 }}
-                allProducts={(products as any[]).map(p => ({
+                allProducts={(products as PublicProduct[]).map(p => ({
                   id: p.id,
                   sold_count: p.sold_count || 0,
                   stock: p.stock,

@@ -9,7 +9,7 @@ import { useFinancialProfile, FinancialProfile, useFinancialProfileFromCredit } 
 
 interface CreditFinancialProfileProps {
   creditId?: string;
-  creditData?: any;
+  creditData?: { client_name?: string; [key: string]: unknown };
   compact?: boolean;
 }
 

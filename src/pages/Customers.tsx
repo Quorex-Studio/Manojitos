@@ -134,7 +134,7 @@ function CustomerHistory({ userId, phone }: { userId: string, phone: string | nu
                       {format(new Date(order.created_at), "dd MMM yyyy", { locale: es })}
                     </span>
                   </div>
-                  <p className="text-sm font-medium">Pedido Web ({(order.items as any[])?.length || 0} items)</p>
+                  <p className="text-sm font-medium">Pedido Web ({(order.items as unknown[])?.length || 0} items)</p>
                 </div>
                 <div className="flex items-center gap-4">
                   <Badge variant="outline" className="capitalize">{order.status}</Badge>

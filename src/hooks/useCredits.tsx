@@ -658,7 +658,7 @@ export function useAllCreditTransactions() {
 
       return (data || []).map(tx => ({
         ...tx,
-        client_name: (tx.credits as any)?.client_name || 'Desconocido',
+        client_name: (tx.credits as { client_name?: string } | undefined)?.client_name || 'Desconocido',
       })) as CreditTransactionWithClient[];
     },
     enabled: !!user && isAdmin,

@@ -24,6 +24,39 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatBS } from '@/lib/utils';
 import { useSearchParams } from 'react-router-dom';
+import { Sale, Product, CheckoutItem, OrderItem } from '@/types';
+
+export interface SalePayment {
+  id: string;
+  sale_id: string;
+  amount_usd: number;
+  amount_bs: number | null;
+  exchange_rate: number | null;
+  usdt_rate: number | null;
+  usdt_bought: number | null;
+  payment_method: string;
+  created_at: string;
+  notes: string | null;
+}
+
+export interface GroupedReceivable {
+  client_name: string;
+  total_usd: number;
+  total_pending: number;
+  sales: Sale[];
+  created_at: string;
+}
+
+export interface GroupedSale {
+  id: string;
+  client_name: string | null;
+  payment_method: string;
+  is_credit: boolean;
+  created_at: string;
+  total_usd: number;
+  items: Sale[];
+}
+
 
 // Removed hardcoded paymentMethods array
 
@@ -105,7 +138,7 @@ export default function Sales() {
   const [orderSort, setOrderSort] = useState('date_desc');
   const [saleModalityFilter, setSaleModalityFilter] = useState('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [abonoGroup, setAbonoGroup] = useState<any | null>(null);
+  const [abonoGroup, setAbonoGroup] = useState<GroupedReceivable | null>(null);
   const [abonoAmount, setAbonoAmount] = useState<string>(''); // amount in USD
   const [abonoAmountBs, setAbonoAmountBs] = useState<string>('');
   const [abonoExchangeRate, setAbonoExchangeRate] = useState<string>('');
@@ -114,21 +147,21 @@ export default function Sales() {
   const [abonoPaymentMethod, setAbonoPaymentMethod] = useState<string>('pago_movil');
   const [abonoNotes, setAbonoNotes] = useState<string>('');
 
-  const [editingSale, setEditingSale] = useState<any>(null);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [editSaleForm, setEditSaleForm] = useState({
     amount_paid: '',
     total_usd: '',
     total_bs: '',
   });
 
-  const [detailsGroup, setDetailsGroup] = useState<any>(null);
-  const [groupPayments, setGroupPayments] = useState<any[]>([]);
+  const [detailsGroup, setDetailsGroup] = useState<GroupedSale | null>(null);
+  const [groupPayments, setGroupPayments] = useState<SalePayment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 
-  const loadGroupPayments = async (group: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+  const loadGroupPayments = async (group: GroupedSale) => {
     setIsLoadingPayments(true);
     try {
-      const saleIds = group.sales.map((s: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => s.id);
+      const saleIds = group.items.map((s) => s.id);
       const { data, error } = await supabase
         .from('sale_payments')
         .select('*')
@@ -137,7 +170,7 @@ export default function Sales() {
         
       if (error) throw error;
       setGroupPayments(data || []);
-    } catch (e) {
+    } catch (e: unknown) {
       console.error(e);
     } finally {
       setIsLoadingPayments(false);
@@ -362,7 +395,7 @@ export default function Sales() {
   const posReceivables = sales.filter(s => s.payment_status !== 'paid');
 
   const groupedSales = useMemo(() => {
-    const groups: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */[] = [];
+    const groups: GroupedSale[] = [];
     filteredSales.forEach(sale => {
       if (groups.length === 0) {
         groups.push({
@@ -659,11 +692,13 @@ export default function Sales() {
       // 3. Si el método es crédito, descontar/cargar a su cuenta de crédito
       if (approvedOrder.payment_method === 'credito') {
         // Encontrar cuenta de crédito por user_id, email, o teléfono
-        let { data: targetCredit, error: creditError } = await supabase
+        const { data: initialCredit, error: creditError } = await supabase
           .from('credits')
           .select('*')
           .eq('client_user_id', approvedOrder.customer_user_id)
           .maybeSingle();
+        
+        let targetCredit = initialCredit;
 
         if (!targetCredit) {
           if (approvedOrder.customer_email) {
@@ -733,11 +768,13 @@ export default function Sales() {
         }
       } else if (approvedOrder.notes?.includes('[ABONO_CREDITO]')) {
         // Encontrar cuenta de crédito por user_id, email, o teléfono
-        let { data: targetCredit, error: creditError } = await supabase
+        const { data: initialCredit, error: creditError } = await supabase
           .from('credits')
           .select('*')
           .eq('client_user_id', approvedOrder.customer_user_id)
           .maybeSingle();
+
+        let targetCredit = initialCredit;
 
         if (!targetCredit) {
           if (approvedOrder.customer_email) {
@@ -1127,7 +1164,7 @@ export default function Sales() {
                         Datos del Cliente
                       </h4>
 
-                      <Tabs value={clientType} onValueChange={(v: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => { 
+                      <Tabs value={clientType} onValueChange={(v: string) => { 
                         setClientType(v); 
                         setClient({ dni: '', name: '', phone: '', email: '', address: '', notes: '' }); 
                         setDniLookupState('idle'); 
@@ -1427,7 +1464,7 @@ export default function Sales() {
                       </div>
 
                       <div className="space-y-2">
-                        {group.items.map((sale: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+                        {group.items.map((sale: Sale) => {
                           const product = products.find(p => p.id === sale.product_id);
                           return (
                             <div key={sale.id} className="flex justify-between items-center py-1.5 group/item">
@@ -1493,7 +1530,7 @@ export default function Sales() {
                 <p className="text-muted-foreground text-sm">No hay ventas con saldo pendiente</p>
               </div>
             ) : (() => {
-              const groups = new Map<string, any>();
+              const groups = new Map<string, GroupedReceivable>();
               posReceivables.forEach(sale => {
                  const dateStr = new Date(sale.created_at).toLocaleDateString();
                  const key = `${sale.client_name || 'Desconocido'}_${sale.sale_modality}_${dateStr}`;
@@ -1567,7 +1604,7 @@ export default function Sales() {
                         </div>
 
                         <div className="space-y-1">
-                          {group.sales.map((sale: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => (
+                          {group.sales.map((sale: Sale) => (
                             <div key={sale.id} className="bg-secondary/50 rounded-lg p-2 text-sm flex justify-between items-center group/sale">
                               <span className="text-muted-foreground truncate flex-1" title={sale.product_name}>
                                 {sale.product_name} x{sale.quantity}
@@ -1770,7 +1807,7 @@ export default function Sales() {
                           <div className="space-y-2">
                             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 text-left">Productos pedidos</h4>
                             <div className="divide-y divide-border/10 bg-secondary/30 rounded-xl p-3">
-                              {items.map((item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */, idx: number) => (
+                              {items.map((item: OrderItem, idx: number) => (
                                 <div key={idx} className="flex justify-between items-center py-2 text-sm">
                                   <div className="flex items-center gap-3">
                                     {item.image_url && (

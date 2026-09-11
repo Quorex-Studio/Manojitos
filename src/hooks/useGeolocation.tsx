@@ -22,7 +22,7 @@ export function useGeolocation() {
 
     setGettingGPS(true);
 
-    const successCallback = (position: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+    const successCallback = (position: GeolocationPosition) => {
       const { latitude, longitude } = position.coords;
       const coordsStr = `${latitude},${longitude}`;
       onSuccess({
@@ -121,13 +121,13 @@ export function useGeolocation() {
       });
     };
 
-    const errorCallbackLow = (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+    const errorCallbackLow = (error: GeolocationPositionError) => {
       console.error('Low accuracy geolocation failed:', error);
       // Intentar geolocalización por IP como recurso automático final
       getIPLocation();
     };
 
-    const errorCallbackHigh = (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+    const errorCallbackHigh = (error: GeolocationPositionError) => {
       if (error.code === 1) { // PERMISSION_DENIED
         setGettingGPS(false);
         toast({

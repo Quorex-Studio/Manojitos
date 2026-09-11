@@ -162,7 +162,7 @@ export function useCustomerNotifications() {
         channelRegistry.delete(channelName);
       }
     };
-  }, [user?.id]); // Only re-subscribe when the user ID actually changes
+  }, [user, queryClient, showNotification]);
 
   return {
     notifications,

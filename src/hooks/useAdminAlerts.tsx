@@ -24,7 +24,7 @@ export interface AdminAlert {
     path: string;
   };
   timestamp: Date;
-  data?: any;
+  data?: unknown;
 }
 
 export function useAdminAlerts() {

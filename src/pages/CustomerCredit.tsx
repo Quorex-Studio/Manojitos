@@ -42,6 +42,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatBS } from '@/lib/utils';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
+import { CustomerProfile } from '@/types';
+import { User } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
 import { sanitizeText } from '@/lib/validations';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
@@ -86,7 +88,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 // Sub-componente: vista cuando el cliente no tiene crédito aún
-function CreditRequestView({ user, profile, rate, hasPendingRequest }: { user: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */; profile: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */; rate: number; hasPendingRequest: boolean }) {
+function CreditRequestView({ user, profile, rate, hasPendingRequest }: { user: User | null; profile: CustomerProfile | null; rate: number; hasPendingRequest: boolean }) {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -352,7 +354,7 @@ export default function CustomerCredit() {
       setNotes('');
       queryClient.invalidateQueries({ queryKey: ['customer-pending-abonos'] });
     },
-    onError: (err: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
+    onError: (err: Error) => {
       toast.error(err.message || 'Error al reportar pago');
     }
   });

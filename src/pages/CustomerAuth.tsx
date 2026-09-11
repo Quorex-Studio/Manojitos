@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader, Mailbox, Lock, User, Refresh, ArrowLeft, ShoppingBag, Phone, FileText, Camera, Location, AlertCircle, ShieldAlert } from 'reicon-react';
@@ -52,11 +52,11 @@ export default function CustomerAuth() {
       setHasPromptedLocation(true);
       // Pequeño delay para no abrumar al instante
       const timer = setTimeout(() => {
-        handleGetLocation();
+        handleGetLocationClick();
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isLogin, hasPromptedLocation, form.locationCoords]);
+  }, [isLogin, hasPromptedLocation, form.locationCoords, handleGetLocationClick]);
 
   // --- HANDLERS ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,15 +92,17 @@ export default function CustomerAuth() {
 
   const { gettingGPS, handleGetLocation } = useGeolocation();
 
-  const handleGetLocationClick = () => {
+  const handleGetLocationClick = useCallback(() => {
     handleGetLocation((result) => {
-      setForm(prev => ({
-        ...prev,
-        locationCoords: result.coordsStr,
-        address: prev.address || result.addressString
-      }));
+      if (result) {
+        setForm(prev => ({
+          ...prev,
+          locationCoords: result.coordsStr,
+          address: prev.address || result.addressString
+        }));
+      }
     });
-  };
+  }, [handleGetLocation]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,7 +229,7 @@ export default function CustomerAuth() {
           if (rpcError) {
             console.error('Error checking unique data:', rpcError);
           } else if (data) {
-            const result = data as any;
+            const result = data as { email_taken: boolean; dni_taken: boolean; phone_taken: boolean };
             if (result.email_taken) {
               toast({ title: 'Error', description: 'El correo ya está registrado. Inicia sesión.', variant: 'destructive' });
               setLoading(false);

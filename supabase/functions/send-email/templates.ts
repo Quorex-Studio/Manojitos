@@ -22,7 +22,15 @@ export const createWelcomeEmail = (link?: string) => `
 </div>
 `;
 
-export const createCheckoutEmail = (data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => `
+export interface EmailData {
+  client_name?: string;
+  payment_method?: string;
+  total_usd?: number | string;
+  notes?: string;
+  [key: string]: unknown;
+}
+
+export const createCheckoutEmail = (data: EmailData) => `
 <div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #c4607a 0%, #a04961 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">Confirmación de Pedido</h1>
@@ -49,7 +57,7 @@ export const createCheckoutEmail = (data: any /* eslint-disable-line @typescript
 </div>
 `;
 
-export const createKycApprovedEmail = (data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => `
+export const createKycApprovedEmail = (data: EmailData) => `
 <div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #c4607a 0%, #a04961 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">¡Línea de Crédito Aprobada!</h1>
@@ -70,7 +78,7 @@ export const createKycApprovedEmail = (data: any /* eslint-disable-line @typescr
 </div>
 `;
 
-export const createKycRejectedEmail = (data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => `
+export const createKycRejectedEmail = (data: EmailData) => `
 <div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #555555 0%, #333333 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
     <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">Revisión de Documentos</h1>

@@ -94,7 +94,7 @@ export default function StoreCatalog() {
     if (JSON.stringify(catArray) !== JSON.stringify(selectedCategories)) {
       setSelectedCategories(catArray);
     }
-  }, [searchParams]);
+  }, [searchParams, searchQuery, selectedCategories]);
 
   // Filtrar y ordenar productos
   const filteredProducts = useMemo(() => {

@@ -1,7 +1,7 @@
 // Componente de animaciones emocionales para eventos importantes
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// @ts-ignore
+// @ts-expect-error canvas-confetti missing types
 import confetti from 'canvas-confetti';
 import { CheckCircle, MagicStar, Sparkles, Heart, CreditCard, ShoppingBag, Star, Trophy } from 'reicon-react';
 
