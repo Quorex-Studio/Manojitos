@@ -37,7 +37,7 @@ export function useAdminAlerts() {
     const now = new Date();
 
     // 🚨 Alertas de Stock Crítico
-    const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= 4);
+    const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= (p.minimum_stock ?? 4));
     const outOfStockProducts = products.filter(p => p.stock === 0);
 
     if (outOfStockProducts.length > 0) {

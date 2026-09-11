@@ -168,10 +168,12 @@ function LazyPage({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Redirige al dashboard si el admin ya está autenticado
+// Redirige al dashboard si el admin ya está autenticado, o al perfil si es un cliente normal
 function AdminAuthRoute() {
-  const { user } = useAuth();
-  return user ? <Navigate to="/dashboard" replace /> : <Auth />;
+  const { user, isAdmin } = useAuth();
+  if (!user) return <Auth />;
+  if (isAdmin) return <Navigate to="/dashboard" replace />;
+  return <Navigate to="/cliente/perfil" replace />;
 }
 
 // Rutas de la aplicación

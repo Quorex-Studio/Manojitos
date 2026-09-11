@@ -28,8 +28,7 @@ export function useSales() {
       const { data, error } = await supabase
         .from('sales')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(200);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return (data || []).map(sale => ({

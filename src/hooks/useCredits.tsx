@@ -484,7 +484,7 @@ export function usePaymentPromises(creditId?: string) {
         if (credit) {
           // Calcular nuevo score usando la función RPC
           const { data: newScore } = await supabase.rpc('calculate_trust_score', {
-            p_total_purchases: (credit.total_purchases || 0) + 1,
+            p_total_purchases: credit.total_purchases || 0,
             p_total_paid_on_time: status === 'CUMPLIDA' ? (credit.total_paid_on_time || 0) + 1 : (credit.total_paid_on_time || 0),
             p_total_paid_late: credit.total_paid_late || 0,
             p_consecutive_late: 0, // Se reinicia si cumple
@@ -496,7 +496,6 @@ export function usePaymentPromises(creditId?: string) {
             .from('credits')
             .update({
               trust_score: newScore || credit.trust_score,
-              total_purchases: (credit.total_purchases || 0) + 1,
               total_paid_on_time: status === 'CUMPLIDA' ? (credit.total_paid_on_time || 0) + 1 : credit.total_paid_on_time,
               consecutive_late_payments: 0,
               last_payment_date: new Date().toISOString(),

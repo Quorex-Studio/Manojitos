@@ -392,7 +392,7 @@ export default function Checkout() {
 
       // Upsert a customer_profiles con los datos de envío
       if (user) {
-        await supabase.from('customer_profiles').upsert({
+        const { error: profileError } = await supabase.from('customer_profiles').upsert({
           user_id: user.id,
           full_name: shippingData.fullName,
           phone: shippingData.phone,
@@ -401,6 +401,10 @@ export default function Checkout() {
           city: shippingData.city,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
+        
+        if (profileError) {
+          throw new Error('No se pudo guardar el perfil del cliente. ' + profileError.message);
+        }
       }
 
       const montoInicialBs = rate > 0 ? montoInicialTotal * rate : 0;
