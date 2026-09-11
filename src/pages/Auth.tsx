@@ -55,11 +55,11 @@ export default function Auth() {
     if (id === 'fullName') {
       finalValue = finalValue.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
     } else if (id === 'email') {
-      finalValue = finalValue.replace(/[^a-zA-Z0-9@._\-+]/g, '');
+      finalValue = finalValue.replace(/[^a-zA-Z0-9@._+-]/g, '');
     } else if (id === 'dni') {
       finalValue = finalValue.replace(/[^VEJGP0-9-]/gi, '').toUpperCase();
     } else if (id === 'phone') {
-      finalValue = finalValue.replace(/[^\+0-9\-\(\)]/g, '').trim();
+      finalValue = finalValue.replace(/[^0-9()]/g, '').trim();
       // Auto prefijo venezolano si empieza por 0
       if (finalValue.startsWith('0')) {
         finalValue = '+58' + finalValue.substring(1);

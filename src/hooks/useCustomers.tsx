@@ -79,7 +79,7 @@ export function useCustomers() {
           channel: 'internal',
           is_read: false,
           sent_at: new Date().toISOString(),
-          metadata: {},
+          metadata: { /* empty */ },
         });
 
         // Find user email from current state
@@ -101,7 +101,7 @@ export function useCustomers() {
         }
       }
     },
-    onError: (error: any) => {
+    onError: (error: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
       toast({
         title: 'Error al actualizar',
         description: error.message,

@@ -82,7 +82,7 @@ export function usePricingConfig() {
             rule_type: 'notification',
             description: 'Parámetros de conversión y márgenes de precio',
             conditions: newConfig as unknown as Record<string, unknown>,
-            actions: {},
+            actions: { /* empty */ },
             is_active: true,
             priority: 0,
           });

@@ -52,7 +52,7 @@ export function useLedger() {
         p_reference_type: input.reference_type,
         p_reference_id: input.reference_id || '',
         p_description: input.description || '',
-        p_metadata: (input.metadata || {}) as Json,
+        p_metadata: (input.metadata || { /* empty */ }) as Json,
       });
       if (error) throw error;
       return data;

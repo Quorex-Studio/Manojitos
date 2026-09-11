@@ -180,7 +180,7 @@ export function useBusinessRules() {
     mutationFn: async ({ id, ...updates }: Partial<BusinessRule> & { id: string }) => {
       if (!isAdmin) throw new Error('No autorizado');
 
-      const updateData: Record<string, unknown> = {};
+      const updateData: Record<string, unknown> = { /* empty */ };
       if (updates.rule_name) updateData.rule_name = updates.rule_name;
       if (updates.description !== undefined) updateData.description = updates.description;
       if (updates.rule_type) updateData.rule_type = updates.rule_type;

@@ -9,7 +9,7 @@ interface UseClientPaginationOptions<T> {
  * Hook para paginación del lado del cliente con TanStack Query.
  * Se usa junto con useQuery para paginar datos ya cargados.
  */
-export function useClientPagination<T>(data: T[] | undefined, options: UseClientPaginationOptions<T> = {}) {
+export function useClientPagination<T>(data: T[] | undefined, options: UseClientPaginationOptions<T> = { /* empty */ }) {
   const { pageSize: initialPageSize = 10 } = options;
 
   const [currentPage, setCurrentPage] = useState(1);

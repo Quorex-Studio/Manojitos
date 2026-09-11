@@ -97,7 +97,7 @@ export function useCustomerPaymentMethods() {
         user_id: user.id,
         method_type: validated.method_type,
         alias: validated.alias,
-        details: (validated.details || {}) as Json,
+        details: (validated.details || { /* empty */ }) as Json,
         is_preferred: validated.is_preferred ?? false,
       };
 

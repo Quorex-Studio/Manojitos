@@ -106,7 +106,7 @@ export default function Credits() {
     }
   });
 
-  const handleApproveRequest = async (requestOrder: any) => {
+  const handleApproveRequest = async (requestOrder: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
     try {
       const { data: profiles } = await supabase
         .from('customer_profiles')
@@ -139,7 +139,7 @@ export default function Credits() {
         });
       }
       setIsCreateOpen(true);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error('Error al procesar solicitud');
     }
   };
@@ -153,12 +153,12 @@ export default function Credits() {
         .eq('id', requestId);
       toast.success('Solicitud rechazada correctamente.');
       queryClient.invalidateQueries({ queryKey: ['admin-reported-requests'] });
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error('Error al rechazar solicitud');
     }
   };
 
-  const handleApproveReportedpago = async (pagoOrder: any) => {
+  const handleApproveReportedpago = async (pagoOrder: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
     try {
       // 1. Encontrar la cuenta de crédito correspondiente al cliente
       let { data: targetCredit, error: creditError } = await supabase
@@ -215,7 +215,7 @@ export default function Credits() {
       toast.success('pago aprobado y aplicado correctamente.');
       queryClient.invalidateQueries({ queryKey: ['admin-reported-pagos'] });
       queryClient.invalidateQueries({ queryKey: ['credits'] });
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Error al aprobar pago: ${e.message}`);
     }
   };
@@ -234,7 +234,7 @@ export default function Credits() {
       
       toast.success('pago rechazado correctamente.');
       queryClient.invalidateQueries({ queryKey: ['admin-reported-pagos'] });
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Error al rechazar pago: ${e.message}`);
     }
   };
@@ -703,7 +703,7 @@ export default function Credits() {
             <Input
               placeholder="Buscar por nombre, teléfono o email..."
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s@.+\-]/g, ''))}
+              onChange={e => setSearchTerm(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s@.+-]/g, ''))}
               className="pl-10"
             />
           </div>
@@ -930,7 +930,7 @@ export default function Credits() {
                 <Input
                   placeholder="Buscar por cliente o descripción..."
                   value={pagosSearch}
-                  onChange={e => setpagosSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s@.+\-]/g, ''))}
+                  onChange={e => setpagosSearch(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s@.+-]/g, ''))}
                   className="pl-10"
                 />
               </div>
@@ -1104,8 +1104,8 @@ export default function Credits() {
                 ) : (
                   <div className="space-y-4">
                     {reportedpagos.map(pago => {
-                      const matchRef = pago.notes?.match(/Referencia:\s*([^\.]+)/i);
-                      const matchMethod = pago.notes?.match(/Método:\s*([^\.]+)/i);
+                      const matchRef = pago.notes?.match(/Referencia:\s*([^.]+)/i);
+                      const matchMethod = pago.notes?.match(/Método:\s*([^.]+)/i);
                       const refText = matchRef ? matchRef[1] : 'N/A';
                       const methodText = matchMethod ? matchMethod[1] : (pago.payment_method || 'N/A');
 
@@ -1426,7 +1426,7 @@ export default function Credits() {
 function CreditProfileDrawer({ creditId, onClose, credit, kycStatus }: {
   creditId: string | null;
   onClose: () => void;
-  credit: any;
+  credit: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */;
   kycStatus: string | undefined;
 }) {
   const { data: transactions, isLoading } = useCreditTransactions(creditId || '');

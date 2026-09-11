@@ -72,7 +72,7 @@ export default function CustomerResetPassword() {
       
       // Enviar al usuario a la tienda o a iniciar sesión si es necesario
       navigate('/');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error al actualizar',
         description: error.message || 'Ocurrió un error al intentar cambiar la contraseña.',

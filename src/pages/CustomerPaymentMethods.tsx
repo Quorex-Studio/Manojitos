@@ -217,7 +217,7 @@ export default function CustomerPaymentMethods() {
                             if (val.length > 13) val = val.substring(0, 13);
                             form.setValue('phone_number', val, { shouldValidate: true });
                           }}
-                          pattern="^\+58(?:412|414|424|416|426|2\d{2})\d{7}$"
+                          pattern="^+58(?:412|414|424|416|426|2\d{2})\d{7}$"
                           title="Debe ser un celular venezolano o teléfono fijo válido con +58"
                         />
                       </div>

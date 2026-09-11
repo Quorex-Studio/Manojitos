@@ -1359,6 +1359,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: { /* empty */ },
   },
 } as const

@@ -45,10 +45,10 @@ export interface Product {
   name: string;
   description: string | null;
   price_usd: number;
-  price_bs_usd?: number;
-  cost_usd: number;
-  price_wholesale_eur: number;
-  price_retail_eur: number;
+  price_bs_usd?: number | null;
+  cost_usd: number | null;
+  price_wholesale_eur: number | null;
+  price_retail_eur: number | null;
   stock: number;
   minimum_stock: number | null;
   category: string | null;
@@ -93,8 +93,8 @@ export interface Sale {
   client_address: string | null;
   is_credit: boolean;
   sale_modality: string | null;
-  amount_paid: number;
-  payment_status: string;
+  amount_paid: number | null;
+  payment_status: string | null;
   notes: string | null;
   status: SaleStatus;
   created_at: string;
@@ -188,21 +188,21 @@ export interface Credit {
   next_due_date: string | null;
   last_payment_date: string | null;
   last_reminder_sent_at: string | null;
-  reminders_sent: any; // Using any for Json compatible with older types if needed, or we can use generic Json
+  reminders_sent: unknown; // Using unknown for Json compatible with older types if needed, or we can use generic Json
   notes: string | null;
   created_at: string;
   updated_at: string;
-  trust_score: number;
-  trust_level: 'CONFIABLE' | 'RIESGO' | 'CRITICO';
-  avg_payment_days: number;
-  total_purchases: number;
-  total_paid_on_time: number;
-  total_paid_late: number;
+  trust_score: number | null;
+  trust_level: 'CONFIABLE' | 'RIESGO' | 'CRITICO' | null;
+  avg_payment_days: number | null;
+  total_purchases: number | null;
+  total_paid_on_time: number | null;
+  total_paid_late: number | null;
   last_late_date: string | null;
-  consecutive_late_payments: number;
-  restriction_level: number;
-  early_payment_discount: number;
-  auto_limit_adjustment: boolean;
+  consecutive_late_payments: number | null;
+  restriction_level: number | null;
+  early_payment_discount: number | null;
+  auto_limit_adjustment: boolean | null;
   calculatedStatus?: string;
   daysUntilDue?: number;
   daysOverdue?: number;
@@ -350,8 +350,8 @@ export interface BusinessRule {
   rule_type: RuleType;
   conditions: RuleConditions;
   actions: RuleActions;
-  is_active: boolean;
-  priority: number;
+  is_active: boolean | null;
+  priority: number | null;
   created_at: string;
   updated_at: string;
 }

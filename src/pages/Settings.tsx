@@ -98,7 +98,7 @@ export default function Settings() {
       } else {
         throw new Error('No se pudo guardar la tasa');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({ title: 'Error', description: error.message || 'No se pudo actualizar la tasa', variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -121,7 +121,7 @@ export default function Settings() {
       } else {
         throw new Error('No se pudo obtener la tasa');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({ title: 'Error', description: error.message || 'No se pudo obtener la tasa', variant: 'destructive' });
     } finally {
       setFetchingRate(false);
@@ -362,7 +362,7 @@ export default function Settings() {
                   <Label>Descripción</Label>
                   <Input value={editingMethod.description || ''} onChange={e => setEditingMethod({ ...editingMethod, description: e.target.value })} />
                 </div>
-                {Object.entries(editingMethod.config || {}).map(([key, value]) => (
+                {Object.entries(editingMethod.config || { /* empty */ }).map(([key, value]) => (
                   <div className="space-y-1" key={key}>
                     <Label className="capitalize">{key}</Label>
                     <Input value={value} onChange={e => setEditingMethod({ ...editingMethod, config: { ...editingMethod.config, [key]: e.target.value } })} />
@@ -415,7 +415,7 @@ export default function Settings() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreatingMethod(false)}>Cancelar</Button>
               <Button onClick={() => {
-                const config: Record<string, string> = {};
+                const config: Record<string, string> = { /* empty */ };
                 newMethodDraft.configPairs.forEach(p => { if (p.key) config[p.key] = p.value; });
                 createMethod.mutate({
                   method_key: newMethodDraft.method_key,

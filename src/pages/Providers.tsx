@@ -38,7 +38,7 @@ export default function Providers() {
     if (!acc[dateKey]) acc[dateKey] = [];
     acc[dateKey].push(purchase);
     return acc;
-  }, {});
+  }, { /* empty */ });
 
   const sortedDates = Object.keys(purchasesByDate).sort((a, b) => (a < b ? 1 : -1)); // más reciente primero
 
@@ -117,7 +117,7 @@ export default function Providers() {
                     <Label>TelÃ©fono</Label>
                     <Input
                       value={providerForm.phone}
-                      onChange={(e) => setProviderForm({ ...providerForm, phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '') })}
+                      onChange={(e) => setProviderForm({ ...providerForm, phone: e.target.value.replace(/[^+0-9()\s]/g, '') })}
                       className="input-glass rounded-xl"
                     />
                   </div>
@@ -126,7 +126,7 @@ export default function Providers() {
                     <Input
                       type="email"
                       value={providerForm.email}
-                      onChange={(e) => setProviderForm({ ...providerForm, email: e.target.value.replace(/[^a-zA-Z0-9@._\-+]/g, '') })}
+                      onChange={(e) => setProviderForm({ ...providerForm, email: e.target.value.replace(/[^a-zA-Z0-9@._+-]/g, '') })}
                       className="input-glass rounded-xl"
                     />
                   </div>

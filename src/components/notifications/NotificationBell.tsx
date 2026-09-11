@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
-export function NotificationBell({ onOpenChange }: { onOpenChange?: (open: boolean) => void } = {}) {
+export function NotificationBell({ onOpenChange }: { onOpenChange?: (open: boolean) => void } = { /* empty */ }) {
   const navigate = useNavigate();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpenState] = useState(false);

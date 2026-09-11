@@ -1207,7 +1207,7 @@ export default function Checkout() {
                         </div>
 
                         {casheaMethod === 'pago_movil' && (() => {
-                          const pmConfig = allPaymentMethods.find(m => m.method_key === 'pago_movil')?.config || {};
+                          const pmConfig = allPaymentMethods.find(m => m.method_key === 'pago_movil')?.config || { /* empty */ };
                           return (
                             <div className="col-span-2 text-sm bg-accent/5 p-3 rounded-lg border border-accent/20 text-muted-foreground space-y-1.5">
                               <p className="font-semibold text-accent">Datos Pago Móvil:</p>
@@ -1218,7 +1218,7 @@ export default function Checkout() {
                         })()}
 
                         {casheaMethod === 'zelle' && (() => {
-                          const zelleConfig = allPaymentMethods.find(m => m.method_key === 'zelle')?.config || {};
+                          const zelleConfig = allPaymentMethods.find(m => m.method_key === 'zelle')?.config || { /* empty */ };
                           return (
                             <div className="text-[11px] bg-accent/5 p-2.5 rounded-lg border border-accent/20 text-muted-foreground">
                               <p className="font-semibold text-accent">Datos Zelle:</p>

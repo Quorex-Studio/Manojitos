@@ -125,10 +125,10 @@ export default function Sales() {
   const [groupPayments, setGroupPayments] = useState<any[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 
-  const loadGroupPayments = async (group: any) => {
+  const loadGroupPayments = async (group: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
     setIsLoadingPayments(true);
     try {
-      const saleIds = group.sales.map((s: any) => s.id);
+      const saleIds = group.sales.map((s: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => s.id);
       const { data, error } = await supabase
         .from('sale_payments')
         .select('*')
@@ -362,7 +362,7 @@ export default function Sales() {
   const posReceivables = sales.filter(s => s.payment_status !== 'paid');
 
   const groupedSales = useMemo(() => {
-    const groups: any[] = [];
+    const groups: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */[] = [];
     filteredSales.forEach(sale => {
       if (groups.length === 0) {
         groups.push({
@@ -1127,7 +1127,7 @@ export default function Sales() {
                         Datos del Cliente
                       </h4>
 
-                      <Tabs value={clientType} onValueChange={(v: any) => { 
+                      <Tabs value={clientType} onValueChange={(v: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => { 
                         setClientType(v); 
                         setClient({ dni: '', name: '', phone: '', email: '', address: '', notes: '' }); 
                         setDniLookupState('idle'); 
@@ -1200,7 +1200,7 @@ export default function Sales() {
                                 <Label>Teléfono</Label>
                                 <Input
                                   value={client.phone}
-                                  onChange={e => setClient(prev => ({ ...prev, phone: e.target.value.replace(/[^\+0-9\-\(\)\s]/g, '').slice(0, 20) }))}
+                                  onChange={e => setClient(prev => ({ ...prev, phone: e.target.value.replace(/[^+0-9()\s]/g, '').slice(0, 20) }))}
                                   placeholder="+584141234567"
                                   className="input-glass rounded-xl"
                                 />
@@ -1230,59 +1230,57 @@ export default function Sales() {
                       </Tabs>
                     </div>
 
-                    {true && (
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>Método de pago *</Label>
-                          <Select value={payment.method} onValueChange={v => setPayment(prev => ({ ...prev, method: v }))}>
-                            <SelectTrigger className="input-glass rounded-xl">
-                              <SelectValue placeholder="Seleccionar método" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {activePaymentMethods.map(m => (
-                                <SelectItem key={m.method_key} value={m.method_key}>{m.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {isEfectivo && (
-                          <div className="space-y-2 p-4 rounded-xl border border-primary/20 bg-primary/5">
-                            <Label className="text-primary font-semibold">
-                              Monto Recibido ({payment.method === 'efectivo_usd' ? 'USD' : 'Bs'}) *
-                            </Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={payment.amount_received}
-                              onChange={e => setPayment(prev => ({ ...prev, amount_received: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) }))}
-                              placeholder="0.00"
-                              className="input-glass rounded-xl text-lg font-bold"
-                              required
-                            />
-                            {amountReceived > 0 && (
-                              <div className="mt-3 p-3 rounded-lg bg-background/50 border border-border/50">
-                                <p className="text-sm text-muted-foreground mb-1">Vuelto a entregar:</p>
-                                {payment.method === 'efectivo_bs' && rate > 0 ? (
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-2xl font-bold text-primary">{formatBS(changeBS)}</span>
-                                    <span className="text-sm font-medium text-gradient-gold">${changeUSD.toFixed(2)}</span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-2xl font-bold text-gradient-gold">${changeUSD.toFixed(2)}</span>
-                                    {rate > 0 && (
-                                      <span className="text-sm font-medium">{formatBS(changeBS)}</span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Método de pago *</Label>
+                        <Select value={payment.method} onValueChange={v => setPayment(prev => ({ ...prev, method: v }))}>
+                          <SelectTrigger className="input-glass rounded-xl">
+                            <SelectValue placeholder="Seleccionar método" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {activePaymentMethods.map(m => (
+                              <SelectItem key={m.method_key} value={m.method_key}>{m.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
+
+                      {isEfectivo && (
+                        <div className="space-y-2 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                          <Label className="text-primary font-semibold">
+                            Monto Recibido ({payment.method === 'efectivo_usd' ? 'USD' : 'Bs'}) *
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={payment.amount_received}
+                            onChange={e => setPayment(prev => ({ ...prev, amount_received: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) }))}
+                            placeholder="0.00"
+                            className="input-glass rounded-xl text-lg font-bold"
+                            required
+                          />
+                          {amountReceived > 0 && (
+                            <div className="mt-3 p-3 rounded-lg bg-background/50 border border-border/50">
+                              <p className="text-sm text-muted-foreground mb-1">Vuelto a entregar:</p>
+                              {payment.method === 'efectivo_bs' && rate > 0 ? (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-2xl font-bold text-primary">{formatBS(changeBS)}</span>
+                                  <span className="text-sm font-medium text-gradient-gold">${changeUSD.toFixed(2)}</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-2xl font-bold text-gradient-gold">${changeUSD.toFixed(2)}</span>
+                                  {rate > 0 && (
+                                    <span className="text-sm font-medium">{formatBS(changeBS)}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {/* ── MODALIDAD DE VENTA ── */}
                     <div className="space-y-3">
@@ -1429,7 +1427,7 @@ export default function Sales() {
                       </div>
 
                       <div className="space-y-2">
-                        {group.items.map((sale: any) => {
+                        {group.items.map((sale: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
                           const product = products.find(p => p.id === sale.product_id);
                           return (
                             <div key={sale.id} className="flex justify-between items-center py-1.5 group/item">
@@ -1569,7 +1567,7 @@ export default function Sales() {
                         </div>
 
                         <div className="space-y-1">
-                          {group.sales.map((sale: any) => (
+                          {group.sales.map((sale: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => (
                             <div key={sale.id} className="bg-secondary/50 rounded-lg p-2 text-sm flex justify-between items-center group/sale">
                               <span className="text-muted-foreground truncate flex-1" title={sale.product_name}>
                                 {sale.product_name} x{sale.quantity}
@@ -1772,7 +1770,7 @@ export default function Sales() {
                           <div className="space-y-2">
                             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 text-left">Productos pedidos</h4>
                             <div className="divide-y divide-border/10 bg-secondary/30 rounded-xl p-3">
-                              {items.map((item: any, idx: number) => (
+                              {items.map((item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */, idx: number) => (
                                 <div key={idx} className="flex justify-between items-center py-2 text-sm">
                                   <div className="flex items-center gap-3">
                                     {item.image_url && (

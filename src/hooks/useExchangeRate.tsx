@@ -41,7 +41,7 @@ async function fetchRates() {
 
 export function useExchangeRate(requestedCurrency: 'USD' | 'EUR' = 'USD') {
   const queryClient = useQueryClient();
-  const autoFetchAttempted = useRef<Record<string, boolean>>({});
+  const autoFetchAttempted = useRef<Record<string, boolean>>({ /* empty */ });
   const [autoFetching, setAutoFetching] = useState(false);
 
   const { data: rates, isLoading, refetch } = useQuery({

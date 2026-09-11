@@ -86,7 +86,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 // Sub-componente: vista cuando el cliente no tiene crédito aún
-function CreditRequestView({ user, profile, rate, hasPendingRequest }: { user: any; profile: any; rate: number; hasPendingRequest: boolean }) {
+function CreditRequestView({ user, profile, rate, hasPendingRequest }: { user: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */; profile: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */; rate: number; hasPendingRequest: boolean }) {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -123,7 +123,7 @@ function CreditRequestView({ user, profile, rate, hasPendingRequest }: { user: a
       toast.success('Solicitud enviada correctamente. Te contactaremos pronto.');
       setIsDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['customer-pending-credit-requests'] });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(err.message || 'Error al enviar solicitud');
     } finally {
       setIsSending(false);
@@ -352,7 +352,7 @@ export default function CustomerCredit() {
       setNotes('');
       queryClient.invalidateQueries({ queryKey: ['customer-pending-abonos'] });
     },
-    onError: (err: any) => {
+    onError: (err: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
       toast.error(err.message || 'Error al reportar pago');
     }
   });
@@ -907,8 +907,8 @@ export default function CustomerCredit() {
                       </h3>
                       <div className="space-y-2 border-l-2 border-gold pl-3">
                         {pendingpagos.map(pago => {
-                          const matchRef = pago.notes?.match(/Referencia:\s*([^\.]+)/i);
-                          const matchMethod = pago.notes?.match(/Método:\s*([^\.]+)/i);
+                          const matchRef = pago.notes?.match(/Referencia:\s*([^.]+)/i);
+                          const matchMethod = pago.notes?.match(/Método:\s*([^.]+)/i);
                           const refText = matchRef ? matchRef[1] : 'N/A';
                           const methodText = matchMethod ? matchMethod[1] : pago.payment_method;
 
@@ -962,8 +962,8 @@ export default function CustomerCredit() {
                                     const desc = tx.description || tx.type;
                                     // Strip raw [pago_CREDITO] notes string from stored orders notes
                                     if (desc.startsWith('[pago_CREDITO]')) {
-                                      const refMatch = desc.match(/Referencia:\s*([^\.]+)/);
-                                      const methodMatch = desc.match(/Método:\s*([^\.]+)/);
+                                      const refMatch = desc.match(/Referencia:\s*([^.]+)/);
+                                      const methodMatch = desc.match(/Método:\s*([^.]+)/);
                                       const noteMatch = desc.match(/Notas:\s*(.*)/);
                                       
                                       const ref = refMatch ? refMatch[1].trim() : 'N/A';

@@ -84,7 +84,7 @@ export function useCustomerTimeline(customerIdentifier?: string, identifierType:
         customer_user_id: input.customer_user_id,
         customer_phone: input.customer_phone,
         event_type: input.event_type,
-        event_data: (input.event_data || {}) as Json,
+        event_data: (input.event_data || { /* empty */ }) as Json,
         reference_type: input.reference_type,
         reference_id: input.reference_id,
       };
@@ -111,7 +111,7 @@ export function useCustomerTimeline(customerIdentifier?: string, identifierType:
     }
     groups[date].push(event);
     return groups;
-  }, {} as Record<string, TimelineEvent[]>);
+  }, { /* empty */ } as Record<string, TimelineEvent[]>);
 
   // Estadísticas del timeline
   const stats = {
@@ -145,7 +145,7 @@ export function useTimelineRecorder() {
         customer_user_id: input.customer_user_id,
         customer_phone: input.customer_phone,
         event_type: input.event_type,
-        event_data: (input.event_data || {}) as Json,
+        event_data: (input.event_data || { /* empty */ }) as Json,
         reference_type: input.reference_type,
         reference_id: input.reference_id,
       };
@@ -205,7 +205,7 @@ export function useTimelineRecorder() {
     return recordEvent({
       customer_user_id: customerUserId,
       event_type: 'credit_unblocked',
-      event_data: {},
+      event_data: { /* empty */ },
       reference_type: 'credits',
       reference_id: creditId,
     });
@@ -245,7 +245,7 @@ export function useTimelineRecorder() {
     return recordEvent({
       customer_user_id: customerUserId,
       event_type: 'promise_broken',
-      event_data: {},
+      event_data: { /* empty */ },
       reference_type: 'payment_promises',
       reference_id: promiseId,
     });

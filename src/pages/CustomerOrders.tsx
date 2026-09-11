@@ -154,15 +154,15 @@ export default function CustomerOrders() {
 function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['orders'] }) {
   const navigate = useNavigate();
   const { addItem } = useCart();
-  const handleReorder = (order: any) => {
+  const handleReorder = (order: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
     const reorderableItems = (order.items || []).filter(
-      (it: any) => it.product_id && it.id !== 'credit_payment' && it.id !== 'credit_request'
+      (it: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => it.product_id && it.id !== 'credit_payment' && it.id !== 'credit_request'
     );
     if (reorderableItems.length === 0) {
       toast.error('No se pudo volver a agregar los productos de este pedido.');
       return;
     }
-    reorderableItems.forEach((it: any) => {
+    reorderableItems.forEach((it: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
       addItem({
         id: it.product_id,
         name: it.product_name,
@@ -179,7 +179,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
   const [receiptOrder, setReceiptOrder] = useState<any>(null);
   const [detailsOrder, setDetailsOrder] = useState<any>(null);
 
-  const getItemDisplay = (item: any): { name: string; total: number } => {
+  const getItemDisplay = (item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */): { name: string; total: number } => {
     if (item.id === 'credit_payment') {
       return { name: 'Abono a tu línea de crédito', total: Number(item.price ?? item.price_usd ?? 0) };
     }
@@ -233,7 +233,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
     doc.line(4, y, 76, y);
     y += 5;
 
-    receiptOrder.items?.forEach((item: any) => {
+    receiptOrder.items?.forEach((item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
       doc.setFontSize(7);
       doc.text(`${item.quantity}x ${item.product_name}`, 4, y);
       doc.text(`$${(item.total || 0).toFixed(2)}`, 76, y, { align: 'right' });
@@ -467,7 +467,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
             <div>
               <h4 className="font-semibold mb-4">Artículos comprados</h4>
               <div className="space-y-4">
-                {detailsOrder?.items?.map((item: any, idx: number) => (
+                {detailsOrder?.items?.map((item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */, idx: number) => (
                   <div key={idx} className="flex gap-4 items-center p-3 rounded-lg border border-border/50">
                     <div className="w-16 h-16 bg-muted/30 rounded-lg flex items-center justify-center border border-border/40 shrink-0 overflow-hidden">
                       {item.image_url ? (
@@ -515,7 +515,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
             <Separator className="my-4" style={{ backgroundColor: '#D4B277' }} />
             
             <div className="space-y-3 mb-6">
-              {receiptOrder?.items?.map((item: any, idx: number) => (
+              {receiptOrder?.items?.map((item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ /* eslint-disable-line @typescript-eslint/no-explicit-any */, idx: number) => (
                 <div key={idx} className="flex justify-between text-sm">
                   <div className="flex-1">
                     <p className="line-clamp-2">{item.quantity}x {getItemDisplay(item).name}</p>

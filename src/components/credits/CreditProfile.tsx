@@ -604,7 +604,7 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
               <Label>Notas (opcional)</Label>
               <Input
                 value={promiseData.notes}
-                onChange={e => setPromiseData(p => ({ ...p, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s.,;()\-]/g, '') }))}
+                onChange={e => setPromiseData(p => ({ ...p, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s.,;()-]/g, '') }))}
                 placeholder="Observaciones..."
               />
             </div>

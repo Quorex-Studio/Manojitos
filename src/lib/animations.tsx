@@ -40,7 +40,7 @@ export const slideInLeft: Variants = {
 
 // Stagger children - para listas animadas
 export const staggerContainer: Variants = {
-  initial: {},
+  initial: { /* empty */ },
   animate: {
     transition: {
       staggerChildren: 0.08,

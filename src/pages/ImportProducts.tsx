@@ -94,7 +94,7 @@ export default function ImportProducts() {
     const errors: string[] = [];
     
     // Mapear columnas
-    const mappedRow: Record<string, unknown> = {};
+    const mappedRow: Record<string, unknown> = { /* empty */ };
     Object.entries(row).forEach(([key, value]) => {
       const normalizedKey = normalizeColumnName(key);
       mappedRow[normalizedKey] = value;

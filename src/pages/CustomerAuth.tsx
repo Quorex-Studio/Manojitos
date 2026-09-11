@@ -67,15 +67,15 @@ export default function CustomerAuth() {
     if (name === 'fullName') {
       finalValue = finalValue.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
     } else if (name === 'email') {
-      finalValue = finalValue.replace(/[^a-zA-Z0-9@._\-+]/g, '');
+      finalValue = finalValue.replace(/[^a-zA-Z0-9@._+-]/g, '');
     } else if (name === 'dni') {
-      finalValue = finalValue.replace(/[^vVeEjJgGpP0-9\-]/g, '').toUpperCase().trim();
+      finalValue = finalValue.replace(/[^vVeEjJgGpP0-9-]/g, '').toUpperCase().trim();
       // Sugerir guión si solo meten números después de la letra
       if (/^[VJEGP]\d/.test(finalValue)) {
         finalValue = finalValue.charAt(0) + '-' + finalValue.substring(1);
       }
     } else if (name === 'phone') {
-      finalValue = finalValue.replace(/[^\+0-9\-\(\)]/g, '').trim();
+      finalValue = finalValue.replace(/[^0-9()]/g, '').trim();
       // Auto prefijo venezolano si empieza por 0
       if (finalValue.startsWith('0')) {
         finalValue = '+58' + finalValue.substring(1);
@@ -126,7 +126,7 @@ export default function CustomerAuth() {
         description: 'Revisa tu bandeja de entrada o spam para restablecer tu contraseña.'
       });
       setIsForgotPassword(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
         description: error.message || 'No se pudo enviar el correo de recuperación.',
@@ -406,7 +406,7 @@ export default function CustomerAuth() {
                             onChange={handleInputChange}
                             className="pl-10"
                             required
-                            pattern="^\+58(?:412|414|424|416|426|2\d{2})\d{7}$"
+                            pattern="^+58(?:412|414|424|416|426|2\d{2})\d{7}$"
                             title="Formato: +584121234567"
                           />
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

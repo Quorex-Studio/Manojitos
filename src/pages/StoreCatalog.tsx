@@ -67,7 +67,7 @@ export default function StoreCatalog() {
 
   // Sincronizar URL con los cambios de búsqueda o categoría (debounced)
   useEffect(() => {
-    const params: Record<string, string> = {};
+    const params: Record<string, string> = { /* empty */ };
     if (debouncedSearch.trim()) {
       params.search = debouncedSearch;
     }
@@ -158,7 +158,7 @@ export default function StoreCatalog() {
     setSelectedCategories([]);
     setPriceRange([0, maxPrice]);
     setSortBy('newest');
-    setSearchParams({});
+    setSearchParams({ /* empty */ });
     setVisibleCount(12);
   };
 

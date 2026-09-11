@@ -250,7 +250,7 @@ export default function Customers() {
       if (action === 'delete') {
          setSelectedCustomer(null);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       toast({
         title: 'Error de Seguridad',
@@ -338,7 +338,7 @@ export default function Customers() {
           <Input
             placeholder="Buscar por nombre, teléfono o cédula..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\-]/g, ''))}
+            onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s-]/g, ''))}
             className="pl-11 h-12 input-glass rounded-xl"
           />
         </div>

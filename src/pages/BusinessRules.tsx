@@ -63,8 +63,8 @@ export default function BusinessRules() {
     description: '',
     priority: 0,
     is_active: true,
-    conditions: {},
-    actions: {},
+    conditions: { /* empty */ },
+    actions: { /* empty */ },
   });
 
   // --- DERIVED / EFFECTS ---
@@ -80,8 +80,8 @@ export default function BusinessRules() {
       description: '',
       priority: 0,
       is_active: true,
-      conditions: {},
-      actions: {},
+      conditions: { /* empty */ },
+      actions: { /* empty */ },
     });
     setIsDialogOpen(true);
   };
@@ -420,7 +420,7 @@ export default function BusinessRules() {
                   onChange={(e) => {
                     try {
                       setFormData({ ...formData, conditions: JSON.parse(e.target.value) });
-                    } catch {}
+                    } catch { /* empty */ }
                   }}
                   placeholder='{"min_trust_score": 50}'
                   rows={3}
@@ -435,7 +435,7 @@ export default function BusinessRules() {
                   onChange={(e) => {
                     try {
                       setFormData({ ...formData, actions: JSON.parse(e.target.value) });
-                    } catch {}
+                    } catch { /* empty */ }
                   }}
                   placeholder='{"send_notification": true}'
                   rows={3}

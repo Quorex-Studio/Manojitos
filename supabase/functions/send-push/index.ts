@@ -78,7 +78,7 @@ serve(async (req) => {
       try {
         await webPush.sendNotification(pushSubscription, pushPayload);
         console.log(`Push sent successfully to endpoint ${sub.endpoint}`);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(`Error sending push to endpoint ${sub.endpoint}:`, err);
         // If the endpoint is no longer valid (e.g. 410 Gone), delete it from DB
         if (err.statusCode === 410 || err.statusCode === 404) {
@@ -93,7 +93,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, count: subscriptions.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in send-push function:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,

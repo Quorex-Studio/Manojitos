@@ -79,7 +79,7 @@ export default function Reports() {
     const creditSales = filteredSales.filter(s => s.is_credit);
     const creditTotal = creditSales.reduce((acc, s) => acc + Number(s.total_usd), 0);
 
-    const byPaymentMethod: Record<string, number> = {};
+    const byPaymentMethod: Record<string, number> = { /* empty */ };
     filteredSales.forEach(s => {
       const method = s.is_credit ? 'crédito' : s.payment_method;
       byPaymentMethod[method] = (byPaymentMethod[method] || 0) + Number(s.total_usd);
