@@ -17,12 +17,38 @@ const corsHeaders = {
  * 5. Limpiar memoria expirada
  */
 
+// Constant-time comparison to avoid leaking the secret via response timing.
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ab = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ab.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ab.length; i++) diff |= ab[i] ^ bb[i];
+  return diff === 0;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // ================== AUTHENTICATION BOUNDARY (A-04) ==================
+    // This function performs privileged (service_role) work and must only run
+    // when invoked by the trusted scheduler. Require a shared secret provided in
+    // the 'x-cron-secret' header, compared server-side against the CRON_SECRET
+    // environment secret. Reject before any business logic or the service-role
+    // client is created. Origin/Referer/User-Agent/body/query are never trusted.
+    const cronSecret = Deno.env.get('CRON_SECRET');
+    const providedSecret = req.headers.get('x-cron-secret') ?? '';
+    if (!cronSecret || !timingSafeEqual(providedSecret, cronSecret)) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
