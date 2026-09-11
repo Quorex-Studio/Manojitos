@@ -149,12 +149,12 @@ async function updateCustomerMemoryFromConversation(
 function detectInterests(message: string): string[] {
   const msg = message.toLowerCase();
   const interests: string[] = [];
-  
+
   if (msg.includes('crédito') || msg.includes('credito') || msg.includes('fiado')) interests.push('credit');
   if (msg.includes('oferta') || msg.includes('descuento') || msg.includes('promoción')) interests.push('discounts');
   if (msg.includes('envío') || msg.includes('delivery') || msg.includes('domicilio')) interests.push('delivery');
   if (msg.includes('mayoreo') || msg.includes('cantidad')) interests.push('wholesale');
-  
+
   return interests;
 }
 
@@ -199,7 +199,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
     .select('rate')
     .order('created_at', { ascending: false })
     .limit(1);
-  
+
   const bcvRate = rateData?.[0]?.rate || 0;
 
   // Obtener productos top (disponibles)
@@ -229,7 +229,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
     .from('sales')
     .select('total_usd')
     .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-  
+
   const recentSales = (salesData || []).reduce((sum: number, s: any) => sum + Number(s.total_usd), 0);
 
   // Créditos pendientes (solo admin)
@@ -482,57 +482,57 @@ function analyzeConversation(messages: { role: string; content: string }[]): Con
 async function handleQueryProducts(data: { search?: string; category?: string }) {
   const supabase = getSupabaseClient();
   let query = supabase.from('products').select('id, name, price_usd, stock, category, description');
-  
+
   if (data.search) {
     query = query.ilike('name', `%${data.search}%`);
   }
   if (data.category) {
     query = query.eq('category', data.category);
   }
-  
+
   const { data: products, error } = await query.limit(10);
-  
+
   if (error) throw error;
   return { success: true, message: `Encontré ${products?.length || 0} productos`, data: products };
 }
 
-async function handleRegisterSale(data: { 
-  productName: string; 
-  quantity: number; 
-  priceUsd: number; 
-  clientName?: string; 
+async function handleRegisterSale(data: {
+  productName: string;
+  quantity: number;
+  priceUsd: number;
+  clientName?: string;
   paymentMethod: string;
   adminUserId: string;
 }) {
   const supabase = getSupabaseClient();
-  
+
   const { data: products } = await supabase
     .from('products')
     .select('id, name, price_usd, stock, sold_count')
     .ilike('name', `%${data.productName}%`)
     .limit(1);
-  
+
   const product = products?.[0];
-  
+
   if (!product) {
     return { success: false, message: `No encontré el producto "${data.productName}"` };
   }
-  
+
   if (product.stock < data.quantity) {
     return { success: false, message: `Stock insuficiente. Solo hay ${product.stock} unidades de ${product.name}` };
   }
-  
+
   const totalUsd = data.quantity * (data.priceUsd || product.price_usd);
-  
+
   const { data: rateData } = await supabase
     .from('exchange_rates')
     .select('rate')
     .order('created_at', { ascending: false })
     .limit(1);
-  
+
   const bcvRate = rateData?.[0]?.rate || 0;
   const totalBs = totalUsd * bcvRate;
-  
+
   const { data: sale, error: saleError } = await supabase
     .from('sales')
     .insert({
@@ -549,19 +549,19 @@ async function handleRegisterSale(data: {
     })
     .select()
     .single();
-  
+
   if (saleError) throw saleError;
-  
+
   await supabase
     .from('products')
-    .update({ 
+    .update({
       stock: product.stock - data.quantity,
-      sold_count: (product.sold_count || 0) + data.quantity 
+      sold_count: (product.sold_count || 0) + data.quantity
     })
     .eq('id', product.id);
-  
-  return { 
-    success: true, 
+
+  return {
+    success: true,
     message: `✅ Venta registrada: ${data.quantity}x ${product.name} por $${totalUsd.toFixed(2)} (${totalBs.toFixed(2)} Bs)`,
     data: sale
   };
@@ -569,28 +569,28 @@ async function handleRegisterSale(data: {
 
 async function handleSendReminder(data: { creditId?: string; clientName?: string }) {
   const supabase = getSupabaseClient();
-  
+
   let creditQuery = supabase
     .from('credits')
     .select('id, client_name, client_phone, current_balance, next_due_date, status');
-  
+
   if (data.creditId) {
     creditQuery = creditQuery.eq('id', data.creditId);
   } else if (data.clientName) {
     creditQuery = creditQuery.ilike('client_name', `%${data.clientName}%`);
   }
-  
+
   const { data: credits, error } = await creditQuery.limit(1);
-  
+
   if (error) throw error;
   if (!credits?.length) {
     return { success: false, message: 'No encontré el crédito especificado' };
   }
-  
+
   const credit = credits[0];
-  
+
   const message = `Hola ${credit.client_name}, te recordamos que tienes un saldo pendiente de $${credit.current_balance}. Fecha de vencimiento: ${credit.next_due_date || 'Por definir'}. ¡Gracias por tu preferencia! - Manojitos 🩷`;
-  
+
   const { error: reminderError } = await supabase
     .from('credit_reminders')
     .insert({
@@ -600,58 +600,58 @@ async function handleSendReminder(data: { creditId?: string; clientName?: string
       channel: 'INTERNAL',
       delivery_status: 'pending'
     });
-  
+
   if (reminderError) throw reminderError;
-  
-  return { 
-    success: true, 
-    message: `📧 Recordatorio enviado a ${credit.client_name}` 
+
+  return {
+    success: true,
+    message: `📧 Recordatorio enviado a ${credit.client_name}`
   };
 }
 
 async function handleCheckStock(data: { productName?: string; lowStockOnly?: boolean }) {
   const supabase = getSupabaseClient();
-  
+
   let query = supabase.from('products').select('name, stock, price_usd, category');
-  
+
   if (data.productName) {
     query = query.ilike('name', `%${data.productName}%`);
   }
-  
+
   if (data.lowStockOnly) {
     query = query.lt('stock', 10);
   }
-  
+
   const { data: products, error } = await query.order('stock', { ascending: true }).limit(10);
-  
+
   if (error) throw error;
-  
+
   if (!products?.length) {
     return { success: true, message: 'No hay productos con stock bajo 🎉', data: [] };
   }
-  
+
   const stockList = products.map((p: any) => `• ${p.name}: ${p.stock} unidades`).join('\n');
-  return { 
-    success: true, 
+  return {
+    success: true,
     message: `📦 Estado de stock:\n${stockList}`,
-    data: products 
+    data: products
   };
 }
 
 async function handleGetCreditInfo(data: { clientName: string }) {
   const supabase = getSupabaseClient();
-  
+
   const { data: credits, error } = await supabase
     .from('credits')
     .select('*')
     .ilike('client_name', `%${data.clientName}%`)
     .limit(1);
-  
+
   if (error) throw error;
   if (!credits?.length) {
     return { success: false, message: `No encontré créditos para "${data.clientName}"` };
   }
-  
+
   const credit = credits[0];
   const info = `💳 **Crédito de ${credit.client_name}**
 • Límite: $${credit.credit_limit}
@@ -672,22 +672,22 @@ async function processAction(actionType: string, actionData: Record<string, unkn
     switch (actionType) {
       case 'QUERY_PRODUCTS':
         return await handleQueryProducts(actionData as { search?: string; category?: string });
-      
+
       case 'REGISTER_SALE':
         if (!adminUserId) {
           return { success: false, message: 'Se requiere autenticación de admin para registrar ventas' };
         }
         return await handleRegisterSale({ ...actionData, adminUserId } as any);
-      
+
       case 'SEND_REMINDER':
         return await handleSendReminder(actionData as { creditId?: string; clientName?: string });
-      
+
       case 'CHECK_STOCK':
         return await handleCheckStock(actionData as { productName?: string; lowStockOnly?: boolean });
-      
+
       case 'GET_CREDIT_INFO':
         return await handleGetCreditInfo(actionData as { clientName: string });
-      
+
       default:
         return { success: false, message: `Acción desconocida: ${actionType}` };
     }
@@ -707,10 +707,10 @@ serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    
+
     const body = await req.json();
     const { messages, context, action, customerId: requestCustomerId } = body;
-    
+
     // ================== AUTHENTICATION CHECK ==================
     const authHeader = req.headers.get('Authorization');
     let authenticatedUserId: string | null = null;
@@ -778,7 +778,7 @@ serve(async (req: Request) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
+
     const HF_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
     const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY');
 
@@ -786,7 +786,7 @@ serve(async (req: Request) => {
 
     // ================== CONTEXT BUILDER AVANZADO ==================
     console.log('Building business context... isAdmin:', isAdmin, 'customerId:', customerId);
-    
+
     // Only build sensitive context for authenticated admin users
     const businessContext = await buildBusinessContext(supabase, isAdmin, customerId);
 
@@ -855,7 +855,7 @@ DATOS ADMIN:
     // Agregar análisis de conversación
     if (conversationAnalysis.sentiment === 'negative' || conversationAnalysis.sentiment === 'confused') {
       contextPrompt += `
-⚠️ ALERTA: El cliente parece ${conversationAnalysis.sentiment === 'negative' ? 'frustrado' : 'confundido'}. 
+⚠️ ALERTA: El cliente parece ${conversationAnalysis.sentiment === 'negative' ? 'frustrado' : 'confundido'}.
 Simplifica tus respuestas y ofrece ayuda clara. Si persiste, ofrece atención humana.
 `;
     }
@@ -945,12 +945,12 @@ Respuesta de Ángela:`;
       const viewedProducts = extractProductsFromResponse(generatedText);
       // Use authenticated admin or get first admin for memory storage
       let memoryAdminId: string = isAdmin ? authenticatedUserId : '';
-      
+
       if (!memoryAdminId) {
         const { data: adminData } = await supabase.from('profiles').select('user_id').limit(1);
         memoryAdminId = adminData?.[0]?.user_id || customerId;
       }
-      
+
       // Only proceed if we have a valid memoryAdminId
       if (memoryAdminId) {
         // Ejecutar en background sin bloquear la respuesta
@@ -962,14 +962,14 @@ Respuesta de Ángela:`;
           viewedProducts,
           memoryAdminId
         );
-        
+
         // No esperamos - se ejecuta en paralelo
         memoryTask.catch(err => console.error('Memory save error:', err));
       }
     }
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         content: generatedText,
         suggestions: suggestions,
         analysis: conversationAnalysis,
@@ -989,8 +989,8 @@ Respuesta de Ángela:`;
 // ================== RESPUESTA FALLBACK INTELIGENTE ==================
 
 function generateFallbackResponse(
-  userMessage: string, 
-  context: BusinessContext, 
+  userMessage: string,
+  context: BusinessContext,
   isAdmin: boolean,
   analysis: ConversationAnalysis
 ): string {
@@ -1006,42 +1006,42 @@ function generateFallbackResponse(
   }
 
   // ── RESPUESTAS CORTESÍA / ESTADO / CASUALES ──
-  if (msg.includes('todo bien') || msg.includes('cómo estás') || msg.includes('como estas') || 
+  if (msg.includes('todo bien') || msg.includes('cómo estás') || msg.includes('como estas') ||
       msg.includes('como te va') || msg.includes('cómo te va') || msg.includes('qué tal') || msg.includes('que tal')) {
     return `🩷 ¡Todo excelente por aquí! 😊 ¿En qué te puedo ayudar hoy con nuestro catálogo de Manojitos? ✨`;
   }
-  
+
   if (msg.includes('gracias') || msg.includes('agradecido') || msg.includes('agradecida')) {
     return `🩷 ¡Con muchísimo gusto! Si necesitas algo más del catálogo, consultar la tasa BCV o tu crédito, solo dímelo. ¡Feliz día! ✨`;
   }
 
   // ── PREGUNTAS INFANTILES / NIÑOS ──
-  if (msg.includes('niño') || msg.includes('niña') || msg.includes('niños') || msg.includes('niñas') || 
+  if (msg.includes('niño') || msg.includes('niña') || msg.includes('niños') || msg.includes('niñas') ||
       msg.includes('infantil') || msg.includes('bebe') || msg.includes('bebé') || msg.includes('hijo') || msg.includes('hija')) {
     return `🩷 Por los momentos no tenemos prendas infantiles o para niños en nuestro catálogo. Disponemos de ropa para caballeros, damas, perfumes y accesorios. ¡Te invito a explorar nuestras categorías de Ropa o Perfumes! ✨`;
   }
 
   // ── UBICACIÓN / TIENDA FÍSICA ──
-  if (msg.includes('tienda') || msg.includes('ubicacion') || msg.includes('ubicación') || 
-      msg.includes('direccion') || msg.includes('dirección') || msg.includes('donde estan') || 
+  if (msg.includes('tienda') || msg.includes('ubicacion') || msg.includes('ubicación') ||
+      msg.includes('direccion') || msg.includes('dirección') || msg.includes('donde estan') ||
       msg.includes('dónde están') || msg.includes('local') || msg.includes('donde queda') || msg.includes('dónde queda')) {
     return `🩷 Manojitos es principalmente una tienda virtual con atención y envíos a toda Venezuela. Realizamos entregas personales seguras y envíos por las agencias nacionales.\n\n📞 Si deseas coordinar una entrega o tienes alguna pregunta específica, puedes contactarnos al WhatsApp **+58 426-3863042**. ✨`;
   }
 
   // ── ENVÍOS / DELIVERY ──
-  if (msg.includes('delivery') || msg.includes('envio') || msg.includes('envío') || 
+  if (msg.includes('delivery') || msg.includes('envio') || msg.includes('envío') ||
       msg.includes('envi') || msg.includes('entreg') || msg.includes('recibir')) {
     return `🩷 ¡Hacemos envíos a nivel nacional a toda Venezuela! 📦 También realizamos entregas personales bajo coordinación previa.\n\nPara detalles de costo y zonas de entrega, escríbenos directamente a nuestro WhatsApp **+58 426-3863042** y con gusto te ayudamos. ✨`;
   }
 
   // ── MÉTODOS DE PAGO ──
-  if (msg.includes('pago') || msg.includes('pagar') || msg.includes('zelle') || msg.includes('pago móvil') || 
+  if (msg.includes('pago') || msg.includes('pagar') || msg.includes('zelle') || msg.includes('pago móvil') ||
       msg.includes('pagomovil') || msg.includes('bolivares') || msg.includes('bs') || msg.includes('transferencia') || msg.includes('efectivo')) {
     return `🩷 **Métodos de pago aceptados:**\n\n• Pago Móvil 📱\n• Efectivo USD/Bs 💵\n• Zelle 💳\n• Transferencias bancarias\n\nLa tasa oficial de hoy es la del BCV: **${bcvRate} Bs/$** (más 10.7% de recargo en transacciones aplicables). ✨`;
   }
 
   // ── HORARIOS ──
-  if (msg.includes('horario') || msg.includes('abierto') || msg.includes('cerrado') || 
+  if (msg.includes('horario') || msg.includes('abierto') || msg.includes('cerrado') ||
       msg.includes('hora') || msg.includes('dia') || msg.includes('trabaja')) {
     return `🩷 **Nuestro horario de atención:**\n\n• Lunes a Viernes: 8:00 AM - 6:00 PM\n• Sábados: 9:00 AM - 1:00 PM\n\n¡Puedes ver y pedir productos en la web las 24 horas! ✨`;
   }
@@ -1072,7 +1072,7 @@ function generateFallbackResponse(
     const extraPercent = context.extraPercentage;
     return `🩷 **Tasa BCV de hoy: ${bcvRate} Bs/$**\n\nCon el ${extraPercent}% de recargo, la tasa efectiva es: **${(bcvRate * (1 + extraPercent / 100)).toFixed(2)} Bs/$**\n\n¿Quieres calcular algún precio? ✨`;
   }
-  
+
   // ── PRECIOS / CONVERSIÓN ──
   if (msg.includes('calcul') || msg.includes('precio') || msg.includes('cuánto') || msg.includes('cuanto') || msg.includes('costo')) {
     const numbers = msg.match(/\d+(\.\d+)?/g);
@@ -1081,21 +1081,21 @@ function generateFallbackResponse(
       const extraPercent = context.extraPercentage;
       const totalBs = amount * bcvRate * (1 + extraPercent / 100);
       const totalBsWithout = amount * bcvRate;
-      
+
       return `🩷 **Cálculo de precio:**\n\n• Monto: **$${amount}**\n• Tasa BCV: ${bcvRate} Bs/$\n• En Bs puro: ${totalBsWithout.toFixed(2)} Bs\n• Con ${extraPercent}%: **${totalBs.toFixed(2)} Bs**\n\n💡 *Si pagas en USD ahorras ${(totalBs - totalBsWithout).toFixed(2)} Bs* ✨`;
     }
     return `🩷 Para calcular un precio:\n\nDime el monto en USD y te lo convierto.\nTasa BCV: ${bcvRate} Bs/$ + ${context.extraPercentage}% de recargo ✨`;
   }
-  
+
   // ── DETECTAR CATEGORÍAS ──
-  const hasCategoryQuery = msg.includes('categor') || msg.includes('ropa') || msg.includes('perfume') || 
+  const hasCategoryQuery = msg.includes('categor') || msg.includes('ropa') || msg.includes('perfume') ||
                            msg.includes('interior') || msg.includes('pantalon') || msg.includes('playa') ||
                            context.categories.some(cat => msg.includes(cat.toLowerCase()));
-  
+
   if (hasCategoryQuery) {
     const mentionedCategories = context.categories.filter(cat => msg.includes(cat.toLowerCase()));
     const targetCategories = mentionedCategories.length > 0 ? mentionedCategories : context.categories.slice(0, 3);
-    
+
     let response = `🩷 Aquí tienes los productos por categoría:\n`;
     for (const cat of targetCategories) {
       const catProducts = context.topProducts.filter(p => p.category?.toLowerCase() === cat.toLowerCase());
