@@ -162,15 +162,24 @@ export default function Sales() {
   const loadGroupPayments = async (group: GroupedSale) => {
     setIsLoadingPayments(true);
     try {
-      const saleIds = group.items.map((s) => s.id);
+      // The account identity is the sale_group_id (= group.id). Callers may pass
+      // a grouped-receivable shape (lines stored under `.sales`) or a grouped-sale
+      // shape (`.items`); support both so the history is never lost, and always
+      // resolve payments by sale_group_id first (with a sale_id fallback).
+      const groupRef = group as unknown as { id: string; items?: Sale[]; sales?: Sale[] };
+      const items: Sale[] = groupRef.items ?? groupRef.sales ?? [];
+      const saleIds = items.map((s) => s.id).filter(Boolean);
+      const orFilters = [`sale_group_id.eq.${groupRef.id}`];
+      if (saleIds.length > 0) orFilters.push(`sale_id.in.(${saleIds.join(',')})`);
+
       const { data, error } = await supabase
         .from('sale_payments')
         .select('*')
-        .or(`sale_group_id.eq.${group.id},sale_id.in.(${saleIds.join(',')})`)
+        .or(orFilters.join(','))
         .order('created_at', { ascending: false });
-        
+
       if (error) throw error;
-      setGroupPayments(data || []);
+      setGroupPayments((data || []) as SalePayment[]);
     } catch (e: unknown) {
       console.error(e);
     } finally {
@@ -1068,7 +1077,7 @@ export default function Sales() {
         </div>
 
         <Tabs value={activeSalesTab} onValueChange={setActiveSalesTab} className="w-full">
-          <TabsList className="grid grid-cols-1 sm:grid-cols-4 w-full max-w-4xl bg-secondary rounded-xl mb-6">
+          <TabsList className="grid grid-cols-1 sm:grid-cols-4 w-full max-w-4xl bg-secondary rounded-xl mb-6 h-auto gap-1">
             <TabsTrigger value="ventas" className="rounded-lg text-xs sm:text-sm">
               <ShoppingCart className="h-4 w-4 mr-2 hidden sm:inline" />
               Ventas
