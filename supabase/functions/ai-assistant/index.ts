@@ -182,6 +182,16 @@ interface BusinessContext {
   bestSellers: { name: string; sold_count: number }[];
   recentSales: number;
   pendingCredits: { client_name: string; current_balance: number }[];
+  pendingReceivables: {
+    clientName: string;
+    products: string;
+    total: number;
+    paid: number;
+    balance: number;
+    groupId: string;
+    isPartial: boolean;
+  }[];
+  totalReceivable: number;
   customerHistory?: {
     lastProducts: string[];
     preferredPayment: string;
@@ -244,6 +254,71 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
     pendingCredits = credits || [];
   }
 
+  // Cuentas por cobrar REALES: ventas fiadas con saldo pendiente (solo admin).
+  // Viven en `sales`, NO en `credits` (libro de créditos, hoy sin saldos). Se
+  // agrupan por coalesce(sale_group_id, id) porque hay ventas sin grupo, y el
+  // total/abonado se calculan sobre TODAS las lineas fiadas del grupo (incluidas
+  // las ya pagadas) para que el saldo del grupo sea el real. total_usd es el
+  // total financiero acordado de la linea: nunca se recalcula.
+  let pendingReceivables: BusinessContext['pendingReceivables'] = [];
+  let totalReceivable = 0;
+  if (isAdmin) {
+    const { data: fiadoSales } = await supabase
+      .from('sales')
+      .select('id, sale_group_id, client_name, product_name, quantity, total_usd, amount_paid, payment_status')
+      .eq('sale_modality', 'fiado')
+      .limit(500);
+
+    const groups = new Map<string, {
+      clientName: string;
+      items: Map<string, number>;
+      total: number;
+      paid: number;
+      isPartial: boolean;
+    }>();
+
+    for (const row of (fiadoSales || []) as any[]) {
+      const key: string = row.sale_group_id || row.id;
+      const group = groups.get(key) || {
+        clientName: '',
+        items: new Map<string, number>(),
+        total: 0,
+        paid: 0,
+        isPartial: false,
+      };
+
+      group.total += Number(row.total_usd) || 0;
+      group.paid += Number(row.amount_paid) || 0;
+      if (row.payment_status === 'partial') group.isPartial = true;
+      if (!group.clientName && row.client_name) group.clientName = row.client_name;
+      if (row.product_name) {
+        group.items.set(row.product_name, (group.items.get(row.product_name) || 0) + (Number(row.quantity) || 0));
+      }
+
+      groups.set(key, group);
+    }
+
+    for (const [groupId, group] of groups) {
+      const balance = Math.round((group.total - group.paid) * 100) / 100;
+      if (balance > 0) {
+        pendingReceivables.push({
+          clientName: group.clientName || 'Sin nombre',
+          products: [...group.items.entries()]
+            .map(([name, qty]) => (qty > 1 ? `${name} x${qty}` : name))
+            .join(', '),
+          total: Math.round(group.total * 100) / 100,
+          paid: Math.round(group.paid * 100) / 100,
+          balance,
+          groupId,
+          isPartial: group.isPartial,
+        });
+      }
+    }
+
+    pendingReceivables.sort((a, b) => b.balance - a.balance);
+    totalReceivable = Math.round(pendingReceivables.reduce((sum, r) => sum + r.balance, 0) * 100) / 100;
+  }
+
   // Historial del cliente + Memoria persistente (si hay customerId)
   let customerHistory;
   let customerMemory;
@@ -304,6 +379,8 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
     bestSellers,
     recentSales,
     pendingCredits,
+    pendingReceivables,
+    totalReceivable,
     customerHistory,
     customerMemory,
   };
@@ -823,11 +900,27 @@ HISTORIAL DEL CLIENTE:
 
     // Agregar contexto de admin si aplica
     if (isAdmin) {
+      const receivablesList = businessContext.pendingReceivables
+        .slice(0, 25)
+        .map(r => `• ${r.clientName}: ${r.products || 'Sin detalle'} — total $${r.total.toFixed(2)}, abonado $${r.paid.toFixed(2)}, saldo $${r.balance.toFixed(2)}${r.isPartial ? ' (abono parcial)' : ''}`)
+        .join('\n');
+      const moreReceivables = businessContext.pendingReceivables.length > 25
+        ? `\n(+${businessContext.pendingReceivables.length - 25} cuentas más)`
+        : '';
+
       contextPrompt += `
 DATOS ADMIN:
 - Ventas últimos 7 días: $${businessContext.recentSales.toFixed(2)}
 - Stock bajo: ${businessContext.lowStockProducts.map(p => `${p.name} (${p.stock})`).join(', ') || 'Ninguno'}
-- Créditos pendientes: ${businessContext.pendingCredits.map(c => `${c.client_name}: $${c.current_balance}`).join(', ') || 'Ninguno'}
+
+CRÉDITOS PENDIENTES (sistema de créditos):
+${businessContext.pendingCredits.map(c => `• ${c.client_name}: $${c.current_balance}`).join('\n') || '• Ninguno'}
+
+CUENTAS POR COBRAR — VENTAS FIADAS (deuda real por ventas):
+${receivablesList || '• Ninguna'}${moreReceivables}
+TOTAL POR COBRAR — VENTAS FIADAS: $${businessContext.totalReceivable.toFixed(2)}
+
+NOTA: "CRÉDITOS PENDIENTES" y "CUENTAS POR COBRAR — VENTAS FIADAS" son dos fuentes distintas. Para responder a quién hay que cobrar, qué debe cada quien o qué ventas están pendientes, usa las VENTAS FIADAS (cliente, productos, total, abonado y saldo) y no las presentes como créditos.
 `;
     }
 
