@@ -496,75 +496,39 @@ async function handleQueryProducts(data: { search?: string; category?: string })
   return { success: true, message: `Encontré ${products?.length || 0} productos`, data: products };
 }
 
-async function handleRegisterSale(data: {
-  productName: string;
-  quantity: number;
-  priceUsd: number;
-  clientName?: string;
-  paymentMethod: string;
-  adminUserId: string;
-}) {
-  const supabase = getSupabaseClient();
+// A-05: REGISTER_SALE is now a single transactional, admin-only, stock-safe
+// DB operation. This handler no longer writes to sales/sale_payments/products
+// directly; it delegates to the angela_register_sale RPC, invoked with the
+// CALLER'S JWT context (not service_role) so auth.uid()/is_admin() are enforced
+// server-side inside PostgreSQL. Atomicity, locking (FOR UPDATE), the
+// sale_group_id, the sale_payments history and stock update all live in the DB.
+async function handleRegisterSale(
+  data: {
+    productName: string;
+    quantity: number;
+    priceUsd?: number;
+    clientName?: string;
+    paymentMethod: string;
+  },
+  authCtx: { authHeader: string; supabaseUrl: string; supabaseAnonKey: string }
+) {
+  const supabase = createClient(authCtx.supabaseUrl, authCtx.supabaseAnonKey, {
+    global: { headers: { Authorization: authCtx.authHeader } }
+  });
 
-  const { data: products } = await supabase
-    .from('products')
-    .select('id, name, price_usd, stock, sold_count')
-    .ilike('name', `%${data.productName}%`)
-    .limit(1);
+  const { data: result, error } = await supabase.rpc('angela_register_sale', {
+    p_product_name: data.productName,
+    p_quantity: data.quantity,
+    p_unit_price_usd: data.priceUsd ?? null,
+    p_payment_method: data.paymentMethod,
+    p_client_name: data.clientName ?? null,
+  });
 
-  const product = products?.[0];
-
-  if (!product) {
-    return { success: false, message: `No encontré el producto "${data.productName}"` };
+  if (error) {
+    return { success: false, message: `No se pudo registrar la venta: ${error.message}` };
   }
 
-  if (product.stock < data.quantity) {
-    return { success: false, message: `Stock insuficiente. Solo hay ${product.stock} unidades de ${product.name}` };
-  }
-
-  const totalUsd = data.quantity * (data.priceUsd || product.price_usd);
-
-  const { data: rateData } = await supabase
-    .from('exchange_rates')
-    .select('rate')
-    .order('created_at', { ascending: false })
-    .limit(1);
-
-  const bcvRate = rateData?.[0]?.rate || 0;
-  const totalBs = totalUsd * bcvRate;
-
-  const { data: sale, error: saleError } = await supabase
-    .from('sales')
-    .insert({
-      product_id: product.id,
-      product_name: product.name,
-      quantity: data.quantity,
-      unit_price_usd: data.priceUsd || product.price_usd,
-      total_usd: totalUsd,
-      total_bs: totalBs,
-      payment_method: data.paymentMethod,
-      client_name: data.clientName || null,
-      user_id: data.adminUserId,
-      status: 'confirmed'
-    })
-    .select()
-    .single();
-
-  if (saleError) throw saleError;
-
-  await supabase
-    .from('products')
-    .update({
-      stock: product.stock - data.quantity,
-      sold_count: (product.sold_count || 0) + data.quantity
-    })
-    .eq('id', product.id);
-
-  return {
-    success: true,
-    message: `✅ Venta registrada: ${data.quantity}x ${product.name} por $${totalUsd.toFixed(2)} (${totalBs.toFixed(2)} Bs)`,
-    data: sale
-  };
+  return result;
 }
 
 async function handleSendReminder(data: { creditId?: string; clientName?: string }) {
@@ -667,17 +631,24 @@ async function handleGetCreditInfo(data: { clientName: string }) {
 
 // ================== PROCESAR ACCIÓN ==================
 
-async function processAction(actionType: string, actionData: Record<string, unknown>, adminUserId?: string) {
+async function processAction(
+  actionType: string,
+  actionData: Record<string, unknown>,
+  authCtx?: { adminUserId?: string; authHeader?: string; supabaseUrl?: string; supabaseAnonKey?: string }
+) {
   try {
     switch (actionType) {
       case 'QUERY_PRODUCTS':
         return await handleQueryProducts(actionData as { search?: string; category?: string });
 
       case 'REGISTER_SALE':
-        if (!adminUserId) {
+        if (!authCtx?.adminUserId || !authCtx.authHeader || !authCtx.supabaseUrl || !authCtx.supabaseAnonKey) {
           return { success: false, message: 'Se requiere autenticación de admin para registrar ventas' };
         }
-        return await handleRegisterSale({ ...actionData, adminUserId } as any);
+        return await handleRegisterSale(
+          actionData as { productName: string; quantity: number; priceUsd?: number; clientName?: string; paymentMethod: string },
+          { authHeader: authCtx.authHeader, supabaseUrl: authCtx.supabaseUrl, supabaseAnonKey: authCtx.supabaseAnonKey }
+        );
 
       case 'SEND_REMINDER':
         return await handleSendReminder(actionData as { creditId?: string; clientName?: string });
@@ -772,7 +743,12 @@ serve(async (req: Request) => {
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      const result = await processAction(action.type, action.data, authenticatedUserId);
+      const result = await processAction(action.type, action.data, {
+        adminUserId: authenticatedUserId,
+        authHeader: authHeader ?? undefined,
+        supabaseUrl,
+        supabaseAnonKey,
+      });
       return new Response(
         JSON.stringify(result),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
