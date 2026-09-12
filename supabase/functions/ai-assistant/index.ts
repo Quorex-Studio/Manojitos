@@ -689,12 +689,15 @@ serve(async (req: Request) => {
     let customerId: string | undefined;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      // Create auth client with the user's token
-      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: authHeader } }
-      });
+      // Validate the caller's token explicitly (same pattern as admin-actions):
+      // getUser(token) resolves the user reliably, whereas the no-argument
+      // getUser() relying on a global Authorization header does not resolve it
+      // with this supabase-js build — which is why every authenticated request
+      // was returning 401 at the A-01 gate.
+      const token = authHeader.replace('Bearer ', '');
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
 
-      const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
+      const { data: userData, error: userError } = await supabaseAuth.auth.getUser(token);
 
       if (!userError && userData?.user) {
         authenticatedUserId = userData.user.id;
