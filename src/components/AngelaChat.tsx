@@ -106,10 +106,22 @@ export default function AngelaChat() {
     setSending(true);
 
     try {
-      // functions.invoke adjunta el Authorization: Bearer de la sesión actual.
+      // Adjuntamos explícitamente el JWT del usuario (mismo patrón probado que
+      // admin-actions): en este proyecto functions.invoke no propaga el token de
+      // sesión por sí solo, y el backend exige un usuario válido (gate A-01), así
+      // que sin este header responde 401 "Authentication required".
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setMessages((prev) => [...prev, { role: "assistant", content: ERROR_MESSAGE }]);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke<AiAssistantResponse>(
         "ai-assistant",
-        { body: { messages: history } },
+        {
+          body: { messages: history },
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        },
       );
 
       if (error || !data?.content) {
