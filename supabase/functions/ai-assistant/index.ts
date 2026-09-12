@@ -866,10 +866,10 @@ Respuesta de Ángela:`;
         try {
           console.log(`Trying Gemini model: ${model}`);
           const geminiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
             {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
               body: JSON.stringify({
                 contents: [{ parts: [{ text: contextPrompt }] }],
                 generationConfig: {
