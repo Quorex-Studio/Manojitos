@@ -975,7 +975,7 @@ function generateFallbackResponse(
 
   // ── EMOCIONAL ──
   if (analysis.sentiment === 'negative') {
-    return `🩷 Entiendo, quiero ayudarte. ¿Qué necesitas?\n\n• 💰 Precios y cálculos\n• 📦 Productos disponibles\n• 💳 Información de crédito\n• 🧑\u200D💼 Hablar con un asesor\n\nEstoy aquí para ti. ✨`;
+    return `🩷 Entiendo, quiero ayudarte. ¿Qué necesitas?\n\n• 💰 Precios y cálculos\n• 📦 Productos disponibles\n• 💳 Información de crédito\n• 🧑\u200d💼 Hablar con un asesor\n\nEstoy aquí para ti. ✨`;
   }
   if (analysis.sentiment === 'confused') {
     return `🩷 ¡Sin problema! Puedo ayudarte con:\n• 💰 Precios (tasa BCV: ${bcvRate} Bs/$)\n• 🛒 Buscar productos\n• 💳 Tu crédito\n\n¿Qué te gustaría hacer? ✨`;
