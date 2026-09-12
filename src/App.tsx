@@ -48,6 +48,7 @@ const Atencion = lazy(() => import("./pages/Atencion"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 
 const NotFound = lazy(() => import("./pages/NotFound"));
+const AngelaChat = lazy(() => import("./components/AngelaChat"));
 import { Loader, Refresh } from 'reicon-react';
 
 
@@ -237,6 +238,9 @@ const App = () => (
                   <Toaster />
                   <Sonner />
                   <AppRoutes />
+                  <Suspense fallback={null}>
+                    <AngelaChat />
+                  </Suspense>
                 </TooltipProvider>
               </CartProvider>
             </AuthProvider>
