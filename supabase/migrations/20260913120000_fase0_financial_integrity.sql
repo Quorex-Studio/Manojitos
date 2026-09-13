@@ -267,13 +267,22 @@ ALTER TABLE public.sales
 -- 6. Catálogo: alta (deshabilitada) del método histórico 'credito'
 --    Usado en ventas/pagos históricos pero ausente del catálogo. No es opción
 --    de pago para clientes (enabled = false). No modifica ninguna venta.
+--    La tabla public.payment_methods existe en producción pero no se crea en
+--    ninguna migración del repositorio; por eso el seed se protege y es no-op
+--    si la tabla aún no existe (p. ej. una BD construida sólo desde migraciones).
 -- =====================================================================
-INSERT INTO public.payment_methods (method_key, label, description, enabled, display_order, config)
-SELECT 'credito',
-       'Crédito / Fiado',
-       'Método histórico/interno para ventas a crédito y fiadas. No es una opción de pago para clientes.',
-       false, 99, '{}'::jsonb
-WHERE NOT EXISTS (
-    SELECT 1 FROM public.payment_methods WHERE method_key = 'credito'
-);
+DO $seed_credito$
+BEGIN
+    IF to_regclass('public.payment_methods') IS NOT NULL THEN
+        INSERT INTO public.payment_methods (method_key, label, description, enabled, display_order, config)
+        SELECT 'credito',
+               'Crédito / Fiado',
+               'Método histórico/interno para ventas a crédito y fiadas. No es una opción de pago para clientes.',
+               false, 99, '{}'::jsonb
+        WHERE NOT EXISTS (
+            SELECT 1 FROM public.payment_methods WHERE method_key = 'credito'
+        );
+    END IF;
+END
+$seed_credito$;
 
