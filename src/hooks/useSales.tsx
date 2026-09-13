@@ -71,6 +71,10 @@ export function useSales() {
           client_address: validated.client_address,
           is_credit: validated.is_credit,
           sale_modality: validated.sale_modality,
+          // Persistir el grupo que envía el POS (antes se perdía en la validación,
+          // dejando ventas con sale_group_id NULL que no podían recibir abonos).
+          // Si no viene, la BD asigna un grupo por defecto.
+          sale_group_id: validated.sale_group_id ?? undefined,
           amount_paid: validated.amount_paid,
           payment_status: validated.payment_status,
           notes: validated.notes,
