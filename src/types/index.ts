@@ -99,9 +99,26 @@ export interface Sale {
   notes: string | null;
   status: SaleStatus;
   created_at: string;
+  // Devoluciones (FASE 1 backend). Se pueblan vía select('*'); opcionales para
+  // no romper los sitios que construyen ventas nuevas.
+  returned_quantity?: number | null;
+  returned_at?: string | null;
 }
 
 export type SaleInput = Omit<Sale, 'id' | 'user_id' | 'created_at' | 'status'> & { status?: SaleStatus };
+
+// Respuesta del RPC `process_sale_return` (única autoridad de devoluciones).
+export interface SaleReturnResult {
+  success: boolean;
+  idempotent: boolean;
+  return_id: string;
+  total_usd: number;
+  refund_due_usd: number;
+  refund_supported?: boolean;
+}
+
+// Tipo de devolución aceptado por el RPC.
+export type SaleReturnType = 'anulacion' | 'devolucion_total' | 'devolucion_parcial';
 
 export interface OrderItem {
   product_id: string;

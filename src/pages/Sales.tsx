@@ -10,6 +10,7 @@ import { useCredits } from '@/hooks/useCredits';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { useProductSummary, useProductDebtors } from '@/hooks/useProductSummary';
+import { ReturnSaleDialog } from '@/components/sales/ReturnSaleDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +28,7 @@ import { toast } from 'sonner';
 import { formatBS } from '@/lib/utils';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ProductSummaryTab } from '@/components/sales/ProductSummaryTab';
-import { Sale, Product, CheckoutItem, OrderItem, ProductDebtor, SaleStatus, SalePayment } from '@/types';
+import { Sale, Product, CheckoutItem, OrderItem, ProductDebtor, SaleStatus, SalePayment, SaleReturnType } from '@/types';
 
 export interface GroupedReceivable {
   client_name: string;
@@ -112,7 +113,7 @@ export default function Sales() {
   const [receivableTab, setReceivableTab] = useState('pending');
   const navigate = useNavigate();
   // --- STATE ---
-  const { sales, addSale, confirmSale, deleteSale, registerSalePayment, updateSale, updateSalePayment, voidSalePayment, refetch: refetchSales } = useSales();
+  const { sales, addSale, confirmSale, deleteSale, registerSalePayment, updateSale, updateSalePayment, voidSalePayment, processSaleReturn, refetch: refetchSales } = useSales();
   const { products, refetch: refetchProducts } = useProducts();
   const { rate, convertToBS } = useExchangeRate();
   const { methods: activePaymentMethods } = usePaymentMethods(false);
@@ -131,6 +132,7 @@ export default function Sales() {
   const [saleModalityFilter, setSaleModalityFilter] = useState('all');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [abonoGroup, setAbonoGroup] = useState<GroupedReceivable | null>(null);
+  const [returnGroup, setReturnGroup] = useState<GroupedSale | null>(null);
   const [abonoAmount, setAbonoAmount] = useState<string>(''); // amount in USD
   const [abonoAmountBs, setAbonoAmountBs] = useState<string>('');
   const [abonoExchangeRate, setAbonoExchangeRate] = useState<string>('');
@@ -711,6 +713,27 @@ export default function Sales() {
       await deleteSale(id);
       refetchProducts();
     }
+  };
+
+  // Devolución manual: delega íntegramente al RPC `process_sale_return` vía el
+  // hook. La UI sólo recopila datos y muestra el resultado real.
+  const handleReturn = async (payload: {
+    saleGroupId: string;
+    items: { sale_id: string; quantity: number }[];
+    returnType: SaleReturnType;
+    reason: string | null;
+    idempotencyKey: string;
+  }) => {
+    const res = await processSaleReturn(payload);
+    // Refrescos adicionales para reflejar stock/CxC al instante.
+    refetchProducts();
+    refetchSales();
+    if (Number(res.refund_due_usd) > 0) {
+      toast.success(`Devolución registrada. Reembolso pendiente: $${Number(res.refund_due_usd).toFixed(2)}`);
+    } else {
+      toast.success('Devolución registrada correctamente 🩷');
+    }
+    return res;
   };
 
   const handleApproveOrder = async (orderId: string) => {
@@ -1538,6 +1561,17 @@ export default function Sales() {
                               {group.is_credit ? 'Por Cobrar' : formatPaymentMethod(group.payment_method)}
                             </Badge>
                           </div>
+                          {group.items.some(s => (Number(s.quantity) - Number(s.returned_quantity || 0)) > 0) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setReturnGroup(group)}
+                              className="flex-shrink-0 gap-1.5"
+                            >
+                              <Refresh className="h-4 w-4" />
+                              <span className="hidden sm:inline">Devolver</span>
+                            </Button>
+                          )}
                           {group.items.length === 1 && (
                             <Button
                               size="icon"
@@ -2059,6 +2093,13 @@ export default function Sales() {
       </Dialog>
 
       {/* Abono Dialog */}
+      {/* Modal de devolución manual (delega en RPC process_sale_return) */}
+      <ReturnSaleDialog
+        group={returnGroup}
+        onOpenChange={(open) => { if (!open) setReturnGroup(null); }}
+        onSubmit={handleReturn}
+      />
+
       <Dialog open={!!abonoGroup} onOpenChange={(open) => {
         if (!open) resetAbonoForm();
       }}>
