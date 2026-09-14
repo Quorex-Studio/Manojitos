@@ -10,12 +10,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { saleSchema, validateInput } from '@/lib/validations';
-import type { 
-  Sale, 
-  SaleStatus, 
-  SaleInput, 
+import type {
+  Sale,
+  SaleStatus,
+  SaleInput,
   StockValidationError,
-  SalePayment
+  SalePayment,
+  SaleReturnResult,
+  SaleReturnType
 } from '@/types';
 
 
@@ -435,6 +437,60 @@ export function useSales() {
     }
   });
 
+  // Devolución / anulación de una venta o grupo. La ÚNICA autoridad es el RPC
+  // transaccional `process_sale_return`: la UI no toca stock, ventas, pagos ni
+  // sale_returns directamente. El RPC valida admin (auth.uid + is_admin),
+  // recalcula el grupo y es idempotente por `p_idempotency_key`.
+  // Nota: los tipos autogenerados del cliente aún no exponen este RPC (igual que
+  // `process_checkout`), por eso el cast puntual.
+  const processSaleReturn = useMutation({
+    mutationFn: async ({
+      saleGroupId,
+      items,
+      returnType,
+      reason,
+      idempotencyKey,
+    }: {
+      saleGroupId: string;
+      items: { sale_id: string; quantity: number }[];
+      returnType: SaleReturnType;
+      reason?: string | null;
+      idempotencyKey: string;
+    }): Promise<SaleReturnResult> => {
+      if (!user) throw new Error('No autenticado');
+
+      const { data, error } = await (supabase.rpc as unknown as (
+        fn: 'process_sale_return',
+        args: {
+          p_sale_group_id: string;
+          p_items: { sale_id: string; quantity: number }[];
+          p_return_type: SaleReturnType;
+          p_reason: string | null;
+          p_idempotency_key: string;
+        }
+      ) => Promise<{ data: SaleReturnResult | null; error: Error | null }>)(
+        'process_sale_return',
+        {
+          p_sale_group_id: saleGroupId,
+          p_items: items,
+          p_return_type: returnType,
+          p_reason: reason ?? null,
+          p_idempotency_key: idempotencyKey,
+        }
+      );
+
+      if (error) throw error;
+      if (!data) throw new Error('La devolución no devolvió un resultado válido');
+      return data;
+    },
+    onSuccess: () => {
+      // Refrescar ventas y productos (el stock cambió dentro del RPC).
+      invalidateSales();
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+    },
+    // El componente muestra el resultado/errores con detalle (refund_due_usd, etc.).
+  });
+
   // Las mutaciones ya invalidan el caché automáticamente vía invalidateSales().
   // No se necesita suscripción realtime.
 
@@ -451,6 +507,7 @@ export function useSales() {
     registerSalePayment: registerSalePayment.mutateAsync,
     updateSalePayment: updateSalePayment.mutateAsync,
     voidSalePayment: voidSalePayment.mutateAsync,
+    processSaleReturn: processSaleReturn.mutateAsync,
     refetch,
   };
 }
