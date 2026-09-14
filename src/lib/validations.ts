@@ -92,6 +92,9 @@ export const saleSchema = z.object({
   client_address: z.string().max(200).optional().nullable().transform(val => val ? sanitizeText(val) : val),
   is_credit: z.boolean().default(false),
   sale_modality: z.string().optional().nullable().default('contado'),
+  // Agrupa las líneas de una misma venta. Debe persistirse para que la cuenta
+  // pueda recibir abonos por la ruta de grupo; si se omite, la BD asigna uno.
+  sale_group_id: z.string().uuid().optional().nullable(),
   amount_paid: z.number().nonnegative().default(0),
   payment_status: z.enum(['pending', 'partial', 'paid']).default('paid'),
   notes: z.string().max(1000).optional().nullable().transform(val => val ? sanitizeText(val) : val),
