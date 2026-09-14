@@ -745,6 +745,235 @@ async function processAction(
   }
 }
 
+// ================== HERRAMIENTAS READ-ONLY DE ÁNGELA (FASE 2) ==================
+// Gemini SOLO decide qué herramienta pedir (function calling nativo); NO accede a
+// Supabase ni recibe credenciales, IDs ni permisos. Cada herramienta se ejecuta
+// AQUÍ, revalida el rol verificado server-side (getUser(token) -> isAdmin), acota
+// al usuario autenticado cuando es cliente, y SOLO LEE (.select()). Ninguna
+// herramienta hace INSERT/UPDATE/DELETE ni invoca RPC de escritura.
+
+interface ToolContext {
+  supabase: ReturnType<typeof getSupabaseClient>;
+  isAdmin: boolean;
+  authenticatedUserId: string;
+  bcvRate: number;
+}
+
+// Declaraciones en el formato real de Gemini v1beta (functionDeclarations).
+// Los tipos van en mayúsculas (subconjunto OpenAPI) como exige la API.
+const READONLY_TOOL_DECLARATIONS = [
+  { name: 'buscar_producto', description: 'Busca productos del catálogo por nombre y/o categoría. Devuelve nombre, precio USD, stock y categoría.',
+    parameters: { type: 'OBJECT', properties: { query: { type: 'STRING', description: 'texto a buscar en el nombre' }, category: { type: 'STRING', description: 'categoría (opcional)' } } } },
+  { name: 'consultar_precio', description: 'Precio de un producto en USD y su equivalente en Bs a la tasa BCV actual.',
+    parameters: { type: 'OBJECT', properties: { product: { type: 'STRING' } }, required: ['product'] } },
+  { name: 'consultar_stock', description: 'Existencias (stock) de un producto, o el listado de productos con bajo stock si low_stock_only=true.',
+    parameters: { type: 'OBJECT', properties: { product: { type: 'STRING' }, low_stock_only: { type: 'BOOLEAN' } } } },
+  { name: 'consultar_categorias', description: 'Lista las categorías de productos disponibles.',
+    parameters: { type: 'OBJECT', properties: {} } },
+  { name: 'listar_cxc', description: 'SOLO ADMIN. Cuentas por cobrar reales: ventas fiadas con saldo pendiente, agrupadas por venta, más el total por cobrar. Es distinto de los créditos del sistema.',
+    parameters: { type: 'OBJECT', properties: {} } },
+  { name: 'consultar_deuda_cliente', description: 'Deuda por ventas fiadas de un cliente (total acordado, abonado y saldo por grupo de venta). El admin puede consultar cualquier cliente; un cliente solo la suya.',
+    parameters: { type: 'OBJECT', properties: { client_name: { type: 'STRING' } } } },
+  { name: 'consultar_venta', description: 'Detalle de las ventas/grupos de un cliente (productos, cantidades, total acordado, abonado, saldo, modalidad, fecha). Filtra opcionalmente por fecha YYYY-MM-DD. Admin: cualquier cliente; cliente: solo las suyas.',
+    parameters: { type: 'OBJECT', properties: { client_name: { type: 'STRING' }, date: { type: 'STRING', description: 'fecha YYYY-MM-DD (opcional)' } } } },
+  { name: 'historial_abonos', description: 'Historial de abonos (pagos válidos) de un cliente: monto USD, Bs, tasa, método y fecha. Admin: cualquier cliente; cliente: los suyos.',
+    parameters: { type: 'OBJECT', properties: { client_name: { type: 'STRING' } } } },
+  { name: 'resumen_ventas', description: 'SOLO ADMIN. Total y número de ventas de los últimos N días (por defecto 7).',
+    parameters: { type: 'OBJECT', properties: { days: { type: 'NUMBER' } } } },
+  { name: 'deudores_por_producto', description: 'SOLO ADMIN. Compradores de un producto agrupados por venta. Con solo_deuda=true, únicamente los grupos con saldo pendiente.',
+    parameters: { type: 'OBJECT', properties: { product: { type: 'STRING' }, solo_deuda: { type: 'BOOLEAN' } }, required: ['product'] } },
+  { name: 'consultar_credito_cliente', description: 'Crédito del SISTEMA DE CRÉDITOS de un cliente (límite, saldo, estado). Distinto de las cuentas por cobrar por ventas fiadas. Admin: cualquiera; cliente: el suyo.',
+    parameters: { type: 'OBJECT', properties: { client_name: { type: 'STRING' } } } },
+];
+
+const ADMIN_ONLY_TOOLS = new Set(['listar_cxc', 'resumen_ventas', 'deudores_por_producto']);
+
+function toolMeta(tool: string, extra: Record<string, unknown> = {}) {
+  return { tool, source: 'supabase', ts: new Date().toISOString(), ...extra };
+}
+
+// Resolución de entidad: nunca deja que el modelo invente un cliente. Devuelve
+// coincidencia única, lista para desambiguar, o "none".
+async function resolveClientName(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  name: string,
+): Promise<{ status: 'unique' | 'ambiguous' | 'none'; match?: string; options?: string[] }> {
+  const term = (name || '').trim();
+  if (!term) return { status: 'none' };
+  const { data } = await supabase
+    .from('sales').select('client_name')
+    .ilike('client_name', `%${term}%`).not('client_name', 'is', null).limit(300);
+  const distinct = [...new Set(((data || []) as any[]).map((r) => r.client_name).filter(Boolean))] as string[];
+  if (distinct.length === 0) return { status: 'none' };
+  if (distinct.length === 1) return { status: 'unique', match: distinct[0] };
+  const exact = distinct.filter((d) => d.toLowerCase() === term.toLowerCase());
+  if (exact.length === 1) return { status: 'unique', match: exact[0] };
+  return { status: 'ambiguous', options: distinct.slice(0, 10) };
+}
+
+// Carga grupos de venta (coalesce(sale_group_id, id)) con total/abonado/saldo
+// reales del grupo. total_usd es el total acordado: NUNCA se recalcula.
+async function loadSaleGroups(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  opts: { clientName?: string; customerUserId?: string; date?: string; fiadoOnly?: boolean },
+) {
+  let q = supabase.from('sales')
+    .select('id, sale_group_id, client_name, product_name, quantity, total_usd, amount_paid, payment_status, sale_modality, created_at, customer_user_id')
+    .limit(1000);
+  if (opts.fiadoOnly) q = q.eq('sale_modality', 'fiado');
+  if (opts.clientName) q = q.eq('client_name', opts.clientName);
+  if (opts.customerUserId) q = q.eq('customer_user_id', opts.customerUserId);
+  if (opts.date) q = q.gte('created_at', `${opts.date}T00:00:00`).lte('created_at', `${opts.date}T23:59:59`);
+  const { data } = await q;
+  const groups = new Map<string, any>();
+  for (const row of (data || []) as any[]) {
+    const key: string = row.sale_group_id || row.id;
+    const g = groups.get(key) || { groupId: key, clientName: '', items: new Map<string, number>(), total: 0, paid: 0, modality: row.sale_modality, isPartial: false, createdAt: row.created_at };
+    g.total += Number(row.total_usd) || 0;
+    g.paid += Number(row.amount_paid) || 0;
+    if (row.payment_status === 'partial') g.isPartial = true;
+    if (!g.clientName && row.client_name) g.clientName = row.client_name;
+    if (row.product_name) g.items.set(row.product_name, (g.items.get(row.product_name) || 0) + (Number(row.quantity) || 0));
+    groups.set(key, g);
+  }
+  return [...groups.values()].map((g) => ({
+    groupId: g.groupId,
+    clientName: g.clientName || 'Sin nombre',
+    modality: g.modality,
+    products: [...g.items.entries()].map(([n, qn]) => (qn > 1 ? `${n} x${qn}` : n)).join(', '),
+    total_usd: Math.round(g.total * 100) / 100,
+    paid_usd: Math.round(g.paid * 100) / 100,
+    balance_usd: Math.round((g.total - g.paid) * 100) / 100,
+    isPartial: g.isPartial,
+    createdAt: g.createdAt,
+  }));
+}
+
+async function executeReadOnlyTool(name: string, args: Record<string, unknown>, ctx: ToolContext): Promise<Record<string, unknown>> {
+  const supabase = ctx.supabase;
+  try {
+    if (ADMIN_ONLY_TOOLS.has(name) && !ctx.isAdmin) {
+      return { error: 'forbidden', message: 'Esta información solo está disponible para administradores.', _meta: toolMeta(name) };
+    }
+
+    switch (name) {
+      case 'consultar_categorias': {
+        const { data } = await supabase.from('products').select('category').not('category', 'is', null).gt('stock', 0).limit(500);
+        const cats = [...new Set(((data || []) as any[]).map((r) => r.category).filter(Boolean))];
+        return { categories: cats, _meta: toolMeta(name) };
+      }
+      case 'buscar_producto': {
+        let q = supabase.from('products').select('name, price_usd, price_bs_usd, stock, category').limit(15);
+        if (args.query) q = q.ilike('name', `%${String(args.query)}%`);
+        if (args.category) q = q.eq('category', String(args.category));
+        const { data } = await q;
+        return { products: (data || []).map((p: any) => ({ name: p.name, price_usd: Number(p.price_usd), price_bs: ctx.bcvRate ? Math.round(Number(p.price_usd) * ctx.bcvRate * 100) / 100 : null, stock: p.stock, category: p.category })), bcvRate: ctx.bcvRate, _meta: toolMeta(name) };
+      }
+      case 'consultar_precio': {
+        const { data } = await supabase.from('products').select('name, price_usd, stock, category').ilike('name', `%${String(args.product || '')}%`).limit(5);
+        return { products: (data || []).map((p: any) => ({ name: p.name, price_usd: Number(p.price_usd), price_bs: ctx.bcvRate ? Math.round(Number(p.price_usd) * ctx.bcvRate * 100) / 100 : null, stock: p.stock })), bcvRate: ctx.bcvRate, _meta: toolMeta(name) };
+      }
+      case 'consultar_stock': {
+        let q = supabase.from('products').select('name, stock, category').order('stock', { ascending: true }).limit(15);
+        if (args.product) q = q.ilike('name', `%${String(args.product)}%`);
+        if (args.low_stock_only) q = q.lt('stock', 10);
+        const { data } = await q;
+        return { products: data || [], _meta: toolMeta(name) };
+      }
+      case 'listar_cxc': {
+        const groups = (await loadSaleGroups(supabase, { fiadoOnly: true })).filter((g) => g.balance_usd > 0.001).sort((a, b) => b.balance_usd - a.balance_usd);
+        const total = Math.round(groups.reduce((s, g) => s + g.balance_usd, 0) * 100) / 100;
+        return { source_note: 'Cuentas por cobrar por VENTAS FIADAS (no son los créditos del sistema).', accounts: groups.map((g) => ({ client: g.clientName, products: g.products, total_usd: g.total_usd, paid_usd: g.paid_usd, balance_usd: g.balance_usd })), total_por_cobrar_usd: total, count: groups.length, _meta: toolMeta(name) };
+      }
+      case 'consultar_deuda_cliente': {
+        let groups;
+        if (ctx.isAdmin) {
+          const r = await resolveClientName(supabase, String(args.client_name || ''));
+          if (r.status === 'none') return { status: 'no_encontrado', message: `No encontré ventas de "${args.client_name || ''}".`, _meta: toolMeta(name) };
+          if (r.status === 'ambiguous') return { status: 'ambiguo', options: r.options, message: 'Hay varios clientes con ese nombre; pide al usuario que elija.', _meta: toolMeta(name) };
+          groups = (await loadSaleGroups(supabase, { clientName: r.match, fiadoOnly: true })).filter((g) => g.balance_usd > 0.001);
+        } else {
+          groups = (await loadSaleGroups(supabase, { customerUserId: ctx.authenticatedUserId, fiadoOnly: true })).filter((g) => g.balance_usd > 0.001);
+        }
+        const total = Math.round(groups.reduce((s, g) => s + g.balance_usd, 0) * 100) / 100;
+        return { accounts: groups.map((g) => ({ client: g.clientName, products: g.products, total_usd: g.total_usd, paid_usd: g.paid_usd, balance_usd: g.balance_usd })), total_saldo_usd: total, _meta: toolMeta(name) };
+      }
+      case 'consultar_venta': {
+        let groups;
+        if (ctx.isAdmin) {
+          const opts: any = { date: args.date ? String(args.date) : undefined };
+          if (args.client_name) {
+            const r = await resolveClientName(supabase, String(args.client_name));
+            if (r.status === 'none') return { status: 'no_encontrado', message: `No encontré ventas de "${args.client_name}".`, _meta: toolMeta(name) };
+            if (r.status === 'ambiguous') return { status: 'ambiguo', options: r.options, _meta: toolMeta(name) };
+            opts.clientName = r.match;
+          }
+          groups = await loadSaleGroups(supabase, opts);
+        } else {
+          groups = await loadSaleGroups(supabase, { customerUserId: ctx.authenticatedUserId, date: args.date ? String(args.date) : undefined });
+        }
+        return { sales: groups.map((g) => ({ client: g.clientName, products: g.products, modality: g.modality, total_usd: g.total_usd, paid_usd: g.paid_usd, balance_usd: g.balance_usd, date: g.createdAt })), count: groups.length, _meta: toolMeta(name) };
+      }
+      case 'historial_abonos': {
+        let groupIds: string[];
+        let label = '';
+        if (ctx.isAdmin) {
+          const r = await resolveClientName(supabase, String(args.client_name || ''));
+          if (r.status === 'none') return { status: 'no_encontrado', message: `No encontré ventas de "${args.client_name || ''}".`, _meta: toolMeta(name) };
+          if (r.status === 'ambiguous') return { status: 'ambiguo', options: r.options, _meta: toolMeta(name) };
+          label = r.match!;
+          const groups = await loadSaleGroups(supabase, { clientName: r.match });
+          groupIds = groups.map((g) => g.groupId);
+        } else {
+          const groups = await loadSaleGroups(supabase, { customerUserId: ctx.authenticatedUserId });
+          groupIds = groups.map((g) => g.groupId);
+        }
+        if (groupIds.length === 0) return { payments: [], _meta: toolMeta(name) };
+        const { data } = await supabase.from('sale_payments')
+          .select('amount_usd, amount_bs, exchange_rate, payment_method, created_at, status, sale_group_id, sale_id')
+          .eq('status', 'valid').or(`sale_group_id.in.(${groupIds.join(',')}),sale_id.in.(${groupIds.join(',')})`)
+          .order('created_at', { ascending: false }).limit(100);
+        return { client: label || 'tú', payments: (data || []).map((p: any) => ({ amount_usd: Number(p.amount_usd), amount_bs: p.amount_bs != null ? Number(p.amount_bs) : null, exchange_rate: p.exchange_rate != null ? Number(p.exchange_rate) : null, payment_method: p.payment_method, date: p.created_at })), _meta: toolMeta(name) };
+      }
+      case 'resumen_ventas': {
+        const days = Math.max(1, Math.min(365, Number(args.days) || 7));
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+        const { data } = await supabase.from('sales').select('total_usd').gte('created_at', since);
+        const total = ((data || []) as any[]).reduce((s, r) => s + (Number(r.total_usd) || 0), 0);
+        return { days, total_usd: Math.round(total * 100) / 100, count: (data || []).length, _meta: toolMeta(name) };
+      }
+      case 'deudores_por_producto': {
+        const term = String(args.product || '').trim();
+        if (!term) return { status: 'no_encontrado', message: 'Indica el producto.', _meta: toolMeta(name) };
+        const { data: matches } = await supabase.from('sales').select('sale_group_id, id').ilike('product_name', `%${term}%`).limit(1000);
+        const groupIds = [...new Set(((matches || []) as any[]).map((r) => r.sale_group_id || r.id))];
+        if (groupIds.length === 0) return { buyers: [], message: `Nadie ha comprado "${term}".`, _meta: toolMeta(name) };
+        // Reconstruir el saldo real de cada grupo (todas sus líneas)
+        const all = await loadSaleGroups(supabase, {});
+        let buyers = all.filter((g) => groupIds.includes(g.groupId));
+        if (args.solo_deuda) buyers = buyers.filter((g) => g.balance_usd > 0.001);
+        return { product: term, solo_deuda: !!args.solo_deuda, buyers: buyers.map((g) => ({ client: g.clientName, products: g.products, total_usd: g.total_usd, paid_usd: g.paid_usd, balance_usd: g.balance_usd, date: g.createdAt })), count: buyers.length, _meta: toolMeta(name) };
+      }
+      case 'consultar_credito_cliente': {
+        let q = supabase.from('credits').select('client_name, credit_limit, current_balance, status, trust_level, next_due_date, is_blocked').limit(5);
+        if (ctx.isAdmin) {
+          q = q.ilike('client_name', `%${String(args.client_name || '')}%`);
+        } else {
+          q = q.eq('client_user_id', ctx.authenticatedUserId);
+        }
+        const { data } = await q;
+        if (!data || data.length === 0) return { status: 'no_encontrado', message: 'No encontré una línea de crédito.', _meta: toolMeta(name) };
+        return { source_note: 'Crédito del SISTEMA DE CRÉDITOS (distinto de las cuentas por cobrar por ventas fiadas).', credits: data.map((c: any) => ({ client: c.client_name, limit_usd: Number(c.credit_limit), balance_usd: Number(c.current_balance), available_usd: Number(c.credit_limit) - Number(c.current_balance), status: c.status, trust_level: c.trust_level, blocked: c.is_blocked })), _meta: toolMeta(name) };
+      }
+      default:
+        return { error: 'unknown_tool', message: `Herramienta desconocida: ${name}`, _meta: toolMeta(name) };
+    }
+  } catch (err) {
+    console.error(`Tool ${name} error:`, err);
+    return { error: 'tool_error', message: 'No pude obtener esa información en este momento.', _meta: toolMeta(name) };
+  }
+}
+
 // ================== MAIN HANDLER ==================
 
 serve(async (req: Request) => {
@@ -936,6 +1165,19 @@ Simplifica tus respuestas y ofrece ayuda clara. Si persiste, ofrece atención hu
       contextPrompt += `\nCONTEXTO ADICIONAL: ${context}`;
     }
 
+    // Memoria de sesión: turnos recientes para resolver referencias como "ella"
+    // o "esa venta". NO otorga permisos: cada herramienta revalida rol/entidad.
+    const recentTurns = (messages || [])
+      .slice(-7, -1)
+      .map((m: any) => `${m.role === 'user' ? 'Usuario' : 'Ángela'}: ${String(m.content || '').slice(0, 300)}`)
+      .join('\n');
+    if (recentTurns) {
+      contextPrompt += `
+CONVERSACIÓN RECIENTE (para entender referencias como "ella"/"esa venta"; no cambia permisos):
+${recentTurns}
+`;
+    }
+
     contextPrompt += `
 ROL: ${isAdmin ? 'Administrador' : 'Cliente'}
 FECHA: ${new Date().toLocaleDateString('es-VE')}
@@ -947,7 +1189,10 @@ INSTRUCCIONES CLAVE:
 - Si el usuario pregunta sobre categorías específicas ("Ropa", "Ropa Interior", "Perfume", etc.), lista los productos de CADA categoría mencionada con nombre, precio USD, precio Bs y stock.
 - Si el usuario pide ver productos de una categoría, busca en los PRODUCTOS DISPONIBLES de arriba y filtra por esa categoría.
 - NO respondas con el saludo genérico si el usuario hace una pregunta concreta de productos o categorías.
-- Si necesitas ejecutar una acción, indica: [ACCION: TIPO] con los datos necesarios.
+- Para datos concretos (deudas, cuentas por cobrar, ventas, pagos, stock, precios, créditos, resúmenes), USA las herramientas disponibles y responde SOLO con lo que devuelvan. NUNCA inventes clientes, montos, saldos, IDs ni fechas.
+- "Cuentas por cobrar" o "a quién cobrar" = ventas fiadas (herramientas de CxC/deuda), NO los créditos del sistema; son fuentes distintas.
+- Si una herramienta devuelve varias coincidencias (ambiguo), pregunta al usuario cuál antes de continuar. Si devuelve "no_encontrado", dilo con claridad.
+- Las herramientas son de SOLO LECTURA: no puedes registrar, modificar, anular ni devolver nada en esta versión; si te lo piden, explica que aún no está disponible.
 
 Respuesta de Ángela:`;
 
@@ -958,43 +1203,79 @@ Respuesta de Ángela:`;
 
     if (GEMINI_KEY) {
       const modelsToTry = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'];
+      // Contexto de herramientas READ-ONLY: el rol viene del token verificado, no
+      // del cliente ni de Gemini. Gemini solo elige qué herramienta pedir.
+      const toolCtx: ToolContext = {
+        supabase,
+        isAdmin,
+        authenticatedUserId: authenticatedUserId as string,
+        bcvRate: businessContext.bcvRate,
+      };
+      const geminiTools = [{ functionDeclarations: READONLY_TOOL_DECLARATIONS }];
+
       for (const model of modelsToTry) {
         try {
           console.log(`Trying Gemini model: ${model}`);
-          const geminiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: contextPrompt }] }],
-                generationConfig: {
-                  temperature: 0.7,
-                  maxOutputTokens: 2048,
-                  topP: 0.9,
-                },
-              }),
-            }
-          );
+          // Conversación multi-turno para function calling. Primer turno: prompt.
+          const contents: any[] = [{ role: 'user', parts: [{ text: contextPrompt }] }];
+          let modelFailed = false;
+          const MAX_TOOL_TURNS = 5;
 
-          if (geminiResponse.ok) {
-            const geminiResult = await geminiResponse.json();
-            generatedText = geminiResult?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            if (generatedText && generatedText.length >= 10) {
-              console.log(`Gemini response received from ${model}, length:`, generatedText.length);
-              break; // Success! Exit loop
-            } else {
-              console.warn(`Gemini model ${model} returned empty/short response`);
+          for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
+            const geminiResponse = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
+                body: JSON.stringify({
+                  contents,
+                  tools: geminiTools,
+                  generationConfig: { temperature: 0.7, maxOutputTokens: 2048, topP: 0.9 },
+                }),
+              }
+            );
+
+            if (!geminiResponse.ok) {
+              const errText = await geminiResponse.text();
+              console.error(`Gemini API error for model ${model}:`, geminiResponse.status, errText);
+              modelFailed = true;
+              break;
             }
-          } else {
-            const errText = await geminiResponse.text();
-            console.error(`Gemini API error for model ${model}:`, geminiResponse.status, errText);
+
+            const geminiResult = await geminiResponse.json();
+            const parts = geminiResult?.candidates?.[0]?.content?.parts || [];
+            const fnCalls = parts.filter((p: any) => p.functionCall).map((p: any) => p.functionCall);
+
+            if (fnCalls.length > 0) {
+              // Ejecutar cada herramienta pedida (solo lectura) y devolver el
+              // resultado real al modelo para que lo redacte.
+              contents.push({ role: 'model', parts });
+              const responseParts: any[] = [];
+              for (const call of fnCalls) {
+                const result = await executeReadOnlyTool(call.name, call.args || {}, toolCtx);
+                console.log(`Tool executed: ${call.name}`);
+                responseParts.push({ functionResponse: { name: call.name, response: result } });
+              }
+              contents.push({ role: 'user', parts: responseParts });
+              continue; // nueva vuelta para que el modelo redacte o pida otra tool
+            }
+
+            // Sin llamada a herramienta: respuesta en texto
+            generatedText = parts.map((p: any) => p.text || '').join('').trim();
+            break;
           }
+
+          if (modelFailed) continue; // probar siguiente modelo
+          if (generatedText && generatedText.length >= 2) {
+            console.log(`Gemini response received from ${model}, length:`, generatedText.length);
+            break;
+          }
+          console.warn(`Gemini model ${model} returned empty response`);
         } catch (geminiErr) {
           console.error(`Gemini fetch error for model ${model}:`, geminiErr);
         }
       }
-      if (!generatedText || generatedText.length < 10) {
+      if (!generatedText || generatedText.length < 2) {
         console.error('All Gemini models failed. Falling back to rule-based response.');
       }
     } else {
