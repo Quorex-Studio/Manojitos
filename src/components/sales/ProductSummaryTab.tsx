@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader, Search, InfoCircle } from 'reicon-react';
+import { Loader, Search, InfoCircle, Package } from 'reicon-react';
 import { useProductSummary, useProductDebtors } from '@/hooks/useProductSummary';
 import { formatBS } from '@/lib/utils';
 import type { ProductSummary, ProductDebtor } from '@/types';
