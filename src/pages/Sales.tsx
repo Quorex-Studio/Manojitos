@@ -1754,35 +1754,45 @@ export default function Sales() {
                           <span>Pagado: ${Number(group.amount_paid).toFixed(2)}</span>
                         </div>
 
-                        <div className="flex gap-2 w-full mt-2">
-                          <Button 
-                            className="flex-1" 
-                            variant="outline"
-                            onClick={() => {
-                              setAbonoGroup(group);
-                              setAbonoAmount('');
-                            }}
-                          >
-                            <DollarSign className="h-4 w-4 mr-2" />
-                            Reportar Abono
-                          </Button>
-                          <Button 
-                            className="flex-1" 
-                            variant={isPartial ? "default" : "secondary"}
-                            onClick={async () => {
-                              if (confirm(`¿Marcar la deuda total de $${pendingAmountUsd.toFixed(2)} como pagada en su totalidad?`)) {
-                                await registerSalePayment({ 
-                                  saleGroupId: group.id, 
-                                  amountUsd: pendingAmountUsd, 
-                                  paymentMethod: group.payment_method || 'pago_movil'
-                                });
-                              }
-                            }}
-                          >
-                            <TickCircle className="h-4 w-4 mr-2" />
-                            Marcar Pagado
-                          </Button>
-                        </div>
+                        {/* Solo permitir abonar / marcar pagado si aún hay saldo.
+                            Una cuenta saldada (pendingAmountUsd <= 0) no debe poder
+                            recibir más abonos ni volver a marcarse como pagada. */}
+                        {pendingAmountUsd > 0.005 ? (
+                          <div className="flex gap-2 w-full mt-2">
+                            <Button
+                              className="flex-1"
+                              variant="outline"
+                              onClick={() => {
+                                setAbonoGroup(group);
+                                setAbonoAmount('');
+                              }}
+                            >
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              Reportar Abono
+                            </Button>
+                            <Button
+                              className="flex-1"
+                              variant={isPartial ? "default" : "secondary"}
+                              onClick={async () => {
+                                if (confirm(`¿Marcar la deuda total de $${pendingAmountUsd.toFixed(2)} como pagada en su totalidad?`)) {
+                                  await registerSalePayment({
+                                    saleGroupId: group.id,
+                                    amountUsd: pendingAmountUsd,
+                                    paymentMethod: group.payment_method || 'pago_movil'
+                                  });
+                                }
+                              }}
+                            >
+                              <TickCircle className="h-4 w-4 mr-2" />
+                              Marcar Pagado
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-2 w-full mt-2 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-500 text-sm font-medium">
+                            <TickCircle className="h-4 w-4" />
+                            Cuenta pagada
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
