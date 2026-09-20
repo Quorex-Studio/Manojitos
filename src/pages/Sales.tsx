@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle } from 'reicon-react';
 import { getNextTwoCutoffDates, getNextThreeCutoffDates, formatCutoffDate } from '@/lib/cutoffDates';
@@ -316,6 +316,13 @@ export default function Sales() {
   const [clientType, setClientType] = useState<'registered' | 'new'>('registered');
   const [dniLookupState, setDniLookupState] = useState<'idle' | 'loading' | 'found' | 'notfound'>('idle');
 
+  // Búsqueda de clientes por NOMBRE o cédula en "Ya Registrado".
+  type ClientMatch = { name: string; dni: string; phone: string; email: string; address: string };
+  const [clientQuery, setClientQuery] = useState('');
+  const [clientResults, setClientResults] = useState<ClientMatch[]>([]);
+  const [clientSearchLoading, setClientSearchLoading] = useState(false);
+  const clientSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const queryClient = useQueryClient();
 
   // --- CART HANDLERS ---
@@ -396,6 +403,70 @@ export default function Sales() {
     }
   }, [client.dni]);
 
+
+  // Busca clientes por NOMBRE o cédula. Fuente principal: ventas pasadas
+  // (donde vive todo cliente facturado), más customer_profiles. Sólo lectura.
+  const runClientSearch = useCallback(async (raw: string) => {
+    const q = raw.trim();
+    // Sanitizar: coma/paréntesis/porcentaje rompen la sintaxis del filtro .or() de PostgREST.
+    const safe = q.replace(/[,%()]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (safe.length < 2) { setClientResults([]); setClientSearchLoading(false); return; }
+    setClientSearchLoading(true);
+    try {
+      const [salesRes, profRes] = await Promise.allSettled([
+        supabase.from('sales')
+          .select('client_name, client_dni, client_phone, client_email, client_address, created_at')
+          .not('client_name', 'is', null)
+          .or(`client_name.ilike.%${safe}%,client_dni.ilike.%${safe}%`)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase.from('customer_profiles')
+          .select('full_name, dni, phone, email, address')
+          .or(`full_name.ilike.%${safe}%,dni.ilike.%${safe}%`)
+          .limit(20),
+      ]);
+      const salesData = salesRes.status === 'fulfilled' ? (salesRes.value.data || []) : [];
+      const profData = profRes.status === 'fulfilled' ? (profRes.value.data || []) : [];
+      const map = new Map<string, ClientMatch>();
+      const push = (m: ClientMatch) => {
+        const name = (m.name || '').trim();
+        if (!name) return;
+        const key = ((m.dni || '').trim().toUpperCase()) || name.toLowerCase();
+        if (!map.has(key)) map.set(key, { name, dni: m.dni || '', phone: m.phone || '', email: m.email || '', address: m.address || '' });
+      };
+      type SaleRow = { client_name: string | null; client_dni: string | null; client_phone: string | null; client_email: string | null; client_address: string | null };
+      type ProfRow = { full_name: string | null; dni: string | null; phone: string | null; email: string | null; address: string | null };
+      for (const r of salesData as SaleRow[]) push({ name: r.client_name || '', dni: r.client_dni || '', phone: r.client_phone || '', email: r.client_email || '', address: r.client_address || '' });
+      for (const r of profData as ProfRow[]) push({ name: r.full_name || '', dni: r.dni || '', phone: r.phone || '', email: r.email || '', address: r.address || '' });
+      setClientResults(Array.from(map.values()).slice(0, 8));
+    } catch {
+      setClientResults([]);
+    } finally {
+      setClientSearchLoading(false);
+    }
+  }, []);
+
+  // Debounce de la búsqueda mientras se escribe.
+  useEffect(() => {
+    if (clientType !== 'registered') return;
+    if (clientSearchTimer.current) clearTimeout(clientSearchTimer.current);
+    clientSearchTimer.current = setTimeout(() => runClientSearch(clientQuery), 300);
+    return () => { if (clientSearchTimer.current) clearTimeout(clientSearchTimer.current); };
+  }, [clientQuery, clientType, runClientSearch]);
+
+  const selectClientMatch = (m: ClientMatch) => {
+    setClient(prev => ({
+      ...prev,
+      dni: m.dni || prev.dni,
+      name: m.name,
+      phone: m.phone || '',
+      email: m.email || '',
+      address: m.address || '',
+    }));
+    setDniLookupState('found');
+    setClientResults([]);
+    setClientQuery('');
+  };
 
   const isBsPayment = ['efectivo_bs', 'pago_movil', 'transferencia'].includes(payment.method);
   
@@ -1304,10 +1375,12 @@ export default function Sales() {
                         Datos del Cliente
                       </h4>
 
-                      <Tabs value={clientType} onValueChange={(v: string) => { 
-                        setClientType(v); 
-                        setClient({ dni: '', name: '', phone: '', email: '', address: '', notes: '' }); 
-                        setDniLookupState('idle'); 
+                      <Tabs value={clientType} onValueChange={(v: string) => {
+                        setClientType(v);
+                        setClient({ dni: '', name: '', phone: '', email: '', address: '', notes: '' });
+                        setDniLookupState('idle');
+                        setClientQuery('');
+                        setClientResults([]);
                       }}>
                         <TabsList className="grid w-full grid-cols-2 mb-4 bg-background/50">
                           <TabsTrigger value="registered">Ya Registrado</TabsTrigger>
@@ -1315,6 +1388,41 @@ export default function Sales() {
                         </TabsList>
                         
                         <TabsContent value="registered" className="space-y-4">
+                          <div className="space-y-1.5">
+                            <Label>Buscar por nombre o cédula</Label>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                value={clientQuery}
+                                onChange={e => setClientQuery(e.target.value)}
+                                placeholder="Ej: María, o V-12345678"
+                                className="input-glass rounded-xl pl-9"
+                              />
+                              {clientSearchLoading && (
+                                <Loader className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                              )}
+                            </div>
+                            {clientResults.length > 0 && (
+                              <div className="mt-1 max-h-56 overflow-y-auto rounded-xl border border-border/50 divide-y divide-border/10 bg-background/60">
+                                {clientResults.map((m, i) => (
+                                  <button
+                                    key={`${m.dni}-${m.name}-${i}`}
+                                    type="button"
+                                    onClick={() => selectClientMatch(m)}
+                                    className="w-full text-left px-3 py-2 hover:bg-primary/10 transition-colors"
+                                  >
+                                    <p className="font-medium text-sm">{m.name}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {m.dni || 'Sin cédula'}{m.phone ? ` • ${m.phone}` : ''}
+                                    </p>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {clientQuery.trim().length >= 2 && !clientSearchLoading && clientResults.length === 0 && (
+                              <p className="text-xs text-muted-foreground mt-1">Sin coincidencias. Prueba la cédula abajo o regístralo como Cliente Nuevo.</p>
+                            )}
+                          </div>
                           <div className="space-y-1.5">
                             <Label>Buscar por Cédula / RIF *</Label>
                             <div className="relative">
