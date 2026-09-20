@@ -359,6 +359,35 @@ export default function Sales() {
           address: data.address || prev.address,
         }));
         setDniLookupState('found');
+        return;
+      }
+
+      // Fallback: buscar en VENTAS pasadas. Todo cliente al que ya se le
+      // facturó (con nombre y cédula) vive en `sales`, aunque su perfil en
+      // customer_profiles no se haya creado. Así "Ya Registrado" encuentra a
+      // cualquiera al que ya le vendimos. Se prueba la cédula tal cual y, si es
+      // sólo numérica, con los prefijos comunes.
+      const dniCandidates = [dniRaw];
+      if (/^\d+$/.test(dniRaw)) {
+        for (const prefix of ['V-', 'J-', 'E-', 'G-']) dniCandidates.push(prefix + dniRaw);
+      }
+      const { data: saleRows } = await supabase
+        .from('sales')
+        .select('client_name, client_phone, client_email, client_address')
+        .in('client_dni', dniCandidates)
+        .not('client_name', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const prev = saleRows?.[0];
+      if (prev && prev.client_name) {
+        setClient(c => ({
+          ...c,
+          name: prev.client_name || c.name,
+          phone: prev.client_phone || c.phone,
+          email: prev.client_email || c.email,
+          address: prev.client_address || c.address,
+        }));
+        setDniLookupState('found');
       } else {
         setDniLookupState('notfound');
       }
