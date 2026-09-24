@@ -259,3 +259,18 @@ detal ignoraba el recargo configurado).
 | Clientes | Tarjetas en vez de tabla; filtros-pastilla por verificación con conteo; buscar sin tildes por nombre/teléfono/cédula/correo; un solo diálogo de ficha (Resumen · Verificación · Compras · Cuenta) con WhatsApp/llamar/correo arriba y la decisión Aprobar/Rechazar fija abajo | La tabla se leía mal en móvil y había un diálogo por fila | `pages/Customers.tsx`, `components/customers/` |
 | Diálogos anchos | `DialogContent` con `grid-cols-[minmax(0,1fr)]` y secciones `min-w-0`; pie fijo con `max-sm:!pb-0` + `pb-[calc(1rem+env(safe-area-inset-bottom))]` | Sin esto un texto `truncate` o una fila `nowrap` ensanchan la hoja móvil y aparece scroll horizontal | ambos diálogos |
 | Listas en grid | Usar `grid-cols-1` explícito (Tailwind = `minmax(0,1fr)`) | `grid` sin columnas crece al ancho del texto más largo | `Customers.tsx` |
+
+## 11. Contenido de marca, pagos y panel guiado
+
+| Área | Cambio | Por qué | Dónde |
+|---|---|---|---|
+| Frase de portada | Titular con la parte emocional en vino e itálica ("tu mejor versión") y el resto en el color del texto | Una sola idea fuerte; el color guía la lectura | `StoreFront.tsx` |
+| Beneficios | 4 promesas concretas (asesoría GRATIS, tasa BCV, delivery en la Isla, MRW) + franja de métodos de pago en pastillas | La clienta decide comprar por confianza, no por adjetivos | `StoreFront.tsx`, `AboutUs.tsx` |
+| Sin fotos | Panel de marca (vino + logo) en vez de cajas vacías mientras no haya productos con foto | Una tienda nueva no debe verse rota | `StoreFront.tsx` |
+| Datos de pago | Nunca fijos en el código: salen de `payment_methods.config`, con nombres legibles (`paymentMethodFields.ts`) y un solo panel (`PaymentInfoPanel`) | En la copia venían los datos de pago de otra persona | `components/payments/`, `lib/paymentMethodFields.ts` |
+| Configuración | Pestañas; "Pagos" primero con estado por método (completo / faltan N) y aviso global | Lo que bloquea vender va arriba | `Settings.tsx` |
+| Reglas en palabras | Precios explicados con un ejemplo en vivo | Nadie entiende "factor USD→EUR" | `Settings.tsx` |
+| Panel guiado | Saludo, accesos rápidos en pastillas y "Primeros pasos" que desaparece al completarse | La dueña sabe qué hacer el primer día | `Dashboard.tsx` |
+| Resúmenes | Un número principal ("Por cobrar") + filtros-pastilla con conteo en vez de 6 tarjetas | En móvil las tarjetas empujan el contenido fuera de la pantalla | `Credits.tsx`, `BusinessRules.tsx` |
+| Gráficos vacíos | Mensaje con ícono en vez de una línea plana en cero | Una línea en cero parece un error | `Dashboard.tsx` |
+| Móvil tienda | Sin menú hamburguesa: la barra inferior cubre la navegación; la pestaña de cuenta es "Panel" para la administradora | No duplicar navegación; el panel a un toque | `StoreHeader.tsx`, `MobileTabBar.tsx` |
