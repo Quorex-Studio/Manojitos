@@ -14,7 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
 import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import logoImage from '@/assets/logo.jpeg';
+import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
 import { toast } from 'sonner';
 
 // Header de la tienda — Editorial luxury frosted glass

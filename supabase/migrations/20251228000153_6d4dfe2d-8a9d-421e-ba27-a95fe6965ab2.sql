@@ -1,3 +1,7 @@
+-- PLANTILLA: la URL del proyecto y la anon key se leen del Vault de cada tienda.
+-- Antes de aplicar, en cada proyecto nuevo:
+--   select vault.create_secret('https://<ref>.supabase.co', 'project_url');
+--   select vault.create_secret('<anon key>', 'anon_key');
 -- Habilitar extensiones necesarias para cron jobs
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 CREATE EXTENSION IF NOT EXISTS pg_net;
@@ -13,7 +17,7 @@ SELECT cron.schedule(
   '0 * * * *',
   $$
   SELECT net.http_post(
-    url := 'https://utfoempgdbhhikpvbvir.supabase.co/functions/v1/angela-cron-alerts',
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url') || '/functions/v1/angela-cron-alerts',
     headers := '{"Content-Type": "application/json"}'::jsonb,
     body := '{}'::jsonb
   ) AS request_id;
@@ -26,7 +30,7 @@ SELECT cron.schedule(
   '0 */4 * * *',
   $$
   SELECT net.http_post(
-    url := 'https://utfoempgdbhhikpvbvir.supabase.co/functions/v1/angela-cron-alerts',
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url') || '/functions/v1/angela-cron-alerts',
     headers := '{"Content-Type": "application/json"}'::jsonb,
     body := '{"type": "stock_check"}'::jsonb
   ) AS request_id;

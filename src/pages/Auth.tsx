@@ -10,7 +10,7 @@ import { Loader, Refresh, Mailbox, Lock, User, Phone, ArrowRight, Sparkles, Loca
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import logoImage from '@/assets/logo.jpeg';
+import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
 
 export default function Auth() {
   // --- STATE ---

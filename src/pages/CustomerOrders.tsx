@@ -505,9 +505,9 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
       <Dialog open={!!receiptOrder} onOpenChange={(open) => !open && setReceiptOrder(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[400px] p-0 bg-background border border-gold/30 shadow-2xl">
           <div className="p-8 bg-white text-black print-exact font-mono" id="receipt-content">
-            <div className="h-1.5 -mx-8 -mt-8 mb-6" style={{ background: 'linear-gradient(90deg, #D69729, #D36983)' }} />
+            <div className="h-1.5 -mx-8 -mt-8 mb-6" style={{ background: 'linear-gradient(90deg, hsl(var(--gold)), hsl(var(--primary)))' }} />
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-serif font-bold" style={{ color: '#D69729' }}>{BRAND_NAME}</h2>
+              <h2 className="text-2xl font-serif font-bold" style={{ color: 'hsl(var(--gold))' }}>{BRAND_NAME}</h2>
               <p className="text-xs uppercase tracking-widest mt-1" style={{ color: '#D36983' }}>Boutique & Lifestyle</p>
               <div className="mt-4 text-sm">
                 <p>Recibo de Compra</p>

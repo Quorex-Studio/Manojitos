@@ -16,20 +16,15 @@
 
 ## 🧩 Usar como plantilla (otra tienda)
 
-La marca **no está escrita en el código**: sale de `src/config/brand.ts`, que lee variables de entorno.
-Para montar otra tienda solo hay que cambiar:
+Esta plataforma es una **plantilla**: la marca, el dominio, los correos, la asistente IA, el SEO, el manifest y la analítica salen del `.env`.
 
-| Dónde | Variable | Ejemplo |
-|---|---|---|
-| `.env` / Vercel | `VITE_BRAND_NAME` | `EINA` |
-| `.env` / Vercel | `VITE_BRAND_CONTACT_EMAIL`, `VITE_BRAND_SUPPORT_EMAIL` | `contacto@eina.shop` |
-| `.env` / Vercel | `VITE_BRAND_INSTAGRAM` | `eina.shop` |
-| `.env` / Vercel | `VITE_BRAND_STORAGE_KEY` | `eina` (prefijo de localStorage) |
-| `.env` / Vercel | `VITE_GTM_ID` | vacío = sin Google Tag Manager |
-| `.env` / Vercel | `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID` | datos del proyecto Supabase |
-| Secrets de Supabase (edge functions) | `BRAND_NAME`, `VAPID_CONTACT_EMAIL`, `RESEND_FROM_EMAIL` | `EINA` |
+```bash
+npm install
+npm run nueva-tienda   # asistente que genera el .env
+npm run dev
+```
 
-Además: reemplazar los logos (`src/assets/logo.jpeg`, `public/logo.jpeg`, favicons) y el nombre en `public/site.webmanifest` y `public/sw.js`.
+Guía completa (logos, Supabase, Vercel y checklist de entrega): **[PLANTILLA.md](PLANTILLA.md)**.
 
 -----
 

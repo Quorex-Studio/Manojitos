@@ -1,4 +1,4 @@
-import { BRAND_NAME } from '@/config/brand';
+import { BRAND, BRAND_NAME } from '@/config/brand';
 /**
  * AngelaChat — Interfaz de chat flotante para Ángela, la asistente de la tienda.
  *
@@ -44,7 +44,7 @@ interface AiAssistantResponse {
 const WELCOME: ChatMessage = {
   role: "assistant",
   content:
-    `🩷 ¡Hola! Soy Ángela, tu asistente de ${BRAND_NAME}. ¿En qué te puedo ayudar hoy? Puedo orientarte con productos, precios en USD y Bs, y tu crédito. ✨`,
+    `🩷 ¡Hola! Soy ${BRAND.assistantName}, tu asistente de ${BRAND_NAME}. ¿En qué te puedo ayudar hoy? Puedo orientarte con productos, precios en USD y Bs, y tu crédito. ✨`,
 };
 
 const ERROR_MESSAGE =
@@ -171,7 +171,7 @@ export default function AngelaChat() {
                   exit={{ opacity: 0, scale: 0.9, y: 6 }}
                   className="mr-1 max-w-[200px] rounded-2xl rounded-br-sm border border-border bg-card px-3 py-2 text-xs text-foreground shadow-lg"
                 >
-                  🩷 ¡Hola! Soy <span className="font-semibold">Ángela</span>. ¿Te ayudo?
+                  🩷 ¡Hola! Soy <span className="font-semibold">{BRAND.assistantName}</span>. ¿Te ayudo?
                 </motion.div>
               )}
             </AnimatePresence>
@@ -182,7 +182,7 @@ export default function AngelaChat() {
                 setShowHint(false);
                 setOpen(true);
               }}
-              aria-label="Abrir chat con Ángela"
+              aria-label={`Abrir chat con ${BRAND.assistantName}`}
               className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <AngelaMascot state="idle" className="h-16 w-16 sm:h-[76px] sm:w-[76px]" size={76} />
@@ -197,7 +197,7 @@ export default function AngelaChat() {
           <motion.div
             key="panel"
             role="dialog"
-            aria-label="Chat con Ángela"
+            aria-label={`Chat con ${BRAND.assistantName}`}
             initial={{ opacity: 0, y: 24, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.96 }}
@@ -218,9 +218,9 @@ export default function AngelaChat() {
               <div className="flex items-center gap-2.5">
                 <AngelaMascot state={mascotState} size={44} className="h-11 w-11" />
                 <div className="leading-tight">
-                  <p className="text-sm font-semibold">Ángela</p>
+                  <p className="text-sm font-semibold">{BRAND.assistantName}</p>
                   <p className="text-[11px] opacity-80">
-                    {sending ? "Ángela está pensando…" : `Asistente de ${BRAND_NAME}`}
+                    {sending ? `${BRAND.assistantName} está pensando…` : `Asistente de ${BRAND_NAME}`}
                   </p>
                 </div>
               </div>
@@ -296,7 +296,7 @@ export default function AngelaChat() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Escribe tu mensaje…"
                 disabled={sending}
-                aria-label="Mensaje para Ángela"
+                aria-label={`Mensaje para ${BRAND.assistantName}`}
                 className="h-10 flex-1 rounded-full border border-input bg-background px-4 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
               />
               <Button

@@ -1,5 +1,5 @@
-/* Service Worker — Push Notifications */
-const CACHE_NAME = 'eina-v1';
+/* Service Worker genérico (el título real llega en cada push desde send-push) — Push Notifications */
+const CACHE_NAME = 'store-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -15,15 +15,15 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (e) {
-    data = { title: 'EINA', body: event.data ? event.data.text() : 'Nueva notificación' };
+    data = { title: 'Notificación', body: event.data ? event.data.text() : 'Nueva notificación' };
   }
 
-  const title = data.title || 'EINA 🩷';
+  const title = data.title || 'Notificación 🩷';
   const options = {
     body: data.body || data.message || 'Tienes una nueva notificación',
     icon: '/favicon.ico',
     badge: '/favicon.ico',
-    tag: data.tag || 'eina-notif',
+    tag: data.tag || 'store-notif',
     renotify: true,
     requireInteraction: false,
     data: {

@@ -1,5 +1,6 @@
 // Marca configurable por secreto de Supabase (supabase secrets set BRAND_NAME=...)
 const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "EINA";
+const ASSISTANT_NAME = Deno.env.get("ASSISTANT_NAME") ?? "Ángela";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -1087,7 +1088,7 @@ serve(async (req: Request) => {
     console.log('Generated suggestions:', suggestions.length);
 
     // ================== CONSTRUIR PROMPT CONTEXTUALIZADO ==================
-    let contextPrompt = `Eres Ángela, asistente inteligente de ${BRAND_NAME} (tienda en Venezuela).
+    let contextPrompt = `Eres ${ASSISTANT_NAME}, asistente inteligente de ${BRAND_NAME} (tienda en Venezuela).
 Personalidad: cercana, clara, profesional, confiable. Usa español venezolano.
 Tono: amable, seguro, sin exagerar emojis (máximo 2-3 por respuesta).
 
@@ -1171,7 +1172,7 @@ Simplifica tus respuestas y ofrece ayuda clara. Si persiste, ofrece atención hu
     // o "esa venta". NO otorga permisos: cada herramienta revalida rol/entidad.
     const recentTurns = (messages || [])
       .slice(-7, -1)
-      .map((m: any) => `${m.role === 'user' ? 'Usuario' : 'Ángela'}: ${String(m.content || '').slice(0, 300)}`)
+      .map((m: any) => `${m.role === 'user' ? 'Usuario' : ASSISTANT_NAME}: ${String(m.content || '').slice(0, 300)}`)
       .join('\n');
     if (recentTurns) {
       contextPrompt += `
@@ -1196,7 +1197,7 @@ INSTRUCCIONES CLAVE:
 - Si una herramienta devuelve varias coincidencias (ambiguo), pregunta al usuario cuál antes de continuar. Si devuelve "no_encontrado", dilo con claridad.
 - Las herramientas son de SOLO LECTURA: no puedes registrar, modificar, anular ni devolver nada en esta versión; si te lo piden, explica que aún no está disponible.
 
-Respuesta de Ángela:`;
+Respuesta de ${ASSISTANT_NAME}:`;
 
 
     console.log('Calling Gemini Flash for Angela response...');
@@ -1291,7 +1292,7 @@ Respuesta de Ángela:`;
 
     // Limpiar respuesta de posibles artefactos
     generatedText = generatedText
-      .replace(/^Respuesta de Ángela:\s*/i, '')
+      .replace(new RegExp(`^Respuesta de ${ASSISTANT_NAME}:\\s*`, "i"), '')
       .replace(/\[INST\].*?\[\/INST\]/gs, '')
       .trim();
 
@@ -1417,9 +1418,9 @@ function generateFallbackResponse(
       return `🩷 ¡Hola de nuevo! 👋 La última vez pediste **${last}**. ¿Lo repites o buscas algo diferente?\n\nPuedo ayudarte con 🛒 productos, 💰 precios o 💳 tu crédito. ✨`;
     }
     if (isAdmin) {
-      return `🩷 ¡Hola! Soy **Ángela**.\n\n📊 **Resumen rápido:**\n• Ventas 7 días: $${context.recentSales.toFixed(2)}\n• Stock bajo: ${context.lowStockProducts.length} productos\n• Créditos pendientes: ${context.pendingCredits.length}\n\n¿Qué necesitas? ✨`;
+      return `🩷 ¡Hola! Soy **${ASSISTANT_NAME}**.\n\n📊 **Resumen rápido:**\n• Ventas 7 días: $${context.recentSales.toFixed(2)}\n• Stock bajo: ${context.lowStockProducts.length} productos\n• Créditos pendientes: ${context.pendingCredits.length}\n\n¿Qué necesitas? ✨`;
     }
-    return `🩷 ¡Hola! Soy **Ángela**, tu asistente de ${BRAND_NAME}. 👋\n\nPuedo ayudarte con:\n• 🛒 Productos y recomendaciones\n• 💰 Precios y cálculos\n• 💳 Tu crédito\n\n¿En qué te puedo ayudar? ✨`;
+    return `🩷 ¡Hola! Soy **${ASSISTANT_NAME}**, tu asistente de ${BRAND_NAME}. 👋\n\nPuedo ayudarte con:\n• 🛒 Productos y recomendaciones\n• 💰 Precios y cálculos\n• 💳 Tu crédito\n\n¿En qué te puedo ayudar? ✨`;
   }
 
   // ── TASA BCV ──

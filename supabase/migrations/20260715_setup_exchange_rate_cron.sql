@@ -1,3 +1,7 @@
+-- PLANTILLA: la URL del proyecto y la anon key se leen del Vault de cada tienda.
+-- Antes de aplicar, en cada proyecto nuevo:
+--   select vault.create_secret('https://<ref>.supabase.co', 'project_url');
+--   select vault.create_secret('<anon key>', 'anon_key');
 -- Habilitar extensiones requeridas
 create extension if not exists pg_net with schema extensions;
 create extension if not exists pg_cron with schema extensions;
@@ -10,8 +14,8 @@ select cron.schedule(
   $$
   select
     net.http_post(
-        url:='https://utfoempgdbhhikpvbvir.supabase.co/functions/v1/get-bcv-rate',
-        headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0Zm9lbXBnZGJoaGlrcHZidmlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzOTk4NjEsImV4cCI6MjA4MDk3NTg2MX0.YOtYzlXWVR4GiwbNpIRqfy8g5qfGQPvEltG8NUTuqhU"}'::jsonb,
+        url:=(select decrypted_secret from vault.decrypted_secrets where name = 'project_url') || '/functions/v1/get-bcv-rate',
+        headers:=jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'anon_key')),
         body:='{}'::jsonb
     ) as request_id;
   $$

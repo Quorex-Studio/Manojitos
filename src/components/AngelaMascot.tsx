@@ -13,7 +13,8 @@
  * Puramente presentacional: no conoce el backend ni ninguna secret.
  */
 import { motion, useReducedMotion, type Variants } from "framer-motion";
-import mascotUrl from "@/assets/stitch-rosa-mascot.png";
+import { BRAND_MASCOT as mascotUrl } from "@/config/brand-assets";
+import { BRAND } from "@/config/brand";
 import { cn } from "@/lib/utils";
 
 export type MascotState = "idle" | "thinking" | "happy";
@@ -84,7 +85,7 @@ export default function AngelaMascot({
       {/* Sprite de Ángela */}
       <motion.img
         src={mascotUrl}
-        alt="Ángela"
+        alt={BRAND.assistantName}
         draggable={false}
         width={size}
         height={size}

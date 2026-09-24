@@ -9,7 +9,7 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import logoImage from '@/assets/logo.jpeg';
+import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
 
 const menuItems = [
   { icon: Layout, label: 'Panel General', path: '/dashboard' },

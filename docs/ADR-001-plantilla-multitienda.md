@@ -26,16 +26,17 @@ escrita a mano en ~150 lugares. Hace falta montar tiendas nuevas rápido y sin m
   mientras haya pocas tiendas.
 - **Monorepo con paquetes por tienda:** es más complejo que lo que hoy hace falta.
 
-## Deuda de plantilla pendiente (ordenada por riesgo)
-| # | Qué | Riesgo | Arreglo propuesto |
-|---|-----|--------|-------------------|
-| 1 | `.env` versionado apunta a la DB de Manojitos | **Alto**: EINA escribiría en la DB de Manojitos | Sacar `.env` de git, crear `.env.example` y poner las variables en Vercel |
-| 2 | Migraciones cron (`20251228000153_*`, `20260715_setup_exchange_rate_cron`) con la URL y la anon key de Manojitos | **Alto**: los crons de EINA llamarían a Manojitos | Leer la URL y la clave desde `vault.decrypted_secrets` |
-| 3 | `supabase/config.toml` con el `project_id` de Manojitos | Medio | Cambiarlo al conectar la DB nueva |
-| 4 | Logo/favicon importados de rutas fijas (`@/assets/logo.jpeg`) | Bajo | Reemplazar los archivos (misma ruta) |
-| 5 | Colores de marca en `src/index.css` y hex sueltos (`#D69729`) | Bajo | Tokens CSS en lugar de hex |
-| 6 | Asistente "Ángela" fija (4 componentes + prompt de IA) | Bajo | `VITE_ASSISTANT_NAME` / secreto `ASSISTANT_NAME` |
-| 7 | Textos legales asumen Venezuela + crédito | Negocio | Revisión legal por tienda |
+## Deuda de plantilla
+| # | Qué | Estado |
+|---|-----|--------|
+| 1 | `.env` versionado apuntando a la DB de otra tienda | ✅ Fuera de git; `.env.example` + `npm run nueva-tienda` |
+| 2 | Migraciones cron con la URL y la anon key de Manojitos | ✅ Leen `project_url` / `anon_key` del Vault |
+| 3 | `supabase/config.toml` con el ref de Manojitos | ✅ Placeholder; se cambia al hacer `link` |
+| 4 | Logos importados en 5 archivos | ✅ Centralizados en `src/config/brand-assets.ts` |
+| 5 | Hex de marca sueltos | ✅ Recibo usa `--gold`/`--primary` |
+| 6 | Asistente "Ángela" fija | ✅ `VITE_ASSISTANT_NAME` / secreto `ASSISTANT_NAME` |
+| 7 | Manifest / robots / SW estáticos | ✅ Generados desde el `.env` (plugin Vite); el SW es genérico |
+| 8 | Textos legales asumen Venezuela + crédito | ⏳ Negocio: revisión por tienda |
 
 ## Estado
 Aceptada. Fecha: 2026-09-24.

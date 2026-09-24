@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { supabase } from '@/integrations/supabase/client';
-import logoImage from '@/assets/logo.jpeg';
+import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
 
 // Página de autenticación para clientes (separada del admin)
 export default function CustomerAuth() {

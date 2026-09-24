@@ -1,4 +1,4 @@
--- YA APLICADA en producción (utfoempgdbhhikpvbvir). Agrégala tal cual a supabase/migrations/
+-- Migración de historial (aplicada originalmente en producción). Agrégala tal cual a supabase/migrations/
 -- para sincronizar el historial de migraciones de tu repo con la base de datos real.
 CREATE OR REPLACE FUNCTION public.notify_admin_on_order_insert()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$

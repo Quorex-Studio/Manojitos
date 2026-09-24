@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
 • **Datos de perfil:** Dirección de entrega, ciudad, estado, preferencias de notificación
 • **Datos de transacciones:** Historial de compras, métodos de pago utilizados, estado crediticio
 • **Datos de uso:** Productos visualizados, preferencias de navegación, interacciones con la plataforma
-• **Datos de comunicación:** Conversaciones con nuestro asistente virtual Ángela`
+• **Datos de comunicación:** Conversaciones con nuestro asistente virtual ${BRAND.assistantName}`
     },
     {
       icon: Eye,
