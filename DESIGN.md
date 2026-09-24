@@ -211,3 +211,29 @@ búsqueda del header filtra el catálogo · favorito sin sesión invita a entrar
 vuelve a la página · `/cliente/favoritos` sin sesión redirige con regreso · `?modo=registro`.
 Más capturas en claro y oscuro (clave `<storageKey>-theme` en `localStorage`) a 390 px y 1366 px.
 
+## 8. Panel de gestión (admin)
+
+Mismo sistema visual que la tienda. Skill del repo para aplicarlo: `.claude/skills/diseno/`.
+
+| Área | Cambio | Por qué | Archivo |
+|------|--------|---------|---------|
+| Navegación | Menú único en `adminNav.ts` agrupado (Día a día / Gestión / Sistema); se agregó Reglas de negocio | Antes Reglas no tenía acceso y el menú estaba duplicado | `src/components/layout/adminNav.ts` |
+| Navegación | Barra lateral con etiquetas, colapsable con botón (se recuerda), tooltips, alto completo | Expandir con hover empujaba el contenido; colapsada no se sabía qué era cada ícono | `AppSidebar.tsx` |
+| Navegación | Móvil: barra superior (título, asistente, avisos) + barra inferior (Panel, Ventas, Productos, Créditos, Más) + hoja "Más" | Antes solo un botón flotante de menú | `AdminMobileNav.tsx`, `AppLayout.tsx` |
+| Encabezados | `.page-header` oculto en móvil (el título vive en la barra), `.page-subtitle` compacto | Título duplicado y estilos distintos por página | `src/index.css` |
+| KPIs | `StatCard` sin glow, detalle siempre visible, 2 columnas en móvil, enlaces con filtro | En táctil el detalle (solo en hover) no se veía; 5 tarjetas llenaban la pantalla | `ui/stat-card.tsx`, `Dashboard.tsx` |
+| Productos | Editar/Eliminar siempre visibles; filas compactas en móvil; chips Por reponer/Agotados; categoría y stock en la URL; `AlertDialog` | Las acciones solo aparecían con hover: imposible editar desde el teléfono | `Products.tsx`, `src/lib/stock.ts` |
+| Pestañas | `.admin-tabs`: una fila deslizable (móvil) / segmentada (escritorio); contadores en línea | Se apilaban en columna o se cortaban (`justify-center` de la base) | `index.css`, `Sales.tsx`, `Credits.tsx`, `Providers.tsx` |
+| Ventas | Pestaña activa en la URL (`?tab=cuentas-cobrar`), "CxC" → "Por cobrar" | El KPI "Abonos" debía abrir cuentas por cobrar | `Sales.tsx` |
+| Reportes | Rangos rápidos (Hoy, 7 días, 30 días, Este mes, Mes pasado), lista en móvil, fechas locales | Tabla de 6 columnas ilegible; ventas de la noche caían al día siguiente | `Reports.tsx` |
+| Clientes | Tabla → tarjetas en móvil solo con clases (la lógica del diálogo KYC no cambia) | La tabla de 800 px se cortaba | `Customers.tsx` |
+| Asistente | En el panel móvil se abre desde la barra superior (evento `angela:open`); sin saludo emergente | El botón flotante tapaba contenido en cada pantalla | `AngelaChat.tsx`, `src/lib/events.ts` |
+| Fechas | `localDateISO()` en pagos, compras, créditos y reportes | `toISOString()` es UTC: después de las 8 p. m. (UTC-4) se registraba el día siguiente | `src/lib/dates.ts` |
+| Inputs | `.input-glass` sin `backdrop-blur` | Creaba un contexto de apilamiento que tapaba el ícono de búsqueda | `index.css` |
+
+**Bugs que rompían pantallas (portar a Manojitos):** import duplicado `Gallery` (Clientes no
+abría) · `ToggleRight/Left` sin importar (Reglas) · `React.useMemo` sin importar React
+(perfil de crédito) · ícono `Mail` inexistente (centro de notificaciones) · `i` en vez de `idx`
+(Importar productos se colgaba tras el primer lote) · `retail_multiplier` inexistente (el precio
+detal ignoraba el recargo configurado).
+
