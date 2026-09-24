@@ -1,174 +1,208 @@
-// Marca configurable por secreto de Supabase (supabase secrets set BRAND_NAME=...)
+// Plantillas de correo (Resend). Toda la marca sale de secretos de Supabase, así la misma
+// función sirve para cualquier tienda de la plantilla:
+//   BRAND_NAME, BRAND_COLOR (hex), BRAND_SITE_URL, BRAND_CATEGORY, BRAND_WHATSAPP, STORE_HOURS
 const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
-export const createWelcomeEmail = (link?: string) => `
-<div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #c4607a 0%, #a04961 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">¡Bienvenido a ${BRAND_NAME}!</h1>
-  </div>
-  <div style="background: #fff; padding: 40px 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(196, 96, 122, 0.08);">
-    <h2 style="color: #c4607a; margin-top: 0; font-family: 'Playfair Display', serif;">Nos alegra tenerte aquí</h2>
-    <p style="color: #555; line-height: 1.6; font-size: 16px;">
-      Tu cuenta ha sido creada exitosamente. Ya puedes acceder a nuestra plataforma, completar tu perfil KYC (si deseas crédito) y realizar tus compras.
-    </p>
-    ${link ? `
-    <div style="text-align: center; margin: 35px 0;">
-      <a href="${link}" style="background-color: #c4607a; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
-        Confirmar mi correo electrónico
-      </a>
-    </div>
-    ` : ''}
-    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">Este es un mensaje automático, por favor no respondas a este correo.</p>
-    </div>
-  </div>
-</div>
-`;
+const BRAND_COLOR = Deno.env.get("BRAND_COLOR") ?? "#c4607a";
+const BRAND_CREAM = Deno.env.get("BRAND_CREAM") ?? "#f5ede8";
+const SITE_URL = (Deno.env.get("BRAND_SITE_URL") ?? "https://manojitos.vercel.app").replace(/\/$/, "");
+const BRAND_CATEGORY = Deno.env.get("BRAND_CATEGORY") ?? "Boutique · Ropa, accesorios y lencería";
+const BRAND_WHATSAPP = Deno.env.get("BRAND_WHATSAPP") ?? "";
+const STORE_HOURS = Deno.env.get("STORE_HOURS") ?? "Lunes a Sábado, 9:00 a. m. - 6:00 p. m.";
 
 export interface EmailData {
   client_name?: string;
   payment_method?: string;
   total_usd?: number | string;
   notes?: string;
+  order_id?: string;
+  reason?: string;
+  pickup?: boolean;
+  items?: { name: string; quantity: number; price_usd: number }[];
+  customer_phone?: string;
   [key: string]: unknown;
 }
 
-export const createCheckoutEmail = (data: EmailData) => `
-<div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #c4607a 0%, #a04961 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">Confirmación de Pedido</h1>
-  </div>
-  <div style="background: #fff; padding: 40px 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(196, 96, 122, 0.08);">
-    <h2 style="color: #c4607a; margin-top: 0; font-family: 'Playfair Display', serif;">¡Gracias por tu compra, ${data?.client_name || ''}!</h2>
-    <p style="color: #555; line-height: 1.6; font-size: 16px;">Hemos procesado tu pedido exitosamente.</p>
-    
-    <div style="background: #fef0f3; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px dashed #c4607a;">
-      <h3 style="margin-top: 0; color: #c4607a; font-family: 'Playfair Display', serif;">Detalles de la Compra</h3>
-      <ul style="list-style: none; padding: 0; margin: 0; color: #555; font-size: 16px;">
-        <li style="margin-bottom: 12px;"><strong>Método de pago:</strong> ${data?.payment_method}</li>
-        <li style="margin-bottom: 12px;"><strong>Total:</strong> $${data?.total_usd} USD</li>
-        ${data?.notes ? `<li style="margin-top: 12px;"><strong>Notas:</strong> ${data?.notes}</li>` : ''}
-      </ul>
-    </div>
+/** Escapa texto que viene de clientes (nombre, notas, motivos) para que no inyecte HTML. */
+export const esc = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
-    <p style="color: #555; line-height: 1.6; font-size: 16px;">Si tienes alguna pregunta sobre tu pedido, no dudes en contactarnos.</p>
-    
-    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
-    </div>
-  </div>
-</div>
-`;
+const money = (value: unknown) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? `$${n.toFixed(2)}` : "";
+};
+const shortId = (id?: string) => (id ? `#${String(id).slice(0, 8).toUpperCase()}` : "");
+const methodLabel = (m?: string) => esc((m || "").replace(/_/g, " "));
 
-export const createKycApprovedEmail = (data: EmailData) => `
-<div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #c4607a 0%, #a04961 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">¡Línea de Crédito Aprobada!</h1>
-  </div>
-  <div style="background: #fff; padding: 40px 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(196, 96, 122, 0.08);">
-    <h2 style="color: #c4607a; margin-top: 0; font-family: 'Playfair Display', serif;">Felicidades, ${data?.client_name || ''}</h2>
-    <p style="color: #555; line-height: 1.6; font-size: 16px;">Tus documentos de identidad han sido verificados con éxito.</p>
-    
-    <div style="background: #fef0f3; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px dashed #c4607a; text-align: center;">
-      <h3 style="margin-top: 0; color: #c4607a; font-family: 'Playfair Display', serif;">Ya puedes usar "Crédito ${BRAND_NAME}"</h3>
-      <p style="margin-bottom: 0; color: #555;">Disfruta de comprar ahora y pagar después.</p>
-    </div>
-    
-    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
-    </div>
-  </div>
-</div>
-`;
+const button = (href: string, label: string) => `
+  <table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px auto 8px;">
+    <tr><td style="border-radius:999px;background:${BRAND_COLOR};">
+      <a href="${href}" style="display:inline-block;padding:14px 30px;border-radius:999px;color:#ffffff;font-weight:600;font-size:15px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">${label}</a>
+    </td></tr>
+  </table>`;
 
-export const createKycRejectedEmail = (data: EmailData) => `
-<div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #555555 0%, #333333 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">Revisión de Documentos</h1>
-  </div>
-  <div style="background: #fff; padding: 40px 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);">
-    <h2 style="color: #333; margin-top: 0; font-family: 'Playfair Display', serif;">Hola, ${data?.client_name || ''}</h2>
-    <p style="color: #555; line-height: 1.6; font-size: 16px;">Hemos revisado tus documentos de identidad pero lamentablemente no pudimos aprobar tu solicitud para línea de crédito en este momento.</p>
-    
-    <p style="color: #555; line-height: 1.6; font-size: 16px;">
-      Por favor, revisa que los documentos subidos sean legibles, estén vigentes y correspondan a tus datos de perfil.
-      Puedes volver a intentar subir tus documentos desde tu Perfil de Cliente.
-    </p>
-    
-    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
-    </div>
-  </div>
-</div>
-`;
+const box = (inner: string) => `
+  <div style="background:${BRAND_CREAM};border-radius:14px;padding:18px 20px;margin:22px 0;color:#252024;font-size:15px;line-height:1.6;">${inner}</div>`;
 
-export const createRecoveryEmail = (link: string) => `
-<div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #c4607a 0%, #a04961 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">Recuperar Contraseña</h1>
-  </div>
-  <div style="background: #fff; padding: 40px 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(196, 96, 122, 0.08);">
-    <p style="color: #555; line-height: 1.6; font-size: 16px;">
-      Hemos recibido una solicitud para restablecer tu contraseña en <strong>${BRAND_NAME}</strong>.
-    </p>
-    <div style="text-align: center; margin: 35px 0;">
-      <a href="${link}" style="background-color: #c4607a; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
-        Restablecer Contraseña
-      </a>
-    </div>
-    <p style="color: #777; line-height: 1.6; font-size: 14px;">
-      Si no solicitaste este cambio, puedes ignorar este correo de forma segura. El enlace expirará pronto.
-    </p>
-    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
-    </div>
-  </div>
-</div>
-`;
+/** Estructura común: cabecera de marca, contenido, pie con contacto. Compatible con Gmail/Outlook. */
+const layout = (opts: { preheader: string; title: string; body: string }) => `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light only"><title>${esc(opts.title)}</title></head>
+<body style="margin:0;padding:0;background:#f7f1ea;">
+  <span style="display:none!important;opacity:0;color:transparent;max-height:0;overflow:hidden;">${esc(opts.preheader)}</span>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f1ea;padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;">
+        <tr><td style="background:${BRAND_COLOR};padding:26px 28px;text-align:center;">
+          <div style="font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:30px;letter-spacing:2px;color:${BRAND_CREAM};">${esc(BRAND_NAME)}</div>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:${BRAND_CREAM};opacity:.8;margin-top:4px;">${esc(BRAND_CATEGORY)}</div>
+        </td></tr>
+        <tr><td style="padding:32px 28px 8px;font-family:Arial,Helvetica,sans-serif;color:#3a3236;font-size:15px;line-height:1.65;">
+          <h1 style="margin:0 0 14px;font-family:'Playfair Display',Georgia,serif;font-weight:normal;font-size:24px;color:#252024;">${esc(opts.title)}</h1>
+          ${opts.body}
+        </td></tr>
+        <tr><td style="padding:22px 28px 28px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#8a7f83;text-align:center;border-top:1px solid #efe6dc;">
+          ${BRAND_WHATSAPP ? `¿Dudas? Escríbenos por WhatsApp: <strong>${esc(BRAND_WHATSAPP)}</strong><br>` : ""}
+          <a href="${SITE_URL}" style="color:${BRAND_COLOR};text-decoration:none;">${SITE_URL.replace(/^https?:\/\//, "")}</a>
+          <br><span style="opacity:.8">Mensaje automático: por favor no respondas a este correo.</span>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
 
-export const createMagicLinkEmail = (link: string) => `
-<div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #c4607a 0%, #a04961 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">Iniciar Sesión</h1>
-  </div>
-  <div style="background: #fff; padding: 40px 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(196, 96, 122, 0.08);">
-    <p style="color: #555; line-height: 1.6; font-size: 16px;">
-      Haz clic en el botón de abajo para iniciar sesión de forma segura en <strong>${BRAND_NAME}</strong>. No necesitas contraseña.
-    </p>
-    <div style="text-align: center; margin: 35px 0;">
-      <a href="${link}" style="background-color: #c4607a; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
-        Iniciar Sesión Mágica
-      </a>
-    </div>
-    <p style="color: #777; line-height: 1.6; font-size: 14px;">
-      Este enlace es de un solo uso y expirará pronto.
-    </p>
-    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
-    </div>
-  </div>
-</div>
-`;
+const itemsTable = (items?: EmailData["items"]) =>
+  items && items.length
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;margin-top:6px;">
+        ${items.map(i => `<tr>
+          <td style="padding:6px 0;border-bottom:1px solid #eadfd3;">${esc(i.name)} <span style="color:#8a7f83;">× ${esc(i.quantity)}</span></td>
+          <td style="padding:6px 0;border-bottom:1px solid #eadfd3;text-align:right;white-space:nowrap;">${money(Number(i.price_usd) * Number(i.quantity))}</td>
+        </tr>`).join("")}
+      </table>`
+    : "";
 
-export const createEmailChangeEmail = (link: string) => `
-<div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #c4607a 0%, #a04961 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">Confirmar Cambio de Correo</h1>
-  </div>
-  <div style="background: #fff; padding: 40px 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(196, 96, 122, 0.08);">
-    <p style="color: #555; line-height: 1.6; font-size: 16px;">
-      Se ha solicitado cambiar el correo asociado a tu cuenta en <strong>${BRAND_NAME}</strong> a esta nueva dirección.
-    </p>
-    <div style="text-align: center; margin: 35px 0;">
-      <a href="${link}" style="background-color: #c4607a; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
-        Confirmar Nuevo Correo
-      </a>
-    </div>
-    <p style="color: #777; line-height: 1.6; font-size: 14px;">
-      Si no solicitaste este cambio, ignora este correo. Tu cuenta seguirá segura con tu dirección anterior.
-    </p>
-    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
-    </div>
-  </div>
-</div>
-`;
+// ── Cuenta ──────────────────────────────────────────────────────────────────
+export const createWelcomeEmail = (link?: string) => layout({
+  preheader: `Tu cuenta en ${BRAND_NAME} está lista`,
+  title: link ? "Confirma tu correo" : `¡Bienvenida a ${BRAND_NAME}!`,
+  body: `
+    <p>Nos alegra tenerte aquí. Con tu cuenta puedes comprar más rápido, guardar favoritos, seguir tus pedidos y, si quieres, solicitar compra a crédito.</p>
+    ${link ? button(link, "Confirmar mi correo") : button(`${SITE_URL}/tienda`, "Ver la tienda")}
+  `,
+});
+
+export const createRecoveryEmail = (link: string) => layout({
+  preheader: "Restablece tu contraseña",
+  title: "Restablecer contraseña",
+  body: `
+    <p>Recibimos una solicitud para cambiar la contraseña de tu cuenta en <strong>${esc(BRAND_NAME)}</strong>.</p>
+    ${button(link, "Crear nueva contraseña")}
+    <p style="font-size:13px;color:#8a7f83;">Si no fuiste tú, ignora este correo: tu contraseña no cambiará.</p>
+  `,
+});
+
+export const createMagicLinkEmail = (link: string) => layout({
+  preheader: "Tu enlace para entrar",
+  title: "Tu enlace de acceso",
+  body: `
+    <p>Toca el botón para entrar a tu cuenta. El enlace vence en unos minutos y solo sirve una vez.</p>
+    ${button(link, "Entrar a mi cuenta")}
+  `,
+});
+
+export const createEmailChangeEmail = (link: string) => layout({
+  preheader: "Confirma tu nuevo correo",
+  title: "Confirma tu nuevo correo",
+  body: `
+    <p>Pediste cambiar el correo de tu cuenta. Confírmalo para empezar a usarlo.</p>
+    ${button(link, "Confirmar correo")}
+  `,
+});
+
+// ── Compras y pedidos ───────────────────────────────────────────────────────
+export const createCheckoutEmail = (data: EmailData) => layout({
+  preheader: `Recibimos tu pedido ${shortId(data.order_id)}`,
+  title: `¡Gracias por tu compra${data.client_name ? `, ${data.client_name}` : ""}!`,
+  body: `
+    <p>Recibimos tu pedido y lo estamos verificando. Te avisaremos por aquí apenas esté confirmado.</p>
+    ${box(`
+      ${data.order_id ? `<div><strong>Pedido:</strong> ${shortId(data.order_id)}</div>` : ""}
+      <div><strong>Método de pago:</strong> ${methodLabel(data.payment_method)}</div>
+      ${itemsTable(data.items)}
+      <div style="margin-top:10px;font-size:17px;"><strong>Total: ${money(data.total_usd)}</strong></div>
+    `)}
+    ${button(`${SITE_URL}/cliente/pedidos`, "Ver mi pedido")}
+  `,
+});
+
+export const createOrderStatusEmail = (
+  status: "confirmed" | "rejected" | "shipped" | "delivered",
+  data: EmailData
+) => {
+  const id = shortId(data.order_id);
+  const copy = {
+    confirmed: {
+      title: data.pickup ? "Tu pedido está listo para retirar" : "Tu pedido fue confirmado",
+      text: data.pickup
+        ? `Ya puedes pasar a retirarlo. Horario: <strong>${esc(STORE_HOURS)}</strong>`
+        : "Estamos coordinando tu delivery. Te avisaremos cuando salga.",
+    },
+    shipped: { title: "Tu pedido va en camino", text: "Tu pedido salió hacia tu dirección. Te avisaremos cuando llegue." },
+    delivered: { title: "Tu pedido fue entregado", text: `¡Esperamos que lo disfrutes! Gracias por comprar en ${esc(BRAND_NAME)}.` },
+    rejected: {
+      title: "No pudimos procesar tu pedido",
+      text: `Tu pedido fue cancelado.${data.reason ? ` Motivo: <strong>${esc(data.reason)}</strong>.` : ""} Si ya pagaste, te contactaremos para resolverlo.`,
+    },
+  }[status];
+  return layout({
+    preheader: `${copy.title} ${id}`,
+    title: copy.title,
+    body: `
+      <p>${data.client_name ? `Hola ${esc(data.client_name)}. ` : ""}${copy.text}</p>
+      ${box(`
+        ${id ? `<div><strong>Pedido:</strong> ${id}</div>` : ""}
+        ${data.total_usd !== undefined ? `<div><strong>Total:</strong> ${money(data.total_usd)}</div>` : ""}
+      `)}
+      ${button(`${SITE_URL}/cliente/pedidos`, "Ver mis pedidos")}
+    `,
+  });
+};
+
+/** Aviso interno para la administración cuando entra un pedido nuevo. */
+export const createNewOrderAdminEmail = (data: EmailData) => layout({
+  preheader: `Pedido nuevo ${shortId(data.order_id)} por ${money(data.total_usd)}`,
+  title: "Entró un pedido nuevo",
+  body: `
+    ${box(`
+      <div><strong>Cliente:</strong> ${esc(data.client_name) || "—"}${data.customer_phone ? ` · ${esc(data.customer_phone)}` : ""}</div>
+      <div><strong>Método de pago:</strong> ${methodLabel(data.payment_method)}</div>
+      ${itemsTable(data.items)}
+      <div style="margin-top:10px;font-size:17px;"><strong>Total: ${money(data.total_usd)}</strong></div>
+      ${data.notes ? `<div style="margin-top:8px;color:#5c5357;font-size:13px;">${esc(data.notes)}</div>` : ""}
+    `)}
+    ${button(`${SITE_URL}/sales?tab=pedidos`, "Revisar y aprobar")}
+  `,
+});
+
+// ── Crédito ─────────────────────────────────────────────────────────────────
+export const createKycApprovedEmail = (data: EmailData) => layout({
+  preheader: "Tu crédito fue aprobado",
+  title: `¡Felicidades${data.client_name ? `, ${data.client_name}` : ""}!`,
+  body: `
+    <p>Verificamos tus documentos y tu cuenta ya puede comprar con <strong>Crédito ${esc(BRAND_NAME)}</strong>: pagas una inicial y el resto en cuotas.</p>
+    ${button(`${SITE_URL}/tienda`, "Ir a la tienda")}
+  `,
+});
+
+export const createKycRejectedEmail = (data: EmailData) => layout({
+  preheader: "Necesitamos revisar tus documentos",
+  title: `Hola${data.client_name ? `, ${data.client_name}` : ""}`,
+  body: `
+    <p>Revisamos tus documentos pero no pudimos aprobar el crédito por ahora. Verifica que las fotos se lean bien, estén vigentes y coincidan con los datos de tu perfil.</p>
+    ${button(`${SITE_URL}/cliente/perfil`, "Volver a enviar documentos")}
+  `,
+});

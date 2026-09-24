@@ -1,4 +1,4 @@
-import { BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
+import { BRAND, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle } from 'reicon-react';
@@ -28,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatBS } from '@/lib/utils';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { notifyCustomer } from '@/lib/notify';
 import { ProductSummaryTab } from '@/components/sales/ProductSummaryTab';
 import { Sale, Product, CheckoutItem, OrderItem, ProductDebtor, SaleStatus, SalePayment, SaleReturnType } from '@/types';
 
@@ -869,26 +870,6 @@ export default function Sales() {
 
       toast.success('Pedido aprobado y venta registrada correctamente 🩷');
 
-      // 2.1 Notificar al cliente según el tipo de entrega
-      if (approvedOrder.customer_user_id) {
-        const isPickup = approvedOrder.notes?.includes('[RETIRO EN TIENDA]');
-        const notifTitle = isPickup ? 'Tu pedido está listo para retirar' : 'Tu pedido fue aprobado';
-        const notifMessage = isPickup
-          ? 'Pedido aprobado, listo para retirar. Horario de atención: Lunes a Sábado, 9:00am - 6:00pm.'
-          : 'Pedido aprobado, tu delivery está siendo coordinado / en vía.';
-
-        await supabase.from('notifications').insert({
-          user_id: approvedOrder.customer_user_id,
-          title: notifTitle,
-          message: notifMessage,
-          type: 'success',
-          channel: 'internal',
-          is_read: false,
-          sent_at: new Date().toISOString(),
-          metadata: { order_id: orderId },
-        });
-      }
-
       // 3. Si el método es crédito, descontar/cargar a su cuenta de crédito
       if (approvedOrder.payment_method === 'credito') {
         // Encontrar cuenta de crédito por user_id, email, o teléfono
@@ -1048,31 +1029,19 @@ export default function Sales() {
       queryClient.invalidateQueries({ queryKey: ['customer-credit'] });
       queryClient.invalidateQueries({ queryKey: ['customer-pending-payments'] });
       
-      // 4. Enviar notificación al cliente
-      if (approvedOrder?.customer_user_id) {
-        const isPickup = approvedOrder.notes?.includes('[RETIRO EN TIENDA]');
-        const message = !isPickup 
-           ? 'Pedido aprobado, su delivery está siendo coordinado.' 
-           : 'Pedido aprobado, debe retirarlo en tienda. Nuestro horario laboral es de Lunes a Sábado, 9:00am - 6:00pm.';
-           
-        await supabase.from('notifications').insert({
-           user_id: approvedOrder.customer_user_id,
-           title: 'Pedido Aprobado',
-           message: message,
-           type: 'success',
-           channel: 'internal'
-        });
-
-        // Trigger push notification
-        supabase.functions.invoke('send-push', {
-          body: {
-            userId: approvedOrder.customer_user_id,
-            title: 'Pedido Aprobado',
-            message: message,
-            url: '/orders'
-          }
-        }).catch(console.error);
-      }
+      // 4. Avisar a la clienta (interno + push + correo)
+      const isPickup = approvedOrder.notes?.includes('[RETIRO EN TIENDA]');
+      notifyCustomer({
+        userId: approvedOrder.customer_user_id,
+        email: approvedOrder.customer_email,
+        orderId,
+        title: isPickup ? 'Tu pedido está listo para retirar' : 'Tu pedido fue confirmado',
+        message: isPickup
+          ? `Ya puedes pasar a retirarlo. Horario: ${BRAND.hours}.`
+          : 'Estamos coordinando tu delivery. Te avisaremos cuando salga.',
+        emailAction: 'order_confirmed',
+        emailData: { client_name: approvedOrder.customer_name, total_usd: approvedOrder.total_usd, pickup: !!isPickup },
+      });
     } catch (err) {
       console.error('Error approving order:', err);
       toast.error(err instanceof Error ? err.message : 'Error al aprobar el pedido');
@@ -1108,27 +1077,18 @@ export default function Sales() {
 
       toast.success('Pedido rechazado y cancelado ❌');
       
-      // Enviar notificacion interna al cliente
-      if (order?.customer_user_id) {
-        await supabase.from('notifications').insert({
-          user_id: order.customer_user_id,
-          title: 'Pedido Rechazado',
-          message: `Su pedido ha sido rechazado. Motivo: ${rejectReason}`,
-          type: 'error',
-          channel: 'internal'
-        });
+      // Avisar a la clienta (interno + push + correo)
+      notifyCustomer({
+        userId: order?.customer_user_id,
+        email: order?.customer_email,
+        orderId: rejectOrderId,
+        type: 'error',
+        title: 'Tu pedido fue cancelado',
+        message: `Motivo: ${rejectReason}`,
+        emailAction: 'order_rejected',
+        emailData: { client_name: order?.customer_name, total_usd: order?.total_usd, reason: rejectReason },
+      });
 
-        // Trigger push notification
-        supabase.functions.invoke('send-push', {
-          body: {
-            userId: order.customer_user_id,
-            title: 'Pedido Rechazado',
-            message: `Su pedido ha sido rechazado. Motivo: ${rejectReason}`,
-            url: '/orders'
-          }
-        }).catch(console.error);
-      }
-      
       setRejectOrderId(null);
       setRejectReason('');
       refetchOrders();
@@ -1147,7 +1107,7 @@ export default function Sales() {
     try {
       const { data: targetOrder } = await supabase
         .from('orders')
-        .select('customer_user_id')
+        .select('customer_user_id, customer_email, customer_name, total_usd')
         .eq('id', orderId)
         .single();
 
@@ -1158,20 +1118,18 @@ export default function Sales() {
 
       if (error) throw error;
 
-      if (targetOrder?.customer_user_id) {
-        await supabase.from('notifications').insert({
-          user_id: targetOrder.customer_user_id,
-          title: newStatus === 'shipped' ? 'Tu pedido fue enviado' : 'Tu pedido fue entregado',
-          message: newStatus === 'shipped'
-            ? 'Tu pedido está en camino. Te avisaremos cuando llegue.'
-            : `¡Tu pedido ha sido entregado! Gracias por tu compra en ${BRAND_NAME}.`,
-          type: 'success',
-          channel: 'internal',
-          is_read: false,
-          sent_at: new Date().toISOString(),
-          metadata: { order_id: orderId },
-        });
-      }
+      const shipped = newStatus === 'shipped';
+      notifyCustomer({
+        userId: targetOrder?.customer_user_id,
+        email: targetOrder?.customer_email,
+        orderId,
+        title: shipped ? 'Tu pedido va en camino' : 'Tu pedido fue entregado',
+        message: shipped
+          ? 'Tu pedido salió hacia tu dirección. Te avisaremos cuando llegue.'
+          : `¡Tu pedido fue entregado! Gracias por comprar en ${BRAND_NAME}.`,
+        emailAction: shipped ? 'order_shipped' : 'order_delivered',
+        emailData: { client_name: targetOrder?.customer_name, total_usd: targetOrder?.total_usd },
+      });
 
       toast.success(`Pedido marcado como ${newStatus === 'shipped' ? 'Enviado 🚚' : 'Entregado ✅'}`);
       
@@ -1186,16 +1144,21 @@ export default function Sales() {
   const handleViewDebtorAccount = (debtor: ProductDebtor) => {
     const groupSales = sales.filter(s => s.sale_group_id === debtor.sale_group_id);
     if (groupSales.length > 0) {
-      const totalUsd = groupSales.reduce((sum, s) => sum + s.total_usd, 0);
-      const totalPaid = groupSales.reduce((sum, s) => sum + s.amount_paid, 0);
-      const grouped = {
+      const totalUsd = groupSales.reduce((sum, s) => sum + Number(s.total_usd || 0), 0);
+      const totalPaid = groupSales.reduce((sum, s) => sum + Number(s.amount_paid || 0), 0);
+      // Misma forma que groupedReceivables: el abono necesita el id del grupo (sale_group_id)
+      const grouped: GroupedReceivable = {
+        id: debtor.sale_group_id,
         client_name: debtor.client_name || 'Desconocido',
+        sale_modality: groupSales[0].sale_modality || '',
+        payment_method: groupSales[0].payment_method,
         total_usd: totalUsd,
-        total_pending: totalUsd - totalPaid,
+        amount_paid: totalPaid,
+        total_bs: groupSales.reduce((sum, s) => sum + Number(s.total_bs || 0), 0),
         sales: groupSales,
         created_at: groupSales[0].created_at
       };
-      
+
       setActiveSalesTab('cuentas-cobrar');
       setReceivableTab('pending');
       setAbonoGroup(grouped);
