@@ -249,3 +249,13 @@ detal ignoraba el recargo configurado).
 | Precios | `PriceDisplay amountBs`: un recibo muestra los Bs que se pagaron, no los de la tasa de hoy | Los pedidos viejos cambiaban de monto al cambiar la tasa | `ui/PriceDisplay.tsx` |
 | Fluidez | Transición corta entre páginas de la tienda (respeta "reducir movimiento") | Continuidad al navegar | `StoreLayout.tsx` |
 
+
+## 10. Importar, nueva venta y clientes
+
+| Área | Cambio | Por qué | Dónde |
+|---|---|---|---|
+| Importar | Lector flexible: xlsx/xls/ods/csv/tsv/txt/json, detecta separador, codificación, hoja y fila de títulos; mapea columnas por sinónimos (Treinta, Shopify, español/inglés) y deja corregirlas; precios en Bs → USD con la tasa | Cada app exporta distinto; la dueña no debe editar el Excel | `src/lib/productImport.ts`, `ImportProducts.tsx` |
+| Nueva venta | Diálogo tipo punto de venta: productos en mosaico compacto (foto 56px + precio + stock), carrito con +/−, cliente en 3 modos (mostrador / buscar / nuevo), modalidad en tarjetas, método en pastillas, vuelto con montos rápidos, total fijo en el pie y mensaje de "lo que falta" | El formulario anterior era un select por producto y 800 líneas en la página | `components/sales/NewSaleDialog.tsx` |
+| Clientes | Tarjetas en vez de tabla; filtros-pastilla por verificación con conteo; buscar sin tildes por nombre/teléfono/cédula/correo; un solo diálogo de ficha (Resumen · Verificación · Compras · Cuenta) con WhatsApp/llamar/correo arriba y la decisión Aprobar/Rechazar fija abajo | La tabla se leía mal en móvil y había un diálogo por fila | `pages/Customers.tsx`, `components/customers/` |
+| Diálogos anchos | `DialogContent` con `grid-cols-[minmax(0,1fr)]` y secciones `min-w-0`; pie fijo con `max-sm:!pb-0` + `pb-[calc(1rem+env(safe-area-inset-bottom))]` | Sin esto un texto `truncate` o una fila `nowrap` ensanchan la hoja móvil y aparece scroll horizontal | ambos diálogos |
+| Listas en grid | Usar `grid-cols-1` explícito (Tailwind = `minmax(0,1fr)`) | `grid` sin columnas crece al ancho del texto más largo | `Customers.tsx` |

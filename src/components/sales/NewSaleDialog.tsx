@@ -318,7 +318,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="gap-0 p-0 max-sm:!pb-0 sm:max-w-5xl sm:overflow-hidden">
+      <DialogContent className="grid-cols-[minmax(0,1fr)] gap-0 p-0 max-sm:!pb-0 sm:max-w-5xl sm:overflow-hidden">
         <DialogHeader className="border-b border-border px-5 pb-4 pt-6 sm:px-6">
           <DialogTitle>Nueva venta</DialogTitle>
           <DialogDescription>Toca los productos para agregarlos. El total se actualiza solo.</DialogDescription>
