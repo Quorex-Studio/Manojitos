@@ -1,4 +1,4 @@
-﻿CREATE TABLE IF NOT EXISTS public.push_subscriptions (
+CREATE TABLE IF NOT EXISTS public.push_subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     endpoint TEXT NOT NULL,
@@ -20,8 +20,4 @@ CREATE POLICY "Users can delete their own push subscriptions" ON public.push_sub
     FOR DELETE USING (auth.uid() = user_id);
 
 CREATE POLICY "Admins can view all push subscriptions" ON public.push_subscriptions
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM admin_users WHERE admin_users.id = auth.uid()
-        )
-    );
+    FOR SELECT USING (public.is_admin());

@@ -19,6 +19,7 @@ DECLARE
   v_sale_id UUID;
   v_product_stock INTEGER;
   v_sale_group_id UUID;
+  v_items_total NUMERIC;
 BEGIN
   IF NOT is_admin() THEN
     RAISE EXCEPTION 'No autorizado. Se requiere rol de administrador.';
@@ -87,7 +88,8 @@ BEGIN
       notes,
       sale_group_id,
       sale_modality,
-      amount_paid
+      amount_paid,
+      customer_user_id
     )
     VALUES (
       v_order.customer_user_id,
@@ -105,7 +107,8 @@ BEGIN
       v_order.notes,
       v_sale_group_id,
       'contado',
-      v_unit_price * v_quantity
+      v_unit_price * v_quantity,
+      v_order.customer_user_id
     )
     RETURNING id INTO v_sale_id;
 
@@ -121,12 +124,13 @@ BEGIN
     );
   END LOOP;
 
-  -- Insert sale_payments record for the entire order
-  IF v_order.total_usd > 0 THEN
+  -- El pago del grupo cubre los productos; el delivery se cobra aparte (orders.delivery_fee)
+  v_items_total := v_order.total_usd - COALESCE(v_order.delivery_fee, 0);
+  IF v_items_total > 0 THEN
     INSERT INTO public.sale_payments (
       sale_group_id, amount_usd, amount_bs, exchange_rate, payment_method, notes
     ) VALUES (
-      v_sale_group_id, v_order.total_usd, v_order.total_bs, v_rate, COALESCE(v_order.payment_method, 'efectivo_usd'), 'Pago de Pedido #' || substring(v_order.id::text from 1 for 8)
+      v_sale_group_id, v_items_total, v_items_total * v_rate, v_rate, COALESCE(v_order.payment_method, 'efectivo_usd'), 'Pago de Pedido #' || substring(v_order.id::text from 1 for 8)
     );
   END IF;
 
