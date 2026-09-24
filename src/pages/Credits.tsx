@@ -48,6 +48,7 @@ import { toast } from 'sonner';
 import { sanitizeText } from '@/lib/validations';
 import { CustomerOfMonthCard } from '@/components/credits/CustomerOfMonthCard';
 import { Order, Credit } from '@/types';
+import { Link } from 'react-router-dom';
 
 // Configuración de estados con colores
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -109,6 +110,22 @@ export default function Credits() {
       if (error) throw error;
       return data;
     }
+  });
+
+  // Ventas fiadas (sin crédito formal): lo que falta por cobrar en Ventas
+  const { data: fiado } = useQuery({
+    queryKey: ['credits-fiado-summary'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sales')
+        .select('id, sale_group_id, total_usd, amount_paid')
+        .neq('payment_status', 'paid');
+      if (error) throw error;
+      const rows = data || [];
+      const pending = rows.reduce((s, r) => s + Math.max(0, Number(r.total_usd || 0) - Number(r.amount_paid || 0)), 0);
+      const accounts = new Set(rows.map(r => r.sale_group_id || r.id)).size;
+      return { pending, accounts };
+    },
   });
 
   const handleApproveRequest = async (requestOrder: Order) => {
@@ -664,6 +681,22 @@ export default function Credits() {
             ))}
           </div>
         </section>
+
+        {fiado && fiado.pending > 0.009 && (
+          <Link
+            to="/sales?tab=cuentas-cobrar"
+            className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40 md:p-5"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Receipt className="h-5 w-5" /></span>
+              <div className="min-w-0">
+                <p className="font-medium">Ventas fiadas</p>
+                <p className="text-xs text-muted-foreground">{fiado.accounts} {fiado.accounts === 1 ? 'cuenta pendiente' : 'cuentas pendientes'} en Ventas · toca para cobrar</p>
+              </div>
+            </div>
+            <p className="shrink-0 font-serif text-xl font-semibold tabular-nums text-primary">${fiado.pending.toFixed(2)}</p>
+          </Link>
+        )}
 
         {/* Tabs: Créditos | pagos */}
         <Tabs defaultValue="creditos" className="space-y-4">
