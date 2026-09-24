@@ -1,6 +1,7 @@
 // Componente de perfil de crédito profesional
 // Muestra trust score, historial, promesas y restricciones
-import { useState } from 'react';
+import { localDateISO } from '@/lib/dates';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -158,12 +159,12 @@ export function CreditProfile({ credit, onAdjustLimit, onCreatePromise }: Credit
   const { promises, isLoading: loadingPromises, fulfillPromise, breakPromise } = usePaymentPromises(credit.id);
   const { products } = useProducts();
   
-  const totalInventoryValue = React.useMemo(() => {
+  const totalInventoryValue = useMemo(() => {
     return products?.reduce((acc, p) => acc + (Number(p.price_usd) * Number(p.stock)), 0) || 0;
   }, [products]);
   
   // Fecha de hoy (YYYY-MM-DD) como límite máximo para el campo de fecha
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateISO();
 
   const [isEditingLimit, setIsEditingLimit] = useState(false);
   const [newLimit, setNewLimit] = useState(credit.credit_limit.toString());

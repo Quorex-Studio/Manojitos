@@ -1,3 +1,4 @@
+import { localDateISO } from '@/lib/dates';
 import { BRAND_NAME } from '@/config/brand';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
@@ -298,7 +299,7 @@ export default function CustomerCredit() {
   const hasPendingRequest = pendingRequests.length > 0;
 
   // Fecha de hoy como tope máximo (se recalcula cada render, no se queda fija)
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateISO();
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [amount, setAmount] = useState('');
@@ -315,7 +316,7 @@ export default function CustomerCredit() {
       if (isNaN(amountNum) || amountNum <= 0) {
         throw new Error('El monto ingresado debe ser mayor a cero');
       }
-      const today = new Date().toISOString().split('T')[0];
+      const today = localDateISO();
       if (paymentDate > today) {
         throw new Error('La fecha de pago no puede ser una fecha futura');
       }

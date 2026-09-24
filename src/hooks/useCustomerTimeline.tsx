@@ -7,6 +7,7 @@
 // Hook para timeline cronológico de eventos por cliente
 // Muestra ventas, créditos, pagos, promesas, recordatorios, bloqueos
 
+import { localDateISO } from '@/lib/dates';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -105,7 +106,7 @@ export function useCustomerTimeline(customerIdentifier?: string, identifierType:
 
   // Agrupar eventos por fecha
   const groupedEvents = events.reduce((groups, event) => {
-    const date = new Date(event.created_at).toISOString().split('T')[0];
+    const date = localDateISO(new Date(event.created_at));
     if (!groups[date]) {
       groups[date] = [];
     }

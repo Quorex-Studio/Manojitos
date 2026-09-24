@@ -1,3 +1,4 @@
+import { needsRestock } from '@/lib/stock';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChartSuccess, DollarSign, ShoppingBag, ArrowUp, InfoCircle, Package, CreditCard } from 'reicon-react';
@@ -49,7 +50,7 @@ export default function Dashboard() {
     const todayTotal = todaySales.reduce((acc, s) => acc + Number(s.total_usd), 0);
     const monthTotal = sales.reduce((acc, s) => acc + Number(s.total_usd), 0);
     const totalCreditBalance = credits.reduce((acc, c) => acc + Number(c.current_balance), 0);
-    const lowStockProducts = products.filter(p => p.stock <= 5);
+    const lowStockProducts = products.filter(needsRestock);
 
     return {
       todaySales: todaySales.length,
@@ -118,22 +119,18 @@ export default function Dashboard() {
   // --- RENDER ---
   return (
     <AppLayout>
-      <div className="space-y-8">
+      <div className="space-y-6 md:space-y-8">
         {/* Header — editorial serif with Notification Dropdown */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
-              Panel General
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm tracking-wide">
-              Resumen de tu negocio
-            </p>
+            <h1 className="page-header">Panel general</h1>
+            <p className="page-subtitle">Resumen de tu negocio</p>
           </div>
-          <DashboardAlertsDropdown />
+          <div className="hidden md:block"><DashboardAlertsDropdown /></div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 [&>*:last-child:nth-child(odd)]:col-span-2 lg:[&>*:last-child:nth-child(odd)]:col-span-1">
           <StatCard
             title="Ventas Hoy"
             value={formatCurrencyPair(stats.todayTotal).primary}
@@ -170,7 +167,7 @@ export default function Dashboard() {
             icon={<ArrowUp className="h-6 w-6" />}
             variant="default"
             delay={0.05}
-            href="/sales"
+            href="/sales?tab=cuentas-cobrar"
             hoverContent={
               todayPayments.length > 0 ? (
                 <div className="space-y-2">
@@ -252,7 +249,7 @@ export default function Dashboard() {
             subtitle={`de ${stats.totalProducts} productos`}
             icon={<InfoCircle className="h-6 w-6" />}
             delay={0.3}
-            href="/products"
+            href="/products?stock=bajo"
             hoverContent={
               stats.lowStockProductsList.length > 0 ? (
                 <div className="space-y-2">

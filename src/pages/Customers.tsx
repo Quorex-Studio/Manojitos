@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/tabs";
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Location, TickCircle, Gallery, Loader, UserCheck, UserX, Refresh, Search, FileText, Image as Gallery, Users, Mailbox, Phone, Calendar, ShieldAlert, CheckCircle, Clock, XCircle, ChevronRight, ChevronLeft, Key, Ban, Trash2, Unlock } from 'reicon-react';
+import { Location, TickCircle, Gallery, Loader, UserCheck, UserX, Refresh, Search, FileText, Users, Mailbox, Phone, Calendar, ShieldAlert, CheckCircle, Clock, XCircle, ChevronRight, ChevronLeft, Key, Ban, Trash2, Unlock } from 'reicon-react';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
@@ -297,36 +297,11 @@ export default function Customers() {
 
   return (
     <AppLayout>
-      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="space-y-6">
         {/* Header Section */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative">
-          <div className="absolute -top-10 -left-10 w-40 h-40 bg-primary/20 rounded-full blur-[80px] pointer-events-none" />
-          
-          <div className="relative z-10 flex flex-col gap-4">
-            <Button 
-              variant="ghost" 
-              className="w-fit text-muted-foreground hover:text-foreground pl-0 group"
-              onClick={() => navigate('/dashboard')}
-            >
-              <ChevronLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-              Volver al Panel General
-            </Button>
-            
-            <div className="flex items-center gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center shadow-lg shadow-primary/5">
-            <Users className="h-7 w-7 text-primary" />
-          </div>
-          <div>
-            <h1 className="page-header">
-              Directorio de Clientes
-            </h1>
-            <p className="page-subtitle mt-1 flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4" />
-              Gestiona identidades y niveles de acceso a crédito (KYC)
-            </p>
-              </div>
-            </div>
-          </div>
+        <div>
+          <h1 className="page-header">Clientes</h1>
+          <p className="page-subtitle">Identidades verificadas (KYC) y acceso a crédito</p>
         </div>
 
         {/* Filters Section */}
@@ -357,10 +332,10 @@ export default function Customers() {
       </div>
 
       {/* Table Section */}
-      <div className="glass-card rounded-2xl overflow-hidden w-full">
-        <div className="overflow-x-auto w-full">
-          <Table className="min-w-[800px] w-full">
-            <TableHeader className="bg-muted/30 border-b border-border/30">
+      <div className="rounded-2xl border border-border bg-card overflow-hidden w-full">
+        <div className="md:overflow-x-auto w-full">
+          <Table className="w-full md:min-w-[800px]">
+            <TableHeader className="hidden bg-muted/30 border-b border-border md:table-header-group">
               <TableRow className="border-none hover:bg-transparent">
                 <TableHead className="font-semibold text-muted-foreground py-4 pl-6">Cliente</TableHead>
                 <TableHead className="font-semibold text-muted-foreground py-4">Contacto</TableHead>
@@ -372,10 +347,10 @@ export default function Customers() {
             <TableBody>
               {filteredCustomers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-[300px] text-center">
+                  <TableCell colSpan={5} className="block h-[260px] text-center md:table-cell">
                     <div className="flex flex-col items-center justify-center space-y-3 text-muted-foreground">
-                      <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-2">
-                        <Users className="h-8 w-8 text-white/20" />
+                      <div className="w-16 h-16 rounded-full bg-studio flex items-center justify-center mb-2">
+                        <Users className="h-8 w-8 text-muted-foreground" />
                       </div>
                       <p className="text-lg font-medium text-foreground/60">No se encontraron clientes</p>
                       <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
@@ -384,8 +359,8 @@ export default function Customers() {
                 </TableRow>
               ) : (
                 filteredCustomers.map((customer) => (
-                  <TableRow key={customer.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
-                    <TableCell className="pl-6 py-4">
+                  <TableRow key={customer.id} className="group grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 border-b border-border p-4 transition-colors hover:bg-muted/20 md:table-row md:p-0">
+                    <TableCell className="col-span-2 p-0 md:table-cell md:pl-6 md:py-4">
                       <div className="flex items-center gap-4">
                         <Avatar className="h-12 w-12 border-2 border-border/50 shadow-lg group-hover:border-primary/50 transition-colors">
                           <AvatarImage src={customer.face_photo_url || ''} alt={customer.full_name} className="object-cover" />
@@ -402,7 +377,7 @@ export default function Customers() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="col-span-2 p-0 md:table-cell md:py-4">
                       <div className="space-y-1.5">
                         <div className="text-sm text-foreground/80 flex items-center gap-2">
                           <Phone className="w-3.5 h-3.5 text-muted-foreground" />
@@ -414,23 +389,23 @@ export default function Customers() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground py-4">
+                    <TableCell className="hidden text-muted-foreground md:table-cell md:py-4">
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="w-4 h-4 opacity-50" />
                         {format(new Date(customer.created_at), "dd MMM, yyyy", { locale: es })}
                       </div>
                     </TableCell>
-                    <TableCell className="py-4">
+                    <TableCell className="p-0 md:table-cell md:py-4">
                       {getStatusBadge(customer.kyc_status)}
                     </TableCell>
-                    <TableCell className="text-right pr-6 py-4">
+                    <TableCell className="p-0 text-right md:table-cell md:pr-6 md:py-4">
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button 
                             variant="ghost" 
                             size="sm"
                             onClick={() => setSelectedCustomer(customer)}
-                            className="text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full px-4"
+                            className="h-10 rounded-full border border-border px-4 text-foreground hover:bg-primary/10 hover:text-primary md:border-transparent md:text-muted-foreground"
                           >
                             Evaluar
                             <ChevronRight className="h-4 w-4 ml-1" />

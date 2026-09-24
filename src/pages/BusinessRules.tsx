@@ -159,9 +159,8 @@ export default function BusinessRules() {
           className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
         >
           <div>
-            <h1 className="page-header flex items-center gap-3">
-              <Scale className="h-8 w-8 text-primary" />
-              Reglas de Negocio
+            <h1 className="page-header">
+              Reglas de negocio
             </h1>
             <p className="page-subtitle">Automatiza decisiones de crédito y notificaciones</p>
           </div>
@@ -189,7 +188,7 @@ export default function BusinessRules() {
         </motion.div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           <Card className="glass-card">
             <CardContent className="pt-6">
               <div className="text-2xl font-bold">{stats.total}</div>
@@ -278,9 +277,9 @@ export default function BusinessRules() {
                               onClick={() => handleToggle(rule.id)}
                             >
                               {rule.is_active ? (
-                                <ToggleRight className="h-5 w-5 text-primary" />
+                                <ToggleOn className="h-5 w-5 text-primary" />
                               ) : (
-                                <ToggleLeft className="h-5 w-5 text-muted-foreground" />
+                                <ToggleOff className="h-5 w-5 text-muted-foreground" />
                               )}
                             </Button>
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(rule)}>

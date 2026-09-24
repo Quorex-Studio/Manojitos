@@ -32,9 +32,13 @@ import { ProductSummaryTab } from '@/components/sales/ProductSummaryTab';
 import { Sale, Product, CheckoutItem, OrderItem, ProductDebtor, SaleStatus, SalePayment, SaleReturnType } from '@/types';
 
 export interface GroupedReceivable {
+  id: string;
   client_name: string;
+  sale_modality: string;
+  payment_method: string;
   total_usd: number;
-  total_pending: number;
+  amount_paid: number;
+  total_bs: number;
   sales: Sale[];
   created_at: string;
 }
@@ -119,9 +123,18 @@ export default function Sales() {
   const { rate, convertToBS } = useExchangeRate();
   const { methods: activePaymentMethods } = usePaymentMethods(false);
   const { config: pricingConfig } = usePricingConfig();
-  const [searchParams] = useSearchParams();
-  const initialSalesTab = searchParams.get('tab') === 'pedidos' ? 'pedidos' : 'ventas';
-  const [activeSalesTab, setActiveSalesTab] = useState(initialSalesTab);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // La pestaña vive en la URL (?tab=) para que los enlaces del panel abran la correcta
+  const SALES_TABS = ['ventas', 'cuentas-cobrar', 'pedidos', 'resumen-producto'];
+  const tabParam = searchParams.get('tab') || 'ventas';
+  const activeSalesTab = SALES_TABS.includes(tabParam) ? tabParam : 'ventas';
+  const setActiveSalesTab = (tab: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'ventas') next.delete('tab'); else next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  };
   const [isOpen, setIsOpen] = useState(false);
   const [rejectOrderId, setRejectOrderId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -1196,36 +1209,36 @@ export default function Sales() {
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="page-header">Ventas y Pedidos</h1>
+          <h1 className="page-header">Ventas y pedidos</h1>
           <p className="page-subtitle">Gestiona las ventas del local y aprueba los pedidos de los clientes</p>
         </div>
 
         <Tabs value={activeSalesTab} onValueChange={setActiveSalesTab} className="w-full">
-          <TabsList className="grid grid-cols-1 sm:grid-cols-4 w-full max-w-4xl bg-secondary rounded-xl mb-6 h-auto gap-1">
-            <TabsTrigger value="ventas" className="rounded-lg text-xs sm:text-sm">
-              <ShoppingCart className="h-4 w-4 mr-2 hidden sm:inline" />
+          <TabsList className="admin-tabs mb-6">
+            <TabsTrigger value="ventas">
+              <ShoppingCart className="h-4 w-4 hidden sm:inline" />
               Ventas
             </TabsTrigger>
-            <TabsTrigger value="cuentas-cobrar" className="rounded-lg relative text-xs sm:text-sm">
-              <ClipboardList className="h-4 w-4 mr-2 hidden sm:inline" />
-              CxC
+            <TabsTrigger value="cuentas-cobrar">
+              <ClipboardList className="h-4 w-4 hidden sm:inline" />
+              Por cobrar
               {sales.filter(s => s.payment_status !== 'paid').length > 0 && (
-                <Badge variant="destructive" className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full">
+                <Badge variant="destructive" className="px-1.5 py-0.5 text-[10px] rounded-full">
                   {sales.filter(s => s.payment_status !== 'paid').length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="pedidos" className="rounded-lg relative text-xs sm:text-sm">
-              <ClipboardList className="h-4 w-4 mr-2 hidden sm:inline" />
+            <TabsTrigger value="pedidos">
+              <ClipboardList className="h-4 w-4 hidden sm:inline" />
               Pedidos
               {orders.filter(o => o.status === 'pending').length > 0 && (
-                <Badge variant="destructive" className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full">
+                <Badge variant="destructive" className="px-1.5 py-0.5 text-[10px] rounded-full">
                   {orders.filter(o => o.status === 'pending').length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="resumen-producto" className="rounded-lg text-xs sm:text-sm">
-              <Package className="h-4 w-4 mr-2 hidden sm:inline" />
+            <TabsTrigger value="resumen-producto">
+              <Package className="h-4 w-4 hidden sm:inline" />
               Resumen
             </TabsTrigger>
           </TabsList>

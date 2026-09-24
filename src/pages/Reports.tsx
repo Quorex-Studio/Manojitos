@@ -23,15 +23,36 @@ export default function Reports() {
   const { sales } = useSales();
   const { convertToBS } = useExchangeRate();
   const REPORT_LAUNCH_DATE = '2026-01-01';
-  const getTodayStr = () => new Date().toISOString().split('T')[0];
+  // Fecha local (no UTC): en Venezuela (UTC-4) toISOString() adelanta el día después de las 8 p. m.
+  const toLocalISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const getTodayStr = () => toLocalISO(new Date());
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
-    const iso = d.toISOString().split('T')[0];
+    const iso = toLocalISO(d);
     return iso < REPORT_LAUNCH_DATE ? REPORT_LAUNCH_DATE : iso;
   });
   const [endDate, setEndDate] = useState(() => getTodayStr());
+
+  // Rangos rápidos (fechas locales en formato YYYY-MM-DD, nunca antes del lanzamiento)
+  const rangePresets = (() => {
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const clamp = (iso: string) => (iso < REPORT_LAUNCH_DATE ? REPORT_LAUNCH_DATE : iso);
+    const now = new Date();
+    const today = fmt(now);
+    const daysAgo = (n: number) => fmt(new Date(now.getFullYear(), now.getMonth(), now.getDate() - n));
+    const monthStart = fmt(new Date(now.getFullYear(), now.getMonth(), 1));
+    const prevStart = fmt(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    const prevEnd = fmt(new Date(now.getFullYear(), now.getMonth(), 0));
+    return [
+      { label: 'Hoy', from: today, to: today },
+      { label: '7 días', from: clamp(daysAgo(6)), to: today },
+      { label: '30 días', from: clamp(daysAgo(29)), to: today },
+      { label: 'Este mes', from: clamp(monthStart), to: today },
+      { label: 'Mes pasado', from: clamp(prevStart), to: prevEnd },
+    ].filter(p => p.to >= REPORT_LAUNCH_DATE);
+  })();
 
   const handleStartDateChange = (value: string) => {
     const today = getTodayStr();
@@ -69,7 +90,7 @@ export default function Reports() {
 
   const filteredSales = useMemo(() => {
     return sales.filter(s => {
-      const saleDate = new Date(s.created_at).toISOString().split('T')[0];
+      const saleDate = toLocalISO(new Date(s.created_at));
       return saleDate >= startDate && saleDate <= endDate;
     });
   }, [sales, startDate, endDate]);
@@ -234,10 +255,28 @@ export default function Reports() {
           <p className="page-subtitle">Análisis de ventas e ingresos</p>
         </div>
 
-        {/* Filters */}
-        <Card className="glass-card border-border/50">
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4 items-end">
+        {/* Filtros: rangos rápidos + fechas + exportar */}
+        <Card className="border-border">
+          <CardContent className="space-y-4 p-4">
+            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 scrollbar-hide md:mx-0 md:px-0" role="group" aria-label="Rango rápido">
+              {rangePresets.map(preset => {
+                const active = startDate === preset.from && endDate === preset.to;
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => { setStartDate(preset.from); setEndDate(preset.to); }}
+                    aria-pressed={active}
+                    className={`h-9 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors ${
+                      active ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary/50'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:flex sm:items-end sm:gap-4">
               <div className="flex-1 space-y-2">
                 <Label>Desde</Label>
                 <Input
@@ -260,7 +299,7 @@ export default function Reports() {
                   className="input-glass rounded-xl"
                 />
               </div>
-              <div className="flex gap-2 flex-wrap">
+              <div className="col-span-2 grid grid-cols-3 gap-2 sm:flex">
                 <Button variant="outline" onClick={exportToCSV} className="rounded-xl gap-2">
                   <Download className="h-4 w-4" />
                   CSV
@@ -279,9 +318,9 @@ export default function Reports() {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <StatCard
-            title="Total Ventas"
+            title="Total ventas"
             value={`$${stats.totalUSD.toFixed(2)}`}
             subtitle={`${formatBS(convertToBS(stats.totalUSD))}`}
             icon={<DollarSign className="h-6 w-6" />}
@@ -317,7 +356,7 @@ export default function Reports() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {Object.entries(stats.byPaymentMethod).map(([method, total]) => (
                 <div key={method} className="p-4 rounded-xl bg-secondary/80 text-center">
-                  <p className="text-sm text-muted-foreground capitalize">{method.replace('_', ' ')}</p>
+                  <p className="text-sm text-muted-foreground capitalize">{method.replace(/_/g, ' ')}</p>
                   <p className="text-lg font-bold text-gradient-gold">${(total as number).toFixed(2)}</p>
                 </div>
               ))}
@@ -331,7 +370,26 @@ export default function Reports() {
             <CardTitle className="font-serif">Historial de Ventas</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            {/* Móvil: lista; escritorio: tabla */}
+            <ul className="divide-y divide-border md:hidden">
+              {filteredSales.slice(0, 50).map((sale) => (
+                <li key={sale.id} className="flex items-start justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">{sale.product_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(sale.created_at).toLocaleDateString('es', { day: '2-digit', month: 'short' })}
+                      {' · '}{sale.quantity} ud{sale.quantity === 1 ? '' : 's'}
+                      {sale.client_name ? ` · ${sale.client_name}` : ''}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-bold tabular-nums">${Number(sale.total_usd).toFixed(2)}</p>
+                    <p className="text-[11px] capitalize text-muted-foreground">{sale.is_credit ? 'Crédito' : sale.payment_method.replace(/_/g, ' ')}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -353,8 +411,8 @@ export default function Reports() {
                       <TableCell className="text-center">{sale.quantity}</TableCell>
                       <TableCell className="text-right font-semibold">${Number(sale.total_usd).toFixed(2)}</TableCell>
                       <TableCell>
-                        <Badge variant={sale.is_credit ? 'destructive' : 'secondary'}>
-                          {sale.is_credit ? 'Crédito' : sale.payment_method.replace('_', ' ')}
+                        <Badge variant={sale.is_credit ? 'outline' : 'secondary'} className="capitalize">
+                          {sale.is_credit ? 'Crédito' : sale.payment_method.replace(/_/g, ' ')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{sale.client_name || '-'}</TableCell>
@@ -362,6 +420,7 @@ export default function Reports() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
               {filteredSales.length === 0 && (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-muted-foreground/40 mx-auto mb-2" />
@@ -373,7 +432,6 @@ export default function Reports() {
                   Mostrando 50 de {filteredSales.length} ventas. Exporta para ver todas.
                 </p>
               )}
-            </div>
           </CardContent>
         </Card>
       </div>

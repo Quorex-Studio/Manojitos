@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 // Configuración de iconos por canal
 const CHANNEL_ICONS = {
   internal: Bell,
-  email: Mail,
+  email: Mailbox,
   sms: Phone,
   whatsapp: MessageSquare,
 };

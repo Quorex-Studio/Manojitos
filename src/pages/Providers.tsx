@@ -1,3 +1,4 @@
+import { localDateISO } from '@/lib/dates';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Truck, Search, Trash2, Phone, Mailbox } from 'reicon-react';
@@ -24,7 +25,7 @@ export default function Providers() {
   const [search, setSearch] = useState('');
   
   const [providerForm, setProviderForm] = useState({ name: '', phone: '', email: '', notes: '' });
-  const [purchaseForm, setPurchaseForm] = useState({ provider_id: '', amount_usd: '', amount_bs: '', notes: '', purchase_date: new Date().toISOString().split('T')[0] });
+  const [purchaseForm, setPurchaseForm] = useState({ provider_id: '', amount_usd: '', amount_bs: '', notes: '', purchase_date: localDateISO() });
 
   // --- DERIVED ---
 
@@ -75,7 +76,7 @@ export default function Providers() {
     });
     if (!error) {
       setIsPurchaseOpen(false);
-      setPurchaseForm({ provider_id: '', amount_usd: '', amount_bs: '', notes: '', purchase_date: new Date().toISOString().split('T')[0] });
+      setPurchaseForm({ provider_id: '', amount_usd: '', amount_bs: '', notes: '', purchase_date: localDateISO() });
     }
   };
 
@@ -85,7 +86,7 @@ export default function Providers() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="page-header">Inversiones</h1>
+            <h1 className="page-header">Proveedores</h1>
             <p className="page-subtitle">
               Total invertido: <span className="text-gradient-gold font-bold">${(totalPending + totalPaid).toFixed(2)}</span>
             </p>
@@ -215,9 +216,9 @@ export default function Providers() {
                     <Input
                       type="date"
                       value={purchaseForm.purchase_date}
-                      max={new Date().toISOString().split('T')[0]}
+                      max={localDateISO()}
                       onChange={(e) => {
-                        const today = new Date().toISOString().split('T')[0];
+                        const today = localDateISO();
                         if (e.target.value <= today) {
                           setPurchaseForm({ ...purchaseForm, purchase_date: e.target.value });
                         }
@@ -244,11 +245,11 @@ export default function Providers() {
         </div>
 
         <Tabs defaultValue="purchases" className="space-y-4">
-          <TabsList className="glass-card p-1 rounded-xl">
-            <TabsTrigger value="purchases" className="rounded-lg data-[state=active]:gradient-primary data-[state=active]:text-white">
+          <TabsList className="admin-tabs">
+            <TabsTrigger value="purchases">
               Compras
             </TabsTrigger>
-            <TabsTrigger value="providers" className="rounded-lg data-[state=active]:gradient-primary data-[state=active]:text-white">
+            <TabsTrigger value="providers">
               Proveedores ({providers.length})
             </TabsTrigger>
           </TabsList>

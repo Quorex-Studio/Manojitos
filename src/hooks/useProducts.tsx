@@ -11,7 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { productSchema, validateInput } from '@/lib/validations';
-import { Product } from '@/types';
+import type { Product } from '@/types';
+export type { Product };
 
 export function useProducts() {
   const { user } = useAuth();

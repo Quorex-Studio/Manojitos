@@ -448,8 +448,8 @@ export default function Credits() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gradient-gold">Gestión de Créditos</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="page-header">Créditos</h1>
+            <p className="page-subtitle">
               Control de créditos y notificaciones automáticas
             </p>
           </div>
@@ -665,35 +665,35 @@ export default function Credits() {
 
         {/* Tabs: Créditos | pagos */}
         <Tabs defaultValue="creditos" className="space-y-4">
-          <TabsList className="flex flex-wrap h-auto w-full max-w-3xl justify-start">
+          <TabsList className="admin-tabs">
             <TabsTrigger value="creditos">
-              <CreditCard className="h-4 w-4 mr-2" />
+              <CreditCard className="h-4 w-4" />
               Créditos
             </TabsTrigger>
             <TabsTrigger value="pagos">
-              <Receipt className="h-4 w-4 mr-2" />
+              <Receipt className="h-4 w-4" />
               Historial de pagos
             </TabsTrigger>
-            <TabsTrigger value="reportados" className="relative">
-              <Clock className="h-4 w-4 mr-2" />
-              pagos Reportados
+            <TabsTrigger value="reportados">
+              <Clock className="h-4 w-4" />
+              Pagos reportados
               {reportedpagos.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white animate-pulse">
+                <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
                   {reportedpagos.length}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="solicitudes" className="relative">
-              <Plus className="h-4 w-4 mr-2" />
+            <TabsTrigger value="solicitudes">
+              <Plus className="h-4 w-4" />
               Solicitudes
               {reportedRequests.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[10px] font-bold text-white animate-pulse">
+                <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                   {reportedRequests.length}
                 </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="ranking">
-              <Trophy className="h-4 w-4 mr-2" />
+              <Trophy className="h-4 w-4" />
               Ranking
             </TabsTrigger>
           </TabsList>

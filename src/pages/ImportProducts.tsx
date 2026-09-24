@@ -298,7 +298,7 @@ export default function ImportProducts() {
       }
 
       // Actualizar progreso
-      setImportProgress(Math.round(((i + 1) / batches.length) * 100));
+      setImportProgress(Math.round(((idx + 1) / batches.length) * 100));
     }
 
     setImportResult(result);
@@ -360,8 +360,8 @@ export default function ImportProducts() {
       >
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gradient-gold">Importar Productos</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="page-header">Importar productos</h1>
+          <p className="page-subtitle">
             Carga masiva de productos desde archivos Excel o CSV
           </p>
         </div>
