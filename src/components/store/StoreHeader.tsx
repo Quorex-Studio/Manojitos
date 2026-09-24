@@ -14,7 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
 import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { toast } from 'sonner';
 
 // Header de la tienda — Editorial luxury frosted glass
@@ -108,25 +108,16 @@ export function StoreHeader() {
           isScrolled ? 'h-14 md:h-16' : 'h-16 md:h-20'
         }`}>
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 min-w-0">
+          <Link to="/" aria-label={`${BRAND_NAME} — inicio`} className="flex items-center gap-2 min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <motion.div
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               className="flex items-center gap-2 min-w-0"
             >
-              <img 
-                src={logoImage} 
-                alt={BRAND_NAME} 
-                className={`rounded-full object-cover flex-shrink-0 transition-all duration-500 ring-1 ring-gold/20 ${
-                  isScrolled ? 'h-7 w-7 md:h-9 md:w-9' : 'h-8 w-8 md:h-11 md:w-11'
-                }`}
+              <BrandLogo
+                className={`transition-all duration-500 ${isScrolled ? 'h-7 md:h-9' : 'h-8 md:h-11'}`}
               />
-              <span className={`font-serif font-bold text-gradient-gold transition-all duration-500 ${
-                isScrolled ? 'text-lg md:text-2xl' : 'text-xl md:text-3xl'
-              }`}>
-                {BRAND_NAME}
-              </span>
             </motion.div>
           </Link>
 
@@ -140,7 +131,7 @@ export function StoreHeader() {
               >
                 {link.label}
                 <motion.span 
-                  className="absolute -bottom-1 left-0 w-full h-px bg-gold origin-left"
+                  className="absolute -bottom-1 left-0 w-full h-px bg-primary origin-left"
                   initial={{ scaleX: 0 }}
                   whileHover={{ scaleX: 1 }}
                   transition={{ duration: 0.3, ease: 'easeOut' }}
@@ -174,8 +165,10 @@ export function StoreHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden h-9 w-9"
+              className="md:hidden h-11 w-11"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
+              aria-label="Buscar"
+              aria-expanded={isSearchOpen}
             >
               <motion.div
                 animate={{ rotate: isSearchOpen ? 90 : 0 }}
@@ -188,19 +181,22 @@ export function StoreHeader() {
             {/* Currency Toggle */}
             <CurrencyToggle />
 
-            {/* Theme Toggle */}
-            <ThemeToggle />
+            {/* Tema, notificaciones, cuenta y carrito: en móvil viven en el menú y la barra inferior */}
+            <div className="hidden md:block">
+              <ThemeToggle />
+            </div>
 
-            {/* Notification Bell — solo para clientes autenticados */}
             {user && (
-              <CustomerNotificationBell />
+              <div className="hidden md:block">
+                <CustomerNotificationBell />
+              </div>
             )}
 
-            {/* User Menu */}
-            <UserMenu />
+            <div className="hidden md:block">
+              <UserMenu />
+            </div>
 
-            {/* Cart con badge animado premium */}
-            <Link to="/carrito" className="relative">
+            <Link to="/carrito" className="relative hidden md:block" aria-label={`Carrito (${itemCount})`}>
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -223,7 +219,7 @@ export function StoreHeader() {
                       >
                         <Badge 
                           variant="default" 
-                          className="h-4.5 min-w-4.5 p-0 px-1 flex items-center justify-center text-[10px] bg-gold text-white font-bold shadow-gold rounded-full"
+                          className="h-4.5 min-w-4.5 p-0 px-1 flex items-center justify-center text-[10px] bg-primary text-primary-foreground font-bold rounded-full"
                         >
                           {itemCount > 99 ? '99+' : itemCount}
                         </Badge>
@@ -238,8 +234,10 @@ export function StoreHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden h-9 w-9"
+              className="md:hidden h-11 w-11"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+              aria-expanded={isMenuOpen}
             >
               <motion.div
                 animate={{ rotate: isMenuOpen ? 180 : 0 }}
@@ -322,7 +320,7 @@ export function StoreHeader() {
                   >
                     <span>Mi Carrito</span>
                     {itemCount > 0 && (
-                      <Badge className="bg-gold text-white text-[10px] rounded-full px-1.5 h-5 flex items-center justify-center font-bold">{itemCount}</Badge>
+                      <Badge className="bg-primary text-primary-foreground text-[10px] rounded-full px-1.5 h-5 flex items-center justify-center font-bold">{itemCount}</Badge>
                     )}
                   </Link>
                 </motion.div>

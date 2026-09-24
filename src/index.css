@@ -15,125 +15,127 @@
 
 @layer base {
   :root {
-    /* 
-       Core Design System
-       Palette: Gold (#D4AF37), White, Rose/Pink
-       Usage: 
-       - --primary: Brand Rose (Buttons, Icons)
-       - --accent/--gold: Brand Gold (Success, Premium, Highlights)
-       - --background: Warm neutral for comfort
+    /*
+       Paleta EINA (manual de marca):
+       - Vino  #78293c  → --primary (acción principal, estados activos, marca)
+       - Nude  #e1ae9d  → --accent / detalles (estrella, etiquetas, líneas finas)
+       - Crema #f4e7d7  → --secondary / --studio (superficies cálidas)
+       - Oscuro #252024 → --foreground (texto) y base del modo oscuro
+       Contraste: texto y botones cumplen WCAG AA (≥ 4.5:1).
     */
-    --background: 30 15% 98%;
-    --foreground: 340 20% 8%; /* Más oscuro para mejor contraste */
+    --background: 33 60% 97%;        /* crema muy claro */
+    --foreground: 312 7% 13%;        /* #252024 */
 
     --card: 0 0% 100%;
-    --card-foreground: 340 20% 10%;
+    --card-foreground: 312 7% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 340 20% 10%;
+    --popover-foreground: 312 7% 13%;
 
-    /* Rosa Principal */
-    --primary: 345 55% 62%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 345 49% 32%;          /* #78293c vino */
+    --primary-foreground: 33 58% 95%;
 
-    /* Fondos sutiles */
-    --secondary: 340 18% 95%;
-    --secondary-foreground: 340 25% 18%;
+    --secondary: 33 58% 90%;         /* #f4e7d7 crema */
+    --secondary-foreground: 345 49% 24%;
 
-    --muted: 30 10% 92%;
-    --muted-foreground: 340 15% 35%; /* Incrementado contraste de 45% a 35% */
+    --muted: 33 38% 92%;
+    --muted-foreground: 320 7% 36%;
 
-    /* Dorado — accent */
-    --accent: 38 68% 45%; /* Un poco más oscuro para legibilidad sobre blanco */
-    --accent-foreground: 0 0% 100%;
+    --accent: 15 55% 75%;            /* #e1ae9d nude */
+    --accent-foreground: 312 7% 13%;
 
-    --destructive: 0 68% 52%;
+    --destructive: 0 67% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 12% 85%; /* Bordes un poco más definidos */
-    --input: 30 12% 85%;
-    --ring: 345 55% 62%;
+    --border: 28 28% 85%;
+    --input: 28 28% 82%;
+    --ring: 345 49% 32%;
 
     --radius: 0.875rem;
 
-
-    /* Custom Color Tokens (ver DESIGN.md) */
-    --studio: 30 24% 93%;   /* fondo de la foto de producto */
-    --sale: 0 67% 47%;      /* solo precio en oferta / agotado */
-    --success: 151 60% 30%; /* en stock / confirmado */
-    --gold: 38 68% 50%;
-    --gold-light: 38 52% 65%;
-    --rose: 345 55% 62%;
-    --rose-light: 345 55% 93%;
-    --rose-dark: 345 42% 48%;
+    /* Tokens propios (ver DESIGN.md) */
+    --studio: 33 50% 92%;            /* fondo de la foto de producto */
+    --sale: 0 67% 45%;               /* solo precio en oferta / agotado */
+    --success: 151 60% 28%;          /* en stock / confirmado */
+    --nude: 15 55% 75%;
+    --cream: 33 58% 90%;
+    --wine: 345 49% 32%;
+    /* Alias heredados: "gold" y "rose" ahora apuntan a la paleta EINA */
+    --gold: 17 42% 42%;              /* cobre: avisos/pendientes (AA sobre blanco) */
+    --gold-light: 15 55% 75%;
+    --rose: 345 49% 32%;
+    --rose-light: 345 40% 94%;
+    --rose-dark: 345 52% 24%;
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 340 18% 22%;
-    --sidebar-primary: 345 55% 62%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 340 18% 95%;
-    --sidebar-accent-foreground: 340 18% 22%;
-    --sidebar-border: 30 12% 89%;
-    --sidebar-ring: 345 55% 62%;
+    --sidebar-foreground: 312 7% 20%;
+    --sidebar-primary: 345 49% 32%;
+    --sidebar-primary-foreground: 33 58% 95%;
+    --sidebar-accent: 33 58% 93%;
+    --sidebar-accent-foreground: 345 49% 26%;
+    --sidebar-border: 28 28% 88%;
+    --sidebar-ring: 345 49% 32%;
 
     /* Glass */
-    --glass-bg: 0 0% 100% / 0.7;
+    --glass-bg: 0 0% 100% / 0.75;
     --glass-border: 0 0% 100% / 0.5;
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
+    --glass-shadow: 0 8px 32px 0 rgba(37, 32, 36, 0.05);
   }
 
   .dark {
-    --studio: 340 10% 14%;
-    --sale: 0 72% 62%;
-    --success: 151 50% 45%;
-    /* LUXURY DARK — Warm black + rose undertone */
-    --background: 340 18% 6%;
-    --foreground: 30 12% 94%;
+    /* Modo oscuro EINA: base #252024, texto crema, acento nude (el vino
+       sobre fondo oscuro no llega a AA como texto; se usa en superficies). */
+    --background: 312 8% 9%;
+    --foreground: 33 45% 91%;
 
-    --card: 340 16% 9%;
-    --card-foreground: 30 12% 94%;
+    --card: 312 7% 13%;              /* #252024 */
+    --card-foreground: 33 45% 91%;
 
-    --popover: 340 16% 9%;
-    --popover-foreground: 30 12% 94%;
+    --popover: 312 7% 13%;
+    --popover-foreground: 33 45% 91%;
 
-    /* Rosa luminoso */
-    --primary: 345 50% 66%;
-    --primary-foreground: 340 25% 7%;
+    --primary: 13 58% 77%;           /* nude luminoso */
+    --primary-foreground: 312 10% 10%;
 
-    --secondary: 340 16% 13%;
-    --secondary-foreground: 340 8% 86%;
+    --secondary: 312 6% 18%;
+    --secondary-foreground: 33 35% 88%;
 
-    --muted: 340 14% 13%;
-    --muted-foreground: 340 8% 52%;
+    --muted: 312 6% 17%;
+    --muted-foreground: 25 14% 68%;
 
-    /* Dorado brillante */
-    --accent: 38 60% 56%;
-    --accent-foreground: 38 25% 7%;
+    --accent: 345 45% 38%;           /* vino */
+    --accent-foreground: 33 58% 94%;
 
-    --destructive: 0 58% 46%;
+    --destructive: 0 62% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 340 14% 16%;
-    --input: 340 14% 16%;
-    --ring: 345 50% 66%;
+    --border: 312 6% 22%;
+    --input: 312 6% 25%;
+    --ring: 13 58% 77%;
 
-    --gold: 38 60% 56%;
-    --gold-light: 38 48% 70%;
-    --rose: 345 50% 66%;
-    --rose-light: 345 22% 20%;
-    --rose-dark: 345 40% 50%;
+    --studio: 312 6% 16%;
+    --sale: 0 80% 70%;
+    --success: 151 45% 55%;
+    --nude: 13 58% 77%;
+    --cream: 33 45% 91%;
+    --wine: 345 45% 38%;
+    --gold: 13 58% 77%;
+    --gold-light: 15 55% 84%;
+    --rose: 13 58% 77%;
+    --rose-light: 345 25% 18%;
+    --rose-dark: 345 45% 38%;
 
-    --sidebar-background: 340 18% 5%;
-    --sidebar-foreground: 30 8% 86%;
-    --sidebar-primary: 345 50% 66%;
-    --sidebar-primary-foreground: 340 25% 7%;
-    --sidebar-accent: 340 16% 13%;
-    --sidebar-accent-foreground: 30 8% 86%;
-    --sidebar-border: 340 14% 16%;
-    --sidebar-ring: 345 50% 66%;
+    --sidebar-background: 312 8% 8%;
+    --sidebar-foreground: 33 30% 86%;
+    --sidebar-primary: 13 58% 77%;
+    --sidebar-primary-foreground: 312 10% 10%;
+    --sidebar-accent: 312 6% 16%;
+    --sidebar-accent-foreground: 33 35% 90%;
+    --sidebar-border: 312 6% 18%;
+    --sidebar-ring: 13 58% 77%;
 
-    --glass-bg: 340 18% 9% / 0.7;
+    --glass-bg: 312 7% 12% / 0.75;
     --glass-border: 0 0% 100% / 0.06;
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
   }
@@ -156,9 +158,10 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Quicksand', sans-serif;
-    font-weight: 500;
-    letter-spacing: 0.01em;
+    font-family: 'Source Sans 3', 'Source Sans Pro', system-ui, sans-serif;
+    font-weight: 400;
+    font-feature-settings: 'kern', 'liga';
+    -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;
     width: 100%;
   }
@@ -174,7 +177,7 @@
   h4,
   h5,
   h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: Constantia, 'Crimson Pro', Georgia, serif;
     @apply font-semibold;
     letter-spacing: -0.01em;
   }
@@ -212,15 +215,9 @@
     background: linear-gradient(135deg, hsl(var(--gold)) 0%, hsl(var(--gold-light)) 100%);
   }
 
+  /* Marca en texto: color sólido (manual EINA: sin degradados). */
   .text-gradient-gold {
-    background: linear-gradient(135deg, hsl(38 75% 35%) 0%, hsl(38 75% 48%) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .dark .text-gradient-gold {
-    background-image: linear-gradient(135deg, hsl(var(--gold)) 0%, hsl(var(--gold-light)) 100%);
+    color: hsl(var(--primary));
   }
 
   /* ========================
@@ -287,12 +284,12 @@
 
   .page-header {
     @apply text-3xl md:text-4xl font-bold text-foreground mb-2;
-    font-family: 'Playfair Display', serif;
+    font-family: Constantia, 'Crimson Pro', Georgia, serif;
   }
 
   .page-subtitle {
     @apply text-muted-foreground text-lg;
-    font-family: 'Quicksand', sans-serif;
+    font-family: 'Source Sans 3', system-ui, sans-serif;
   }
 
   /* ========================
@@ -574,5 +571,12 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Barra inferior móvil: los elementos flotantes (chat) se elevan sobre ella */
+@media (max-width: 767px) {
+  body:has(.mobile-tabbar) {
+    --mobile-tabbar: 4rem;
   }
 }

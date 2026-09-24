@@ -1,4 +1,4 @@
-import { BRAND_FILE_SLUG, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
+import { BRAND, BRAND_COLOR_RGB, BRAND_FILE_SLUG, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChartSuccess, FileText, Download, Calendar, ArrowUp, DollarSign, ShoppingCart } from 'reicon-react';
@@ -184,7 +184,7 @@ export default function Reports() {
 
   const exportToPDF = () => {
     const doc = new jsPDF();
-    const goldColor: [number, number, number] = [214, 151, 41];
+    const goldColor = BRAND_COLOR_RGB; // color de marca
     const roseColor: [number, number, number] = [211, 105, 131];
     const darkColor: [number, number, number] = [24, 16, 19];
 
@@ -196,7 +196,7 @@ export default function Reports() {
     doc.text(BRAND_NAME_UPPER, 14, 14);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Boutique & Lifestyle — Reporte de Ventas', 14, 21);
+    doc.text(`${BRAND.category} — Reporte de Ventas`, 14, 21);
 
     doc.setTextColor(...darkColor);
     doc.setFontSize(10);
@@ -364,7 +364,7 @@ export default function Reports() {
               </Table>
               {filteredSales.length === 0 && (
                 <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-2" />
+                  <FileText className="h-12 w-12 text-muted-foreground/40 mx-auto mb-2" />
                   <p className="text-muted-foreground">No hay ventas en este período</p>
                 </div>
               )}

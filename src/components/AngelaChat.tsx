@@ -157,7 +157,7 @@ export default function AngelaChat() {
             className="fixed z-50 flex flex-col items-end gap-2"
             style={{
               right: "calc(1rem + env(safe-area-inset-right))",
-              bottom: "calc(1rem + env(safe-area-inset-bottom))",
+              bottom: "calc(var(--mobile-tabbar, 0px) + 1rem + env(safe-area-inset-bottom))",
             }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -125,7 +125,7 @@ export default function Dashboard() {
             <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
               Panel General
             </h1>
-            <p className="text-muted-foreground/40 mt-1 text-sm tracking-wide">
+            <p className="text-muted-foreground mt-1 text-sm tracking-wide">
               Resumen de tu negocio
             </p>
           </div>
@@ -372,7 +372,7 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <p className="font-medium text-sm text-foreground/80">{sale.product_name}</p>
-                        <p className="text-xs text-muted-foreground/40 tracking-wide">
+                        <p className="text-xs text-muted-foreground tracking-wide">
                           {new Date(sale.created_at).toLocaleDateString('es-VE', { 
                             day: '2-digit', month: '2-digit', year: 'numeric',
                             hour: '2-digit', minute: '2-digit'
@@ -382,12 +382,12 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-sm text-gradient-gold">{formatCurrencyPair(Number(sale.total_usd)).primary}</p>
-                      <p className="text-[10px] text-muted-foreground/30 tracking-wide">{sale.payment_method}</p>
+                      <p className="text-[10px] text-muted-foreground tracking-wide">{sale.payment_method}</p>
                     </div>
                   </div>
                 ))}
                 {sales.length === 0 && (
-                  <p className="text-center text-muted-foreground/30 py-12 text-sm tracking-wide">No hay ventas registradas</p>
+                  <p className="text-center text-muted-foreground py-12 text-sm tracking-wide">No hay ventas registradas</p>
                 )}
               </div>
             </CardContent>

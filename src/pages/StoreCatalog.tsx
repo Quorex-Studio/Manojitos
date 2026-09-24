@@ -206,7 +206,7 @@ export default function StoreCatalog() {
             step={5}
             className="mb-4"
           />
-          <div className="flex items-center justify-between text-xs text-muted-foreground/50 tracking-wide">
+          <div className="flex items-center justify-between text-xs text-muted-foreground tracking-wide">
             <span>${priceRange[0]}</span>
             <span>${priceRange[1]}</span>
           </div>
@@ -233,7 +233,7 @@ export default function StoreCatalog() {
       <div className="container mx-auto px-4 py-8 md:py-12">
         {/* Header */}
         <div className="mb-10">
-          <nav className="flex items-center gap-2 text-xs text-muted-foreground/40 mb-5 tracking-wide">
+          <nav className="flex items-center gap-2 text-xs text-muted-foreground mb-5 tracking-wide">
             <Link to="/" className="hover:text-foreground transition-colors">Inicio</Link>
             <span>/</span>
             <span className="text-foreground/70">Tienda</span>
@@ -244,7 +244,7 @@ export default function StoreCatalog() {
               <h1 className="text-3xl md:text-4xl font-serif font-medium text-foreground tracking-tight">
                 Nuestra Tienda
               </h1>
-              <p className="text-muted-foreground/40 mt-2 text-sm tracking-wide">
+              <p className="text-muted-foreground mt-2 text-sm tracking-wide">
                 {loading ? 'Cargando...' : `${filteredProducts.length} productos encontrados`}
               </p>
             </div>
@@ -262,7 +262,7 @@ export default function StoreCatalog() {
               onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, ''))}
               className="pl-10 h-11 bg-card/80 backdrop-blur-sm border-border/15 rounded-full text-sm focus:border-primary/30 transition-all duration-300"
             />
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           </div>
 
           <div className="flex items-center gap-2">
@@ -305,7 +305,7 @@ export default function StoreCatalog() {
               <Button
                 variant="ghost"
                 size="icon"
-                className={`rounded-none h-11 w-11 ${viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'text-muted-foreground/40'}`}
+                className={`rounded-none h-11 w-11 ${viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}
                 onClick={() => setViewMode('grid')}
               >
                 <Grid className="h-4 w-4" />
@@ -313,7 +313,7 @@ export default function StoreCatalog() {
               <Button
                 variant="ghost"
                 size="icon"
-                className={`rounded-none h-11 w-11 ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground/40'}`}
+                className={`rounded-none h-11 w-11 ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}
                 onClick={() => setViewMode('list')}
               >
                 <List className="h-4 w-4" />
@@ -353,7 +353,7 @@ export default function StoreCatalog() {
             {searchQuery && (
               <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 Búsqueda: "{searchQuery}"
-                <button onClick={() => setSearchQuery('')} className="ml-2 text-muted-foreground/40 hover:text-foreground">
+                <button onClick={() => setSearchQuery('')} className="ml-2 text-muted-foreground hover:text-foreground">
                   <CloseSquare className="h-3 w-3" />
                 </button>
               </Badge>
@@ -361,7 +361,7 @@ export default function StoreCatalog() {
             {selectedCategories.map(cat => (
               <Badge key={cat} variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 {cat}
-                <button onClick={() => toggleCategory(cat)} className="ml-2 text-muted-foreground/40 hover:text-foreground">
+                <button onClick={() => toggleCategory(cat)} className="ml-2 text-muted-foreground hover:text-foreground">
                   <CloseSquare className="h-3 w-3" />
                 </button>
               </Badge>
@@ -369,7 +369,7 @@ export default function StoreCatalog() {
             {(priceRange[0] > 0 || priceRange[1] < maxPrice) && (
               <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 ${priceRange[0]} - ${priceRange[1]}
-                <button onClick={() => setPriceRange([0, maxPrice])} className="ml-2 text-muted-foreground/40 hover:text-foreground">
+                <button onClick={() => setPriceRange([0, maxPrice])} className="ml-2 text-muted-foreground hover:text-foreground">
                   <CloseSquare className="h-3 w-3" />
                 </button>
               </Badge>
@@ -438,7 +438,7 @@ export default function StoreCatalog() {
                 <h3 className="text-xl font-serif text-foreground/80 mb-2 tracking-tight">
                   No encontramos productos
                 </h3>
-                <p className="text-muted-foreground/40 mb-6 max-w-md text-sm tracking-wide">
+                <p className="text-muted-foreground mb-6 max-w-md text-sm tracking-wide">
                   Intenta con otros filtros o términos de búsqueda
                 </p>
                 <Button onClick={clearFilters} className="rounded-full btn-gold px-8">

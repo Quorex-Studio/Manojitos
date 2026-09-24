@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { ArrowLeft, ShoppingBag, Minus, Plus, Check, Package, Truck, Shield, Heart, ChevronLeft, ChevronRight } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,9 @@ export default function ProductDetail() {
   const [isAdding, setIsAdding] = useState(false);
   const [imageZoomed, setImageZoomed] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>('');
+  // Barra de compra fija en móvil cuando el botón principal sale de pantalla
+  const mainCtaRef = useRef<HTMLDivElement>(null);
+  const mainCtaVisible = useInView(mainCtaRef, { amount: 0.1 });
 
   // --- DERIVED / EFFECTS ---
   useEffect(() => {
@@ -170,7 +173,7 @@ export default function ProductDetail() {
           <h1 className="text-2xl font-serif font-medium text-foreground mb-2 tracking-tight">
             Producto no encontrado
           </h1>
-          <p className="text-muted-foreground/50 mb-6 text-sm tracking-wide">
+          <p className="text-muted-foreground mb-6 text-sm tracking-wide">
             El producto que buscas no existe o no está disponible
           </p>
           <Link to="/tienda">
@@ -188,7 +191,7 @@ export default function ProductDetail() {
     <StoreLayout>
       <div className="container mx-auto px-4 py-6 md:py-10">
         {/* Breadcrumb */}
-        <nav className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground/40 mb-6 tracking-wide">
+        <nav className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-6 tracking-wide">
           <Link to="/" className="hover:text-foreground transition-colors">Inicio</Link>
           <span>/</span>
           <Link to="/tienda" className="hover:text-foreground transition-colors">Tienda</Link>
@@ -212,7 +215,7 @@ export default function ProductDetail() {
           variant="ghost"
           size="sm"
           onClick={() => navigate(-1)}
-          className="mb-4 md:hidden text-muted-foreground/50"
+          className="mb-4 md:hidden text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver
@@ -281,7 +284,7 @@ export default function ProductDetail() {
           >
             {/* Category tag */}
             {product.category && (
-              <span className="text-[10px] text-muted-foreground/40 tracking-[0.15em] uppercase">{product.category}</span>
+              <span className="text-[10px] text-muted-foreground tracking-[0.15em] uppercase">{product.category}</span>
             )}
 
             {/* Name */}
@@ -326,7 +329,7 @@ export default function ProductDetail() {
             {product.description && (
               <div>
                 <h3 className="font-serif text-sm text-foreground/80 mb-2 tracking-wide">Descripción</h3>
-                <p className="text-muted-foreground/50 leading-relaxed text-sm tracking-wide">
+                <p className="text-muted-foreground leading-relaxed text-sm tracking-wide">
                   {product.description}
                 </p>
               </div>
@@ -336,7 +339,7 @@ export default function ProductDetail() {
             {product.stock > 0 && availableSizes.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] text-muted-foreground/40 tracking-[0.1em] uppercase block">
+                  <label className="text-[10px] text-muted-foreground tracking-[0.1em] uppercase block">
                     Tallas disponibles
                   </label>
                   {isSizeRequired && !selectedSize && (
@@ -373,7 +376,7 @@ export default function ProductDetail() {
               <div className="space-y-4">
                 {/* Quantity Selector — Pill */}
                 <div>
-                  <label className="text-[10px] text-muted-foreground/40 mb-2 block tracking-[0.1em] uppercase">
+                  <label className="text-[10px] text-muted-foreground mb-2 block tracking-[0.1em] uppercase">
                     Cantidad
                   </label>
                   <div className="flex items-center gap-4">
@@ -398,13 +401,14 @@ export default function ProductDetail() {
                         <Plus className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                    <span className="text-xs text-muted-foreground/30 tracking-wide">
+                    <span className="text-xs text-muted-foreground tracking-wide">
                       Máximo: {maxQuantity}
                     </span>
                   </div>
                 </div>
 
-                {/* Botón principal (DESIGN.md: pill rosa, una acción por vista) */}
+                {/* Botón principal (DESIGN.md: pill de marca, una acción por vista) */}
+                <div ref={mainCtaRef}>
                 <Button
                   size="lg"
                   className="w-full rounded-full text-base font-semibold h-14"
@@ -436,6 +440,7 @@ export default function ProductDetail() {
                     )}
                   </AnimatePresence>
                 </Button>
+                </div>
               </div>
             )}
 
@@ -460,6 +465,40 @@ export default function ProductDetail() {
             </div>
           </motion.div>
         </div>
+
+        {/* Barra de compra fija (móvil), sobre la navegación inferior */}
+        <AnimatePresence>
+          {product.stock > 0 && !mainCtaVisible && (
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-x-0 z-30 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-xl md:hidden"
+              style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom))' }}
+            >
+              <div className="mx-auto flex max-w-md items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">{product.name}</p>
+                  <PriceDisplay amountUsd={product.price_usd} showSecondary={false} primaryClassName="text-sm font-bold tabular-nums text-foreground" />
+                </div>
+                <Button
+                  className="h-11 shrink-0 rounded-full px-5 font-semibold"
+                  onClick={() => {
+                    if (isSizeRequired && !selectedSize) {
+                      mainCtaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    handleAddToCart();
+                  }}
+                  disabled={isAdding}
+                >
+                  {isAdding ? <Check className="mr-1.5 h-4 w-4" /> : <ShoppingBag className="mr-1.5 h-4 w-4" />}
+                  {isAdding ? 'Agregado' : 'Agregar'}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (

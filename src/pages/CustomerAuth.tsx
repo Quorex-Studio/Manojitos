@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { supabase } from '@/integrations/supabase/client';
-import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 
 // Página de autenticación para clientes (separada del admin)
 export default function CustomerAuth() {
@@ -326,9 +326,9 @@ export default function CustomerAuth() {
           >
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden border border-border/50 shadow-sm bg-white">
-                <img src={logoImage} alt={BRAND_NAME} className="w-full h-full object-cover" />
-              </div>
+              <Link to="/" aria-label={`${BRAND_NAME} — inicio`} className="mx-auto mb-5 inline-flex justify-center">
+                <BrandLogo className="h-10 md:h-12" />
+              </Link>
               <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground">
                 {isForgotPassword ? 'Recuperar Clave' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
               </h1>

@@ -1,17 +1,18 @@
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, Truck, Shield, CreditCard, Star, Package } from 'reicon-react';
+import { ArrowRight, Truck, CreditCard, Package, Sparkles, MessageSquare, Instagram } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/store/ProductCard';
 import { usePublicProducts, PublicProduct } from '@/hooks/usePublicProducts';
-import { BRAND, BRAND_NAME } from '@/config/brand';
+import { BRAND, BRAND_NAME, BRAND_INSTAGRAM_URL } from '@/config/brand';
+import { BRAND_STAR, BRAND_STAR_WINE } from '@/config/brand-assets';
 
 const BENEFITS = [
-  { icon: Truck, title: 'Envíos a toda Venezuela', description: 'Delivery local y agencias nacionales.' },
+  { icon: Sparkles, title: 'Productos importados', description: 'Maquillaje y skincare originales.' },
+  { icon: MessageSquare, title: 'Asesoría personalizada', description: 'Te ayudamos a elegir tu tono y rutina.' },
+  { icon: Truck, title: 'Envíos a toda Venezuela', description: 'Delivery en Margarita y agencias nacionales.' },
   { icon: CreditCard, title: 'Paga como prefieras', description: 'Pago Móvil, transferencia, Zelle o efectivo.' },
-  { icon: Star, title: 'Compra a crédito', description: 'Paga una inicial y el resto en cuotas.' },
-  { icon: Shield, title: 'Compra protegida', description: 'Confirmamos cada pedido antes de despacharlo.' },
 ];
 
 // Foto de producto o bloque "estudio" mientras carga / si no hay imagen
@@ -54,14 +55,16 @@ export default function StoreFront() {
       <section className="container mx-auto px-4 pb-10 pt-6 md:pb-16 md:pt-12">
         <div className="grid items-center gap-8 md:grid-cols-2 md:gap-12">
           <div className="order-2 space-y-6 md:order-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
-              Nueva colección · {BRAND_NAME}
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+              <img src={BRAND_STAR_WINE} alt="" aria-hidden="true" className="h-4 w-auto dark:hidden" />
+              <img src={BRAND_STAR} alt="" aria-hidden="true" className="hidden h-4 w-auto dark:block" />
+              Maquillaje &amp; Belleza
             </p>
             <h1 className="font-serif text-4xl font-medium leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Moda que te acompaña todos los días
+              Tu belleza, <span className="italic text-primary">a tu manera</span>
             </h1>
             <p className="max-w-md text-base leading-relaxed text-muted-foreground md:text-lg">
-              {BRAND.tagline} Precios en dólares y bolívares, envíos a toda Venezuela y compra a crédito.
+              {BRAND.tagline} Precios en dólares y bolívares y envíos a toda Venezuela.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button asChild size="lg" className="h-12 rounded-full px-8 text-base font-semibold">
@@ -71,7 +74,10 @@ export default function StoreFront() {
                 </Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="h-12 rounded-full border-border bg-card px-8 text-base">
-                <Link to="/faq">¿Cómo funciona el crédito?</Link>
+                <a href={BRAND_INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">
+                  <Instagram className="mr-2 h-4 w-4" />
+                  @{BRAND.instagram}
+                </a>
               </Button>
             </div>
           </div>
@@ -150,7 +156,7 @@ export default function StoreFront() {
             <h2 className="font-serif text-2xl font-medium tracking-tight text-foreground md:text-3xl">
               Lo más nuevo
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">Recién llegado a la tienda</p>
+            <p className="mt-1 text-sm text-muted-foreground">Recién llegado a {BRAND_NAME}</p>
           </div>
           <Link to="/tienda" className="hidden items-center text-sm font-semibold text-foreground underline-offset-4 hover:underline md:flex">
             Ver toda la tienda <ArrowRight className="ml-1.5 h-4 w-4" />
@@ -183,9 +189,9 @@ export default function StoreFront() {
         ) : (
           <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border py-20 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-studio">
-              <Package className="h-8 w-8 text-muted-foreground" />
+              <Package className="h-8 w-8 text-muted-foreground/40" />
             </div>
-            <p className="font-serif text-xl text-foreground">Muy pronto, nueva colección</p>
+            <p className="font-serif text-xl text-foreground">Muy pronto, nuevos productos</p>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
               Estamos preparando los productos. Vuelve en unos días o escríbenos para apartar lo que buscas.
             </p>
@@ -195,21 +201,22 @@ export default function StoreFront() {
 
       {/* ===== CRÉDITO (diferenciador) ===== */}
       <motion.section {...fadeUp} className="container mx-auto px-4 pb-16 md:pb-24">
-        <div className="grid items-center gap-6 rounded-3xl bg-foreground px-6 py-10 text-background md:grid-cols-[1.4fr_1fr] md:px-12 md:py-14">
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Crédito {BRAND_NAME}</p>
+        <div className="relative grid items-center gap-6 overflow-hidden rounded-3xl bg-wine px-6 py-10 text-cream md:grid-cols-[1.4fr_1fr] md:px-12 md:py-14">
+          <img src={BRAND_STAR} alt="" aria-hidden="true" className="pointer-events-none absolute -bottom-6 -right-8 w-56 opacity-20 md:w-80" />
+          <div className="relative space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-nude">Crédito {BRAND_NAME}</p>
             <h2 className="font-serif text-3xl font-medium leading-tight md:text-4xl">
               Llévalo hoy y paga en partes
             </h2>
-            <p className="max-w-lg text-sm leading-relaxed text-background/70 md:text-base">
+            <p className="max-w-lg text-sm leading-relaxed text-cream/80 md:text-base">
               Regístrate, verifica tu identidad una sola vez y compra pagando una inicial. El resto lo pagas en cuotas quincenales, sin sorpresas.
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row md:flex-col md:items-end">
-            <Button asChild size="lg" className="h-12 rounded-full px-8 text-base font-semibold">
+          <div className="relative flex flex-col gap-3 sm:flex-row md:flex-col md:items-end">
+            <Button asChild size="lg" className="h-12 rounded-full bg-cream px-8 text-base font-semibold text-wine hover:bg-cream/90">
               <Link to="/cliente/auth">Crear mi cuenta</Link>
             </Button>
-            <Button asChild variant="ghost" size="lg" className="h-12 rounded-full px-8 text-base text-background hover:bg-background/10 hover:text-background">
+            <Button asChild variant="ghost" size="lg" className="h-12 rounded-full px-8 text-base text-cream hover:bg-cream/10 hover:text-cream">
               <Link to="/faq">Ver preguntas frecuentes</Link>
             </Button>
           </div>

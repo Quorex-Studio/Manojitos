@@ -139,7 +139,7 @@ export function CustomerDashboard() {
               ? `Hola, ${profile.full_name.split(' ')[0]}`
               : 'Bienvenido'}
           </h2>
-          <p className="text-sm text-muted-foreground/75 dark:text-muted-foreground/40 max-w-[250px] tracking-wide mt-1">
+          <p className="text-sm text-muted-foreground/75 dark:text-muted-foreground max-w-[250px] tracking-wide mt-1">
             Gestiona tu cuenta y revisa tus compras en {BRAND_NAME}.
           </p>
         </div>
@@ -150,15 +150,15 @@ export function CustomerDashboard() {
       <motion.div variants={item} className="grid grid-cols-3 gap-3">
         <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-gold/10">
           <p className="text-xl font-bold font-serif text-gradient-gold">{orders.length}</p>
-          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground/30 mt-0.5">Pedidos</p>
+          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground mt-0.5">Pedidos</p>
         </div>
         <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
           <p className="text-xl font-bold font-serif text-gradient-gold">{wishlistCount}</p>
-          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground/30 mt-0.5">Favoritos</p>
+          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground mt-0.5">Favoritos</p>
         </div>
         <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
           <p className="text-xl font-bold font-serif text-gradient-gold">{unreadCount}</p>
-          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground/30 mt-0.5">Avisos</p>
+          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground mt-0.5">Avisos</p>
         </div>
       </motion.div>
 

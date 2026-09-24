@@ -88,8 +88,8 @@ El Usuario deberá seguir los siguientes pasos:
           className="text-center mb-12"
         >
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center">
-              <FileText className="h-8 w-8 text-pink-500" />
+            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
+              <FileText className="h-8 w-8 text-primary" />
             </div>
           </div>
           <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
@@ -127,7 +127,7 @@ El Usuario deberá seguir los siguientes pasos:
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-start gap-3">
-                    <TickCircle className="h-5 w-5 text-pink-500 mt-1 flex-shrink-0" />
+                    <TickCircle className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                     <div>
                       <h2 className="text-lg font-semibold mb-3">{section.title}</h2>
                       <p className="text-muted-foreground whitespace-pre-line text-[11px] leading-snug">
@@ -141,12 +141,12 @@ El Usuario deberá seguir los siguientes pasos:
           ))}
 
           {/* Contact */}
-          <Card className="bg-pink-50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-800">
+          <Card className="bg-secondary/60 border-border">
             <CardContent className="p-6 text-center">
               <h3 className="font-semibold mb-2">¿Tienes preguntas?</h3>
               <p className="text-sm text-muted-foreground">
                 Si tienes alguna duda sobre estos términos, contáctanos a{' '}
-                <a href={`mailto:${BRAND.contactEmail}`} className="text-pink-600 hover:underline">
+                <a href={`mailto:${BRAND.contactEmail}`} className="text-primary hover:underline">
                   {BRAND.contactEmail}
                 </a>
               </p>

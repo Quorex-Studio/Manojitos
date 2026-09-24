@@ -1,4 +1,4 @@
-import { BRAND_FILE_SLUG, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
+import { BRAND, BRAND_COLOR_RGB, BRAND_FILE_SLUG, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -197,7 +197,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
     return (
       <Card className="glass-card">
         <CardContent className="py-12 text-center">
-          <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+          <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground/40 mb-4" />
           <h3 className="text-lg font-medium mb-2">No hay pedidos</h3>
           <p className="text-muted-foreground mb-6">No se encontraron pedidos en esta categoría.</p>
           <Link to="/tienda">
@@ -210,7 +210,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
 
   const exportReceiptToPDF = () => {
     if (!receiptOrder) return;
-    const goldColor: [number, number, number] = [214, 151, 41];
+    const goldColor = BRAND_COLOR_RGB; // color de marca
     const darkColor: [number, number, number] = [24, 16, 19];
     const itemCount = receiptOrder.items?.length || 0;
     const pageHeight = 62 + itemCount * 6;
@@ -225,7 +225,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
     doc.setFont('courier', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...darkColor);
-    doc.text('BOUTIQUE & LIFESTYLE', 40, y, { align: 'center' });
+    doc.text(BRAND.category.toUpperCase(), 40, y, { align: 'center' });
     y += 6;
     doc.text('Recibo de Compra', 40, y, { align: 'center' });
     y += 4;
@@ -332,7 +332,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                           {item.image_url ? (
                             <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover" />
                           ) : (
-                            <ShoppingBag className="h-8 w-8 text-muted-foreground/30" />
+                            <ShoppingBag className="h-8 w-8 text-muted-foreground/40" />
                           )}
                         </div>
                         <div>
@@ -477,7 +477,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                       {item.image_url ? (
                         <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover" />
                       ) : (
-                        <ShoppingBag className="h-6 w-6 text-muted-foreground/30" />
+                        <ShoppingBag className="h-6 w-6 text-muted-foreground" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -505,10 +505,10 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
       <Dialog open={!!receiptOrder} onOpenChange={(open) => !open && setReceiptOrder(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[400px] p-0 bg-background border border-gold/30 shadow-2xl">
           <div className="p-8 bg-white text-black print-exact font-mono" id="receipt-content">
-            <div className="h-1.5 -mx-8 -mt-8 mb-6" style={{ background: 'linear-gradient(90deg, hsl(var(--gold)), hsl(var(--primary)))' }} />
+            <div className="h-1.5 -mx-8 -mt-8 mb-6" style={{ background: BRAND.color }} />
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-serif font-bold" style={{ color: 'hsl(var(--gold))' }}>{BRAND_NAME}</h2>
-              <p className="text-xs uppercase tracking-widest mt-1" style={{ color: '#D36983' }}>Boutique & Lifestyle</p>
+              <h2 className="text-2xl font-serif font-bold" style={{ color: BRAND.color }}>{BRAND_NAME}</h2>
+              <p className="text-xs uppercase tracking-widest mt-1" style={{ color: BRAND.color }}>{BRAND.category}</p>
               <div className="mt-4 text-sm">
                 <p>Recibo de Compra</p>
                 <p>Nº: {receiptOrder?.id.split('-')[0].toUpperCase()}</p>

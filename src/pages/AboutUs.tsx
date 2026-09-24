@@ -18,8 +18,8 @@ export default function AboutUs() {
           className="text-center mb-12"
         >
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center">
-              <Star className="h-10 w-10 text-pink-500" />
+            <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center">
+              <Star className="h-10 w-10 text-primary" />
             </div>
           </div>
           <h1 className="text-4xl font-serif font-bold text-foreground mb-4">
@@ -41,7 +41,7 @@ export default function AboutUs() {
           <Card className="overflow-hidden">
             <CardContent className="p-8">
               <div className="flex items-center gap-3 mb-4">
-                <Heart className="h-6 w-6 text-pink-500" />
+                <Heart className="h-6 w-6 text-primary" />
                 <h2 className="text-2xl font-serif font-semibold">Nuestra Historia</h2>
               </div>
               <div className="space-y-4 text-muted-foreground">
@@ -78,8 +78,8 @@ export default function AboutUs() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-                    <Location className="h-6 w-6 text-pink-500" />
+                  <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                    <Location className="h-6 w-6 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Ubicación</h3>
@@ -95,8 +95,8 @@ export default function AboutUs() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-                    <Phone className="h-6 w-6 text-pink-500" />
+                  <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                    <Phone className="h-6 w-6 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Teléfono / WhatsApp</h3>
@@ -112,8 +112,8 @@ export default function AboutUs() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-                    <Mailbox className="h-6 w-6 text-pink-500" />
+                  <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                    <Mailbox className="h-6 w-6 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
@@ -129,8 +129,8 @@ export default function AboutUs() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-                    <Clock className="h-6 w-6 text-pink-500" />
+                  <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                    <Clock className="h-6 w-6 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Horario de Atención</h3>

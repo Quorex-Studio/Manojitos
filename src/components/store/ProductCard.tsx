@@ -97,7 +97,7 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <Package className="h-12 w-12 text-muted-foreground/30" />
+              <Package className="h-12 w-12 text-muted-foreground/40" />
             </div>
           )}
 

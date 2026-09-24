@@ -1254,7 +1254,7 @@ export default function Checkout() {
                         <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary/80">
-                          <Package className="w-6 h-6 text-muted-foreground/30" />
+                          <Package className="w-6 h-6 text-muted-foreground" />
                         </div>
                       )}
                     </div>

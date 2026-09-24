@@ -1,54 +1,69 @@
-import os
-import sys
+"""Genera favicons e imagen para redes (og-image) a partir de los assets de marca.
 
-try:
-    from PIL import Image
-except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "Pillow"])
-    from PIL import Image
+Uso:
+    pip install pillow
+    python generate_icons.py [--bg "#78293c"] [--og-bg "#f4e7d7"]
 
-def generate_icons(source_image, output_dir):
-    try:
-        img = Image.open(source_image)
-    except Exception as e:
-        print(f"Error opening image: {e}")
-        return
+Toma:
+    src/assets/brand/isotipo-cream.png   -> icono (sobre círculo/cuadro del color --bg)
+    src/assets/brand/logo-shop-wine.png  -> og-image.jpg (sobre fondo --og-bg)
+"""
+import argparse
 
-    # Sizes needed
-    # favicon.ico (16x16, 32x32, 48x48)
-    # apple-touch-icon.png (180x180)
-    # favicon-32x32.png
-    # favicon-16x16.png
-    # android-chrome-192x192.png
-    # android-chrome-512x512.png
+from PIL import Image, ImageDraw
 
-    # Convert to RGBA to handle transparency correctly if needed
-    img = img.convert("RGBA")
 
-    # Make apple-touch-icon
-    apple_img = img.resize((180, 180), Image.Resampling.LANCZOS)
-    apple_img.save(os.path.join(output_dir, "apple-touch-icon.png"))
+def hex_to_rgba(value: str):
+    value = value.lstrip("#")
+    return tuple(int(value[i:i + 2], 16) for i in (0, 2, 4)) + (255,)
 
-    # Make 32x32 and 16x16
-    img_32 = img.resize((32, 32), Image.Resampling.LANCZOS)
-    img_32.save(os.path.join(output_dir, "favicon-32x32.png"))
 
-    img_16 = img.resize((16, 16), Image.Resampling.LANCZOS)
-    img_16.save(os.path.join(output_dir, "favicon-16x16.png"))
+def trim(img: Image.Image) -> Image.Image:
+    return img.crop(img.getchannel("A").getbbox())
 
-    # Make android icons
-    img_192 = img.resize((192, 192), Image.Resampling.LANCZOS)
-    img_192.save(os.path.join(output_dir, "android-chrome-192x192.png"))
 
-    img_512 = img.resize((512, 512), Image.Resampling.LANCZOS)
-    img_512.save(os.path.join(output_dir, "android-chrome-512x512.png"))
+def icon(iso: Image.Image, size: int, bg, rounded: bool, pad: float = 0.22) -> Image.Image:
+    base = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(base)
+    if rounded:
+        draw.ellipse((0, 0, size - 1, size - 1), fill=bg)
+    else:
+        draw.rectangle((0, 0, size, size), fill=bg)
+    h = int(size * (1 - 2 * pad))
+    w = round(iso.width * h / iso.height)
+    mark = iso.resize((w, h), Image.LANCZOS)
+    base.paste(mark, ((size - w) // 2, (size - h) // 2), mark)
+    return base
 
-    # Make favicon.ico
-    # A single ico can contain multiple sizes
-    img.save(os.path.join(output_dir, "favicon.ico"), format="ICO", sizes=[(16, 16), (32, 32), (48, 48)])
 
-    print("Icons generated successfully!")
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--bg", default="#78293c", help="color de fondo del icono")
+    parser.add_argument("--og-bg", default="#f4e7d7", help="color de fondo de og-image")
+    args = parser.parse_args()
+
+    bg = hex_to_rgba(args.bg)
+    iso = trim(Image.open("src/assets/brand/isotipo-cream.png").convert("RGBA"))
+
+    for name, size, rounded in [
+        ("favicon-16x16.png", 16, True),
+        ("favicon-32x32.png", 32, True),
+        ("apple-touch-icon.png", 180, False),
+        ("android-chrome-192x192.png", 192, False),
+        ("android-chrome-512x512.png", 512, False),
+    ]:
+        icon(iso, size, bg, rounded).save(f"public/{name}", optimize=True)
+    icon(iso, 48, bg, True).save("public/favicon.ico", sizes=[(16, 16), (32, 32), (48, 48)])
+
+    og = Image.new("RGBA", (1200, 630), hex_to_rgba(args.og_bg))
+    logo = trim(Image.open("src/assets/brand/logo-shop-wine.png").convert("RGBA"))
+    h = 300
+    w = round(logo.width * h / logo.height)
+    logo = logo.resize((w, h), Image.LANCZOS)
+    og.paste(logo, ((1200 - w) // 2, (630 - h) // 2), logo)
+    og.convert("RGB").save("public/og-image.jpg", quality=88)
+    print("Iconos y og-image generados en public/")
+
 
 if __name__ == "__main__":
-    generate_icons("public/logo.jpeg", "public")
+    main()

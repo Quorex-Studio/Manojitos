@@ -83,8 +83,8 @@ Puedes gestionar tus preferencias de notificación desde tu perfil de usuario en
           className="text-center mb-12"
         >
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center">
-              <Shield className="h-8 w-8 text-pink-500" />
+            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
+              <Shield className="h-8 w-8 text-primary" />
             </div>
           </div>
           <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
@@ -126,8 +126,8 @@ Puedes gestionar tus preferencias de notificación desde tu perfil de usuario en
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-                        <Icon className="h-5 w-5 text-pink-500" />
+                      <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                        <Icon className="h-5 w-5 text-primary" />
                       </div>
                       <div className="flex-1">
                         <h2 className="text-lg font-semibold mb-3">{section.title}</h2>
@@ -203,12 +203,12 @@ Puedes gestionar tus preferencias de notificación desde tu perfil de usuario en
           transition={{ delay: 0.9 }}
           className="mt-8"
         >
-          <Card className="bg-pink-50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-800">
+          <Card className="bg-secondary/60 border-border">
             <CardContent className="p-6 text-center">
               <h3 className="font-semibold mb-2">¿Tienes preguntas sobre tu privacidad?</h3>
               <p className="text-sm text-muted-foreground">
                 Contáctanos a{' '}
-                <a href={`mailto:${BRAND.contactEmail}`} className="text-pink-600 hover:underline">
+                <a href={`mailto:${BRAND.contactEmail}`} className="text-primary hover:underline">
                   {BRAND.contactEmail}
                 </a>
                 {' '}y te responderemos lo antes posible.

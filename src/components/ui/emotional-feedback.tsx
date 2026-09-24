@@ -26,14 +26,14 @@ export function EmotionalFeedback({ type, message, onComplete }: EmotionalFeedba
           angle: 60,
           spread: 55,
           origin: { x: 0 },
-          colors: ['#D4AF37', '#FFD700', '#FFA500']
+          colors: ['#78293c', '#e1ae9d', '#f4e7d7']
         });
         confetti({
           particleCount: 3,
           angle: 120,
           spread: 55,
           origin: { x: 1 },
-          colors: ['#D4AF37', '#FFD700', '#FFA500']
+          colors: ['#78293c', '#e1ae9d', '#f4e7d7']
         });
 
         if (Date.now() < end) {

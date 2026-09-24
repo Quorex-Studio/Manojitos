@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { StoreHeader } from './StoreHeader';
 import { StoreFooter } from './StoreFooter';
 import { OverdueCreditBanner } from './OverdueCreditBanner';
+import { MobileTabBar } from './MobileTabBar';
 
 interface StoreLayoutProps {
   children: ReactNode;
@@ -10,7 +11,7 @@ interface StoreLayoutProps {
 // Layout principal de la tienda para clientes
 export function StoreLayout({ children }: StoreLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-background overflow-x-hidden w-full max-w-[1600px] mx-auto relative shadow-2xl" style={{ isolation: "isolate" }}>
+    <div className="min-h-screen flex flex-col bg-background overflow-x-clip w-full relative pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" style={{ isolation: "isolate" }}>
       {/* Header fijo */}
       <StoreHeader />
       
@@ -23,6 +24,8 @@ export function StoreLayout({ children }: StoreLayoutProps) {
       
       {/* Footer */}
       <StoreFooter />
+
+      <MobileTabBar />
     </div>
   );
 }

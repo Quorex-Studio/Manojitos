@@ -14,15 +14,22 @@ export default {
       },
     },
     extend: {
+      spacing: {
+        '4.5': '1.125rem',
+        '13': '3.25rem',
+      },
       fontFamily: {
-        sans: ['Quicksand', 'sans-serif'],
-        serif: ['Playfair Display', 'serif'],
+        sans: ['"Source Sans 3"', '"Source Sans Pro"', 'system-ui', 'sans-serif'],
+        serif: ['Constantia', '"Crimson Pro"', 'Georgia', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
         studio: "hsl(var(--studio))",
         sale: "hsl(var(--sale))",
         success: "hsl(var(--success))",
+        wine: "hsl(var(--wine))",
+        nude: "hsl(var(--nude))",
+        cream: "hsl(var(--cream))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
@@ -154,7 +161,7 @@ export default {
       boxShadow: {
         glass: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
         "glass-hover": "0 12px 40px 0 rgba(31, 38, 135, 0.12)",
-        gold: "0 4px 20px 0 rgba(201, 149, 42, 0.3)",
+        gold: "0 4px 16px -4px rgba(120, 41, 60, 0.25)",
         rose: "0 4px 20px 0 rgba(196, 96, 122, 0.3)",
         "glow-rosa": "0 0 30px rgba(196, 96, 122, 0.3), 0 0 60px rgba(196, 96, 122, 0.1)",
         "glow-gold": "0 0 30px rgba(201, 149, 42, 0.3), 0 0 60px rgba(201, 149, 42, 0.1)",

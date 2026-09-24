@@ -744,7 +744,7 @@ export default function Products() {
                     list="categories-list"
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50) })}
-                    placeholder="Ej: Accesorios, Ropa..."
+                    placeholder="Ej: Maquillaje, Skincare..."
                     className="input-glass rounded-xl"
                   />
                   <datalist id="categories-list">
@@ -879,7 +879,7 @@ export default function Products() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Gallery className="h-16 w-16 text-muted-foreground/30" />
+                        <Gallery className="h-16 w-16 text-muted-foreground/40" />
                       </div>
                     )}
                     {product.stock <= 5 && (
@@ -962,7 +962,7 @@ export default function Products() {
 
         {paginatedProducts.length === 0 && !loading && (
           <div className="text-center py-16">
-            <Package className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+            <Package className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-muted-foreground">No hay productos que mostrar</p>
           </div>
         )}

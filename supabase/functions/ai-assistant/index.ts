@@ -1195,7 +1195,7 @@ Pregunta del usuario: ${lastUserMessage}
 
 INSTRUCCIONES CLAVE:
 - Si el usuario pregunta por precios, muestra siempre USD y Bs.
-- Si el usuario pregunta sobre categorías específicas ("Ropa", "Ropa Interior", "Perfume", etc.), lista los productos de CADA categoría mencionada con nombre, precio USD, precio Bs y stock.
+- Si el usuario pregunta sobre categorías específicas ("Maquillaje", "Skincare", "Accesorios", etc.), lista los productos de CADA categoría mencionada con nombre, precio USD, precio Bs y stock.
 - Si el usuario pide ver productos de una categoría, busca en los PRODUCTOS DISPONIBLES de arriba y filtra por esa categoría.
 - NO respondas con el saludo genérico si el usuario hace una pregunta concreta de productos o categorías.
 - Para datos concretos (deudas, cuentas por cobrar, ventas, pagos, stock, precios, créditos, resúmenes), USA las herramientas disponibles y responde SOLO con lo que devuelvan. NUNCA inventes clientes, montos, saldos, IDs ni fechas.
@@ -1377,7 +1377,7 @@ function generateFallbackResponse(
   // ── PREGUNTAS INFANTILES / NIÑOS ──
   if (msg.includes('niño') || msg.includes('niña') || msg.includes('niños') || msg.includes('niñas') ||
       msg.includes('infantil') || msg.includes('bebe') || msg.includes('bebé') || msg.includes('hijo') || msg.includes('hija')) {
-    return `🩷 Por los momentos no tenemos prendas infantiles o para niños en nuestro catálogo. Disponemos de ropa para caballeros, damas, perfumes y accesorios. ¡Te invito a explorar nuestras categorías de Ropa o Perfumes! ✨`;
+    return `🩷 Por los momentos no tenemos productos infantiles en nuestro catálogo. Tenemos maquillaje, skincare y accesorios importados. ¡Te invito a explorar nuestras categorías! ✨`;
   }
 
   // ── UBICACIÓN / TIENDA FÍSICA ──
@@ -1447,8 +1447,8 @@ function generateFallbackResponse(
   }
 
   // ── DETECTAR CATEGORÍAS ──
-  const hasCategoryQuery = msg.includes('categor') || msg.includes('ropa') || msg.includes('perfume') ||
-                           msg.includes('interior') || msg.includes('pantalon') || msg.includes('playa') ||
+  const hasCategoryQuery = msg.includes('categor') || msg.includes('maquillaje') || msg.includes('skincare') ||
+                           msg.includes('accesorio') || msg.includes('bolso') ||
                            context.categories.some(cat => msg.includes(cat.toLowerCase()));
 
   if (hasCategoryQuery) {
@@ -1490,31 +1490,30 @@ function generateFallbackResponse(
 
   // ── MAPEO SEMÁNTICO DE ESTILOS / CONTEXTO ──
   const styleMap: Record<string, string[]> = {
-    playero:   ['short', 'shorts', 'franela', 'franelilla', 'vestido', 'playa', 'maya', 'mayas', 'baño'],
-    playa:     ['short', 'shorts', 'franela', 'franelilla', 'vestido', 'playa', 'maya', 'mayas', 'baño'],
-    verano:    ['short', 'shorts', 'franela', 'franelilla', 'vestido', 'playa', 'maya', 'mayas', 'baño'],
-    calor:     ['short', 'shorts', 'franela', 'franelilla'],
-    sport:     ['short', 'shorts', 'franela', 'deportivo'],
-    gym:       ['short', 'shorts', 'franela', 'deportivo'],
-    ejercicio: ['short', 'shorts', 'franela', 'deportivo'],
-    deportivo: ['short', 'shorts', 'franela', 'deportivo'],
-    fiesta:    ['vestido', 'body', 'perfume', 'jean paul', 'scandal'],
-    salir:     ['vestido', 'body', 'perfume'],
-    noche:     ['vestido', 'body', 'perfume'],
-    cita:      ['vestido', 'body', 'perfume'],
-    'cómodo':  ['bragas', 'body'],
-    comodo:    ['bragas', 'body'],
-    hombre:    ['short', 'shorts hombre', 'franela', 'oversize', 'chemise'],
-    caballero: ['short', 'shorts hombre', 'franela', 'oversize', 'chemise'],
-    mujer:     ['vestido', 'body', 'bragas', 'short dama', 'franelilla'],
-    dama:      ['vestido', 'body', 'bragas', 'short dama', 'franelilla'],
+    fiesta:    ['labial', 'sombra', 'paleta', 'iluminador', 'pestañ', 'delineador', 'glitter'],
+    salir:     ['labial', 'sombra', 'paleta', 'iluminador', 'rubor'],
+    noche:     ['labial', 'sombra', 'delineador', 'pestañ', 'iluminador'],
+    boda:      ['base', 'corrector', 'fijador', 'labial', 'iluminador'],
+    natural:   ['bb', 'tinte', 'rubor', 'bálsamo', 'balsamo', 'máscara', 'mascara'],
+    diario:    ['bb', 'tinte', 'rubor', 'bálsamo', 'balsamo', 'protector', 'máscara', 'mascara'],
+    piel:      ['sérum', 'serum', 'crema', 'hidrat', 'limpiador', 'tónico', 'tonico', 'protector'],
+    skincare:  ['sérum', 'serum', 'crema', 'hidrat', 'limpiador', 'tónico', 'tonico', 'protector'],
+    grasa:     ['matte', 'mate', 'limpiador', 'tónico', 'tonico', 'polvo'],
+    seca:      ['hidrat', 'crema', 'sérum', 'serum', 'glow'],
+    acné:      ['limpiador', 'tónico', 'tonico', 'salicíl', 'salicil', 'niacinamida'],
+    acne:      ['limpiador', 'tónico', 'tonico', 'salicíl', 'salicil', 'niacinamida'],
+    sol:       ['protector', 'fps', 'spf'],
+    playa:     ['protector', 'fps', 'spf', 'waterproof', 'a prueba de agua'],
+    ojos:      ['sombra', 'paleta', 'delineador', 'máscara', 'mascara', 'pestañ', 'ceja'],
+    labios:    ['labial', 'gloss', 'bálsamo', 'balsamo', 'delineador de labios'],
+    uñas:      ['esmalte', 'uñas', 'unas'],
+    regalo:    ['set', 'kit', 'bolso', 'neceser', 'accesorio'],
+    brochas:   ['brocha', 'esponja', 'beauty blender'],
     barato:    [],
     'económico': [],
     economico: [],
-    perfume:   ['perfume', 'jean paul', 'scandal'],
-    fragancia: ['perfume', 'jean paul', 'scandal'],
-    olor:      ['perfume', 'jean paul', 'scandal'],
   };
+
 
   const matchedKws = Object.keys(styleMap).filter(kw => msg.includes(kw));
 

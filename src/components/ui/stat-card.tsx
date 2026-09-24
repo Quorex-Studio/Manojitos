@@ -76,8 +76,8 @@ export const StatCard = memo(function StatCard({ title, value, subtitle, tertiar
           </div>
           <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-300 group-hover:grid-rows-[1fr] group-hover:opacity-100 mt-0 group-hover:mt-1">
             <div className="overflow-hidden">
-              {subtitle && <p className="text-muted-foreground/50 text-[10px] truncate mt-0.5">{subtitle}</p>}
-              {tertiaryText && <p className="text-muted-foreground/40 text-[10px] truncate">{tertiaryText}</p>}
+              {subtitle && <p className="text-muted-foreground text-[10px] truncate mt-0.5">{subtitle}</p>}
+              {tertiaryText && <p className="text-muted-foreground text-[10px] truncate">{tertiaryText}</p>}
             </div>
           </div>
         </div>
@@ -98,10 +98,10 @@ export const StatCard = memo(function StatCard({ title, value, subtitle, tertiar
             <div className="grid grid-rows-[0fr] opacity-0 transition-all duration-300 group-hover:grid-rows-[1fr] group-hover:opacity-100 mt-0 group-hover:mt-1">
               <div className="overflow-hidden">
                 {subtitle && (
-                  <p className="text-muted-foreground/50 text-sm mt-1">{subtitle}</p>
+                  <p className="text-muted-foreground text-sm mt-1">{subtitle}</p>
                 )}
                 {tertiaryText && (
-                  <p className="text-muted-foreground/40 text-xs mt-0.5">{tertiaryText}</p>
+                  <p className="text-muted-foreground text-xs mt-0.5">{tertiaryText}</p>
                 )}
               </div>
             </div>

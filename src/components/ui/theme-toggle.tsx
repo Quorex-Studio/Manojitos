@@ -26,7 +26,7 @@ export function ThemeToggle() {
         transition={{ duration: 0.3, ease: 'easeInOut' }}
         className="absolute inset-0 flex items-center justify-center"
       >
-        <Sun className="h-5 w-5 text-amber-500" />
+        <Sun className="h-5 w-5 text-primary" />
       </motion.div>
       <motion.div
         initial={false}

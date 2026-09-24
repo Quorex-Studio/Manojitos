@@ -305,7 +305,7 @@ export default function Providers() {
             </Accordion>
             {purchases.length === 0 && (
               <div className="text-center py-16">
-                <Truck className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <Truck className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
                 <p className="text-muted-foreground">No hay inversiones registradas</p>
               </div>
             )}
@@ -351,7 +351,7 @@ export default function Providers() {
             ))}
             {providers.length === 0 && (
               <div className="col-span-full text-center py-16">
-                <Truck className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <Truck className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
                 <p className="text-muted-foreground">No hay proveedores registrados</p>
               </div>
             )}

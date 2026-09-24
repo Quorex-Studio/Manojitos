@@ -9,7 +9,7 @@ import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 
 const menuItems = [
   { icon: Layout, label: 'Panel General', path: '/dashboard' },
@@ -79,17 +79,12 @@ export function AppSidebar() {
         <div className={cn("flex flex-col h-full", isCollapsed && !isMobile ? "p-3" : "p-6")}>
           {/* Logo */}
           <div className={cn("mb-8 flex items-center", isCollapsed && !isMobile ? "justify-center pt-2" : "gap-3 pt-2")}>
-            <img 
-              src={logoImage} 
-              alt={BRAND_NAME} 
-              className="h-11 w-11 rounded-full object-cover ring-1 ring-gold/20 flex-shrink-0"
-            />
-            {(!isCollapsed || isMobile) && (
+            {isCollapsed && !isMobile ? (
+              <BrandLogo variant="isotipo" className="h-10" />
+            ) : (
               <div className="overflow-hidden">
-                <h1 className="font-serif text-xl font-bold text-gradient-gold tracking-normal whitespace-nowrap">
-                  {BRAND_NAME}
-                </h1>
-                <p className="text-sidebar-foreground/30 text-[10px] font-sans tracking-[0.15em] uppercase whitespace-nowrap">Sistema de Gestión</p>
+                <BrandLogo className="h-9" />
+                <p className="mt-1 text-sidebar-foreground/50 text-[10px] font-sans tracking-[0.15em] uppercase whitespace-nowrap">Sistema de Gestión</p>
               </div>
             )}
           </div>

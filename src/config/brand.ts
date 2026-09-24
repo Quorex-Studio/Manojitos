@@ -23,7 +23,11 @@ export const BRAND = {
   /** Horario de atención (texto libre) */
   hours: env.VITE_BRAND_HOURS || 'Lunes a Viernes: 8:00 AM - 6:00 PM · Sábados: 9:00 AM - 1:00 PM',
   /** Ubicación mostrada en el footer */
-  location: env.VITE_BRAND_LOCATION || 'Venezuela',
+  /** Color principal de marca (hex): recibos, PDF y barra del navegador */
+  color: env.VITE_BRAND_THEME_COLOR || '#78293c',
+  /** Rubro corto para recibos y encabezados, p. ej. "Maquillaje & Belleza" */
+  category: env.VITE_BRAND_CATEGORY || 'Maquillaje & Belleza',
+  location: env.VITE_BRAND_LOCATION || 'Isla de Margarita, Venezuela',
   /** Nombre de la asistente virtual (chat con IA) */
   assistantName: env.VITE_ASSISTANT_NAME || 'Ángela',
   /** Prefijo para claves de localStorage (evita mezclar datos entre tiendas) */
@@ -39,3 +43,10 @@ export const BRAND_FILE_SLUG = BRAND.name.toLowerCase().replace(/[^a-z0-9]+/g, '
 
 /** Construye una clave de localStorage con el prefijo de la marca */
 export const storageKey = (key: string, sep = '_') => `${BRAND.storageKey}${sep}${key}`;
+
+/** Color de marca como [r, g, b] para jsPDF */
+export const BRAND_COLOR_RGB: [number, number, number] = (() => {
+  const hex = BRAND.color.replace('#', '');
+  const n = parseInt(hex.length === 3 ? hex.split('').map((c: string) => c + c).join('') : hex, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+})();

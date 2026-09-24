@@ -1750,7 +1750,7 @@ export default function Sales() {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => handleDelete(sale.id)}
-                                    className="h-7 w-7 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-full opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full opacity-0 group-hover/item:opacity-100 transition-opacity"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
@@ -1767,7 +1767,7 @@ export default function Sales() {
 
               {groupedSales.length === 0 && (
                 <div className="text-center py-16">
-                  <ShoppingCart className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                  <ShoppingCart className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
                   <p className="text-muted-foreground">No hay ventas registradas</p>
                 </div>
               )}
@@ -1998,7 +1998,7 @@ export default function Sales() {
               </div>
             ) : filteredOrders.length === 0 ? (
               <div className="text-center py-16">
-                <ClipboardList className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <ClipboardList className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
                 <p className="text-muted-foreground">No se encontraron pedidos con el filtro seleccionado</p>
               </div>
             ) : (

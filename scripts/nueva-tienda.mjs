@@ -50,6 +50,6 @@ writeFileSync(".env", env);
 
 console.log(`\n✅ .env creado para ${name}.
 Siguientes pasos (detalle en PLANTILLA.md):
-  1. Reemplaza logos: src/assets/logo.jpeg, public/logo.jpeg y los favicons de public/
+  1. Reemplaza logos: src/assets/brand/ (logo-wine, logo-cream, isotipo...) y corre python generate_icons.py
   2. Carga estas mismas variables en Vercel y apunta el dominio ${domain}
   3. Base de datos: Vault (project_url, anon_key) → migraciones → secretos → edge functions\n`);
