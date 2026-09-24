@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/store/ProductCard';
+import { FavoriteButton } from '@/components/store/FavoriteButton';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { usePublicProducts } from '@/hooks/usePublicProducts';
@@ -408,10 +409,10 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Botón principal (DESIGN.md: pill de marca, una acción por vista) */}
-                <div ref={mainCtaRef}>
+                <div ref={mainCtaRef} className="flex gap-3">
                 <Button
                   size="lg"
-                  className="w-full rounded-full text-base font-semibold h-14"
+                  className="flex-1 rounded-full text-base font-semibold h-14"
                   onClick={handleAddToCart}
                   disabled={isAdding || quantity <= 0}
                 >
@@ -440,6 +441,7 @@ export default function ProductDetail() {
                     )}
                   </AnimatePresence>
                 </Button>
+                <FavoriteButton productId={product.id} productName={product.name} variant="outline" />
                 </div>
               </div>
             )}

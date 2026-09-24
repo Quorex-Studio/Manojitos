@@ -440,9 +440,12 @@ export default function Checkout() {
       setStep('confirm');
 
     } catch (error) {
+      // Los errores del servidor (stock, precios) vienen en español y son útiles para el cliente
+      const detail = error instanceof Error ? error.message : (error as { message?: string })?.message;
+      const friendly = detail && /stock|agotad|disponible|precio|producto/i.test(detail) ? detail : null;
       toast({
-        title: 'Error',
-        description: 'Hubo un problema al procesar tu pedido. Intenta de nuevo.',
+        title: 'No pudimos confirmar tu pedido',
+        description: friendly || 'Revisa tu conexión e intenta de nuevo. Tu carrito sigue guardado.',
         variant: 'destructive'
       });
     } finally {
@@ -1318,6 +1321,13 @@ export default function Checkout() {
                   (casheaRef.trim() !== '' && (casheaMethod !== 'pago_movil' || casheaPhone.trim() !== ''));
 
                 const isKycValid = paymentMethod !== 'credito' || kycCompleted;
+                const isPagoMovilValid = paymentMethod !== 'pago_movil' ||
+                  (bancoOrigen.trim() !== '' && /^\d{4,}$/.test(numeroReferencia.trim()) && telefonoEmisor.trim().length >= 10);
+                const missingPayment = paymentMethod === 'pago_movil' ? [
+                  !bancoOrigen.trim() && 'Banco de origen',
+                  !/^\d{4,}$/.test(numeroReferencia.trim()) && 'Referencia (mín. 4 dígitos)',
+                  telefonoEmisor.trim().length < 10 && 'Teléfono emisor',
+                ].filter(Boolean) as string[] : [];
 
                 return (
                   <>
@@ -1347,7 +1357,7 @@ export default function Checkout() {
                     <Button
                       size="lg"
                       className="w-full btn-gold h-14 text-base mt-2 shadow-xl"
-                      disabled={!isShippingValid || !isCasheaValid || !isKycValid || isCreditBlocked || creditLoading || loading || (paymentMethod === 'credito' && !acceptCreditTerms)}
+                      disabled={!isShippingValid || !isPagoMovilValid || !isCasheaValid || !isKycValid || isCreditBlocked || creditLoading || loading || (paymentMethod === 'credito' && !acceptCreditTerms)}
                       onClick={handleSubmitOrder}
                     >
                       {loading ? (
@@ -1375,6 +1385,12 @@ export default function Checkout() {
                             Completar Verificación
                           </Button>
                         </Link>
+                      </div>
+                    )}
+
+                    {isShippingValid && missingPayment.length > 0 && (
+                      <div className="mt-4 p-3 bg-destructive/10 text-destructive text-xs rounded-lg text-center">
+                        Para confirmar el Pago Móvil falta: {missingPayment.join(', ')}
                       </div>
                     )}
 

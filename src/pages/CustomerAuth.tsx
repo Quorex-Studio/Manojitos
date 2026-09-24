@@ -21,7 +21,7 @@ export default function CustomerAuth() {
   const [searchParams] = useSearchParams();
   const { user, signIn, signUp, loading: authLoading } = useAuth();
   
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(searchParams.get('modo') !== 'registro');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -38,12 +38,14 @@ export default function CustomerAuth() {
   const [gettingGPSState, setGettingGPSState] = useState(false); // Used elsewhere or redundant now
   const [hasPromptedLocation, setHasPromptedLocation] = useState(false);
 
-  const redirectTo = searchParams.get('redirect') || '/';
+  // Solo rutas internas ("/algo"), nunca dominios externos ("//sitio.com")
+  const rawRedirect = searchParams.get('redirect') || '/';
+  const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') && !rawRedirect.startsWith('/cliente/auth') ? rawRedirect : '/';
 
   // Redirigir si ya está autenticado
   useEffect(() => {
     if (user) {
-      navigate(redirectTo);
+      navigate(redirectTo, { replace: true });
     }
   }, [user, navigate, redirectTo]);
 
@@ -163,7 +165,7 @@ export default function CustomerAuth() {
             title: '¡Bienvenido!',
             description: 'Has iniciado sesión correctamente'
           });
-          navigate(redirectTo);
+          navigate(redirectTo, { replace: true });
         }
       } else {
         // Registrarse

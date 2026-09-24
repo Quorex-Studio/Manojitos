@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Setting, Grid, Search, Filter, CloseSquare, Package, SliderHorizontal, Grid3, List, ChevronDown } from 'reicon-react';
+import { Setting, Search, Filter, CloseSquare, Package } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -33,96 +33,90 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-// Página del catálogo — Editorial luxury
+// Normaliza texto para buscar sin importar mayúsculas ni acentos
+const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Más recientes' },
+  { value: 'popular', label: 'Más vendidos' },
+  { value: 'price-asc', label: 'Precio: menor a mayor' },
+  { value: 'price-desc', label: 'Precio: mayor a menor' },
+  { value: 'name', label: 'Nombre A-Z' },
+] as const;
+type SortValue = typeof SORT_OPTIONS[number]['value'];
+
+const PAGE_SIZE = 12;
+
+// Catálogo: la URL es la única fuente de verdad (?search=&category=a,b&sort=), así
+// los enlaces del header, el botón atrás y compartir el link muestran lo mismo.
 export default function StoreCatalog() {
-  // --- STATE ---
   const [searchParams, setSearchParams] = useSearchParams();
   const { products, loading, categories } = usePublicProducts();
 
-  // Estado de filtros
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const urlSearch = searchParams.get('search') || '';
+  const selectedCategories = useMemo(
+    () => (searchParams.get('category') || '').split(',').map(c => c.trim()).filter(Boolean),
+    [searchParams]
+  );
+  const sortParam = searchParams.get('sort') as SortValue | null;
+  const sortBy: SortValue = SORT_OPTIONS.some(o => o.value === sortParam) ? (sortParam as SortValue) : 'newest';
+
+  // El input se escribe localmente y se sincroniza con la URL con debounce
+  const [searchQuery, setSearchQuery] = useState(urlSearch);
   const debouncedSearch = useDebounce(searchQuery, 300);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
-    const cat = searchParams.get('category');
-    return cat ? [cat] : [];
-  });
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
-  const [sortBy, setSortBy] = useState('newest');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(12); // Paginación simple
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // --- DERIVED / EFFECTS ---
+  const updateParams = useCallback((changes: Record<string, string | null>) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      Object.entries(changes).forEach(([key, value]) => {
+        if (value) next.set(key, value); else next.delete(key);
+      });
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
-  // Calcular rango de precios máximo
+  // Input -> URL
+  useEffect(() => {
+    const value = debouncedSearch.trim();
+    if (value !== urlSearch) updateParams({ search: value || null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
+
+  // URL -> input (cuando la búsqueda llega desde el header o el botón atrás)
+  useEffect(() => {
+    if (urlSearch !== debouncedSearch.trim()) setSearchQuery(urlSearch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlSearch]);
+
   const maxPrice = useMemo(() => {
     if (products.length === 0) return 1000;
     return Math.ceil(Math.max(...products.map(p => p.price_usd)) / 10) * 10;
   }, [products]);
 
-  // Actualizar priceRange cuando cambien los productos
   useEffect(() => {
     setPriceRange([0, maxPrice]);
   }, [maxPrice]);
 
-  // Sincronizar URL con los cambios de búsqueda o categoría (debounced)
-  useEffect(() => {
-    const params: Record<string, string> = { /* empty */ };
-    if (debouncedSearch.trim()) {
-      params.search = debouncedSearch;
-    }
-    if (selectedCategories.length > 0) {
-      params.category = selectedCategories[0];
-    }
-    
-    const currentSearch = searchParams.get('search') || '';
-    const currentCat = searchParams.get('category') || '';
-    if (currentSearch !== (params.search || '') || currentCat !== (params.category || '')) {
-      setSearchParams(params, { replace: true });
-    }
-  }, [debouncedSearch, selectedCategories, setSearchParams, searchParams]);
-
-  // Sincronizar estado local cuando la URL cambia (ej: navegación del header o breadcrumb)
-  useEffect(() => {
-    const search = searchParams.get('search') || '';
-    const cat = searchParams.get('category');
-    const catArray = cat ? [cat] : [];
-
-    if (search !== searchQuery) {
-      setSearchQuery(search);
-    }
-    if (JSON.stringify(catArray) !== JSON.stringify(selectedCategories)) {
-      setSelectedCategories(catArray);
-    }
-  }, [searchParams, searchQuery, selectedCategories]);
-
-  // Filtrar y ordenar productos
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    // Filtrar por búsqueda
     if (debouncedSearch.trim()) {
-      const query = debouncedSearch.toLowerCase();
-      result = result.filter(p =>
-        p.name.toLowerCase().includes(query) ||
-        (p.description?.toLowerCase().includes(query)) ||
-        (p.category?.toLowerCase().includes(query))
-      );
+      const terms = normalize(debouncedSearch.trim()).split(/\s+/);
+      result = result.filter(p => {
+        const haystack = normalize(`${p.name} ${p.description || ''} ${p.category || ''}`);
+        return terms.every(t => haystack.includes(t));
+      });
     }
 
-    // Filtrar por categorías
     if (selectedCategories.length > 0) {
-      result = result.filter(p =>
-        p.category && selectedCategories.includes(p.category)
-      );
+      result = result.filter(p => p.category && selectedCategories.includes(p.category));
     }
 
-    // Filtrar por rango de precio
-    result = result.filter(p =>
-      p.price_usd >= priceRange[0] && p.price_usd <= priceRange[1]
-    );
+    result = result.filter(p => p.price_usd >= priceRange[0] && p.price_usd <= priceRange[1]);
 
-    // Ordenar
     switch (sortBy) {
       case 'price-asc':
         result.sort((a, b) => a.price_usd - b.price_usd);
@@ -131,42 +125,48 @@ export default function StoreCatalog() {
         result.sort((a, b) => b.price_usd - a.price_usd);
         break;
       case 'name':
-        result.sort((a, b) => a.name.localeCompare(b.name));
+        result.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+        break;
+      case 'popular':
+        result.sort((a, b) => (b.sold_count || 0) - (a.sold_count || 0));
         break;
       case 'newest':
       default:
-        // Ya están ordenados por fecha de creación
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         break;
     }
 
     return result;
   }, [products, debouncedSearch, selectedCategories, priceRange, sortBy]);
 
-  // --- HANDLERS ---
-  // Manejar cambio de categoría
+  // Al cambiar cualquier filtro se vuelve a la primera página
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [debouncedSearch, selectedCategories, priceRange, sortBy]);
+
+  const setCategories = (next: string[]) => updateParams({ category: next.length ? next.join(',') : null });
+
   const toggleCategory = (category: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
+    setCategories(
+      selectedCategories.includes(category)
+        ? selectedCategories.filter(c => c !== category)
+        : [...selectedCategories, category]
     );
   };
 
-  // Limpiar filtros
+  const setSortBy = (value: string) => updateParams({ sort: value === 'newest' ? null : value });
+
   const clearFilters = () => {
     setSearchQuery('');
-    setSelectedCategories([]);
     setPriceRange([0, maxPrice]);
-    setSortBy('newest');
-    setSearchParams({ /* empty */ });
-    setVisibleCount(12);
+    setSearchParams({}, { replace: true });
   };
 
-  const handleLoadMore = () => {
-    setVisibleCount(prev => prev + 12);
-  };
+  const handleLoadMore = () => setVisibleCount(prev => prev + PAGE_SIZE);
 
-  const hasActiveFilters = searchQuery || selectedCategories.length > 0 || priceRange[0] > 0 || priceRange[1] < maxPrice;
+  const priceFiltered = priceRange[0] > 0 || priceRange[1] < maxPrice;
+  const activeFilterCount = (searchQuery ? 1 : 0) + selectedCategories.length + (priceFiltered ? 1 : 0);
+  const hasActiveFilters = activeFilterCount > 0;
 
   // Componente de filtros
   const FiltersContent = () => (
@@ -185,10 +185,13 @@ export default function StoreCatalog() {
               />
               <Label
                 htmlFor={`cat-${category}`}
-                className="text-sm cursor-pointer text-muted-foreground/70 hover:text-foreground transition-colors"
+                className="flex-1 text-sm cursor-pointer text-foreground/80 hover:text-foreground transition-colors"
               >
                 {category}
               </Label>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {products.filter(p => p.category === category).length}
+              </span>
             </div>
           ))}
         </div>
@@ -217,11 +220,11 @@ export default function StoreCatalog() {
       {hasActiveFilters && (
         <Button
           variant="outline"
-          className="w-full rounded-full border-border/20 hover:border-primary/30 text-sm"
+          className="w-full rounded-full border-border text-sm"
           onClick={clearFilters}
         >
           <CloseSquare className="h-3.5 w-3.5 mr-2" />
-          Limpiar Filtros
+          Limpiar filtros
         </Button>
       )}
     </div>
@@ -245,7 +248,7 @@ export default function StoreCatalog() {
                 Nuestra Tienda
               </h1>
               <p className="text-muted-foreground mt-2 text-sm tracking-wide">
-                {loading ? 'Cargando...' : `${filteredProducts.length} productos encontrados`}
+                {loading ? 'Cargando...' : `${filteredProducts.length} ${filteredProducts.length === 1 ? 'producto' : 'productos'}`}
               </p>
             </div>
           </div>
@@ -259,10 +262,22 @@ export default function StoreCatalog() {
               type="text"
               placeholder="Buscar productos..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, ''))}
-              className="pl-10 h-11 bg-card/80 backdrop-blur-sm border-border/15 rounded-full text-sm focus:border-primary/30 transition-all duration-300"
+              onChange={(e) => setSearchQuery(e.target.value.slice(0, 60))}
+              aria-label="Buscar productos"
+              enterKeyHint="search"
+              className="pl-10 pr-10 h-11 bg-card/80 backdrop-blur-sm border-border/15 rounded-full text-sm focus:border-primary/30 transition-all duration-300"
             />
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Borrar búsqueda"
+                className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <CloseSquare className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -273,63 +288,49 @@ export default function StoreCatalog() {
                   <Setting className="h-4 w-4 mr-2" />
                   Filtros
                   {hasActiveFilters && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-gold rounded-full shadow-gold" />
+                    <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                      {activeFilterCount}
+                    </span>
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80 bg-background/95 backdrop-blur-2xl border-border/10">
+              <SheetContent side="left" className="w-80 overflow-y-auto bg-background border-border">
                 <SheetHeader>
                   <SheetTitle className="font-serif tracking-tight">Filtros</SheetTitle>
                 </SheetHeader>
                 <div className="mt-8">
                   <FiltersContent />
                 </div>
+                <Button className="mt-8 h-12 w-full rounded-full font-semibold" onClick={() => setShowFilters(false)}>
+                  Ver {filteredProducts.length} {filteredProducts.length === 1 ? 'producto' : 'productos'}
+                </Button>
               </SheetContent>
             </Sheet>
 
             {/* Sort */}
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px] h-11 bg-card/80 backdrop-blur-sm border-border/15 rounded-full text-sm">
+              <SelectTrigger aria-label="Ordenar por" className="flex-1 md:w-[200px] md:flex-none h-11 bg-card border-border rounded-full text-sm">
                 <SelectValue placeholder="Ordenar por" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="newest">Más recientes</SelectItem>
-                <SelectItem value="price-asc">Precio: Menor a Mayor</SelectItem>
-                <SelectItem value="price-desc">Precio: Mayor a Menor</SelectItem>
-                <SelectItem value="name">Nombre A-Z</SelectItem>
+                {SORT_OPTIONS.map(o => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            {/* View mode - Desktop */}
-            <div className="hidden md:flex items-center border border-border/15 rounded-full overflow-hidden bg-card/80 backdrop-blur-sm">
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`rounded-none h-11 w-11 ${viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}
-                onClick={() => setViewMode('grid')}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`rounded-none h-11 w-11 ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}
-                onClick={() => setViewMode('list')}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
         </div>
 
         {/* Category Chips (Quick Filter) */}
         {!loading && categories.length > 0 && (
-          <div className="flex overflow-x-auto pb-2 mb-6 gap-2 scrollbar-hide">
+          <div className="-mx-4 flex overflow-x-auto px-4 pb-2 mb-6 gap-2 scrollbar-hide md:mx-0 md:px-0">
             <Button
               variant={selectedCategories.length === 0 ? "default" : "outline"}
               size="sm"
-              className={`rounded-full whitespace-nowrap ${selectedCategories.length === 0 ? 'bg-primary text-primary-foreground' : 'bg-card/80 border-border/15'}`}
-              onClick={() => setSelectedCategories([])}
+              className={`h-10 rounded-full px-4 whitespace-nowrap ${selectedCategories.length === 0 ? 'bg-primary text-primary-foreground' : 'bg-card/80 border-border/15'}`}
+              onClick={() => setCategories([])}
+              aria-pressed={selectedCategories.length === 0}
             >
               Todos
             </Button>
@@ -338,8 +339,9 @@ export default function StoreCatalog() {
                 key={cat}
                 variant={selectedCategories.includes(cat) ? "default" : "outline"}
                 size="sm"
-                className={`rounded-full whitespace-nowrap ${selectedCategories.includes(cat) ? 'bg-primary text-primary-foreground' : 'bg-card/80 border-border/15'}`}
+                className={`h-10 rounded-full px-4 whitespace-nowrap ${selectedCategories.includes(cat) ? 'bg-primary text-primary-foreground' : 'bg-card/80 border-border/15'}`}
                 onClick={() => toggleCategory(cat)}
+                aria-pressed={selectedCategories.includes(cat)}
               >
                 {cat}
               </Button>
@@ -353,7 +355,7 @@ export default function StoreCatalog() {
             {searchQuery && (
               <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 Búsqueda: "{searchQuery}"
-                <button onClick={() => setSearchQuery('')} className="ml-2 text-muted-foreground hover:text-foreground">
+                <button onClick={() => setSearchQuery('')} aria-label="Quitar búsqueda" className="ml-2 text-muted-foreground hover:text-foreground">
                   <CloseSquare className="h-3 w-3" />
                 </button>
               </Badge>
@@ -361,7 +363,7 @@ export default function StoreCatalog() {
             {selectedCategories.map(cat => (
               <Badge key={cat} variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 {cat}
-                <button onClick={() => toggleCategory(cat)} className="ml-2 text-muted-foreground hover:text-foreground">
+                <button onClick={() => toggleCategory(cat)} aria-label={`Quitar ${cat}`} className="ml-2 text-muted-foreground hover:text-foreground">
                   <CloseSquare className="h-3 w-3" />
                 </button>
               </Badge>
@@ -369,7 +371,7 @@ export default function StoreCatalog() {
             {(priceRange[0] > 0 || priceRange[1] < maxPrice) && (
               <Badge variant="secondary" className="px-3 py-1.5 rounded-full bg-card/80 backdrop-blur-sm border-border/15 text-xs tracking-wide">
                 ${priceRange[0]} - ${priceRange[1]}
-                <button onClick={() => setPriceRange([0, maxPrice])} className="ml-2 text-muted-foreground hover:text-foreground">
+                <button onClick={() => setPriceRange([0, maxPrice])} aria-label="Quitar filtro de precio" className="ml-2 text-muted-foreground hover:text-foreground">
                   <CloseSquare className="h-3 w-3" />
                 </button>
               </Badge>
@@ -385,7 +387,7 @@ export default function StoreCatalog() {
             <div className="sticky top-24 space-y-6">
               <div className="p-6 rounded-2xl bg-card/80 backdrop-blur-sm border border-border/10">
                 <h3 className="font-serif text-foreground/80 mb-6 flex items-center gap-2 text-sm tracking-wide">
-                  <Filter className="h-4 w-4 text-gold/60" />
+                  <Filter className="h-4 w-4 text-primary" />
                   Filtros
                 </h3>
                 <FiltersContent />
@@ -397,7 +399,7 @@ export default function StoreCatalog() {
           {/* Products Grid */}
           <div className="flex-1">
             {loading ? (
-              <div className={`grid gap-5 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+              <div className={`grid gap-5 grid-cols-2 lg:grid-cols-3`}>
                 {[...Array(9)].map((_, i) => (
                   <div key={i} className="space-y-3">
                     <div className="aspect-[3/4] rounded-2xl skeleton-shimmer" />
@@ -408,7 +410,7 @@ export default function StoreCatalog() {
               </div>
             ) : filteredProducts.length > 0 ? (
               <>
-                <div className={`grid gap-5 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                <div className={`grid gap-5 grid-cols-2 lg:grid-cols-3`}>
                   <AnimatePresence mode="popLayout">
                     {filteredProducts.slice(0, visibleCount).map((product, index) => (
                       <ProductCard key={product.id} product={product} index={index} allProducts={products} />
@@ -418,12 +420,12 @@ export default function StoreCatalog() {
                 
                 {visibleCount < filteredProducts.length && (
                   <div className="flex justify-center mt-12 mb-8">
-                    <Button 
-                      variant="outline" 
-                      className="rounded-full px-8 border-border/20 hover:border-primary/50 text-sm tracking-wide"
+                    <Button
+                      variant="outline"
+                      className="h-12 rounded-full px-8 border-border text-sm"
                       onClick={handleLoadMore}
                     >
-                      Cargar más productos
+                      Ver más ({filteredProducts.length - visibleCount} restantes)
                     </Button>
                   </div>
                 )}
@@ -434,15 +436,15 @@ export default function StoreCatalog() {
                 animate={{ opacity: 1 }}
                 className="flex flex-col items-center justify-center py-24 text-center"
               >
-                <Package className="h-20 w-20 text-muted-foreground/15 mb-4" />
+                <Package className="h-16 w-16 text-muted-foreground/40 mb-4" />
                 <h3 className="text-xl font-serif text-foreground/80 mb-2 tracking-tight">
                   No encontramos productos
                 </h3>
                 <p className="text-muted-foreground mb-6 max-w-md text-sm tracking-wide">
-                  Intenta con otros filtros o términos de búsqueda
+                  {debouncedSearch ? `Nada coincide con "${debouncedSearch}". ` : ''}Prueba con otra palabra o quita algún filtro.
                 </p>
-                <Button onClick={clearFilters} className="rounded-full btn-gold px-8">
-                  Limpiar Filtros
+                <Button onClick={clearFilters} className="h-12 rounded-full px-8">
+                  Ver todos los productos
                 </Button>
               </motion.div>
             )}

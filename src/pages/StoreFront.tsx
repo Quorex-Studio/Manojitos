@@ -214,7 +214,7 @@ export default function StoreFront() {
           </div>
           <div className="relative flex flex-col gap-3 sm:flex-row md:flex-col md:items-end">
             <Button asChild size="lg" className="h-12 rounded-full bg-cream px-8 text-base font-semibold text-wine hover:bg-cream/90">
-              <Link to="/cliente/auth">Crear mi cuenta</Link>
+              <Link to="/cliente/auth?modo=registro">Crear mi cuenta</Link>
             </Button>
             <Button asChild variant="ghost" size="lg" className="h-12 rounded-full px-8 text-base text-cream hover:bg-cream/10 hover:text-cream">
               <Link to="/faq">Ver preguntas frecuentes</Link>

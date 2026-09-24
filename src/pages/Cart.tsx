@@ -188,7 +188,7 @@ export default function Cart() {
 
               <div className="space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal ({itemCount} productos)</span>
+                  <span className="text-muted-foreground">Subtotal ({itemCount} {itemCount === 1 ? 'producto' : 'productos'})</span>
                   <PriceDisplay amountUsd={total} primaryClassName="text-foreground/80" showSecondary={false} />
                 </div>
                 <div className="flex justify-between text-sm">
@@ -231,7 +231,7 @@ export default function Cart() {
                 </div>
               ) : (
                 <Link to="/checkout" className="block mt-8" onClick={(e) => creditLoading && e.preventDefault()}>
-                  <Button size="lg" className="w-full btn-gold btn-shimmer rounded-full h-13 text-base" disabled={creditLoading}>
+                  <Button size="lg" className="w-full rounded-full h-13 text-base font-semibold" disabled={creditLoading}>
                     <Sparkles className="h-4 w-4 mr-2" />
                     {creditLoading ? 'Verificando...' : 'Proceder al Pago'}
                   </Button>

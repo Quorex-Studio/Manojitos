@@ -1,5 +1,5 @@
 import { storageKey } from '@/config/brand';
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 // Interfaz del item en el carrito
@@ -43,7 +43,11 @@ const loadCart = (userId: string | null): CartItem[] => {
 
 // Helper para guardar el carrito
 const saveCart = (userId: string | null, items: CartItem[]) => {
-  localStorage.setItem(getCartKey(userId), JSON.stringify(items));
+  try {
+    localStorage.setItem(getCartKey(userId), JSON.stringify(items));
+  } catch {
+    // Almacenamiento lleno o bloqueado (modo privado): el carrito sigue en memoria
+  }
 };
 
 // Crear el contexto
@@ -52,29 +56,62 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 // Provider del carrito
 export function CartProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
-  const [items, setItems] = useState<CartItem[]>([]);
+  // Se arranca con el carrito de invitado para que no "parpadee" vacío al recargar
+  const [items, setItems] = useState<CartItem[]>(() => loadCart(null));
+  // No se guarda nada hasta haber cargado el carrito correcto (evita sobrescribirlo con [])
+  const [loaded, setLoaded] = useState(false);
+  const currentUserRef = useRef<string | null | undefined>(undefined);
 
-  // Suscribirse a cambios de autenticación para cargar el carrito correcto
+  // Carga el carrito del usuario; si inició sesión con cosas en el carrito de invitado,
+  // se fusionan en su cuenta para que no pierda lo que eligió antes de entrar.
+  const loadFor = useCallback((id: string | null) => {
+    if (id) {
+      const guest = loadCart(null);
+      const own = loadCart(id);
+      if (guest.length > 0) {
+        const merged = [...own];
+        guest.forEach(g => {
+          const existing = merged.find(i => i.id === g.id && i.size === g.size);
+          if (existing) existing.quantity = Math.min(Math.max(existing.quantity, g.quantity), g.stock);
+          else merged.push(g);
+        });
+        localStorage.removeItem(getCartKey(null));
+        setItems(merged);
+      } else {
+        setItems(own);
+      }
+    } else {
+      setItems(loadCart(null));
+    }
+    currentUserRef.current = id;
+    setUserId(id);
+    setLoaded(true);
+  }, []);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const id = session?.user?.id ?? null;
-      setUserId(id);
-      setItems(loadCart(id));
-    });
+    supabase.auth.getSession().then(({ data: { session } }) => loadFor(session?.user?.id ?? null));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const id = session?.user?.id ?? null;
-      setUserId(id);
-      setItems(loadCart(id));
+      if (currentUserRef.current !== id) loadFor(id);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [loadFor]);
 
-  // Persistir cambios en localStorage cada vez que items o userId cambien
+  // Persistir cambios (solo después de cargar)
   useEffect(() => {
-    saveCart(userId, items);
-  }, [items, userId]);
+    if (loaded) saveCart(userId, items);
+  }, [items, userId, loaded]);
+
+  // Sincronizar entre pestañas abiertas
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === getCartKey(userId)) setItems(loadCart(userId));
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [userId]);
 
   // Agregar producto al carrito
   const addItem = useCallback((product: CartItem) => {
@@ -137,8 +174,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Obtener cantidad de un producto en el carrito
   const getItemQuantity = useCallback((productId: string, size?: string) => {
-    const item = items.find(item => item.id === productId && (!size || item.size === size));
-    return item ? item.quantity : 0;
+    // Sin talla: total de ese producto en todas sus tallas (lo que realmente descuenta stock)
+    return items
+      .filter(item => item.id === productId && (!size || item.size === size))
+      .reduce((total, item) => total + item.quantity, 0);
   }, [items]);
 
   // Memoizar el valor del contexto para evitar re-renders innecesarios

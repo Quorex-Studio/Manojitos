@@ -8,7 +8,7 @@ const SHOP_LINKS = [
   { to: '/', label: 'Inicio' },
   { to: '/tienda', label: 'Tienda' },
   { to: '/carrito', label: 'Mi carrito' },
-  { to: '/cliente/auth', label: 'Mi cuenta' },
+  { to: '/cliente/perfil', label: 'Mi cuenta' },
 ];
 
 const HELP_LINKS = [

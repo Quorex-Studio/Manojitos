@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { PublicProduct } from '@/hooks/usePublicProducts';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
+import { FavoriteButton } from './FavoriteButton';
 import { getAvailableSizes } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
@@ -126,9 +127,12 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
                   category: p.category
                 }))}
                 maxLabels={1}
+                exclude={['low_stock']}
               />
             )}
           </div>
+
+          <FavoriteButton productId={product.id} productName={product.name} className="absolute right-3 top-3" />
 
           {/* Acción rápida: agregar / elegir talla */}
           {!soldOut && (

@@ -17,8 +17,8 @@ export function MobileTabBar() {
     { to: '/', label: 'Inicio', icon: Home, active: pathname === '/' },
     { to: '/tienda', label: 'Tienda', icon: Store, active: pathname.startsWith('/tienda') || pathname.startsWith('/producto') },
     { to: '/carrito', label: 'Carrito', icon: ShoppingBag, active: pathname.startsWith('/carrito') || pathname.startsWith('/checkout'), badge: itemCount },
-    { to: user ? '/cliente/favoritos' : '/cliente/auth', label: 'Favoritos', icon: Heart, active: pathname.startsWith('/cliente/favoritos') },
-    { to: user ? '/cliente/perfil' : '/cliente/auth', label: user ? 'Mi cuenta' : 'Entrar', icon: User, active: pathname.startsWith('/cliente') && !pathname.startsWith('/cliente/favoritos') },
+    { to: '/cliente/favoritos', label: 'Favoritos', icon: Heart, active: pathname.startsWith('/cliente/favoritos') },
+    { to: user ? '/cliente/perfil' : `/cliente/auth?redirect=${encodeURIComponent(pathname)}`, label: user ? 'Mi cuenta' : 'Entrar', icon: User, active: pathname.startsWith('/cliente') && !pathname.startsWith('/cliente/favoritos') },
   ];
 
   return (

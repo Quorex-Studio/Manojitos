@@ -46,8 +46,7 @@ export function UserMenu() {
   if (!user) {
     return (
       <Link 
-        to="/cliente/auth" 
-        state={{ from: location.pathname }}
+        to={`/cliente/auth?redirect=${encodeURIComponent(location.pathname + location.search)}`}
       >
         <Button 
           variant="outline" 

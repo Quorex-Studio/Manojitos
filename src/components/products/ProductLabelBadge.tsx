@@ -8,18 +8,18 @@ interface ProductLabelBadgeProps {
 }
 
 export function ProductLabelBadge({ label, size = 'sm' }: ProductLabelBadgeProps) {
-  const sizeClasses = size === 'sm' 
-    ? 'text-[10px] px-1.5 py-0.5' 
-    : 'text-xs px-2 py-1';
+  const sizeClasses = size === 'sm'
+    ? 'text-[11px] px-2.5 py-1'
+    : 'text-xs px-3 py-1';
 
   return (
     <motion.span
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-      className={`${label.color} ${sizeClasses} rounded-full font-medium inline-flex items-center gap-1 shadow-sm`}
+      className={`${label.color} ${sizeClasses} rounded-full font-semibold inline-flex items-center gap-1 shadow-sm`}
     >
-      <span>{label.icon}</span>
+      {label.icon && <span aria-hidden="true">{label.icon}</span>}
       <span>{label.text}</span>
     </motion.span>
   );
@@ -74,16 +74,19 @@ interface AutoProductLabelsProps {
   maxLabels?: number;
   size?: 'sm' | 'md';
   className?: string;
+  /** Tipos a omitir (p. ej. la tarjeta ya muestra "Quedan N" junto a la categoría) */
+  exclude?: ProductLabel['type'][];
 }
 
-export function AutoProductLabels({ 
-  product, 
-  allProducts, 
+export function AutoProductLabels({
+  product,
+  allProducts,
+  exclude = [],
   maxLabels = 3,
   size = 'sm',
   className = ''
 }: AutoProductLabelsProps) {
-  const labels = useProductLabels(product, allProducts);
+  const labels = useProductLabels(product, allProducts).filter(l => !exclude.includes(l.type));
   
   if (labels.length === 0) return null;
   

@@ -88,7 +88,7 @@ export function StoreHeader() {
   const navLinks = [
     { to: '/', label: 'Inicio' },
     { to: '/tienda', label: 'Tienda' },
-    { to: '/tienda?category=destacados', label: 'Destacados' },
+    { to: '/tienda?sort=popular', label: 'Más vendidos' },
   ];
 
   return (
@@ -154,7 +154,7 @@ export function StoreHeader() {
                   type="text"
                   placeholder="Buscar..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, ''))}
+                  onChange={(e) => setSearchQuery(e.target.value.slice(0, 60))}
                   className="w-44 lg:w-56 pl-9 pr-4 h-9 bg-card/80 backdrop-blur-sm border-border/30 rounded-full text-sm focus:w-64 focus:border-primary/30 transition-all duration-400"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
@@ -270,7 +270,7 @@ export function StoreHeader() {
                     type="text"
                     placeholder="Buscar productos..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, ''))}
+                    onChange={(e) => setSearchQuery(e.target.value.slice(0, 60))}
                     className="w-full pl-10 pr-4 h-11 bg-card/80 backdrop-blur-sm border-border/30 rounded-full"
                     autoFocus
                   />
@@ -409,8 +409,7 @@ export function StoreHeader() {
                     <hr className="my-2 border-border/10 mx-4" />
                     <div className="px-4 py-2">
                       <Link
-                        to="/cliente/auth"
-                        state={{ from: location.pathname }}
+                        to={`/cliente/auth?redirect=${encodeURIComponent(location.pathname + location.search)}`}
                         onClick={() => setIsMenuOpen(false)}
                         className="w-full block"
                       >

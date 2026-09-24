@@ -1,6 +1,6 @@
 /**
  * useProductLabels — Pure logic hook to calculate automatic badges for products.
- * Labels: New (7 days), Bestseller (top 20% sales), Low Stock (<=3), Premium (top 25% price).
+ * Labels: Bestseller (top 20% sales), New (14 days), Low Stock (<=3).
  * Returns: ProductLabel[]
  */
 // Hook para calcular etiquetas automáticas de productos
@@ -22,69 +22,38 @@ interface ProductForLabels {
   category?: string | null;
 }
 
+// Etiquetas en orden de prioridad (la tarjeta muestra solo la primera):
+// Más vendido > Nuevo > Últimas unidades. Sin emojis (DESIGN.md: una etiqueta sobria).
 export function calculateProductLabels(product: ProductForLabels, allProducts?: ProductForLabels[]): ProductLabel[] {
   const labels: ProductLabel[] = [];
-  const now = new Date();
-  const createdAt = new Date(product.created_at);
-  const daysSinceCreation = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+  const daysSinceCreation = Math.floor((Date.now() - new Date(product.created_at).getTime()) / 86_400_000);
 
-  // 🆕 Nuevo - productos de menos de 7 días
-  if (daysSinceCreation <= 7) {
-    labels.push({
-      type: 'new',
-      text: 'Nuevo',
-      icon: '🆕',
-      color: 'bg-primary text-primary-foreground'
-    });
-  }
-
-  // 🔥 Más vendido - si tiene más de 10 ventas o está en top 20%
+  // Más vendido: top 20% en ventas con al menos 5 unidades vendidas
+  let isTopSeller = false;
   if (allProducts && allProducts.length > 0) {
     const sortedBySales = [...allProducts].sort((a, b) => b.sold_count - a.sold_count);
-    const topPercentile = Math.ceil(allProducts.length * 0.2);
-    const isTopSeller = sortedBySales.slice(0, topPercentile).some(p => p.id === product.id);
-    
-    if (isTopSeller && product.sold_count >= 5) {
-      labels.push({
-        type: 'bestseller',
-        text: 'Más vendido',
-        icon: '🔥',
-        color: 'bg-gold text-white'
-      });
-    }
-  } else if (product.sold_count >= 10) {
-    labels.push({
-      type: 'bestseller',
-      text: 'Más vendido',
-      icon: '🔥',
-      color: 'bg-gold/10 text-gold'
-    });
+    const topCount = Math.ceil(allProducts.length * 0.2);
+    isTopSeller = sortedBySales.slice(0, topCount).some(p => p.id === product.id) && product.sold_count >= 5;
+  } else {
+    isTopSeller = product.sold_count >= 10;
+  }
+  if (isTopSeller) {
+    labels.push({ type: 'bestseller', text: 'Más vendido', icon: '', color: 'bg-foreground text-background' });
   }
 
-  // ⏳ Últimas unidades - stock bajo (3 o menos)
+  // Nuevo: menos de 14 días en la tienda
+  if (daysSinceCreation <= 14) {
+    labels.push({ type: 'new', text: 'Nuevo', icon: '', color: 'bg-primary text-primary-foreground' });
+  }
+
+  // Últimas unidades
   if (product.stock > 0 && product.stock <= 3) {
     labels.push({
       type: 'low_stock',
-      text: `¡Solo ${product.stock}!`,
-      icon: '⏳',
-      color: 'bg-gold/10 text-gold'
+      text: product.stock === 1 ? 'Última unidad' : `Últimas ${product.stock}`,
+      icon: '',
+      color: 'bg-background text-sale',
     });
-  }
-
-  // 💰 Mejor margen - productos con precio alto (top 25%)
-  if (allProducts && allProducts.length > 0) {
-    const sortedByPrice = [...allProducts].sort((a, b) => b.price_usd - a.price_usd);
-    const topQuartile = Math.ceil(allProducts.length * 0.25);
-    const isHighMargin = sortedByPrice.slice(0, topQuartile).some(p => p.id === product.id);
-    
-    if (isHighMargin && product.price_usd >= 20) {
-      labels.push({
-        type: 'best_margin',
-        text: 'Premium',
-        icon: '💎',
-        color: 'bg-rose-dark text-white'
-      });
-    }
   }
 
   return labels;
