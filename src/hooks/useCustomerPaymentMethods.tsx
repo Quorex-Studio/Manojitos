@@ -19,14 +19,17 @@ export const PAYMENT_METHOD_TYPES = [
   { id: 'efectivo_bs', label: 'Efectivo Bs', description: 'Pago en bolívares en efectivo' },
   { id: 'zelle', label: 'Zelle', description: 'Transferencia Zelle' },
   { id: 'pago_movil', label: 'Pago Móvil', description: 'Pago móvil venezolano' },
-  { id: 'transferencia', label: 'Transferencia', description: 'Transferencia bancaria' },
+  { id: 'transferencia', label: 'Transferencia Bs', description: 'Transferencia bancaria' },
+  { id: 'binance', label: 'Binance', description: 'Binance Pay o USDT' },
+  { id: 'zinli', label: 'Zinli', description: 'Billetera Zinli' },
+  { id: 'wally', label: 'Wally', description: 'Billetera Wally' },
 ] as const;
 
 export type PaymentMethodType = typeof PAYMENT_METHOD_TYPES[number]['id'];
 
 // Schema de validación
 const paymentMethodSchema = z.object({
-  method_type: z.enum(['efectivo_usd', 'efectivo_bs', 'zelle', 'pago_movil', 'transferencia']),
+  method_type: z.enum(['efectivo_usd', 'efectivo_bs', 'zelle', 'pago_movil', 'transferencia', 'binance', 'zinli', 'wally']),
   alias: z.string().max(50).optional().nullable(),
   details: z.object({
     bank_name: z.string().optional(),

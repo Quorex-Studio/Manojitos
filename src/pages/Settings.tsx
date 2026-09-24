@@ -1,4 +1,5 @@
 import { BRAND_NAME } from '@/config/brand';
+import { paymentConfigLabel } from '@/lib/paymentMethodFields';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -367,7 +368,7 @@ export default function Settings() {
                 </div>
                 {Object.entries(editingMethod.config || { /* empty */ }).map(([key, value]) => (
                   <div className="space-y-1" key={key}>
-                    <Label className="capitalize">{key}</Label>
+                    <Label>{paymentConfigLabel(key)}</Label>
                     <Input value={value} onChange={e => setEditingMethod({ ...editingMethod, config: { ...editingMethod.config, [key]: e.target.value } })} />
                   </div>
                 ))}

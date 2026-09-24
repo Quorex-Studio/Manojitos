@@ -35,6 +35,9 @@ export const BRAND = {
 } as const;
 
 export const BRAND_NAME = BRAND.name;
+/** Métodos de pago que se anuncian en la tienda (lista separada por comas en VITE_BRAND_PAYMENT_METHODS) */
+export const BRAND_PAYMENT_METHODS: string[] = (env.VITE_BRAND_PAYMENT_METHODS || 'Pago Móvil,Transferencia Bs,Efectivo')
+  .split(',').map((m: string) => m.trim()).filter(Boolean);
 export const BRAND_NAME_UPPER = BRAND.name.toUpperCase();
 export const BRAND_SITE_URL = `https://${BRAND.domain}`;
 export const BRAND_WHATSAPP_URL = BRAND.whatsapp ? `https://wa.me/${BRAND.whatsapp.replace(/\D/g, '')}` : '';

@@ -49,6 +49,8 @@ import { User } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
 import { sanitizeText } from '@/lib/validations';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
+import { PaymentInfoPanel } from '@/components/payments/PaymentInfoPanel';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
 function getNextQuincenas(baseDate: Date, numQuincenas: number): Date[] {
   const day = baseDate.getDate();
@@ -304,6 +306,7 @@ export default function CustomerCredit() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('pago_movil');
+  const { methods: storeMethods } = usePaymentMethods(false);
   const [reference, setReference] = useState('');
   const [paymentDate, setPaymentDate] = useState(todayStr);
   const [notes, setNotes] = useState('');
@@ -699,21 +702,18 @@ export default function CustomerCredit() {
                                 <SelectValue placeholder="Selecciona un método" />
                               </SelectTrigger>
                               <SelectContent className="bg-background/95 border-border dark:border-white/10">
-                                <SelectItem value="pago_movil">Pago Móvil</SelectItem>
-                                <SelectItem value="zelle">Zelle</SelectItem>
-                                <SelectItem value="transferencia">Transferencia Bancaria</SelectItem>
-                                <SelectItem value="efectivo">Efectivo en Tienda</SelectItem>
+                                {storeMethods.map(m => (
+                                  <SelectItem key={m.method_key} value={m.method_key}>{m.label}</SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </div>
   
-                          {paymentMethod === 'pago_movil' && (
-                            <div className="text-xs bg-gold/10 p-3.5 rounded-xl border border-gold/30 text-foreground space-y-1">
-                              <p className="font-bold text-gold uppercase text-[11px] tracking-wider">Datos para Pago Móvil:</p>
-                              <p className="font-semibold text-sm">Banco: Bancamiga • Tlf: 04248780607</p>
-                              <p className="text-xs text-muted-foreground">C.I: 30785117 • Josmaris De Los Ángeles</p>
-                            </div>
-                          )}
+                          <PaymentInfoPanel
+                            method={paymentMethod}
+                            label={storeMethods.find(m => m.method_key === paymentMethod)?.label}
+                            config={storeMethods.find(m => m.method_key === paymentMethod)?.config as Record<string, string> | undefined}
+                          />
 
                           {paymentMethod !== 'efectivo' && (
                             <div className="space-y-3">

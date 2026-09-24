@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Home, Store, ShoppingBag, Heart, User } from 'reicon-react';
+import { Home, Store, ShoppingBag, Heart, User, Category } from 'reicon-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 export function MobileTabBar() {
   const { pathname } = useLocation();
   const { getItemCount } = useCart();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const reduceMotion = useReducedMotion();
   const itemCount = getItemCount();
 
@@ -18,7 +18,10 @@ export function MobileTabBar() {
     { to: '/tienda', label: 'Tienda', icon: Store, active: pathname.startsWith('/tienda') || pathname.startsWith('/producto') },
     { to: '/carrito', label: 'Carrito', icon: ShoppingBag, active: pathname.startsWith('/carrito') || pathname.startsWith('/checkout'), badge: itemCount },
     { to: '/cliente/favoritos', label: 'Favoritos', icon: Heart, active: pathname.startsWith('/cliente/favoritos') },
-    { to: user ? '/cliente/perfil' : `/cliente/auth?redirect=${encodeURIComponent(pathname)}`, label: user ? 'Mi cuenta' : 'Entrar', icon: User, active: pathname.startsWith('/cliente') && !pathname.startsWith('/cliente/favoritos') },
+    // La administradora va directo a su panel; las clientas, a su cuenta.
+    isAdmin
+      ? { to: '/dashboard', label: 'Panel', icon: Category, active: false }
+      : { to: user ? '/cliente/perfil' : `/cliente/auth?redirect=${encodeURIComponent(pathname)}`, label: user ? 'Mi cuenta' : 'Entrar', icon: User, active: pathname.startsWith('/cliente') && !pathname.startsWith('/cliente/favoritos') },
   ];
 
   return (

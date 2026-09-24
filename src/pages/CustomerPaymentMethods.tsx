@@ -20,7 +20,7 @@ import { useCustomerPaymentMethods, PAYMENT_METHOD_TYPES, PaymentMethodInput, Pa
 import { sanitizeText } from '@/lib/validations';
 
 const paymentMethodFormSchema = z.object({
-  method_type: z.enum(['efectivo_usd', 'efectivo_bs', 'zelle', 'pago_movil', 'transferencia']),
+  method_type: z.enum(['efectivo_usd', 'efectivo_bs', 'zelle', 'pago_movil', 'transferencia', 'binance', 'zinli', 'wally']),
   alias: z.string().max(50).optional().transform(val => val ? sanitizeText(val) : val),
   bank_name: z.string().max(100).optional().transform(val => val ? sanitizeText(val) : val),
   phone_number: z.string().regex(/^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').optional().or(z.literal('')).transform(val => val ? sanitizeText(val) : val),
@@ -35,7 +35,10 @@ const methodIcons: Record<PaymentMethodType, React.ReactNode> = {
   efectivo_bs: <Wallet className="h-5 w-5 text-primary/70" />,
   zelle: <Mailbox className="h-5 w-5 text-primary" />,
   pago_movil: <Phone className="h-5 w-5 text-gold" />,
-  transferencia: <Building2 className="h-5 w-5 text-cyan-500" />,
+  transferencia: <Building2 className="h-5 w-5 text-primary" />,
+  binance: <Wallet className="h-5 w-5 text-primary" />,
+  zinli: <Wallet className="h-5 w-5 text-primary" />,
+  wally: <Wallet className="h-5 w-5 text-primary" />,
 };
 
 export default function CustomerPaymentMethods() {

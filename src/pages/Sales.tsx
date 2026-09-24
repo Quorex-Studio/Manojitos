@@ -32,6 +32,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { notifyCustomer } from '@/lib/notify';
 import { ProductSummaryTab } from '@/components/sales/ProductSummaryTab';
 import { NewSaleDialog } from '@/components/sales/NewSaleDialog';
+import { PAYMENT_METHOD_LABELS } from '@/lib/paymentMethodFields';
 import { Sale, Product, CheckoutItem, OrderItem, ProductDebtor, SaleStatus, SalePayment, SaleReturnType } from '@/types';
 
 export interface GroupedReceivable {
@@ -61,7 +62,7 @@ export interface GroupedSale {
 
 const formatPaymentMethod = (method: string) => {
   if (!method) return '';
-  return method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  return PAYMENT_METHOD_LABELS[method] || method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
 const renderOrderNotes = (notes: string) => {
@@ -1720,11 +1721,9 @@ export default function Sales() {
                   <SelectValue placeholder="Seleccionar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pago_movil">Pago Móvil</SelectItem>
-                  <SelectItem value="transferencia">Transferencia Bs</SelectItem>
-                  <SelectItem value="efectivo_usd">Efectivo USD</SelectItem>
-                  <SelectItem value="efectivo_bs">Efectivo Bs</SelectItem>
-                  <SelectItem value="zelle">Zelle</SelectItem>
+                  {Object.entries(PAYMENT_METHOD_LABELS).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

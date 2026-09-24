@@ -1,4 +1,4 @@
-import { BRAND, BRAND_NAME, BRAND_WHATSAPP_URL } from '@/config/brand';
+import { BRAND, BRAND_NAME, BRAND_PAYMENT_METHODS, BRAND_WHATSAPP_URL } from '@/config/brand';
 // Página de Atención al Cliente / Soporte
 import { motion } from 'framer-motion';
 import { Phone, Mailbox, Clock, MessageSquare, AlertTriangle, ShieldCheck, HelpCircle } from 'reicon-react';
@@ -15,7 +15,7 @@ export default function Atencion() {
     },
     {
       question: "¿Cuáles son los métodos de pago aceptados?",
-      answer: "Aceptamos Pago Móvil, transferencias bancarias a Bancamiga o Banco de Venezuela, y pagos en efectivo (según la zona). Los detalles exactos para realizar los pagos se muestran al finalizar tu compra o en tu panel de facturación."
+      answer: `Aceptamos ${BRAND_PAYMENT_METHODS.join(', ')}. Los precios son referenciales a tasa BCV del día. Los datos para pagar se muestran al finalizar tu compra.`
     },
     {
       question: "¿Qué pasa si me retraso con el pago de mi crédito?",

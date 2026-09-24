@@ -16,6 +16,7 @@ import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { getNextTwoCutoffDates, formatCutoffDate } from '@/lib/cutoffDates';
 import { BRAND_NAME_UPPER } from '@/config/brand';
 import { formatBS, cn } from '@/lib/utils';
+import { PAYMENT_METHOD_LABELS } from '@/lib/paymentMethodFields';
 import { toast } from 'sonner';
 
 type SaleModality = 'contado' | 'dos_partes' | 'financiamiento' | 'fiado';
@@ -25,13 +26,9 @@ interface CartLine { productId: string; qty: number }
 
 const EMPTY_CLIENT = { dni: '', name: '', phone: '', email: '', address: '' };
 const BS_METHODS = ['efectivo_bs', 'pago_movil', 'transferencia'];
-const FALLBACK_METHODS = [
-  { method_key: 'efectivo_usd', label: 'Efectivo $' },
-  { method_key: 'efectivo_bs', label: 'Efectivo Bs' },
-  { method_key: 'pago_movil', label: 'Pago móvil' },
-  { method_key: 'transferencia', label: 'Transferencia' },
-  { method_key: 'zelle', label: 'Zelle' },
-];
+const FALLBACK_METHODS: { method_key: string; label: string }[] = Object.entries(PAYMENT_METHOD_LABELS)
+  .filter(([key]) => !key.startsWith('efectivo'))
+  .map(([method_key, label]) => ({ method_key, label }));
 
 /** Convierte teléfonos venezolanos a +58XXXXXXXXXX (formato que exige la base). */
 export function normalizeVePhone(raw: string): string {
@@ -57,7 +54,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const { products } = useProducts();
   const { rate, convertToBS } = useExchangeRate();
   const { methods: configuredMethods } = usePaymentMethods(false);
-  const paymentMethods = configuredMethods.length > 0 ? configuredMethods : FALLBACK_METHODS;
+  const paymentMethods: { method_key: string; label: string }[] = configuredMethods.length > 0 ? configuredMethods : FALLBACK_METHODS;
   const { config: pricingConfig } = usePricingConfig();
   const queryClient = useQueryClient();
   const reduceMotion = useReducedMotion();

@@ -101,7 +101,10 @@ export function AdminMobileNav() {
             <SheetTitle className="font-serif">Menú</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-5">
-            {ADMIN_NAV.map(section => (
+            {/* Solo lo que no está ya en la barra inferior */}
+            {ADMIN_NAV.map(section => ({ ...section, items: section.items.filter(i => !ADMIN_TABS.includes(i.path)) }))
+              .filter(section => section.items.length > 0)
+              .map(section => (
               <div key={section.title}>
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{section.title}</p>
                 <div className="grid grid-cols-3 gap-2">
