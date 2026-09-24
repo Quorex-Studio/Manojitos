@@ -1,694 +1,600 @@
-import { useState, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import * as XLSX from 'xlsx';
-import { TickCircle, Document, Loader, Upload, File, CheckCircle, XCircle, AlertTriangle, Download, Trash2, Refresh } from 'reicon-react';
+import { Upload, CheckCircle, AlertTriangle, Download, Refresh, Loader, ArrowRight, ArrowLeft, XCircle, InfoCircle } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesUpdate } from '@/integrations/supabase/types';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
+import { useProducts } from '@/hooks/useProducts';
+import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { sanitizeText } from '@/lib/validations';
+import { cn } from '@/lib/utils';
+import {
+  IMPORT_FIELDS,
+  ImportField,
+  ImportRow,
+  SheetData,
+  autoMapColumns,
+  buildRows,
+  detectHeaderRow,
+  pickBestSheet,
+  productKey,
+  readWorkbook,
+} from '@/lib/productImport';
 
-// Interfaz para un producto parseado del Excel
-interface ParsedProduct {
-  rowIndex: number;
-  nombre_producto: string;
-  descripcion: string;
-  precio: number;
-  stock: number;
-  categoria: string;
-  proveedor?: string;
-  sku?: string;
-  isValid: boolean;
-  errors: string[];
+type Step = 'upload' | 'columns' | 'review' | 'done';
+type ExistingMode = 'update' | 'add_stock' | 'skip';
+type RowFilter = 'all' | 'new' | 'existing' | 'errors';
+
+const STEPS: { key: Step; label: string }[] = [
+  { key: 'upload', label: 'Subir' },
+  { key: 'columns', label: 'Columnas' },
+  { key: 'review', label: 'Revisar' },
+  { key: 'done', label: 'Listo' },
+];
+
+const ACCEPT = '.xlsx,.xls,.xlsm,.ods,.csv,.tsv,.txt,.json';
+const SOURCES = ['Treinta', 'Excel', 'Google Sheets', 'CSV', 'Tienda online'];
+const NONE = '__none__';
+
+interface Result {
+  created: number;
+  updated: number;
+  skipped: number;
+  failed: { row: number; name: string; error: string }[];
 }
 
-// Interfaz para el resultado de la importación
-interface ImportResult {
-  success: number;
-  failed: number;
-  errors: { row: number; product: string; error: string }[];
-}
-
-// Mapeo de columnas posibles a los campos esperados
-const COLUMN_MAPPINGS: Record<string, string> = {
-  'nombre_producto': 'nombre_producto',
-  'nombre': 'nombre_producto',
-  'name': 'nombre_producto',
-  'producto': 'nombre_producto',
-  'descripcion': 'descripcion',
-  'description': 'descripcion',
-  'detalle': 'descripcion',
-  'precio': 'precio',
-  'price': 'precio',
-  'precio_usd': 'precio',
-  'stock': 'stock',
-  'cantidad': 'stock',
-  'quantity': 'stock',
-  'inventario': 'stock',
-  'categoria': 'categoria',
-  'category': 'categoria',
-  'tipo': 'categoria',
-  'proveedor': 'proveedor',
-  'provider': 'proveedor',
-  'supplier': 'proveedor',
-  'sku': 'sku',
-  'codigo': 'sku',
-  'code': 'sku',
-};
-
+// Importar productos: acepta lo que exporte cada app (Treinta, Excel, Sheets, CSV, JSON),
+// detecta columnas y encabezado solos, y deja corregir todo antes de guardar.
 export default function ImportProducts() {
-  // --- STATE ---
-  const { user, isAdmin } = useAuth();
-  const [file, setFile] = useState<File | null>(null);
+  const { user } = useAuth();
+  const { products } = useProducts();
+  const { rate } = useExchangeRate();
+  const queryClient = useQueryClient();
+  const reduceMotion = useReducedMotion();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const [step, setStep] = useState<Step>('upload');
+  const [fileName, setFileName] = useState('');
+  const [isReading, setIsReading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [parsedProducts, setParsedProducts] = useState<ParsedProduct[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [sheets, setSheets] = useState<SheetData[]>([]);
+  const [sheetIndex, setSheetIndex] = useState(0);
+  const [headerRow, setHeaderRow] = useState(0);
+  const [mapping, setMapping] = useState<Partial<Record<ImportField, number>>>({});
+  const [currency, setCurrency] = useState<'USD' | 'VES'>('USD');
+  const [existingMode, setExistingMode] = useState<ExistingMode>('update');
+  const [filter, setFilter] = useState<RowFilter>('all');
+  const [progress, setProgress] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState(0);
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'complete'>('upload');
+  const [result, setResult] = useState<Result | null>(null);
 
-  // --- DERIVED / EFFECTS ---
-  // Estadísticas de productos parseados
+  const sheet = sheets[sheetIndex];
+  const headers = useMemo(() => (sheet?.rows[headerRow] || []).map((h, i) => String(h || '').trim() || `Columna ${i + 1}`), [sheet, headerRow]);
+
+  const existingByKey = useMemo(() => {
+    const map = new Map<string, (typeof products)[number]>();
+    products.forEach(p => map.set(productKey(p.name), p));
+    return map;
+  }, [products]);
+
+  const rows: (ImportRow & { existingId?: string })[] = useMemo(() => {
+    if (!sheet || mapping.name === undefined || mapping.price === undefined) return [];
+    const factor = currency === 'VES' ? rate : 1;
+    return buildRows(sheet.rows, headerRow, mapping, { priceFactor: factor }).map(r => ({
+      ...r,
+      existingId: existingByKey.get(productKey(r.name))?.id,
+    }));
+  }, [sheet, headerRow, mapping, currency, rate, existingByKey]);
+
   const stats = useMemo(() => {
-    const valid = parsedProducts.filter(p => p.isValid).length;
-    const invalid = parsedProducts.filter(p => !p.isValid).length;
-    return { valid, invalid, total: parsedProducts.length };
-  }, [parsedProducts]);
-
-  // --- HANDLERS ---
-
-  // Normalizar nombre de columna
-  const normalizeColumnName = useCallback((name: string): string => {
-    const normalized = name.toLowerCase().trim().replace(/\s+/g, '_');
-    return COLUMN_MAPPINGS[normalized] || normalized;
-  }, []);
-
-  // Validar un producto
-  const validateProduct = useCallback((row: Record<string, unknown>, rowIndex: number): ParsedProduct => {
-    const errors: string[] = [];
-    
-    // Mapear columnas
-    const mappedRow: Record<string, unknown> = { /* empty */ };
-    Object.entries(row).forEach(([key, value]) => {
-      const normalizedKey = normalizeColumnName(key);
-      mappedRow[normalizedKey] = value;
-    });
-
-    // Extraer valores
-    const nombre_producto = sanitizeText(String(mappedRow.nombre_producto || '').trim());
-    const descripcion = sanitizeText(String(mappedRow.descripcion || '').trim());
-    const precioRaw = mappedRow.precio;
-    const stockRaw = mappedRow.stock;
-    const categoria = sanitizeText(String(mappedRow.categoria || '').trim());
-    const proveedor = mappedRow.proveedor ? sanitizeText(String(mappedRow.proveedor).trim()) : undefined;
-    const sku = mappedRow.sku ? sanitizeText(String(mappedRow.sku).trim()) : undefined;
-
-    // Validar nombre (obligatorio)
-    if (!nombre_producto) {
-      errors.push('Nombre del producto es obligatorio');
-    }
-
-    // Validar precio (obligatorio y numérico)
-    let precio = 0;
-    if (precioRaw === undefined || precioRaw === null || precioRaw === '') {
-      errors.push('Precio es obligatorio');
-    } else {
-      precio = parseFloat(String(precioRaw).replace(',', '.'));
-      if (isNaN(precio) || precio < 0) {
-        errors.push('Precio debe ser un número válido mayor o igual a 0');
-      }
-    }
-
-    // Validar stock (obligatorio y numérico entero)
-    let stock = 0;
-    if (stockRaw === undefined || stockRaw === null || stockRaw === '') {
-      errors.push('Stock es obligatorio');
-    } else {
-      stock = parseInt(String(stockRaw), 10);
-      if (isNaN(stock) || stock < 0) {
-        errors.push('Stock debe ser un número entero válido mayor o igual a 0');
-      }
-    }
-
+    const valid = rows.filter(r => r.errors.length === 0);
     return {
-      rowIndex,
-      nombre_producto,
-      descripcion,
-      precio,
-      stock,
-      categoria,
-      proveedor,
-      sku,
-      isValid: errors.length === 0,
-      errors,
+      total: rows.length,
+      errors: rows.length - valid.length,
+      newOnes: valid.filter(r => !r.existingId).length,
+      existing: valid.filter(r => r.existingId).length,
     };
-  }, [normalizeColumnName]);
+  }, [rows]);
 
-  // Procesar archivo Excel/CSV
-  const processFile = useCallback(async (selectedFile: File) => {
-    setIsProcessing(true);
-    setFile(selectedFile);
+  const visibleRows = useMemo(() => rows.filter(r =>
+    filter === 'all' ? true :
+    filter === 'errors' ? r.errors.length > 0 :
+    filter === 'new' ? r.errors.length === 0 && !r.existingId :
+    r.errors.length === 0 && !!r.existingId
+  ), [rows, filter]);
 
+  // --- Paso 1: leer archivo ---
+  const handleFile = useCallback(async (file: File) => {
+    setIsReading(true);
     try {
-      const data = await selectedFile.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
-      
-      // Tomar la primera hoja
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      
-      // Convertir a JSON
-      const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[];
-
-      if (jsonData.length === 0) {
-        toast.error('El archivo está vacío');
-        setIsProcessing(false);
+      const data = await readWorkbook(file);
+      if (!data.length) {
+        toast.error('El archivo no tiene datos', { description: 'Revisa que la hoja tenga productos.' });
         return;
       }
-
-      // Validar cada fila
-      const products = jsonData.map((row, index) => validateProduct(row, index + 2)); // +2 porque Excel empieza en 1 y hay header
-
-      setParsedProducts(products);
-      setStep('preview');
-      toast.success(`Se detectaron ${products.length} productos`);
-    } catch (error) {
-      console.error('Error procesando archivo:', error);
-      toast.error('Error al procesar el archivo. Verifica el formato.');
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [validateProduct]);
-
-  // Manejar drag & drop
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      const extension = droppedFile.name.split('.').pop()?.toLowerCase();
-      if (['xlsx', 'xls', 'csv'].includes(extension || '')) {
-        processFile(droppedFile);
+      const best = pickBestSheet(data);
+      const header = detectHeaderRow(data[best].rows);
+      const auto = autoMapColumns(data[best].rows[header].map(c => String(c ?? '')));
+      setSheets(data);
+      setSheetIndex(best);
+      setHeaderRow(header);
+      setMapping(auto);
+      setFileName(file.name);
+      setStep('columns');
+      if (auto.name !== undefined && auto.price !== undefined) {
+        toast.success('Columnas detectadas', { description: 'Revísalas y continúa.' });
       } else {
-        toast.error('Formato no soportado. Usa .xlsx, .xls o .csv');
+        toast.info('Indica qué columna es cada dato', { description: 'No pudimos detectar todas las columnas solas.' });
       }
+    } catch (error) {
+      console.error('Error leyendo archivo:', error);
+      toast.error('No pudimos leer el archivo', { description: 'Prueba exportándolo como Excel (.xlsx) o CSV.' });
+    } finally {
+      setIsReading(false);
     }
-  }, [processFile]);
+  }, []);
 
-  // Manejar selección de archivo
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      processFile(selectedFile);
-    }
+  const changeSheet = (index: number) => {
+    const header = detectHeaderRow(sheets[index].rows);
+    setSheetIndex(index);
+    setHeaderRow(header);
+    setMapping(autoMapColumns(sheets[index].rows[header].map(c => String(c ?? ''))));
   };
 
-  // Importar productos a Supabase
-  const handleImport = async () => {
-    if (!user) {
-      toast.error('Debes estar autenticado');
-      return;
-    }
+  const changeHeaderRow = (index: number) => {
+    setHeaderRow(index);
+    setMapping(autoMapColumns((sheet?.rows[index] || []).map(c => String(c ?? ''))));
+  };
 
-    const validProducts = parsedProducts.filter(p => p.isValid);
-    if (validProducts.length === 0) {
-      toast.error('No hay productos válidos para importar');
+  const sampleValues = (col?: number) =>
+    col === undefined || !sheet
+      ? ''
+      : sheet.rows.slice(headerRow + 1, headerRow + 4).map(r => String(r[col] ?? '').trim()).filter(Boolean).join(' · ');
+
+  // --- Paso 3: importar ---
+  const handleImport = async () => {
+    if (!user) return;
+    const valid = rows.filter(r => r.errors.length === 0);
+    const toCreate = valid.filter(r => !r.existingId);
+    const toUpdate = existingMode === 'skip' ? [] : valid.filter(r => r.existingId);
+    const res: Result = { created: 0, updated: 0, skipped: existingMode === 'skip' ? valid.filter(r => r.existingId).length : 0, failed: [] };
+    const total = toCreate.length + toUpdate.length;
+    if (!total) {
+      toast.error('No hay productos para importar');
       return;
     }
 
     setIsImporting(true);
-    setStep('importing');
-    setImportProgress(0);
+    setProgress(0);
+    let done = 0;
+    const tick = (n: number) => { done += n; setProgress(Math.round((done / total) * 100)); };
 
-    const result: ImportResult = { success: 0, failed: 0, errors: [] };
-    const batchSize = 50; // Insertar en lotes de 50
-    const batches = [];
+    const toRecord = (r: ImportRow) => ({
+      name: sanitizeText(r.name),
+      price_usd: r.price ?? 0,
+      stock: r.stock,
+      category: r.category ? sanitizeText(r.category) : null,
+      description: r.description ? sanitizeText(r.description) : null,
+      cost_usd: r.cost,
+      image_url: r.image || null,
+      minimum_stock: r.minStock,
+    });
 
-    // Dividir en lotes
-    for (let idx = 0; idx < validProducts.length; idx += batchSize) {
-      batches.push(validProducts.slice(idx, idx + batchSize));
-    }
-
-    // Procesar cada lote
-    for (let idx = 0; idx < batches.length; idx++) {
-      const batch = batches[idx];
-      
-      try {
-        const productsToInsert = batch.map(p => ({
-          user_id: user.id,
-          name: p.nombre_producto,
-          description: p.descripcion || null,
-          price_usd: p.precio,
-          stock: p.stock,
-          category: p.categoria || null,
-        }));
-
-        const { data, error } = await supabase
-          .from('products')
-          .insert(productsToInsert)
-          .select();
-
-        if (error) {
-          // Si hay error en el lote, intentar uno por uno
-          for (const product of productsToInsert) {
-            const { error: singleError } = await supabase
-              .from('products')
-              .insert(product);
-            
-            if (singleError) {
-              result.failed++;
-              result.errors.push({
-                row: batch.find(b => b.nombre_producto === product.name)?.rowIndex || 0,
-                product: product.name,
-                error: singleError.message,
-              });
-            } else {
-              result.success++;
-            }
-          }
+    try {
+      // Nuevos: en lotes de 50; si un lote falla se reintenta fila por fila para ubicar el error
+      for (let i = 0; i < toCreate.length; i += 50) {
+        const batch = toCreate.slice(i, i + 50);
+        const { data, error } = await supabase.from('products').insert(batch.map(r => ({ ...toRecord(r), user_id: user.id }))).select('id');
+        if (!error) {
+          res.created += data?.length ?? batch.length;
         } else {
-          result.success += data?.length || batch.length;
+          for (const r of batch) {
+            const { error: e } = await supabase.from('products').insert({ ...toRecord(r), user_id: user.id });
+            if (e) res.failed.push({ row: r.rowNumber, name: r.name, error: e.message });
+            else res.created++;
+          }
         }
-      } catch (error) {
-        result.failed += batch.length;
-        batch.forEach(p => {
-          result.errors.push({
-            row: p.rowIndex,
-            product: p.nombre_producto,
-            error: 'Error de conexión',
-          });
-        });
+        tick(batch.length);
       }
 
-      // Actualizar progreso
-      setImportProgress(Math.round(((idx + 1) / batches.length) * 100));
+      // Existentes: se actualizan uno a uno (precio, stock y los datos que traiga el archivo)
+      for (const r of toUpdate) {
+        const current = products.find(p => p.id === r.existingId);
+        const rec = toRecord(r);
+        const update: TablesUpdate<'products'> = {
+          price_usd: rec.price_usd,
+          stock: existingMode === 'add_stock' ? (current?.stock ?? 0) + r.stock : r.stock,
+        };
+        if (rec.category) update.category = rec.category;
+        if (rec.description) update.description = rec.description;
+        if (rec.cost_usd !== null) update.cost_usd = rec.cost_usd;
+        if (rec.image_url) update.image_url = rec.image_url;
+        if (rec.minimum_stock !== null) update.minimum_stock = rec.minimum_stock;
+        const { error } = await supabase.from('products').update(update).eq('id', r.existingId!);
+        if (error) res.failed.push({ row: r.rowNumber, name: r.name, error: error.message });
+        else res.updated++;
+        tick(1);
+      }
+    } catch (error) {
+      console.error('Error importando:', error);
+      toast.error('Se cortó la importación', { description: 'Revisa tu conexión: lo ya guardado no se pierde.' });
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      queryClient.invalidateQueries({ queryKey: ['public-products'] });
+      setResult(res);
+      setIsImporting(false);
+      setStep('done');
     }
-
-    setImportResult(result);
-    setIsImporting(false);
-    setStep('complete');
-
-    if (result.success > 0) {
-      toast.success(`${result.success} productos importados correctamente`);
-    }
-    if (result.failed > 0) {
-      toast.error(`${result.failed} productos fallaron`);
-    }
+    if (res.failed.length) toast.warning(`Importación con ${res.failed.length} error(es)`);
+    else toast.success('Productos importados');
   };
 
-  // Reiniciar estado
-  const handleReset = () => {
-    setFile(null);
-    setParsedProducts([]);
-    setImportProgress(0);
-    setImportResult(null);
+  const downloadErrors = () => {
+    const errorRows = [
+      ...rows.filter(r => r.errors.length).map(r => ({ Fila: r.rowNumber, Producto: r.name, Problema: r.errors.join('; ') })),
+      ...(result?.failed || []).map(f => ({ Fila: f.row, Producto: f.name, Problema: f.error })),
+    ];
+    const ws = XLSX.utils.json_to_sheet(errorRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Errores');
+    XLSX.writeFile(wb, 'productos-con-errores.xlsx');
+  };
+
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['Nombre del producto', 'Precio de venta', 'Stock actual', 'Categoría', 'Descripción', 'Precio de costo', 'Código', 'Imagen'],
+      ['Labial líquido rosewood', 12, 10, 'Maquillaje', 'Acabado mate, larga duración', 6, 'LAB-001', ''],
+      ['Sérum vitamina C 30ml', 28, 5, 'Skincare', '', 14, 'SER-002', ''],
+    ]);
+    ws['!cols'] = [{ wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 30 }, { wch: 14 }, { wch: 10 }, { wch: 30 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+    XLSX.writeFile(wb, 'plantilla-productos.xlsx');
+  };
+
+  const reset = () => {
     setStep('upload');
+    setSheets([]);
+    setMapping({});
+    setResult(null);
+    setFileName('');
+    setFilter('all');
+    setProgress(0);
   };
 
-  // Descargar reporte de errores
-  const downloadErrorReport = () => {
-    if (!importResult || importResult.errors.length === 0) return;
-
-    const worksheet = XLSX.utils.json_to_sheet(importResult.errors);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Errores');
-    XLSX.writeFile(workbook, 'errores_importacion.xlsx');
-  };
-
-  // --- RENDER ---
-  if (!isAdmin) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Card className="max-w-md">
-            <CardContent className="pt-6 text-center">
-              <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Acceso Denegado</h2>
-              <p className="text-muted-foreground">
-                Esta funcionalidad es exclusiva para administradores.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </AppLayout>
-    );
-  }
+  const stepIndex = STEPS.findIndex(s => s.key === step);
+  const canContinue = mapping.name !== undefined && mapping.price !== undefined && rows.length > 0;
+  const importCount = stats.newOnes + (existingMode === 'skip' ? 0 : stats.existing);
+  const fade = reduceMotion ? {} : { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -8 }, transition: { duration: 0.2 } };
 
   return (
     <AppLayout>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-6"
-      >
-        {/* Header */}
-        <div>
-          <h1 className="page-header">Importar productos</h1>
-          <p className="page-subtitle">
-            Carga masiva de productos desde archivos Excel o CSV
-          </p>
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="page-header">Importar productos</h1>
+            <p className="page-subtitle">Sube el archivo que exportaste de Treinta, Excel u otra app. Nosotros entendemos las columnas.</p>
+          </div>
+          <Button variant="outline" className="h-11 gap-2 rounded-full" onClick={downloadTemplate}>
+            <Download className="h-4 w-4" /> Plantilla de ejemplo
+          </Button>
         </div>
 
-        {/* Indicador de pasos */}
-        <div className="flex items-center justify-center gap-2 py-4">
-          {['upload', 'preview', 'importing', 'complete'].map((s, index) => (
-            <div key={s} className="flex items-center">
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
-                step === s 
-                  ? "bg-primary text-primary-foreground" 
-                  : ['upload', 'preview', 'importing', 'complete'].indexOf(step) > index
-                    ? "bg-primary/20 text-primary"
-                    : "bg-muted text-muted-foreground"
-              )}>
-                {index + 1}
-              </div>
-              {index < 3 && (
-                <div className={cn(
-                  "w-12 h-0.5 mx-1",
-                  ['upload', 'preview', 'importing', 'complete'].indexOf(step) > index
-                    ? "bg-primary"
-                    : "bg-muted"
-                )} />
-              )}
-            </div>
+        {/* Pasos */}
+        <ol className="grid grid-cols-4 gap-2" aria-label="Pasos">
+          {STEPS.map((s, i) => (
+            <li key={s.key} className="flex flex-col items-center gap-1.5 text-center">
+              <span
+                className={cn(
+                  'flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold transition-colors',
+                  i < stepIndex && 'border-primary bg-primary text-primary-foreground',
+                  i === stepIndex && 'border-primary bg-primary/10 text-primary',
+                  i > stepIndex && 'border-border bg-card text-muted-foreground'
+                )}
+                aria-current={i === stepIndex ? 'step' : undefined}
+              >
+                {i < stepIndex ? <CheckCircle className="h-4 w-4" /> : i + 1}
+              </span>
+              <span className={cn('text-xs font-medium', i === stepIndex ? 'text-foreground' : 'text-muted-foreground')}>{s.label}</span>
+            </li>
           ))}
-        </div>
+        </ol>
 
         <AnimatePresence mode="wait">
-          {/* PASO 1: Subida de archivo */}
+          {/* ── 1. Subir ── */}
           {step === 'upload' && (
-            <motion.div
-              key="upload"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Document className="h-5 w-5" />
-                    Subir Archivo
-                  </CardTitle>
-                  <CardDescription>
-                    Arrastra un archivo Excel (.xlsx, .xls) o CSV, o haz clic para seleccionar
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div
-                    className={cn(
-                      "border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer",
-                      isDragging 
-                        ? "border-primary bg-primary/10" 
-                        : "border-border hover:border-primary/50 hover:bg-secondary"
-                    )}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => document.getElementById('file-upload')?.click()}
-                  >
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                      id="file-upload"
-                      disabled={isProcessing}
-                    />
-                    <label htmlFor="file-upload" className="cursor-pointer">
-                      {isProcessing ? (
-                        <Loader className="h-12 w-12 mx-auto text-primary animate-spin" />
-                      ) : (
-                        <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      )}
-                      <p className="text-lg font-medium">
-                        {isProcessing ? 'Procesando...' : 'Arrastra tu archivo aquí'}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        o haz clic para seleccionar
-                      </p>
-                    </label>
-                  </div>
+            <motion.section key="upload" {...fade} className="space-y-4">
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+                disabled={isReading}
+                className={cn(
+                  'flex w-full flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed px-6 py-14 text-center transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  isDragging ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-primary/60 hover:bg-primary/[0.03]'
+                )}
+              >
+                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  {isReading ? <Loader className="h-7 w-7 animate-spin" /> : <Upload className="h-7 w-7" />}
+                </span>
+                <span className="font-serif text-xl text-foreground">{isReading ? 'Leyendo archivo…' : 'Toca para elegir tu archivo'}</span>
+                <span className="text-sm text-muted-foreground">o arrástralo aquí · Excel, CSV, OpenDocument o JSON</span>
+                <span className="mt-1 flex flex-wrap justify-center gap-1.5">
+                  {SOURCES.map(s => (
+                    <span key={s} className="rounded-full border border-border bg-background px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">{s}</span>
+                  ))}
+                </span>
+              </button>
+              <input
+                ref={inputRef}
+                type="file"
+                accept={ACCEPT}
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
+              />
 
-                  {/* Formato esperado */}
-                  <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                    <h4 className="font-medium mb-2">Columnas esperadas:</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {['nombre_producto*', 'precio*', 'stock*', 'descripcion', 'categoria', 'proveedor', 'sku'].map(col => (
-                        <div key={col}>
-                          <Badge variant={col.includes('*') ? 'default' : 'secondary'}>
-                            {col}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">* Campos obligatorios</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* PASO 2: Previsualización */}
-          {step === 'preview' && (
-            <motion.div
-              key="preview"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="space-y-4"
-            >
-              {/* Info del archivo */}
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Document className="h-8 w-8 text-primary" />
-                      <div>
-                        <p className="font-medium">{file?.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {file && (file.size / 1024).toFixed(1)} KB
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={handleReset}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Estadísticas */}
-              <div className="grid grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-3xl font-bold">{stats.total}</p>
-                    <p className="text-sm text-muted-foreground">Total</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-3xl font-bold text-primary">{stats.valid}</p>
-                    <p className="text-sm text-muted-foreground">Válidos</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-3xl font-bold text-destructive">{stats.invalid}</p>
-                    <p className="text-sm text-muted-foreground">Con errores</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Tabla de previsualización */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Previsualización</CardTitle>
-                  <CardDescription>
-                    Revisa los productos antes de importar
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted sticky top-0">
-                        <tr>
-                          <th className="p-2 text-left">Fila</th>
-                          <th className="p-2 text-left">Estado</th>
-                          <th className="p-2 text-left">Nombre</th>
-                          <th className="p-2 text-left">Precio</th>
-                          <th className="p-2 text-left">Stock</th>
-                          <th className="p-2 text-left">Categoría</th>
-                          <th className="p-2 text-left">Errores</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {parsedProducts.map((product, index) => (
-                          <tr 
-                            key={index} 
-                            className={cn(
-                              "border-b",
-                              !product.isValid && "bg-destructive/5"
-                            )}
-                          >
-                            <td className="p-2">{product.rowIndex}</td>
-                            <td className="p-2">
-                              {product.isValid ? (
-                                <TickCircle className="h-4 w-4 text-primary" />
-                              ) : (
-                                <AlertTriangle className="h-4 w-4 text-destructive" />
-                              )}
-                            </td>
-                            <td className="p-2 font-medium">{product.nombre_producto || '-'}</td>
-                            <td className="p-2">${product.precio.toFixed(2)}</td>
-                            <td className="p-2">{product.stock}</td>
-                            <td className="p-2">{product.categoria || '-'}</td>
-                            <td className="p-2">
-                              {product.errors.length > 0 && (
-                                <span className="text-destructive text-xs">
-                                  {product.errors.join(', ')}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Acciones */}
-              <div className="flex gap-4 justify-end">
-                <Button variant="outline" onClick={handleReset}>
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={handleImport}
-                  disabled={stats.valid === 0}
-                  className="gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  Importar {stats.valid} productos
-                </Button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* PASO 3: Importando */}
-          {step === 'importing' && (
-            <motion.div
-              key="importing"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-            >
-              <Card>
-                <CardContent className="pt-12 pb-12 text-center">
-                  <Loader className="h-16 w-16 mx-auto text-primary animate-spin mb-6" />
-                  <h3 className="text-xl font-semibold mb-2">Importando productos...</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Por favor no cierres esta página
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-border bg-card p-4">
+                  <p className="mb-2 flex items-center gap-2 text-sm font-semibold"><InfoCircle className="h-4 w-4 text-primary" /> Desde Treinta</p>
+                  <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+                    <li>Entra a <strong className="text-foreground">Inventario</strong> en Treinta (web o app).</li>
+                    <li>Usa <strong className="text-foreground">Descargar / Exportar a Excel</strong>.</li>
+                    <li>Sube aquí ese archivo, sin editarlo.</li>
+                  </ol>
+                </div>
+                <div className="rounded-2xl border border-border bg-card p-4">
+                  <p className="mb-2 flex items-center gap-2 text-sm font-semibold"><InfoCircle className="h-4 w-4 text-primary" /> Cualquier otro archivo</p>
+                  <p className="text-sm text-muted-foreground">
+                    Solo necesita una columna con el <strong className="text-foreground">nombre</strong> y otra con el <strong className="text-foreground">precio</strong>.
+                    Stock, categoría, costo, código e imagen son opcionales. Si un producto ya existe, puedes actualizarlo en vez de duplicarlo.
                   </p>
-                  <div className="max-w-md mx-auto">
-                    <Progress value={importProgress} className="h-3" />
-                    <p className="text-sm text-muted-foreground mt-2">{importProgress}%</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                </div>
+              </div>
+            </motion.section>
           )}
 
-          {/* PASO 4: Completado */}
-          {step === 'complete' && importResult && (
-            <motion.div
-              key="complete"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="space-y-4"
-            >
-              <Card>
-                <CardContent className="pt-12 pb-12 text-center">
-                  {importResult.success > 0 ? (
-                    <TickCircle className="h-16 w-16 mx-auto text-primary mb-6" />
-                  ) : (
-                    <XCircle className="h-16 w-16 mx-auto text-destructive mb-6" />
+          {/* ── 2. Columnas ── */}
+          {step === 'columns' && sheet && (
+            <motion.section key="columns" {...fade} className="space-y-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="truncate text-sm font-semibold">{fileName}</p>
+                <p className="text-xs text-muted-foreground">{Math.max(sheet.rows.length - headerRow - 1, 0)} filas de datos</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  {sheets.length > 1 && (
+                    <label className="space-y-1.5 text-sm">
+                      <span className="font-medium">Hoja</span>
+                      <Select value={String(sheetIndex)} onValueChange={(v) => changeSheet(Number(v))}>
+                        <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {sheets.map((s, i) => <SelectItem key={s.name + i} value={String(i)}>{s.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </label>
                   )}
-                  <h3 className="text-xl font-semibold mb-2">Importación completada</h3>
-                  <div className="flex justify-center gap-8 mt-6">
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-primary">{importResult.success}</p>
-                      <p className="text-sm text-muted-foreground">Importados</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-destructive">{importResult.failed}</p>
-                      <p className="text-sm text-muted-foreground">Fallidos</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  <label className="space-y-1.5 text-sm">
+                    <span className="font-medium">Los títulos están en la fila</span>
+                    <Select value={String(headerRow)} onValueChange={(v) => changeHeaderRow(Number(v))}>
+                      <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {sheet.rows.slice(0, 15).map((r, i) => (
+                          <SelectItem key={i} value={String(i)}>
+                            {i + 1}: {r.map(c => String(c ?? '')).filter(Boolean).slice(0, 3).join(' · ').slice(0, 40) || '(vacía)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                  <label className="space-y-1.5 text-sm">
+                    <span className="font-medium">Los precios del archivo están en</span>
+                    <Select value={currency} onValueChange={(v) => setCurrency(v as 'USD' | 'VES')}>
+                      <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">Dólares (USD)</SelectItem>
+                        <SelectItem value="VES" disabled={!rate}>Bolívares {rate ? `(tasa ${rate.toFixed(2)})` : '(sin tasa)'}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </label>
+                </div>
+              </div>
 
-              {/* Errores si los hay */}
-              {importResult.errors.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-destructive">Errores de importación</CardTitle>
-                    <CardDescription>
-                      Los siguientes productos no pudieron importarse
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="max-h-[200px] overflow-y-auto">
-                      {importResult.errors.map((err, index) => (
-                        <div key={index} className="flex justify-between py-2 border-b text-sm">
-                          <span>Fila {err.row}: {err.product}</span>
-                          <span className="text-destructive">{err.error}</span>
+              <div className="rounded-2xl border border-border bg-card">
+                <div className="border-b border-border px-4 py-3">
+                  <p className="text-sm font-semibold">¿Qué columna es cada dato?</p>
+                  <p className="text-xs text-muted-foreground">Lo detectamos solo; cámbialo si algo no coincide.</p>
+                </div>
+                <ul className="divide-y divide-border">
+                  {IMPORT_FIELDS.map(field => {
+                    const col = mapping[field.key];
+                    return (
+                      <li key={field.key} className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_1.2fr] sm:items-center">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">
+                            {field.label} {field.required && <span className="text-sale">*</span>}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">{col !== undefined ? `Ej: ${sampleValues(col) || '—'}` : field.hint}</p>
                         </div>
-                      ))}
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      className="mt-4 gap-2"
-                      onClick={downloadErrorReport}
-                    >
-                      <Download className="h-4 w-4" />
-                      Descargar reporte de errores
-                    </Button>
-                  </CardContent>
-                </Card>
+                        <Select
+                          value={col === undefined ? NONE : String(col)}
+                          onValueChange={(v) => setMapping(prev => {
+                            const next = { ...prev };
+                            if (v === NONE) delete next[field.key];
+                            else next[field.key] = Number(v);
+                            return next;
+                          })}
+                        >
+                          <SelectTrigger className={cn('h-11 rounded-xl', field.required && col === undefined && 'border-sale')}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NONE}>{field.required ? 'Elige una columna…' : 'No importar'}</SelectItem>
+                            {headers.map((h, i) => <SelectItem key={i} value={String(i)}>{h}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+                <Button variant="ghost" className="h-12 gap-2 rounded-full" onClick={reset}><ArrowLeft className="h-4 w-4" /> Otro archivo</Button>
+                <Button className="h-12 gap-2 rounded-full px-8" disabled={!canContinue} onClick={() => setStep('review')}>
+                  Revisar {rows.length} productos <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </motion.section>
+          )}
+
+          {/* ── 3. Revisar ── */}
+          {step === 'review' && (
+            <motion.section key="review" {...fade} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { key: 'new', label: 'Nuevos', value: stats.newOnes, tone: 'text-success' },
+                  { key: 'existing', label: 'Ya existen', value: stats.existing, tone: 'text-primary' },
+                  { key: 'errors', label: 'Con errores', value: stats.errors, tone: 'text-sale' },
+                  { key: 'all', label: 'Total', value: stats.total, tone: 'text-foreground' },
+                ].map(s => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => setFilter(s.key as RowFilter)}
+                    aria-pressed={filter === s.key}
+                    className={cn(
+                      'rounded-2xl border bg-card p-4 text-left transition-colors',
+                      filter === s.key ? 'border-primary ring-1 ring-primary' : 'border-border hover:border-primary/50'
+                    )}
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{s.label}</p>
+                    <p className={cn('mt-1 font-serif text-3xl tabular-nums', s.tone)}>{s.value}</p>
+                  </button>
+                ))}
+              </div>
+
+              {stats.existing > 0 && (
+                <div className="rounded-2xl border border-border bg-card p-4">
+                  <p className="mb-2 text-sm font-semibold">{stats.existing} productos ya están en tu tienda (mismo nombre). ¿Qué hacemos?</p>
+                  <div className="grid gap-2 sm:grid-cols-3" role="radiogroup">
+                    {([
+                      { v: 'update', t: 'Actualizar', d: 'Precio y stock del archivo' },
+                      { v: 'add_stock', t: 'Sumar stock', d: 'Precio del archivo + unidades nuevas' },
+                      { v: 'skip', t: 'Dejarlos igual', d: 'Solo se crean los nuevos' },
+                    ] as { v: ExistingMode; t: string; d: string }[]).map(o => (
+                      <button
+                        key={o.v}
+                        type="button"
+                        role="radio"
+                        aria-checked={existingMode === o.v}
+                        onClick={() => setExistingMode(o.v)}
+                        className={cn(
+                          'rounded-xl border p-3 text-left transition-colors',
+                          existingMode === o.v ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                        )}
+                      >
+                        <p className="text-sm font-semibold">{o.t}</p>
+                        <p className="text-xs text-muted-foreground">{o.d}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
 
-              {/* Acciones finales */}
-              <div className="flex gap-4 justify-center">
-                <Button variant="outline" onClick={handleReset}>
-                  Importar más productos
+              <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                {visibleRows.slice(0, 200).map(r => (
+                  <li key={r.rowNumber} className="flex items-start gap-3 px-4 py-3">
+                    <span className={cn('mt-0.5 shrink-0', r.errors.length ? 'text-sale' : r.warnings.length ? 'text-gold' : 'text-success')}>
+                      {r.errors.length ? <XCircle className="h-5 w-5" /> : r.warnings.length ? <AlertTriangle className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{r.name || <span className="text-muted-foreground">(sin nombre)</span>}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Fila {r.rowNumber}{r.category ? ` · ${r.category}` : ''}
+                        {r.existingId ? ' · ya existe' : ''}
+                      </p>
+                      {[...r.errors, ...r.warnings].length > 0 && (
+                        <p className={cn('mt-0.5 text-xs', r.errors.length ? 'text-sale' : 'text-gold')}>{[...r.errors, ...r.warnings].join(' · ')}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-bold tabular-nums">{r.price !== null ? `$${r.price.toFixed(2)}` : '—'}</p>
+                      <p className="text-xs text-muted-foreground">{r.stock} uds</p>
+                    </div>
+                  </li>
+                ))}
+                {visibleRows.length === 0 && <li className="px-4 py-10 text-center text-sm text-muted-foreground">Nada en este filtro.</li>}
+                {visibleRows.length > 200 && (
+                  <li className="px-4 py-3 text-center text-xs text-muted-foreground">Mostrando 200 de {visibleRows.length}. Se importan todos.</li>
+                )}
+              </ul>
+
+              {isImporting && (
+                <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+                  <p className="text-sm font-medium">Guardando productos… {progress}%</p>
+                  <Progress value={progress} />
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+                <Button variant="ghost" className="h-12 gap-2 rounded-full" disabled={isImporting} onClick={() => setStep('columns')}>
+                  <ArrowLeft className="h-4 w-4" /> Columnas
                 </Button>
-                <Button onClick={() => window.location.href = '/products'}>
-                  Ver productos
+                <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                  {stats.errors > 0 && (
+                    <Button variant="outline" className="h-12 gap-2 rounded-full" onClick={downloadErrors}>
+                      <Download className="h-4 w-4" /> Descargar filas con error
+                    </Button>
+                  )}
+                  <Button className="h-12 gap-2 rounded-full px-8" disabled={isImporting || importCount === 0} onClick={handleImport}>
+                    {isImporting ? <Loader className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    Importar {importCount} productos
+                  </Button>
+                </div>
+              </div>
+            </motion.section>
+          )}
+
+          {/* ── 4. Listo ── */}
+          {step === 'done' && result && (
+            <motion.section key="done" {...fade} className="space-y-4">
+              <div className="flex flex-col items-center rounded-3xl border border-border bg-card px-6 py-10 text-center">
+                <span className={cn('mb-3 flex h-16 w-16 items-center justify-center rounded-full', result.failed.length ? 'bg-gold/10 text-gold' : 'bg-success/10 text-success')}>
+                  {result.failed.length ? <AlertTriangle className="h-8 w-8" /> : <CheckCircle className="h-8 w-8" />}
+                </span>
+                <p className="font-serif text-2xl">{result.failed.length ? 'Importación con detalles' : '¡Listo!'}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {result.created} creados · {result.updated} actualizados
+                  {result.skipped ? ` · ${result.skipped} sin cambios` : ''}
+                  {result.failed.length ? ` · ${result.failed.length} con error` : ''}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                {(result.failed.length > 0 || stats.errors > 0) && (
+                  <Button variant="outline" className="h-12 gap-2 rounded-full" onClick={downloadErrors}>
+                    <Download className="h-4 w-4" /> Descargar errores
+                  </Button>
+                )}
+                <Button variant="outline" className="h-12 gap-2 rounded-full" onClick={reset}>
+                  <Refresh className="h-4 w-4" /> Importar otro archivo
+                </Button>
+                <Button asChild className="h-12 gap-2 rounded-full px-8">
+                  <Link to="/products">Ver productos <ArrowRight className="h-4 w-4" /></Link>
                 </Button>
               </div>
-            </motion.div>
+            </motion.section>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
     </AppLayout>
   );
 }
