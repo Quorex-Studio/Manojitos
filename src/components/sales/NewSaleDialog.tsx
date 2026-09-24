@@ -17,6 +17,7 @@ import { getNextTwoCutoffDates, formatCutoffDate } from '@/lib/cutoffDates';
 import { BRAND_NAME_UPPER } from '@/config/brand';
 import { formatBS, cn } from '@/lib/utils';
 import { PAYMENT_METHOD_LABELS } from '@/lib/paymentMethodFields';
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { toast } from 'sonner';
 
 type SaleModality = 'contado' | 'dos_partes' | 'financiamiento' | 'fiado';
@@ -215,7 +216,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     if (!lines.length) return 'Agrega al menos un producto';
     if (modality !== 'contado' && !hasClient) return 'Las ventas a crédito necesitan un cliente';
     if (clientMode !== 'walkin' && !hasClient) return clientMode === 'search' ? 'Elige un cliente de la lista' : 'Escribe el nombre del cliente';
-    if (clientMode === 'new' && !isValidVePhone(phoneNormalized)) return 'Revisa el teléfono (ej: 0414 1234567)';
+    if (clientMode === 'new' && !isValidVePhone(phoneNormalized)) return 'Completa el teléfono (7 dígitos después del prefijo)';
     if (modality !== 'fiado' && !method) return 'Elige el método de pago';
     if (isCash && payToday > 0 && receivedNum <= 0) return 'Indica cuánto recibiste';
     if (cashShort) return 'El monto recibido no alcanza';
@@ -499,17 +500,15 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="ns-dni">Cédula / RIF</Label>
-                    <Input id="ns-dni" value={client.dni} onChange={e => setClient(c => ({ ...c, dni: e.target.value.replace(/[^0-9VJEGvjeg-]/g, '').toUpperCase().slice(0, 15) }))} placeholder="V-12345678" className="h-11 rounded-xl" />
+                    <DocumentIdInput id="ns-dni" value={client.dni} onChange={dni => setClient(c => ({ ...c, dni }))} inputClassName="h-11 rounded-xl" />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="ns-phone">Teléfono</Label>
-                    <Input
+                    <PhoneInput
                       id="ns-phone"
-                      inputMode="tel"
                       value={client.phone}
-                      onChange={e => setClient(c => ({ ...c, phone: e.target.value.replace(/[^+0-9()\s-]/g, '').slice(0, 20) }))}
-                      placeholder="0414 1234567"
-                      className={cn('h-11 rounded-xl', client.phone && !isValidVePhone(phoneNormalized) && 'border-sale')}
+                      onChange={phone => setClient(c => ({ ...c, phone }))}
+                      inputClassName={cn('h-11 rounded-xl', client.phone && !isValidVePhone(phoneNormalized) && 'border-sale')}
                     />
                   </div>
                   <div className="space-y-1">

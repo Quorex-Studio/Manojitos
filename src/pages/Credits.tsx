@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { BRAND_NAME } from '@/config/brand';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useState, useMemo } from 'react';
@@ -557,15 +558,10 @@ export default function Credits() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="client_phone">Teléfono</Label>
-                    <Input
-                      id="client_phone"
-                      value={newCredit.client_phone}
-                      onChange={e => setNewCredit(prev => ({ ...prev, client_phone: e.target.value }))}
-                      placeholder="+58 412..."
-                    />
+                    <PhoneInput id="client_phone" value={newCredit.client_phone} onChange={client_phone => setNewCredit(prev => ({ ...prev, client_phone }))} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="client_email">Email</Label>

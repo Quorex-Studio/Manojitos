@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { BRAND_NAME } from '@/config/brand';
 import { paymentConfigLabel, PAYMENT_CONFIG_LABELS } from '@/lib/paymentMethodFields';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -405,7 +406,13 @@ export default function Settings() {
                     {Object.entries(editing.config).map(([key, value]) => (
                       <div className="space-y-1.5" key={key}>
                         <Label htmlFor={`m-${key}`}>{paymentConfigLabel(key)}</Label>
-                        <Input id={`m-${key}`} value={value} onChange={e => setEditing({ ...editing, config: { ...editing.config, [key]: e.target.value.slice(0, 120) } })} className="h-11 rounded-xl bg-card" />
+                        {key === 'phone' ? (
+                          <PhoneInput id={`m-${key}`} value={value} onChange={v => setEditing({ ...editing, config: { ...editing.config, [key]: v } })} inputClassName="h-11 rounded-xl bg-card" />
+                        ) : key === 'ci' ? (
+                          <DocumentIdInput id={`m-${key}`} value={value} onChange={v => setEditing({ ...editing, config: { ...editing.config, [key]: v } })} inputClassName="h-11 rounded-xl bg-card" />
+                        ) : (
+                          <Input id={`m-${key}`} value={value} onChange={e => setEditing({ ...editing, config: { ...editing.config, [key]: e.target.value.slice(0, 120) } })} className="h-11 rounded-xl bg-card" />
+                        )}
                       </div>
                     ))}
                   </div>

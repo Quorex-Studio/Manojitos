@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { localDateISO } from '@/lib/dates';
 import { BRAND_NAME } from '@/config/brand';
 import { useState } from 'react';
@@ -720,13 +721,7 @@ export default function CustomerCredit() {
                               {paymentMethod === 'pago_movil' && (
                                 <div className="space-y-1.5">
                                   <Label htmlFor="issuer-phone" className="text-xs font-medium">Teléfono Emisor</Label>
-                                  <Input
-                                    id="issuer-phone"
-                                    placeholder="Ej: 04241234567"
-                                    value={notes}
-                                    onChange={(e) => setNotes(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
-                                    className="bg-background/50 text-xs"
-                                  />
+                                  <PhoneInput id="issuer-phone" value={notes} onChange={setNotes} inputClassName="bg-background/50 text-xs" />
                                 </div>
                               )}
                               <div className="space-y-1.5">

@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { BRAND, BRAND_NAME } from '@/config/brand';
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -30,6 +31,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { sanitizeText } from '@/lib/validations';
 import { formatBS } from '@/lib/utils';
 import { PaymentInfoPanel } from '@/components/payments/PaymentInfoPanel';
+import { isCompletePhone } from '@/lib/venezuela';
 
 // Métodos de pago base (sin crédito — se agrega dinámicamente)
 const BASE_PAYMENT_METHODS = [
@@ -631,15 +633,7 @@ export default function Checkout() {
 
                               <div>
                                 <Label htmlFor="modal-phone" className="text-sm">Teléfono <span className="text-destructive">*</span></Label>
-                                <Input
-                                  id="modal-phone"
-                                  type="tel"
-                                  placeholder="0412-123-4567"
-                                  value={shippingData.phone}
-                                  onChange={(e) => setShippingData(prev => ({...prev, phone: e.target.value.replace(/[^0-9+-\s()]/g, '').slice(0, 20)}))}
-                                  name="phone"
-                                  className="mt-1"
-                                />
+                                <PhoneInput id="modal-phone" className="mt-1" value={shippingData.phone} onChange={phone => setShippingData(prev => ({ ...prev, phone }))} />
                               </div>
 
                               <AnimatePresence mode="popLayout">
@@ -957,13 +951,7 @@ export default function Checkout() {
                       </div>
                       <div>
                         <Label htmlFor="telefonoEmisor" className="text-sm">Teléfono Emisor <span className="text-destructive">*</span></Label>
-                        <Input
-                          id="telefonoEmisor"
-                          placeholder="Ej: 04141234567"
-                          value={telefonoEmisor}
-                          onChange={(e) => setTelefonoEmisor(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
-                          className="mt-1 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                        />
+                        <PhoneInput id="telefonoEmisor" className="mt-1" value={telefonoEmisor} onChange={setTelefonoEmisor} inputClassName="bg-white/50 dark:bg-white/5 dark:border-white/10" />
                       </div>
                     </div>
                   </motion.div>
@@ -1093,13 +1081,7 @@ export default function Checkout() {
                                   </div>
                                   <div>
                                     <Label htmlFor="casheaPhone" className="text-xs">Teléfono Emisor</Label>
-                                    <Input
-                                      id="casheaPhone"
-                                      placeholder="Ej: 04141234567"
-                                      value={casheaPhone}
-                                      onChange={(e) => setCasheaPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
-                                      className="mt-1 h-9 text-xs"
-                                    />
+                                    <PhoneInput id="casheaPhone" className="mt-1" value={casheaPhone} onChange={setCasheaPhone} inputClassName="h-9 text-xs" />
                                   </div>
                                 </>
                               )}
@@ -1233,11 +1215,11 @@ export default function Checkout() {
 
                 const isKycValid = paymentMethod !== 'credito' || kycCompleted;
                 const isPagoMovilValid = paymentMethod !== 'pago_movil' ||
-                  (bancoOrigen.trim() !== '' && /^\d{4,}$/.test(numeroReferencia.trim()) && telefonoEmisor.trim().length >= 10);
+                  (bancoOrigen.trim() !== '' && /^\d{4,}$/.test(numeroReferencia.trim()) && isCompletePhone(telefonoEmisor));
                 const missingPayment = paymentMethod === 'pago_movil' ? [
                   !bancoOrigen.trim() && 'Banco de origen',
                   !/^\d{4,}$/.test(numeroReferencia.trim()) && 'Referencia (mín. 4 dígitos)',
-                  telefonoEmisor.trim().length < 10 && 'Teléfono emisor',
+                  !isCompletePhone(telefonoEmisor) && 'Teléfono emisor',
                 ].filter(Boolean) as string[] : [];
 
                 return (

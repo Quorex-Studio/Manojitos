@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { localDateISO } from '@/lib/dates';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
@@ -109,18 +110,14 @@ export default function Providers() {
                     <Label>Nombre *</Label>
                     <Input
                       value={providerForm.name}
-                      onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value.replace(/[^a-zA-ZÃ¡Ã©Ã­Ã³ÃºÃÃ‰ÃÃ“ÃšÃ±Ã‘0-9\s]/g, '') })}
+                      onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s]/g, '') })}
                       className="input-glass rounded-xl"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>TelÃ©fono</Label>
-                    <Input
-                      value={providerForm.phone}
-                      onChange={(e) => setProviderForm({ ...providerForm, phone: e.target.value.replace(/[^+0-9()\s]/g, '') })}
-                      className="input-glass rounded-xl"
-                    />
+                    <Label htmlFor="provider-phone">Teléfono</Label>
+                    <PhoneInput id="provider-phone" value={providerForm.phone} onChange={phone => setProviderForm({ ...providerForm, phone })} inputClassName="rounded-xl" />
                   </div>
                   <div className="space-y-2">
                     <Label>Email</Label>
@@ -135,7 +132,7 @@ export default function Providers() {
                     <Label>Notas</Label>
                     <Textarea
                       value={providerForm.notes}
-                      onChange={(e) => setProviderForm({ ...providerForm, notes: e.target.value.replace(/[^a-zA-ZÃ¡Ã©Ã­Ã³ÃºÃÃ‰ÃÃ“ÃšÃ±Ã‘0-9\s.,()-]/g, '') })}
+                      onChange={(e) => setProviderForm({ ...providerForm, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '') })}
                       className="input-glass rounded-xl resize-none"
                       rows={2}
                     />
@@ -230,7 +227,7 @@ export default function Providers() {
                     <Label>Notas</Label>
                     <Textarea
                       value={purchaseForm.notes}
-                      onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value.replace(/[^a-zA-ZÃ¡Ã©Ã­Ã³ÃºÃÃ‰ÃÃ“ÃšÃ±Ã‘0-9\s.,()-]/g, '') })}
+                      onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '') })}
                       className="input-glass rounded-xl resize-none"
                       rows={2}
                     />

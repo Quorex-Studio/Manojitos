@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,7 +39,7 @@ import { sanitizeText } from '@/lib/validations';
 const profileSchema = z.object({
   dni: z.string().min(4, 'DNI muy corto').max(20).optional().nullable().transform(val => val ? sanitizeText(val) : val),
   full_name: z.string().min(2, 'Nombre muy corto').max(100).optional().transform(val => val ? sanitizeText(val) : val),
-  phone: z.string().regex(/^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').transform(sanitizeText),
+  phone: z.string().regex(/^\+58(?:412|414|416|422|424|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').transform(sanitizeText),
   email: z.string().email('Email inválido').optional().nullable(),
   address: z.string().max(200).optional().nullable().transform(val => val ? sanitizeText(val) : val),
   city: z.string().max(100).optional().nullable().transform(val => val ? sanitizeText(val) : val),
@@ -382,20 +383,12 @@ export default function CustomerProfile() {
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="dni" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">DNI / Cédula</Label>
-                        <Input
+                        <Label htmlFor="dni" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Cédula / RIF</Label>
+                        <DocumentIdInput
                           id="dni"
-                          placeholder="Ej: V-12345678"
-                          className="bg-card/80 border-border/15 focus:border-primary/30 uppercase"
-                          {...form.register('dni')}
-                          onChange={(e) => {
-                            // Permite V/E al inicio, luego solo dígitos
-                            const raw = e.target.value.toUpperCase();
-                            const val = raw.replace(/^([VE]-)?(.*)/,  (_, prefix, rest) =>
-                              (prefix || '') + rest.replace(/[^0-9]/g, '')
-                            ).slice(0, 12);
-                            form.setValue('dni', val, { shouldValidate: true });
-                          }}
+                          value={form.watch('dni') || ''}
+                          onChange={dni => form.setValue('dni', dni, { shouldValidate: true, shouldDirty: true })}
+                          inputClassName="bg-card/80 border-border/15 focus:border-primary/30"
                         />
                         {form.formState.errors.dni && (
                           <p className="text-sm text-destructive">{form.formState.errors.dni.message}</p>
@@ -421,23 +414,12 @@ export default function CustomerProfile() {
 
                       <div className="space-y-2">
                         <Label htmlFor="phone" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Teléfono *</Label>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground" />
-                          <Input
-                            id="phone"
-                            placeholder="+58 412 1234567"
-                            className="pl-10 bg-card/80 border-border/15 focus:border-primary/30"
-                            {...form.register('phone')}
-                            onChange={(e) => {
-                              let val = e.target.value.replace(/[^\d+]/g, '');
-                              if (val && !val.startsWith('+')) val = '+' + val;
-                              if (val.length > 13) val = val.substring(0, 13);
-                              form.setValue('phone', val, { shouldValidate: true });
-                            }}
-                            pattern="^+58(?:412|414|424|416|426|2\d{2})\d{7}$"
-                            title="Debe ser un celular venezolano o teléfono fijo válido con +58"
-                          />
-                        </div>
+                        <PhoneInput
+                          id="phone"
+                          value={form.watch('phone') || ''}
+                          onChange={phone => form.setValue('phone', phone, { shouldValidate: true, shouldDirty: true })}
+                          inputClassName="bg-card/80 border-border/15 focus:border-primary/30"
+                        />
                         {form.formState.errors.phone && (
                           <p className="text-sm text-destructive">{form.formState.errors.phone.message}</p>
                         )}

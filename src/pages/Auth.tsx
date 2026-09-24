@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { BRAND_NAME } from '@/config/brand';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -248,34 +249,11 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2 group/input">
                     <Label htmlFor="phone" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Teléfono <span className="text-destructive">*</span></Label>
-                    <div className="relative">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within/input:text-primary transition-colors duration-300" />
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+58 412 1234567"
-                        value={form.phone}
-                        onChange={handleInputChange}
-                        className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground"
-                        aria-required="true"
-                      />
-                    </div>
+                    <PhoneInput id="phone" value={form.phone} onChange={phone => setForm(f => ({ ...f, phone }))} inputClassName="h-14 bg-background/40 border-border/20 rounded-2xl" />
                   </div>
                   <div className="space-y-2 group/input">
-                    <Label htmlFor="dni" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Cédula de Identidad <span className="text-destructive">*</span></Label>
-                    <div className="relative">
-                      <UserId className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within/input:text-primary transition-colors duration-300" />
-                      <Input
-                        id="dni"
-                        type="text"
-                        placeholder="V-12345678"
-                        value={form.dni}
-                        onChange={handleInputChange}
-                        className="pl-12 h-14 bg-background/40 border-border/20 rounded-2xl focus:ring-primary/20 focus:border-primary transition-all duration-300 placeholder:text-muted-foreground"
-                        required={!isLogin}
-                        aria-required="true"
-                      />
-                    </div>
+                    <Label htmlFor="dni" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Cédula o RIF <span className="text-destructive">*</span></Label>
+                    <DocumentIdInput id="dni" value={form.dni} onChange={dni => setForm(f => ({ ...f, dni }))} required={!isLogin} inputClassName="h-14 bg-background/40 border-border/20 rounded-2xl" />
                   </div>
                   <div className="space-y-2 group/input">
                     <Label htmlFor="address" className="text-foreground/70 ml-1 text-xs font-bold uppercase tracking-widest">Ubicación / Dirección <span className="text-destructive">*</span></Label>

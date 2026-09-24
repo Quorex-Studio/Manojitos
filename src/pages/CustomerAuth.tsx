@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { BRAND_NAME } from '@/config/brand';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
@@ -184,7 +185,7 @@ export default function CustomerAuth() {
         if (!dniRegex.test(form.dni)) {
           toast({
             title: 'Formato de Cédula Inválido',
-            description: 'Debe usar el formato V-12345678, E-12345678, J-123456789, G-12345678 o P-12345678',
+            description: 'Elige el tipo (V, E, J...) y escribe entre 7 y 9 dígitos.',
             variant: 'destructive'
           });
           setLoading(false);
@@ -200,11 +201,11 @@ export default function CustomerAuth() {
         }
 
         // Validación estricta Teléfono
-        const phoneRegex = /^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/;
+        const phoneRegex = /^\+58(?:412|414|416|422|424|426|2\d{2})\d{7}$/;
         if (!phoneRegex.test(normalizedPhone)) {
           toast({
             title: 'Formato de Teléfono Inválido',
-            description: 'Debe ingresar un número válido (Ej: 04121234567 o +584121234567)',
+            description: 'Elige el prefijo y escribe los 7 dígitos del número.',
             variant: 'destructive'
           });
           setLoading(false);
@@ -402,45 +403,25 @@ export default function CustomerAuth() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="phone">Teléfono <span className="text-destructive">*</span></Label>
-                        <div className="relative mt-1">
-                          <Input
-                            id="phone"
-                            name="phone"
-                            type="tel"
-                            placeholder="+584121234567"
-                            value={form.phone}
-                            onChange={handleInputChange}
-                            className="pl-10"
-                            required
-                            pattern="^+58(?:412|414|424|416|426|2\d{2})\d{7}$"
-                            title="Formato: +584121234567"
-                          />
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          Formato: +584121234567
-                        </p>
+                        <PhoneInput
+                          id="phone"
+                          className="mt-1"
+                          value={form.phone}
+                          onChange={phone => setForm(f => ({ ...f, phone }))}
+                          required
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">Elige el prefijo y escribe los 7 dígitos</p>
                       </div>
                       <div>
                         <Label htmlFor="dni">Cédula o RIF <span className="text-destructive">*</span></Label>
-                        <div className="relative mt-1">
-                          <Input
-                            id="dni"
-                            name="dni"
-                            type="text"
-                            placeholder="V-12345678"
-                            value={form.dni}
-                            onChange={handleInputChange}
-                            className="pl-10"
-                            required
-                            pattern="^[VJEGP]-\d{7,9}$"
-                            title="Formato: V-12345678, J-123456789"
-                          />
-                          <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          Formato: V-12345678
-                        </p>
+                        <DocumentIdInput
+                          id="dni"
+                          className="mt-1"
+                          value={form.dni}
+                          onChange={dni => setForm(f => ({ ...f, dni }))}
+                          required
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">V venezolano · E extranjero · J jurídico</p>
                       </div>
                     </div>
 

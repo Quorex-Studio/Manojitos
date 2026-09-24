@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { useState } from 'react';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useForm } from 'react-hook-form';
@@ -23,7 +24,7 @@ const paymentMethodFormSchema = z.object({
   method_type: z.enum(['efectivo_usd', 'efectivo_bs', 'zelle', 'pago_movil', 'transferencia', 'binance', 'zinli', 'wally']),
   alias: z.string().max(50).optional().transform(val => val ? sanitizeText(val) : val),
   bank_name: z.string().max(100).optional().transform(val => val ? sanitizeText(val) : val),
-  phone_number: z.string().regex(/^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').optional().or(z.literal('')).transform(val => val ? sanitizeText(val) : val),
+  phone_number: z.string().regex(/^\+58(?:412|414|416|422|424|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').optional().or(z.literal('')).transform(val => val ? sanitizeText(val) : val),
   email: z.string().email().optional().or(z.literal('')),
   last_four: z.string().max(4).optional().transform(val => val ? sanitizeText(val) : val),
 });
@@ -212,18 +213,10 @@ export default function CustomerPaymentMethods() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone_number">Teléfono asociado</Label>
-                        <Input
+                        <PhoneInput
                           id="phone_number"
-                          placeholder="+58 412 1234567"
-                          {...form.register('phone_number')}
-                          onChange={(e) => {
-                            let val = e.target.value.replace(/[^\d+]/g, '');
-                            if (val && !val.startsWith('+')) val = '+' + val;
-                            if (val.length > 13) val = val.substring(0, 13);
-                            form.setValue('phone_number', val, { shouldValidate: true });
-                          }}
-                          pattern="^+58(?:412|414|424|416|426|2\d{2})\d{7}$"
-                          title="Debe ser un celular venezolano o teléfono fijo válido con +58"
+                          value={form.watch('phone_number') || ''}
+                          onChange={v => form.setValue('phone_number', v, { shouldValidate: true })}
                         />
                       </div>
                       <div className="space-y-2">

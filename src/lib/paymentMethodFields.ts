@@ -1,3 +1,5 @@
+import { formatPhone } from './venezuela';
+
 /** Nombre visible de cada método (ventas, recibos, reportes). */
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   pago_movil: 'Pago Móvil',
@@ -34,5 +36,5 @@ export function paymentConfigEntries(config?: Record<string, unknown> | null) {
   return Object.entries(config || {})
     .filter(([, v]) => typeof v === 'string' && v.trim() !== '')
     .sort(([a], [b]) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99))
-    .map(([key, value]) => ({ key, label: paymentConfigLabel(key), value: String(value) }));
+    .map(([key, value]) => ({ key, label: paymentConfigLabel(key), value: key === 'phone' ? formatPhone(String(value)).replace(/ /g, '') : String(value) }));
 }
