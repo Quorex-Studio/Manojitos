@@ -34,10 +34,10 @@ export const PaymentInfoPanel = memo(function PaymentInfoPanel({ method, config,
 
       {entries.length > 0 ? (
         <div className="divide-y divide-primary/10">
-          {entries.map(({ key, label: fieldLabel, value }) => (
+          {entries.map(({ key, label: fieldLabel, value, display }) => (
             <div key={key} className="flex items-center gap-3 py-2">
               <span className="w-28 shrink-0 text-xs text-muted-foreground">{fieldLabel}</span>
-              <span className="min-w-0 flex-1 break-all text-sm font-semibold text-foreground">{value}</span>
+              <span className="min-w-0 flex-1 break-words text-sm font-semibold tabular-nums text-foreground">{display}</span>
               <button
                 type="button"
                 onClick={() => copy(value, key)}

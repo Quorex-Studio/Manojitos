@@ -419,7 +419,7 @@ export default function Checkout() {
             <div className="glass-card rounded-2xl p-6 mb-6 text-left shadow-sm border border-border/60 bg-gradient-to-br from-background to-secondary/20">
               <h3 className="font-semibold text-lg text-foreground mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
                 <Package className="h-5 w-5 text-primary" />
-                Resumen del Pedido
+                Resumen del pedido
               </h3>
               <div className="space-y-3 text-sm">
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
@@ -443,7 +443,7 @@ export default function Checkout() {
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="text-muted-foreground">Método de Pago:</span>
+                  <span className="text-muted-foreground">Método de pago:</span>
                   <span className="font-medium text-foreground">{allMethodsWithCredit.find(m => m.method_key === paymentMethod)?.label}</span>
                 </div>
               </div>
@@ -473,33 +473,30 @@ export default function Checkout() {
     <StoreLayout>
       <div className="container mx-auto px-4 py-8 md:py-12">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
+        <nav className="mb-6 hidden items-center gap-2 text-sm text-muted-foreground md:flex">
           <Link to="/" className="hover:text-foreground transition-colors">Inicio</Link>
           <span>/</span>
           <Link to="/carrito" className="hover:text-foreground transition-colors">Carrito</Link>
           <span>/</span>
-          <span className="text-foreground font-medium">Checkout Seguro</span>
+          <span className="text-foreground font-medium">Pago</span>
         </nav>
 
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-10">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              onClick={() => navigate('/carrito')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground flex items-center gap-3">
-                Finalizar Compra
-                <span className="flex items-center gap-1 text-xs font-sans font-normal bg-secondary text-foreground px-3 py-1 rounded-full border border-border">
-                  <Shield className="h-3 w-3" />
-                  Encriptado SSL
-                </span>
-              </h1>
-            </div>
+        <div className="mb-6 flex items-center gap-3 md:mb-10">
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0 rounded-full"
+            onClick={() => navigate('/carrito')}
+            aria-label="Volver al carrito"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0">
+            <h1 className="font-serif text-2xl font-semibold text-foreground md:text-3xl">Finalizar compra</h1>
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Shield className="h-3.5 w-3.5 shrink-0" />
+              Pago seguro y verificado
+            </p>
           </div>
         </div>
 
@@ -556,7 +553,7 @@ export default function Checkout() {
                   <Truck className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-lg text-foreground">Opciones de Entrega</h2>
+                  <h2 className="font-semibold text-lg text-foreground">Opciones de entrega</h2>
                   <p className="text-sm text-muted-foreground">¿Cómo deseas recibir tu pedido?</p>
                 </div>
               </div>
@@ -578,7 +575,7 @@ export default function Checkout() {
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[550px] max-h-[85vh] overflow-y-auto rounded-2xl p-0">
                         <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center sticky top-0 z-10 backdrop-blur-md">
-                          <DialogTitle className="text-xl font-medium tracking-tight">Opciones de Entrega</DialogTitle>
+                          <DialogTitle className="text-xl font-medium tracking-tight">Opciones de entrega</DialogTitle>
                         </div>
                         <div className="p-6">
                           {/* Selector Retiro / Delivery */}
@@ -743,7 +740,7 @@ export default function Checkout() {
                   <CreditCard className="h-5 w-5 text-accent" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-lg text-foreground">Método de Pago</h2>
+                  <h2 className="font-semibold text-lg text-foreground">Método de pago</h2>
                   <p className="text-sm text-muted-foreground">Selecciona tu forma de pago preferida</p>
                 </div>
               </div>
@@ -751,7 +748,7 @@ export default function Checkout() {
               {!preferredMethod ? (
                 <div className="bg-primary/5 rounded-xl border border-primary/20 p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="font-semibold text-primary">Forma de Pago</span>
+                    <span className="font-semibold text-primary">Forma de pago</span>
                     <div className="h-3.5 w-3.5 rounded-full border-[3px] border-primary bg-background"></div>
                   </div>
                   <div className="ml-7 space-y-1">
@@ -776,7 +773,7 @@ export default function Checkout() {
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto rounded-2xl bg-background border border-border/40 shadow-2xl p-0">
                         <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center">
-                          <DialogTitle className="text-xl font-medium tracking-tight">Método de Pago</DialogTitle>
+                          <DialogTitle className="text-xl font-medium tracking-tight">Método de pago</DialogTitle>
                         </div>
                         <div className="p-6">
                           <p className="text-sm text-muted-foreground mb-4">Selecciona tu forma de pago preferida</p>
@@ -908,10 +905,10 @@ export default function Checkout() {
                     exit={{ opacity: 0, height: 0 }}
                     className="mt-4 p-5 rounded-xl border border-accent/20 bg-background/50 space-y-4"
                   >
-                    <h4 className="text-sm font-semibold text-foreground">Confirmación de Pago</h4>
+                    <h4 className="text-sm font-semibold text-foreground">Confirmación de pago</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="bancoOrigen" className="text-sm">Banco de Origen <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="bancoOrigen" className="text-sm">Banco de origen <span className="text-destructive">*</span></Label>
                         <select
                           id="bancoOrigen"
                           value={bancoOrigen}
@@ -940,7 +937,7 @@ export default function Checkout() {
                         </select>
                       </div>
                       <div>
-                        <Label htmlFor="numeroReferencia" className="text-sm">N° de Referencia <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="numeroReferencia" className="text-sm">N° de referencia <span className="text-destructive">*</span></Label>
                         <Input
                           id="numeroReferencia"
                           placeholder="Últimos 6 dígitos"
@@ -950,7 +947,7 @@ export default function Checkout() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="telefonoEmisor" className="text-sm">Teléfono Emisor <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="telefonoEmisor" className="text-sm">Teléfono emisor <span className="text-destructive">*</span></Label>
                         <PhoneInput id="telefonoEmisor" className="mt-1" value={telefonoEmisor} onChange={setTelefonoEmisor} inputClassName="bg-white/50 dark:bg-white/5 dark:border-white/10" />
                       </div>
                     </div>
@@ -1032,7 +1029,7 @@ export default function Checkout() {
                         
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <Label htmlFor="casheaMethod" className="text-xs">Método de Pago</Label>
+                            <Label htmlFor="casheaMethod" className="text-xs">Método de pago</Label>
                             <select
                               id="casheaMethod"
                               value={casheaMethod}
@@ -1080,7 +1077,7 @@ export default function Checkout() {
                                     </select>
                                   </div>
                                   <div>
-                                    <Label htmlFor="casheaPhone" className="text-xs">Teléfono Emisor</Label>
+                                    <Label htmlFor="casheaPhone" className="text-xs">Teléfono emisor</Label>
                                     <PhoneInput id="casheaPhone" className="mt-1" value={casheaPhone} onChange={setCasheaPhone} inputClassName="h-9 text-xs" />
                                   </div>
                                 </>
@@ -1138,7 +1135,7 @@ export default function Checkout() {
             <div className="glass-card-gold rounded-2xl p-6 sticky top-24 shadow-2xl shadow-black/5">
               <h2 className="text-xl font-serif font-bold text-foreground mb-6 flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5 text-accent" />
-                Resumen del Pedido
+                Resumen del pedido
               </h2>
 
               {/* Items */}
@@ -1195,7 +1192,7 @@ export default function Checkout() {
 
               <div className="mt-6 pt-6 border-t border-dashed border-border">
                 <div className="flex justify-between items-end mb-1">
-                  <span className="text-lg font-bold text-foreground">Total a Pagar</span>
+                  <span className="text-lg font-bold text-foreground">Total a pagar</span>
                   <div className="text-right">
                     <PriceDisplay 
                       amountUsd={orderTotal}
@@ -1260,7 +1257,7 @@ export default function Checkout() {
                         </>
                       ) : (
                         <>
-                          Confirmar Pedido
+                          Confirmar pedido
                           <Check className="h-5 w-5 ml-2" />
                         </>
                       )}

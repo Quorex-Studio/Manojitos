@@ -30,11 +30,14 @@ export const PAYMENT_CONFIG_LABELS: Record<string, string> = {
 export const paymentConfigLabel = (key: string) =>
   PAYMENT_CONFIG_LABELS[key] || key.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
 
-/** Datos con valor, en orden legible, listos para mostrar. */
+/** Datos con valor, en orden legible. `display` es para leer; `value` es lo que se copia (sin espacios en teléfonos). */
 export function paymentConfigEntries(config?: Record<string, unknown> | null) {
   const order = Object.keys(PAYMENT_CONFIG_LABELS);
   return Object.entries(config || {})
     .filter(([, v]) => typeof v === 'string' && v.trim() !== '')
     .sort(([a], [b]) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99))
-    .map(([key, value]) => ({ key, label: paymentConfigLabel(key), value: key === 'phone' ? formatPhone(String(value)).replace(/ /g, '') : String(value) }));
+    .map(([key, value]) => {
+      const display = key === 'phone' ? formatPhone(String(value)) : String(value);
+      return { key, label: paymentConfigLabel(key), display, value: key === 'phone' ? display.replace(/ /g, '') : display };
+    });
 }
