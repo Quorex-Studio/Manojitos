@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useCustomers, CustomerProfile } from '@/hooks/useCustomers';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -171,6 +172,7 @@ function CustomerHistory({ userId, phone }: { userId: string, phone: string | nu
 // ----------------------------------
 
 export default function Customers() {
+  const confirmDialog = useConfirm();
   const navigate = useNavigate();
   const { customers, isLoading, updateKycStatus } = useCustomers();
   const [searchTerm, setSearchTerm] = useState('');
@@ -212,11 +214,11 @@ export default function Customers() {
     }
 
     if (action === 'delete') {
-      if (!window.confirm('¿Estás seguro de ELIMINAR este cliente? Esta acción no se puede deshacer.')) return;
+      if (!(await confirmDialog({ title: '¿Eliminar este cliente?', description: 'Esta acción no se puede deshacer.', confirmText: 'Eliminar cliente', destructive: true }))) return;
     }
 
     if (action === 'suspend') {
-      if (!window.confirm('¿Estás seguro de SUSPENDER a este cliente? No podrá iniciar sesión.')) return;
+      if (!(await confirmDialog({ title: '¿Suspender este cliente?', description: 'No podrá iniciar sesión hasta que lo reactives.', confirmText: 'Suspender', destructive: true }))) return;
     }
 
     setIsProcessingAction(true);

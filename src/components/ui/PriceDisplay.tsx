@@ -9,6 +9,9 @@ interface PriceDisplayProps {
   primaryClassName?: string; // Clase para la moneda principal
   secondaryClassName?: string; // Clase para la moneda secundaria
   showSecondary?: boolean; // Si queremos mostrar las monedas secundarias o no
+  /** Monto en Bs ya registrado (p. ej. lo que se pagó en la compra). Si viene, se usa en vez
+   *  de convertir con la tasa de hoy: un recibo viejo no debe cambiar cuando cambia la tasa. */
+  amountBs?: number | null;
 }
 
 export function PriceDisplay({ 
@@ -16,12 +19,15 @@ export function PriceDisplay({
   className = "flex flex-col", 
   primaryClassName = "text-xl font-bold", 
   secondaryClassName = "text-sm text-muted-foreground",
-  showSecondary = true
+  showSecondary = true,
+  amountBs,
 }: PriceDisplayProps) {
   const { displayCurrency } = useCurrency();
   const { calculateAllCurrencies } = useExchangeRate(displayCurrency === 'EUR' ? 'EUR' : 'USD'); 
 
-  const { USD, VES, EUR } = calculateAllCurrencies(amountUsd);
+  const converted = calculateAllCurrencies(amountUsd);
+  const { USD, EUR } = converted;
+  const VES = amountBs && amountBs > 0 ? Number(amountBs) : converted.VES;
 
   // Funciones de formateo rápido
   const formatUSD = (val: number) => `$${val.toFixed(2)}`;

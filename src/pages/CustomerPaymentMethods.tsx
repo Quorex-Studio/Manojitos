@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -38,6 +39,7 @@ const methodIcons: Record<PaymentMethodType, React.ReactNode> = {
 };
 
 export default function CustomerPaymentMethods() {
+  const confirmDialog = useConfirm();
   // --- STATE ---
   const { user } = useAuth();
   const { methods, isLoading, addMethod, setPreferred, deleteMethod, preferredMethod } = useCustomerPaymentMethods();
@@ -80,8 +82,8 @@ export default function CustomerPaymentMethods() {
     });
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('¿Eliminar este método de pago?')) {
+  const handleDelete = async (id: string) => {
+    if (await confirmDialog({ title: '¿Eliminar este método de pago?', confirmText: 'Eliminar', destructive: true })) {
       deleteMethod.mutate(id);
     }
   };

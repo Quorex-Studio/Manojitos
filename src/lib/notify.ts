@@ -22,7 +22,20 @@ interface NotifyCustomerInput {
 export async function notifyCustomer({ userId, email, title, message, type = 'success', orderId, emailAction, emailData }: NotifyCustomerInput) {
   const tasks: Promise<unknown>[] = [];
 
+  // Respeta las preferencias de la clienta (Configuración → Notificaciones). Si no hay perfil
+  // o no se puede leer, se avisa igual: es mejor un aviso de más que un pedido sin noticia.
+  let prefs = { email: true, internal: true };
   if (userId) {
+    const { data } = await supabase
+      .from('customer_profiles')
+      .select('notification_preferences')
+      .eq('user_id', userId)
+      .maybeSingle();
+    const stored = data?.notification_preferences as { email?: boolean; internal?: boolean } | null;
+    prefs = { email: stored?.email ?? true, internal: stored?.internal ?? true };
+  }
+
+  if (userId && prefs.internal) {
     tasks.push(
       Promise.resolve(
         supabase.from('notifications').insert({
@@ -44,7 +57,7 @@ export async function notifyCustomer({ userId, email, title, message, type = 'su
     );
   }
 
-  if (email && emailAction) {
+  if (email && emailAction && prefs.email) {
     tasks.push(
       supabase.functions.invoke('send-email', {
         body: { action: emailAction, email, data: { order_id: orderId, ...emailData } },

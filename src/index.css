@@ -592,3 +592,10 @@
     --mobile-tabbar: 4rem;
   }
 }
+
+/* Ventanas flotantes siempre opacas: el "vidrio" dejaba ver la página detrás y restaba legibilidad */
+[role='dialog'].glass-card,
+[role='alertdialog'].glass-card {
+  background-color: hsl(var(--background));
+  backdrop-filter: none;
+}

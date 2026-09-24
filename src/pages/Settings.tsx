@@ -1,4 +1,5 @@
 import { BRAND_NAME } from '@/config/brand';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Loader, Settings as SettingsIcon, Refresh, DollarSign, Moon, Sun, Euro, Calculator } from 'reicon-react';
@@ -23,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Settings() {
+  const confirmDialog = useConfirm();
   // --- STATE ---
   const { displayCurrency, setDisplayCurrency } = useCurrency();
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>('USD');
@@ -337,8 +339,8 @@ export default function Settings() {
                   <div className="flex items-center gap-2">
                     <Switch checked={m.enabled} onCheckedChange={(v) => updateMethod.mutate({ id: m.id, enabled: v })} />
                     <Button size="sm" variant="ghost" onClick={() => setEditingMethod(m)}>Editar</Button>
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => {
-                      if (confirm(`¿Eliminar "${m.label}"?`)) deleteMethod.mutate(m.id);
+                    <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
+                      if (await confirmDialog({ title: `¿Eliminar "${m.label}"?`, description: 'Dejará de aparecer como opción de pago.', confirmText: 'Eliminar', destructive: true })) deleteMethod.mutate(m.id);
                     }}>Eliminar</Button>
                   </div>
                 </div>

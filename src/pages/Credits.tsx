@@ -1,4 +1,5 @@
 import { BRAND_NAME } from '@/config/brand';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -65,6 +66,7 @@ const REMINDER_TEMPLATES = {
 };
 
 export default function Credits() {
+  const confirmDialog = useConfirm();
   // --- STATE ---
   const { isAdmin } = useAuth();
   const { credits, isLoading, createCredit, updateCredit, toggleBlock, registerPayment, createReminder, stats } = useCredits();
@@ -147,7 +149,7 @@ export default function Credits() {
   };
 
   const handleRejectRequest = async (requestId: string) => {
-    if (!window.confirm('¿Estás seguro de rechazar esta solicitud de crédito?')) return;
+    if (!(await confirmDialog({ title: '¿Rechazar esta solicitud de crédito?', confirmText: 'Rechazar', destructive: true }))) return;
     try {
       await supabase
         .from('orders')
@@ -1430,7 +1432,7 @@ export default function Credits() {
 function CreditProfileDrawer({ creditId, onClose, credit, kycStatus }: {
   creditId: string | null;
   onClose: () => void;
-  credit: Credit;
+  credit: Credit | undefined;
   kycStatus: string | undefined;
 }) {
   const { data: transactions, isLoading } = useCreditTransactions(creditId || '');

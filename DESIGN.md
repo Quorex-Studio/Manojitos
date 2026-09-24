@@ -237,3 +237,15 @@ abría) · `ToggleRight/Left` sin importar (Reglas) · `React.useMemo` sin impor
 (Importar productos se colgaba tras el primer lote) · `retail_multiplier` inexistente (el precio
 detal ignoraba el recargo configurado).
 
+## 9. Ventanas flotantes, avisos y correos
+
+| Área | Cambio | Por qué | Archivo |
+|------|--------|---------|---------|
+| Ventanas | `Dialog`/`AlertDialog`: hoja inferior en móvil (sube desde abajo, asa, `max-h-[92dvh]`, scroll interno, safe-area) y modal centrado con zoom en PC; reglas `max-sm:!` para que ninguna pantalla lo rompa | Los formularios largos (Nueva venta, Nuevo producto) no cabían en el teléfono | `ui/dialog.tsx`, `ui/alert-dialog.tsx` |
+| Ventanas | Cerrar de 40 px, título en serif, botones del pie a ancho completo en móvil; ventanas siempre opacas | Objetivo táctil y legibilidad | `ui/dialog.tsx`, `index.css` |
+| Confirmaciones | `useConfirm()` reemplaza los 10 `confirm()` nativos con título, consecuencia y botón rojo si es destructivo | El cuadro del navegador no dice qué pasa después ni se ve en la marca | `ui/confirm-dialog.tsx` |
+| Avisos | `notifyCustomer()`: aviso interno + push + correo en un lugar, respetando las preferencias de la clienta | Había avisos duplicados, un push a una ruta inexistente y preferencias que nadie leía | `src/lib/notify.ts` |
+| Correos | Plantillas de marca con texto escapado; correos de pedido confirmado/rechazado/enviado/entregado y aviso a la administración | Solo existía el recibo, con colores de otra marca | `supabase/functions/send-email/` |
+| Precios | `PriceDisplay amountBs`: un recibo muestra los Bs que se pagaron, no los de la tasa de hoy | Los pedidos viejos cambiaban de monto al cambiar la tasa | `ui/PriceDisplay.tsx` |
+| Fluidez | Transición corta entre páginas de la tienda (respeta "reducir movimiento") | Continuidad al navegar | `StoreLayout.tsx` |
+

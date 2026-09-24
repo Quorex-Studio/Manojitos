@@ -166,7 +166,7 @@ export default function AngelaChat() {
         {!open && (
           <motion.div
             key="launcher"
-            className={cn("fixed z-50 flex-col items-end gap-2", onAdmin ? "hidden md:flex" : "flex")}
+            className={cn("fixed z-40 flex-col items-end gap-2", onAdmin ? "hidden md:flex" : "flex")}
             style={{
               right: "calc(1rem + env(safe-area-inset-right))",
               bottom: "calc(var(--mobile-tabbar, 0px) + 1rem + env(safe-area-inset-bottom))",

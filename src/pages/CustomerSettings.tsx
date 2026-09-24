@@ -301,19 +301,6 @@ export default function CustomerSettings() {
 
                 <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/80">
                   <div>
-                    <p className="font-medium">SMS</p>
-                    <p className="text-sm text-muted-foreground">
-                      Mensajes de texto importantes
-                    </p>
-                  </div>
-                  <Switch
-                    checked={notifPrefs.sms}
-                    onCheckedChange={(v) => handleNotifChange('sms', v)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/80">
-                  <div>
                     <p className="font-medium">Notificaciones internas</p>
                     <p className="text-sm text-muted-foreground">
                       Avisos dentro de la plataforma

@@ -1,4 +1,5 @@
 import { BRAND, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle } from 'reicon-react';
@@ -125,6 +126,7 @@ export default function Sales() {
   const { methods: activePaymentMethods } = usePaymentMethods(false);
   const { config: pricingConfig } = usePricingConfig();
   const [searchParams, setSearchParams] = useSearchParams();
+  const confirmDialog = useConfirm();
   // La pestaña vive en la URL (?tab=) para que los enlaces del panel abran la correcta
   const SALES_TABS = ['ventas', 'cuentas-cobrar', 'pedidos', 'resumen-producto'];
   const tabParam = searchParams.get('tab') || 'ventas';
@@ -224,7 +226,7 @@ export default function Sales() {
   };
 
   const handleVoidPayment = async (paymentId: string) => {
-    if (!window.confirm('¿Estás seguro de que deseas anular este abono? El saldo de la cuenta se recalculará automáticamente.')) {
+    if (!(await confirmDialog({ title: '¿Anular este abono?', description: 'El saldo de la cuenta se recalculará automáticamente.', confirmText: 'Anular abono', destructive: true }))) {
       return;
     }
     setIsSubmitting(true);
@@ -824,7 +826,7 @@ export default function Sales() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('¿Eliminar esta venta?')) {
+    if (await confirmDialog({ title: '¿Eliminar esta venta?', description: 'El stock de los productos se devuelve al inventario.', confirmText: 'Eliminar', destructive: true })) {
       await deleteSale(id);
       refetchProducts();
     }
@@ -852,7 +854,7 @@ export default function Sales() {
   };
 
   const handleApproveOrder = async (orderId: string) => {
-    if (!confirm('¿Aprobar este pedido? Esto descontará el stock y registrará la venta.')) return;
+    if (!(await confirmDialog({ title: '¿Aprobar este pedido?', description: 'Se descuenta el stock, se registra la venta y se avisa a la clienta por correo.', confirmText: 'Aprobar pedido' }))) return;
 
     try {
       // 1. Consultar la orden antes de aprobar para conocer sus detalles
@@ -1102,7 +1104,7 @@ export default function Sales() {
   };
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
-    if (!confirm(`¿Marcar este pedido como ${newStatus === 'shipped' ? 'Enviado' : 'Entregado'}?`)) return;
+    if (!(await confirmDialog({ title: `¿Marcar como ${newStatus === 'shipped' ? 'enviado' : 'entregado'}?`, description: 'La clienta recibirá un aviso y un correo.', confirmText: newStatus === 'shipped' ? 'Marcar enviado' : 'Marcar entregado' }))) return;
 
     try {
       const { data: targetOrder } = await supabase
@@ -1888,7 +1890,7 @@ export default function Sales() {
                               className="flex-1"
                               variant={isPartial ? "default" : "secondary"}
                               onClick={async () => {
-                                if (confirm(`¿Marcar la deuda total de $${pendingAmountUsd.toFixed(2)} como pagada en su totalidad?`)) {
+                                if (await confirmDialog({ title: '¿Saldar la deuda completa?', description: `Se registrará un pago de $${pendingAmountUsd.toFixed(2)} y la cuenta quedará pagada.`, confirmText: 'Saldar deuda' })) {
                                   await registerSalePayment({
                                     saleGroupId: group.id,
                                     amountUsd: pendingAmountUsd,

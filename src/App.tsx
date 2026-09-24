@@ -1,4 +1,5 @@
 // App principal de la tienda
+import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -235,12 +236,14 @@ const App = () => (
             <AuthProvider>
               <CartProvider>
                 <TooltipProvider>
+                <ConfirmProvider>
                   <Toaster />
                   <Sonner />
                   <AppRoutes />
                   <Suspense fallback={null}>
                     <AngelaChat />
                   </Suspense>
+                </ConfirmProvider>
                 </TooltipProvider>
               </CartProvider>
             </AuthProvider>
