@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { isOutOfStock, needsRestock } from '@/lib/stock';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gallery, Plus, Search, Package, Edit2, Trash2, Calculator, DollarSign, TrendUp, ArrowRight } from 'reicon-react';
+import { Gallery, Plus, Search, Package, Edit2, Trash2, Calculator, DollarSign, TrendUp, ArrowRight, DocumentUpload } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
@@ -375,6 +375,7 @@ export default function Products() {
             <p className="page-subtitle">{products.length} productos registrados</p>
           </div>
 
+          <div className="grid grid-cols-[1fr_auto] gap-2 sm:flex">
           <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
               <Button className="h-11 w-full gap-2 rounded-full sm:w-auto">
@@ -829,6 +830,10 @@ export default function Products() {
               </form>
             </DialogContent>
           </Dialog>
+            <Button asChild variant="outline" className="h-11 gap-2 rounded-full">
+              <Link to="/import-products"><DocumentUpload className="h-5 w-5" />Importar</Link>
+            </Button>
+          </div>
         </div>
 
         {/* Filtros: búsqueda, estado de stock (chips), categoría y orden */}

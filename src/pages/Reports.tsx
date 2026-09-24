@@ -1,3 +1,4 @@
+import { PAYMENT_METHOD_LABELS } from '@/lib/paymentMethodFields';
 import { BRAND, BRAND_COLOR_RGB, BRAND_FILE_SLUG, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
@@ -347,7 +348,8 @@ export default function Reports() {
           />
         </div>
 
-        {/* Payment Methods Breakdown */}
+        {/* Payment Methods Breakdown (solo si hay ventas en el período) */}
+        {Object.keys(stats.byPaymentMethod).length > 0 && (
         <Card className="glass-card border-border/50">
           <CardHeader>
             <CardTitle className="font-serif">Ventas por Método de Pago</CardTitle>
@@ -356,13 +358,14 @@ export default function Reports() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {Object.entries(stats.byPaymentMethod).map(([method, total]) => (
                 <div key={method} className="p-4 rounded-xl bg-secondary/80 text-center">
-                  <p className="text-sm text-muted-foreground capitalize">{method.replace(/_/g, ' ')}</p>
+                  <p className="text-sm text-muted-foreground">{PAYMENT_METHOD_LABELS[method] || method.replace(/_/g, ' ')}</p>
                   <p className="text-lg font-bold text-gradient-gold">${(total as number).toFixed(2)}</p>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Sales Table */}
         <Card className="glass-card border-border/50">
