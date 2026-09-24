@@ -1,4 +1,5 @@
 // App principal de la tienda
+import { isChunkLoadError, reloadForNewVersion } from '@/lib/chunkReload';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
@@ -69,36 +70,26 @@ class ErrorBoundary extends React.Component<
     return { hasError: true, error };
   }
   componentDidCatch(error: Error) {
-    // Detectar el error de chunk dinámico (nuevo deploy de Vercel)
-    const isChunkError =
-      error.message?.includes('Failed to fetch dynamically imported module') ||
-      error.message?.includes('Importing a module script failed') ||
-      error.name === 'ChunkLoadError';
-
-    if (isChunkError) {
-      // Guardia anti-loop: solo recargamos UNA vez por sesión
-      const reloadKey = 'chunk_reload_attempted';
-      if (!sessionStorage.getItem(reloadKey)) {
-        sessionStorage.setItem(reloadKey, '1');
-        window.location.reload();
-        return; // evita el render del error mientras recarga
-      }
-    }
+    // Versión vieja en caché tras un despliegue: recargar para traer la nueva
+    if (isChunkLoadError(error)) reloadForNewVersion();
   }
   render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-background p-8 text-center">
-          <p className="text-foreground font-serif text-2xl mb-2">Algo salió mal</p>
-          <p className="text-muted-foreground text-sm mb-4">{this.state.error?.message}</p>
+          <p className="text-foreground font-serif text-2xl mb-2">
+            {isChunkLoadError(this.state.error) ? 'Hay una versión nueva' : 'Algo salió mal'}
+          </p>
+          <p className="text-muted-foreground text-sm mb-4">
+            {isChunkLoadError(this.state.error) ? 'Toca el botón para cargarla.' : this.state.error?.message}
+          </p>
           <button
             className="px-6 py-2 rounded-full bg-primary text-primary-foreground text-sm"
             onClick={() => {
-              sessionStorage.removeItem('chunk_reload_attempted');
               window.location.href = '/';
             }}
           >
-            Volver al inicio
+            {isChunkLoadError(this.state.error) ? 'Cargar de nuevo' : 'Volver al inicio'}
           </button>
         </div>
       );
