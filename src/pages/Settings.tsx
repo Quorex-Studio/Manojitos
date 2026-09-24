@@ -1,60 +1,85 @@
 import { BRAND_NAME } from '@/config/brand';
-import { paymentConfigLabel } from '@/lib/paymentMethodFields';
+import { paymentConfigLabel, PAYMENT_CONFIG_LABELS } from '@/lib/paymentMethodFields';
 import { useConfirm } from '@/components/ui/confirm-dialog';
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Loader, Settings as SettingsIcon, Refresh, DollarSign, Moon, Sun, Euro, Calculator } from 'reicon-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Loader, Refresh, DollarSign, Euro, Calculator, CreditCard, Moon, Sun, Plus, Edit, Trash2, TickCircle, AlertTriangle } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
-type Currency = 'USD' | 'EUR' | 'VES';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatBS } from '@/lib/utils';
-import { AlertTriangle } from 'reicon-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { formatBS, cn } from '@/lib/utils';
 import { usePaymentMethods, PaymentMethodRow } from '@/hooks/usePaymentMethods';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+type Currency = 'USD' | 'EUR';
+
+// Datos que se suelen pedir para cada método (se proponen si el método no trae campos).
+const SUGGESTED_FIELDS: Record<string, string[]> = {
+  pago_movil: ['bank', 'phone', 'ci', 'name'],
+  transferencia: ['bank', 'account', 'ci', 'name'],
+  zelle: ['email', 'name'],
+  binance: ['pay_id', 'email', 'name'],
+  zinli: ['email', 'name'],
+  wally: ['phone', 'email', 'name'],
+};
+const FIELD_CHOICES = ['bank', 'phone', 'ci', 'name', 'account', 'email', 'pay_id', 'wallet', 'network'];
+
+const filledCount = (m: PaymentMethodRow) => Object.values(m.config || {}).filter(v => String(v || '').trim()).length;
+const fieldCount = (m: PaymentMethodRow) => Object.keys(m.config || {}).length;
+
+function SectionCard({ title, description, icon, children }: { title: string; description?: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+      <div className="mb-4 flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary [&_svg]:h-5 [&_svg]:w-5">{icon}</span>
+        <div className="min-w-0">
+          <h2 className="font-serif text-xl">{title}</h2>
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
 
 export default function Settings() {
   const confirmDialog = useConfirm();
-  // --- STATE ---
   const { displayCurrency, setDisplayCurrency } = useCurrency();
+  const { theme, setTheme } = useTheme();
+  const [tab, setTab] = useState('pagos');
+
+  // --- Tasa ---
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>('USD');
-  const { rates, loading: rateLoading, lastUpdate, refetch, autoFetching, updateRate } = useExchangeRate(selectedCurrency as 'USD' | 'EUR');
-  
-  const { methods: allPaymentMethods, updateMethod, createMethod, deleteMethod } = usePaymentMethods(true);
-  const [editingMethod, setEditingMethod] = useState<PaymentMethodRow | null>(null);
-  const [isCreatingMethod, setIsCreatingMethod] = useState(false);
-  const [newMethodDraft, setNewMethodDraft] = useState({ method_key: '', label: '', description: '', configPairs: [{ key: '', value: '' }] });
-  // Rate para la UI de configuración de BCV
+  const { rates, refetch } = useExchangeRate(selectedCurrency);
   const rateInfo = selectedCurrency === 'EUR' ? rates?.EUR : rates?.USD;
   const rate = rateInfo?.rate ?? 0;
-  const newLastUpdate = rateInfo?.lastUpdate ?? null;
+  const rateUpdated = rateInfo?.lastUpdate ?? null;
   const [newRate, setNewRate] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [savingRate, setSavingRate] = useState(false);
   const [fetchingRate, setFetchingRate] = useState(false);
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
-  // Pricing config
-  const { config: pricingConfig, loading: pricingLoading, updateConfig: savePricingConfig } = usePricingConfig();
-  const [pricingForm, setPricingForm] = useState({
-    usd_to_eur_multiplier: '2',
-    rounding_mode: 'ceil' as 'ceil' | 'round' | 'floor',
-    retail_markup_pct: '15',
-    credit_surcharge_pct: '10',
-  });
+  // --- Métodos de pago ---
+  const { methods, updateMethod, createMethod, deleteMethod } = usePaymentMethods(true);
+  const visibleMethods = methods.filter(m => m.method_key !== 'credito');
+  const [editing, setEditing] = useState<PaymentMethodRow | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState({ label: '', description: '', fields: ['name'] as string[] });
+  const missingData = visibleMethods.filter(m => m.enabled && fieldCount(m) > 0 && filledCount(m) < fieldCount(m));
+
+  // --- Precios ---
+  const { config: pricingConfig, updateConfig: savePricingConfig } = usePricingConfig();
+  const [pricingForm, setPricingForm] = useState({ usd_to_eur_multiplier: '2', rounding_mode: 'ceil' as 'ceil' | 'round' | 'floor', retail_markup_pct: '15', credit_surcharge_pct: '10' });
   const [savingPricing, setSavingPricing] = useState(false);
 
-  // Sync pricing form with loaded config
   useEffect(() => {
     if (pricingConfig) {
       setPricingForm({
@@ -66,376 +91,374 @@ export default function Settings() {
     }
   }, [pricingConfig]);
 
+  // Ejemplo en vivo: un producto que costó $7,40
+  const example = useMemo(() => {
+    const cost = 7.4;
+    const factor = Number(pricingForm.usd_to_eur_multiplier) || 0;
+    const rounded = pricingForm.rounding_mode === 'ceil' ? Math.ceil(cost) : pricingForm.rounding_mode === 'floor' ? Math.floor(cost) : Math.round(cost);
+    const price = rounded * factor;
+    const credit = Math.round(price * (1 + (Number(pricingForm.credit_surcharge_pct) || 0) / 100) * 100) / 100;
+    return { cost, rounded, price, credit };
+  }, [pricingForm]);
+
   const handleSavePricing = async () => {
     setSavingPricing(true);
     try {
       await savePricingConfig({
         usd_to_eur_multiplier: Number(pricingForm.usd_to_eur_multiplier) || 2,
         rounding_mode: pricingForm.rounding_mode,
-        retail_markup_pct: Number(pricingForm.retail_markup_pct) || 15,
-        credit_surcharge_pct: Number(pricingForm.credit_surcharge_pct) || 10,
+        retail_markup_pct: Number(pricingForm.retail_markup_pct) || 0,
+        credit_surcharge_pct: Number(pricingForm.credit_surcharge_pct) || 0,
       });
     } finally {
       setSavingPricing(false);
     }
   };
 
-  // --- HANDLERS ---
+  const errorText = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
 
-  // Updates rate via edge function (uses service role key to bypass RLS)
   const handleUpdateRate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRate) return;
-    
-    setLoading(true);
+    setSavingRate(true);
     try {
-      const { data, error } = await supabase.functions.invoke('get-bcv-rate', {
-        body: { rate: Number(newRate), currency: selectedCurrency }
-      });
-      
+      const { data, error } = await supabase.functions.invoke('get-bcv-rate', { body: { rate: Number(newRate), currency: selectedCurrency } });
       if (error) throw error;
-      
-      if (data?.saved) {
-        setNewRate('');
-        refetch();
-        toast({ title: 'Éxito', description: `Tasa ${selectedCurrency} actualizada: Bs. ${data.rate}` });
-      } else {
-        throw new Error('No se pudo guardar la tasa');
-      }
-    } catch (error: unknown) {
-      toast({ title: 'Error', description: error.message || 'No se pudo actualizar la tasa', variant: 'destructive' });
+      if (!data?.saved) throw new Error('No se pudo guardar la tasa');
+      setNewRate('');
+      refetch();
+      toast({ title: 'Tasa guardada', description: `${selectedCurrency}: ${formatBS(data.rate)}` });
+    } catch (err) {
+      toast({ title: 'No se pudo guardar', description: errorText(err, 'Intenta de nuevo'), variant: 'destructive' });
     } finally {
-      setLoading(false);
+      setSavingRate(false);
     }
   };
 
-  // Fetches rate via edge function (saves using service role key)
   const handleFetchRate = async () => {
     setFetchingRate(true);
     try {
-      const { data, error } = await supabase.functions.invoke('get-bcv-rate', {
-        body: { currency: selectedCurrency }
-      });
-      
+      const { data, error } = await supabase.functions.invoke('get-bcv-rate', { body: { currency: selectedCurrency } });
       if (error) throw error;
-      
-      if (data?.saved) {
-        refetch();
-        toast({ title: 'Éxito', description: `Tasa ${selectedCurrency} actualizada: Bs. ${data.rate}` });
-      } else {
-        throw new Error('No se pudo obtener la tasa');
-      }
-    } catch (error: unknown) {
-      toast({ title: 'Error', description: error.message || 'No se pudo obtener la tasa', variant: 'destructive' });
+      if (!data?.saved) throw new Error('El BCV no respondió');
+      refetch();
+      toast({ title: 'Tasa actualizada', description: `${selectedCurrency}: ${formatBS(data.rate)}` });
+    } catch (err) {
+      toast({ title: 'No se pudo obtener la tasa', description: errorText(err, 'Escríbela a mano abajo'), variant: 'destructive' });
     } finally {
       setFetchingRate(false);
     }
   };
 
-  const handleToggleTheme = (newMode: boolean) => {
-    setIsDark(newMode);
-    document.documentElement.classList.toggle('dark', newMode);
-    localStorage.setItem('theme', newMode ? 'dark' : 'light');
+  // Al editar un método sin campos, se le proponen los habituales
+  const openEdit = (m: PaymentMethodRow) => {
+    const config = { ...(m.config || {}) };
+    if (Object.keys(config).length === 0) (SUGGESTED_FIELDS[m.method_key] || []).forEach(k => { config[k] = ''; });
+    setEditing({ ...m, config });
   };
 
-  // --- RENDER ---
+  const saveEdit = () => {
+    if (!editing) return;
+    updateMethod.mutate({ id: editing.id, label: editing.label.trim(), description: editing.description, config: editing.config });
+    setEditing(null);
+  };
+
+  const createNew = () => {
+    const label = draft.label.trim();
+    if (!label) return;
+    const key = label.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    if (methods.some(m => m.method_key === key)) {
+      toast({ title: 'Ese método ya existe', description: 'Búscalo en la lista y edítalo.', variant: 'destructive' });
+      return;
+    }
+    createMethod.mutate({
+      method_key: key,
+      label,
+      description: draft.description.trim() || null,
+      enabled: true,
+      display_order: methods.length + 1,
+      config: Object.fromEntries(draft.fields.map(f => [f, ''])),
+    });
+    setCreating(false);
+    setDraft({ label: '', description: '', fields: ['name'] });
+  };
+
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-2xl">
+      <div className="max-w-3xl space-y-5">
         <div>
           <h1 className="page-header">Configuración</h1>
-          <p className="page-subtitle">Ajustes del sistema</p>
+          <p className="page-subtitle">Datos de pago, tasa, precios y preferencias de {BRAND_NAME}</p>
         </div>
 
-        {/* Preferencia de Moneda de Visualización */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="glass-card-gold border-gold/30">
-            <CardHeader>
-              <CardTitle className="font-serif flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-gold" />
-                Preferencia de Visualización
-              </CardTitle>
-              <CardDescription>Elige la moneda principal en la que verás los precios (Afecta solo a este dispositivo)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs value={displayCurrency} onValueChange={(v) => setDisplayCurrency(v as DisplayCurrency)}>
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="USD">Dólar ($)</TabsTrigger>
-                  <TabsTrigger value="VES">Bolívar (Bs.)</TabsTrigger>
-                  <TabsTrigger value="EUR">Euro (€)</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="admin-tabs">
+            <TabsTrigger value="pagos">
+              <CreditCard className="h-4 w-4" />Pagos
+              {missingData.length > 0 && <span className="h-2 w-2 rounded-full bg-amber-500" aria-label="faltan datos" />}
+            </TabsTrigger>
+            <TabsTrigger value="tasa"><DollarSign className="h-4 w-4" />Tasa</TabsTrigger>
+            <TabsTrigger value="precios"><Calculator className="h-4 w-4" />Precios</TabsTrigger>
+            <TabsTrigger value="preferencias">{theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}Preferencias</TabsTrigger>
+          </TabsList>
 
-        {/* Exchange Rate */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="glass-card-gold border-gold/30">
-            <CardHeader>
-              <CardTitle className="font-serif flex items-center gap-2">
-                {selectedCurrency === 'USD' ? <DollarSign className="h-5 w-5" /> : <Euro className="h-5 w-5" />}
-                Tasa de Cambio
-              </CardTitle>
-              <CardDescription>Configura la tasa de cambio para conversiones</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Moneda Base</Label>
-                <Tabs value={selectedCurrency} onValueChange={(v) => setSelectedCurrency(v as Currency)}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="USD" className="gap-2"><DollarSign className="h-4 w-4" /> Dólar (USD)</TabsTrigger>
-                    <TabsTrigger value="EUR" className="gap-2"><Euro className="h-4 w-4" /> Euro (EUR)</TabsTrigger>
-                  </TabsList>
-                </Tabs>
+          {/* ===== PAGOS ===== */}
+          <TabsContent value="pagos" className="mt-5 space-y-4">
+            {missingData.length > 0 && (
+              <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                <p className="text-sm">
+                  <strong className="font-semibold">Completa tus datos de pago.</strong> A {missingData.map(m => m.label).join(', ')} les faltan datos:
+                  sin ellos, tus clientas no sabrán a dónde pagarte al comprar.
+                </p>
               </div>
+            )}
 
-              <div className="p-4 rounded-xl bg-secondary/80">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm text-muted-foreground">Tasa {selectedCurrency} actual</p>
-                    <p className="text-3xl font-bold text-gradient-gold">
-                      {rate > 0 ? `${formatBS(rate)}` : 'No configurada'}
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {visibleMethods.map(m => {
+                const total = fieldCount(m);
+                const filled = filledCount(m);
+                const complete = total === 0 || filled === total;
+                return (
+                  <li key={m.id} className={cn('flex flex-col rounded-2xl border bg-card p-4 transition-opacity', m.enabled ? 'border-border' : 'border-dashed border-border opacity-60')}>
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold">{m.label}</p>
+                        <p className="truncate text-xs text-muted-foreground">{m.enabled ? (m.description || 'Sin descripción') : 'Desactivado · no aparece al pagar'}</p>
+                      </div>
+                      <Switch
+                        checked={m.enabled}
+                        onCheckedChange={v => updateMethod.mutate({ id: m.id, enabled: v })}
+                        aria-label={`${m.enabled ? 'Desactivar' : 'Activar'} ${m.label}`}
+                      />
+                    </div>
+                    <p className={cn('mt-3 flex items-center gap-1.5 text-xs font-medium', complete ? 'text-success' : 'text-amber-700 dark:text-amber-300')}>
+                      {complete ? <TickCircle className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                      {total === 0 ? 'No necesita datos' : complete ? 'Datos completos' : `Faltan ${total - filled} de ${total} datos`}
                     </p>
-                    {newLastUpdate && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Última actualización: {newLastUpdate.toLocaleDateString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    )}
-                  </div>
-                  <Button variant="outline" onClick={handleFetchRate} disabled={fetchingRate} className="rounded-xl gap-2 shrink-0">
-                    {fetchingRate ? <Loader className="h-4 w-4 animate-spin" /> : <Refresh className="h-4 w-4" />}
-                    Obtener {selectedCurrency}
+                    <div className="mt-3 flex gap-2">
+                      <Button variant="outline" size="sm" className="h-10 flex-1 rounded-full" onClick={() => openEdit(m)}>
+                        <Edit className="h-4 w-4" />{complete ? 'Editar datos' : 'Completar datos'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 rounded-full text-muted-foreground hover:text-destructive"
+                        aria-label={`Eliminar ${m.label}`}
+                        onClick={async () => {
+                          if (await confirmDialog({ title: `¿Eliminar ${m.label}?`, description: 'Dejará de aparecer como opción de pago. Si solo quieres ocultarlo, desactívalo.', confirmText: 'Eliminar', destructive: true })) deleteMethod.mutate(m.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setCreating(true)}
+                  className="flex h-full min-h-[148px] w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border p-4 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+                >
+                  <Plus className="h-5 w-5" />Agregar otro método
+                </button>
+              </li>
+            </ul>
+          </TabsContent>
+
+          {/* ===== TASA ===== */}
+          <TabsContent value="tasa" className="mt-5 space-y-4">
+            <SectionCard title="Tasa del día" description="Se usa para mostrar los precios en bolívares." icon={selectedCurrency === 'USD' ? <DollarSign /> : <Euro />}>
+              <div className="mb-4 inline-flex rounded-full bg-secondary p-1" role="radiogroup" aria-label="Moneda">
+                {(['USD', 'EUR'] as Currency[]).map(c => (
+                  <button key={c} type="button" role="radio" aria-checked={selectedCurrency === c} onClick={() => setSelectedCurrency(c)}
+                    className={cn('h-9 rounded-full px-4 text-sm font-medium transition-colors', selectedCurrency === c ? 'bg-card shadow-sm' : 'text-muted-foreground')}>
+                    {c === 'USD' ? 'Dólar' : 'Euro'}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl bg-studio p-5">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">BCV · {selectedCurrency}</p>
+                  <p className="font-serif text-4xl font-semibold tabular-nums text-primary">{rate > 0 ? formatBS(rate) : 'Sin tasa'}</p>
+                  {rateUpdated && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Actualizada {rateUpdated.toLocaleDateString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
+                </div>
+                <Button variant="outline" onClick={handleFetchRate} disabled={fetchingRate} className="h-11 rounded-full bg-card">
+                  {fetchingRate ? <Loader className="h-4 w-4 animate-spin" /> : <Refresh className="h-4 w-4" />}Actualizar del BCV
+                </Button>
+              </div>
+              <form onSubmit={handleUpdateRate} className="mt-4 space-y-2">
+                <Label htmlFor="manual-rate">¿El BCV no responde? Escribe la tasa a mano</Label>
+                <div className="flex gap-2">
+                  <Input id="manual-rate" inputMode="decimal" value={newRate} onChange={e => setNewRate(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="Ej: 854.46" className="h-11 min-w-0 flex-1 rounded-xl" />
+                  <Button type="submit" disabled={savingRate || !newRate} className="h-11 rounded-full">
+                    {savingRate ? <Loader className="h-4 w-4 animate-spin" /> : 'Guardar'}
                   </Button>
                 </div>
-              </div>
+              </form>
+            </SectionCard>
+          </TabsContent>
 
-              <div className="mt-4 border-t border-border/10 pt-4">
-                <Alert variant="default" className="mb-4 bg-gold/10 border-gold/30 text-gold-foreground">
-                  <AlertTriangle className="h-4 w-4 text-gold" />
-                  <AlertTitle>Modo de Contingencia</AlertTitle>
-                  <AlertDescription className="text-xs">
-                    Si la tasa automática falla, puedes fijar el valor oficial manualmente. Recuerda actualizarlo diariamente.
-                  </AlertDescription>
-                </Alert>
-                <form onSubmit={handleUpdateRate} className="flex flex-wrap gap-2">
-                  <Input type="number" step="0.01" min="0" value={newRate} onChange={(e) => setNewRate(e.target.value.replace(/[^0-9.]/g, ''))} placeholder={`Nueva tasa ${selectedCurrency} manual`} className="input-glass rounded-xl min-w-0 flex-1" aria-label="Tasa manual" />
-                  <Button type="submit" disabled={loading || !newRate} className="btn-gold rounded-xl shrink-0">
-                    {loading ? <Loader className="h-4 w-4 animate-spin" /> : 'Fijar Tasa Manual'}
-                  </Button>
-                </form>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Pricing Configuration */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <Card className="glass-card-gold border-gold/30">
-            <CardHeader>
-              <CardTitle className="font-serif flex items-center gap-2">
-                <Calculator className="h-5 w-5 text-primary" />
-                Costos y Precios
-              </CardTitle>
-              <CardDescription>Parámetros de cálculo automático de precios para productos</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm">Factor USD → EUR</Label>
-                  <Input type="number" step="0.1" min="0.1" value={pricingForm.usd_to_eur_multiplier} onChange={e => setPricingForm(prev => ({ ...prev, usd_to_eur_multiplier: e.target.value }))} placeholder="2" className="input-glass rounded-xl" />
-                  <p className="text-xs text-muted-foreground">Costo redondeado × factor = Precio Mayor EUR</p>
+          {/* ===== PRECIOS ===== */}
+          <TabsContent value="precios" className="mt-5 space-y-4">
+            <SectionCard title="Cómo se calculan los precios" description="Cuando cargas una compra, el sistema sugiere el precio de venta con estas reglas." icon={<Calculator />}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="p-factor">Multiplicador sobre el costo</Label>
+                  <Input id="p-factor" inputMode="decimal" value={pricingForm.usd_to_eur_multiplier} onChange={e => setPricingForm(p => ({ ...p, usd_to_eur_multiplier: e.target.value.replace(/[^0-9.]/g, '') }))} className="h-11 rounded-xl" />
+                  <p className="text-xs text-muted-foreground">2 = vendes al doble de lo que te costó.</p>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Tipo de Redondeo</Label>
-                  <Select value={pricingForm.rounding_mode} onValueChange={v => setPricingForm(prev => ({ ...prev, rounding_mode: v as 'ceil' | 'round' | 'floor' }))}>
-                    <SelectTrigger className="input-glass rounded-xl"><SelectValue /></SelectTrigger>
+                <div className="space-y-1.5">
+                  <Label>Redondeo del costo</Label>
+                  <Select value={pricingForm.rounding_mode} onValueChange={v => setPricingForm(p => ({ ...p, rounding_mode: v as 'ceil' | 'round' | 'floor' }))}>
+                    <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ceil">Arriba (ceil)</SelectItem>
-                      <SelectItem value="round">Estándar (round)</SelectItem>
-                      <SelectItem value="floor">Abajo (floor)</SelectItem>
+                      <SelectItem value="ceil">Hacia arriba ($7,40 → $8)</SelectItem>
+                      <SelectItem value="round">Al más cercano ($7,40 → $7)</SelectItem>
+                      <SelectItem value="floor">Hacia abajo ($7,40 → $7)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm">Recargo Detal (%)</Label>
-                  <Input type="number" step="1" min="0" max="100" value={pricingForm.retail_markup_pct} onChange={e => setPricingForm(prev => ({ ...prev, retail_markup_pct: e.target.value }))} placeholder="15" className="input-glass rounded-xl" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="p-credit">Recargo por crédito (%)</Label>
+                  <Input id="p-credit" inputMode="numeric" value={pricingForm.credit_surcharge_pct} onChange={e => setPricingForm(p => ({ ...p, credit_surcharge_pct: e.target.value.replace(/[^0-9.]/g, '') }))} className="h-11 rounded-xl" />
+                  <p className="text-xs text-muted-foreground">Se suma cuando la venta es financiada.</p>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm">Recargo Crédito (%)</Label>
-                  <Input type="number" step="1" min="0" max="100" value={pricingForm.credit_surcharge_pct} onChange={e => setPricingForm(prev => ({ ...prev, credit_surcharge_pct: e.target.value }))} placeholder="10" className="input-glass rounded-xl" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="p-retail">Recargo al detal (%)</Label>
+                  <Input id="p-retail" inputMode="numeric" value={pricingForm.retail_markup_pct} onChange={e => setPricingForm(p => ({ ...p, retail_markup_pct: e.target.value.replace(/[^0-9.]/g, '') }))} className="h-11 rounded-xl" />
+                  <p className="text-xs text-muted-foreground">Para ventas por unidad, si lo usas.</p>
                 </div>
               </div>
-              <Button onClick={handleSavePricing} disabled={savingPricing} className="btn-gold rounded-xl w-full">
-                {savingPricing ? <Loader className="h-4 w-4 animate-spin mr-2" /> : null}
-                Guardar Configuración de Precios
+
+              <div className="mt-5 rounded-2xl bg-studio p-4 text-sm">
+                <p className="mb-1 font-semibold">Ejemplo</p>
+                <p className="text-muted-foreground">
+                  Te costó <strong className="text-foreground">${example.cost.toFixed(2)}</strong> → costo redondeado{' '}
+                  <strong className="text-foreground">${example.rounded}</strong> → precio de venta{' '}
+                  <strong className="text-primary">${example.price.toFixed(2)}</strong> · a crédito{' '}
+                  <strong className="text-foreground">${example.credit.toFixed(2)}</strong>
+                </p>
+              </div>
+
+              <Button onClick={handleSavePricing} disabled={savingPricing} className="mt-4 h-12 w-full rounded-full">
+                {savingPricing && <Loader className="h-4 w-4 animate-spin" />}Guardar reglas de precio
               </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
+            </SectionCard>
+          </TabsContent>
 
-        {/* Appearance */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="glass-card border-border/50">
-            <CardHeader>
-              <CardTitle className="font-serif flex items-center gap-2">
-                {isDark ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                Apariencia
-              </CardTitle>
-              <CardDescription>Personaliza la apariencia de la aplicación</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/80">
-                <div>
-                  <p className="font-medium">Modo Oscuro</p>
-                  <p className="text-sm text-muted-foreground">Cambia entre tema claro y oscuro</p>
+          {/* ===== PREFERENCIAS ===== */}
+          <TabsContent value="preferencias" className="mt-5 space-y-4">
+            <SectionCard title="En este dispositivo" description="Solo cambia cómo lo ves tú." icon={theme === 'dark' ? <Moon /> : <Sun />}>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Moneda principal de los precios</Label>
+                  <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Moneda principal">
+                    {([['USD', 'Dólar $'], ['VES', 'Bolívar Bs'], ['EUR', 'Euro €']] as [DisplayCurrency, string][]).map(([v, l]) => (
+                      <button key={v} type="button" role="radio" aria-checked={displayCurrency === v} onClick={() => setDisplayCurrency(v)}
+                        className={cn('h-11 rounded-full border text-sm font-medium transition-colors', displayCurrency === v ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary/40')}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <Switch checked={isDark} onCheckedChange={handleToggleTheme} />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Info */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
-          <Card className="glass-card border-border/50">
-            <CardHeader>
-              <CardTitle className="font-serif flex items-center gap-2">
-                <SettingsIcon className="h-5 w-5" />
-                Información
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between p-3 rounded-lg bg-secondary/80">
-                <span className="text-muted-foreground">Versión</span>
-                <span className="font-medium">1.0.0</span>
-              </div>
-              <div className="flex justify-between p-3 rounded-lg bg-secondary/80">
-                <span className="text-muted-foreground">Nombre</span>
-                <span className="font-medium text-gradient-gold">{BRAND_NAME}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Payment Methods */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-          <Card className="glass-card border-border/50">
-            <CardHeader>
-              <CardTitle className="font-serif flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Métodos de Pago
-              </CardTitle>
-              <CardDescription>Activa, edita o agrega los métodos de pago disponibles en el checkout</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {allPaymentMethods.map(m => (
-                <div key={m.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/80">
+                <div className="flex items-center justify-between gap-3 rounded-2xl bg-studio p-4">
                   <div>
-                    <p className="font-medium">{m.label}</p>
-                    <p className="text-xs text-muted-foreground">{m.description}</p>
+                    <p className="font-medium">Modo oscuro</p>
+                    <p className="text-sm text-muted-foreground">Más cómodo de noche.</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Switch checked={m.enabled} onCheckedChange={(v) => updateMethod.mutate({ id: m.id, enabled: v })} />
-                    <Button size="sm" variant="ghost" onClick={() => setEditingMethod(m)}>Editar</Button>
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
-                      if (await confirmDialog({ title: `¿Eliminar "${m.label}"?`, description: 'Dejará de aparecer como opción de pago.', confirmText: 'Eliminar', destructive: true })) deleteMethod.mutate(m.id);
-                    }}>Eliminar</Button>
-                  </div>
+                  <Switch checked={theme === 'dark'} onCheckedChange={v => setTheme(v ? 'dark' : 'light')} aria-label="Modo oscuro" />
                 </div>
-              ))}
-              <Button variant="outline" className="w-full mt-2" onClick={() => setIsCreatingMethod(true)}>
-                + Agregar método de pago
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </div>
+            </SectionCard>
+          </TabsContent>
+        </Tabs>
+      </div>
 
-        {editingMethod && (
-          <Dialog open={!!editingMethod} onOpenChange={(o) => !o && setEditingMethod(null)}>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Editar {editingMethod.label}</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label>Nombre</Label>
-                  <Input value={editingMethod.label} onChange={e => setEditingMethod({ ...editingMethod, label: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label>Descripción</Label>
-                  <Input value={editingMethod.description || ''} onChange={e => setEditingMethod({ ...editingMethod, description: e.target.value })} />
-                </div>
-                {Object.entries(editingMethod.config || { /* empty */ }).map(([key, value]) => (
-                  <div className="space-y-1" key={key}>
-                    <Label>{paymentConfigLabel(key)}</Label>
-                    <Input value={value} onChange={e => setEditingMethod({ ...editingMethod, config: { ...editingMethod.config, [key]: e.target.value } })} />
+      {/* Editar datos de un método */}
+      <Dialog open={!!editing} onOpenChange={o => !o && setEditing(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {editing && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{editing.label}</DialogTitle>
+                <DialogDescription>Estos datos los ve la clienta al pagar. Revísalos bien.</DialogDescription>
+              </DialogHeader>
+              <form className="space-y-3" onSubmit={e => { e.preventDefault(); saveEdit(); }}>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="m-label">Nombre</Label>
+                    <Input id="m-label" value={editing.label} onChange={e => setEditing({ ...editing, label: e.target.value.slice(0, 40) })} className="h-11 rounded-xl" />
                   </div>
-                ))}
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setEditingMethod(null)}>Cancelar</Button>
-                <Button onClick={() => {
-                  updateMethod.mutate({ id: editingMethod.id, label: editingMethod.label, description: editingMethod.description, config: editingMethod.config });
-                  setEditingMethod(null);
-                }}>Guardar</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-
-        <Dialog open={isCreatingMethod} onOpenChange={setIsCreatingMethod}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Nuevo método de pago</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <Label>Clave interna (sin espacios, ej: binance_pay)</Label>
-                <Input value={newMethodDraft.method_key} onChange={e => setNewMethodDraft({ ...newMethodDraft, method_key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
-              </div>
-              <div className="space-y-1">
-                <Label>Nombre visible</Label>
-                <Input value={newMethodDraft.label} onChange={e => setNewMethodDraft({ ...newMethodDraft, label: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label>Descripción</Label>
-                <Input value={newMethodDraft.description} onChange={e => setNewMethodDraft({ ...newMethodDraft, description: e.target.value })} />
-              </div>
-              {newMethodDraft.configPairs.map((pair, idx) => (
-                <div className="flex gap-2" key={idx}>
-                  <Input placeholder="clave (ej: wallet)" value={pair.key} onChange={e => {
-                    const copy = [...newMethodDraft.configPairs]; copy[idx].key = e.target.value;
-                    setNewMethodDraft({ ...newMethodDraft, configPairs: copy });
-                  }} />
-                  <Input placeholder="valor" value={pair.value} onChange={e => {
-                    const copy = [...newMethodDraft.configPairs]; copy[idx].value = e.target.value;
-                    setNewMethodDraft({ ...newMethodDraft, configPairs: copy });
-                  }} />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="m-desc">Descripción corta</Label>
+                    <Input id="m-desc" value={editing.description || ''} onChange={e => setEditing({ ...editing, description: e.target.value.slice(0, 80) })} className="h-11 rounded-xl" />
+                  </div>
                 </div>
-              ))}
-              <Button size="sm" variant="outline" onClick={() => setNewMethodDraft({ ...newMethodDraft, configPairs: [...newMethodDraft.configPairs, { key: '', value: '' }] })}>
-                + Agregar campo
-              </Button>
+                {Object.keys(editing.config || {}).length > 0 && (
+                  <div className="space-y-3 rounded-2xl bg-studio p-4">
+                    {Object.entries(editing.config).map(([key, value]) => (
+                      <div className="space-y-1.5" key={key}>
+                        <Label htmlFor={`m-${key}`}>{paymentConfigLabel(key)}</Label>
+                        <Input id={`m-${key}`} value={value} onChange={e => setEditing({ ...editing, config: { ...editing.config, [key]: e.target.value.slice(0, 120) } })} className="h-11 rounded-xl bg-card" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <DialogFooter className="pt-2">
+                  <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+                  <Button type="submit" disabled={!editing.label.trim()}>Guardar</Button>
+                </DialogFooter>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Nuevo método */}
+      <Dialog open={creating} onOpenChange={setCreating}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nuevo método de pago</DialogTitle>
+            <DialogDescription>Ponle un nombre y elige qué datos necesita la clienta para pagarte.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={e => { e.preventDefault(); createNew(); }}>
+            <div className="space-y-1.5">
+              <Label htmlFor="n-label">Nombre</Label>
+              <Input id="n-label" value={draft.label} onChange={e => setDraft({ ...draft, label: e.target.value.slice(0, 40) })} placeholder="Ej: PayPal" className="h-11 rounded-xl" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="n-desc">Descripción corta (opcional)</Label>
+              <Input id="n-desc" value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value.slice(0, 80) })} placeholder="Ej: Pago en dólares por PayPal" className="h-11 rounded-xl" />
+            </div>
+            <div className="space-y-2">
+              <Label>Datos que pedirá</Label>
+              <div className="flex flex-wrap gap-2">
+                {FIELD_CHOICES.map(f => {
+                  const on = draft.fields.includes(f);
+                  return (
+                    <button key={f} type="button" aria-pressed={on}
+                      onClick={() => setDraft({ ...draft, fields: on ? draft.fields.filter(x => x !== f) : [...draft.fields, f] })}
+                      className={cn('h-9 rounded-full border px-3 text-sm transition-colors', on ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground')}>
+                      {PAYMENT_CONFIG_LABELS[f]}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">Después tocas "Completar datos" para escribirlos.</p>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreatingMethod(false)}>Cancelar</Button>
-              <Button onClick={() => {
-                const config: Record<string, string> = { /* empty */ };
-                newMethodDraft.configPairs.forEach(p => { if (p.key) config[p.key] = p.value; });
-                createMethod.mutate({
-                  method_key: newMethodDraft.method_key,
-                  label: newMethodDraft.label,
-                  description: newMethodDraft.description,
-                  enabled: true,
-                  display_order: allPaymentMethods.length + 1,
-                  config,
-                });
-                setIsCreatingMethod(false);
-                setNewMethodDraft({ method_key: '', label: '', description: '', configPairs: [{ key: '', value: '' }] });
-              }}>Crear</Button>
+              <Button type="button" variant="outline" onClick={() => setCreating(false)}>Cancelar</Button>
+              <Button type="submit" disabled={!draft.label.trim()}>Crear método</Button>
             </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

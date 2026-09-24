@@ -141,6 +141,15 @@ export default function Sales() {
     }, { replace: true });
   };
   const [isOpen, setIsOpen] = useState(false);
+  // Acceso directo desde el panel: /sales?nueva=1 abre la nueva venta
+  useEffect(() => {
+    if (searchParams.get('nueva') === '1') {
+      setIsOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('nueva');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const [rejectOrderId, setRejectOrderId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [search, setSearch] = useState('');

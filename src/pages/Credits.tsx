@@ -452,7 +452,7 @@ export default function Credits() {
           <div>
             <h1 className="page-header">Créditos</h1>
             <p className="page-subtitle">
-              Control de créditos y notificaciones automáticas
+              Límites, cuotas y pagos de tus clientas
             </p>
           </div>
           
@@ -625,45 +625,49 @@ export default function Credits() {
           </Dialog>
         </div>
 
-        {/* Estadísticas */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-xs text-muted-foreground">Total clientes</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-primary">{stats.byStatus.ACTIVO}</p>
-              <p className="text-xs text-muted-foreground">Activos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-gold">{stats.byStatus.POR_VENCER}</p>
-              <p className="text-xs text-muted-foreground">Por vencer</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-gold">{stats.byStatus.EN_GRACIA}</p>
-              <p className="text-xs text-muted-foreground">En gracia</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-destructive">{stats.byStatus.VENCIDO}</p>
-              <p className="text-xs text-muted-foreground">Vencidos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold">${stats.totalBalance.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">Saldo total</p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Resumen: lo que te deben y cuántas clientas hay en cada estado (toca para filtrar) */}
+        <section className="rounded-2xl border border-border bg-card p-4 md:p-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Por cobrar</p>
+              <p className="font-serif text-3xl font-semibold tabular-nums text-primary md:text-4xl">${stats.totalBalance.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">
+                {stats.total} {stats.total === 1 ? 'clienta con crédito' : 'clientas con crédito'} · límite total ${stats.totalCreditLimit.toFixed(2)}
+              </p>
+            </div>
+            {stats.byStatus.VENCIDO > 0 && (
+              <button type="button" onClick={() => setStatusFilter('VENCIDO')} className="rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive">
+                {stats.byStatus.VENCIDO} {stats.byStatus.VENCIDO === 1 ? 'vencido' : 'vencidos'} · ver
+              </button>
+            )}
+          </div>
+          <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide md:mx-0 md:flex-wrap md:px-0" role="tablist" aria-label="Filtrar por estado">
+            {([
+              ['all', 'Todos', stats.total, 'bg-muted-foreground/50'],
+              ['ACTIVO', 'Al día', stats.byStatus.ACTIVO, 'bg-success'],
+              ['POR_VENCER', 'Por vencer', stats.byStatus.POR_VENCER, 'bg-amber-500'],
+              ['EN_GRACIA', 'En gracia', stats.byStatus.EN_GRACIA, 'bg-amber-600'],
+              ['VENCIDO', 'Vencidos', stats.byStatus.VENCIDO, 'bg-destructive'],
+              ['BLOQUEADO', 'Bloqueados', stats.byStatus.BLOQUEADO, 'bg-foreground/60'],
+            ] as [string, string, number, string][]).map(([key, label, count, dot]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={statusFilter === key}
+                onClick={() => setStatusFilter(key)}
+                className={cn(
+                  'flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors',
+                  statusFilter === key ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background hover:border-primary/40'
+                )}
+              >
+                {key !== 'all' && <span className={cn('h-2 w-2 rounded-full', dot)} />}
+                {label}
+                <span className={cn('tabular-nums', statusFilter === key ? 'text-primary-foreground/80' : 'text-muted-foreground')}>{count}</span>
+              </button>
+            ))}
+          </div>
+        </section>
 
         {/* Tabs: Créditos | pagos */}
         <Tabs defaultValue="creditos" className="space-y-4">
@@ -713,20 +717,6 @@ export default function Credits() {
               className="pl-10"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="ACTIVO">Activos</SelectItem>
-              <SelectItem value="POR_VENCER">Por vencer</SelectItem>
-              <SelectItem value="EN_GRACIA">En gracia</SelectItem>
-              <SelectItem value="VENCIDO">Vencidos</SelectItem>
-              <SelectItem value="BLOQUEADO">Bloqueados</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Lista de créditos */}
