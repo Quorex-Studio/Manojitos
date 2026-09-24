@@ -147,6 +147,17 @@ export function useProviders() {
     return { error };
   };
 
+  const deletePurchase = async (id: string) => {
+    const { error } = await supabase.from('purchases').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Error', description: 'No se pudo eliminar la compra', variant: 'destructive' });
+    } else {
+      setPurchases(prev => prev.filter(p => p.id !== id));
+      toast({ title: 'Compra eliminada' });
+    }
+    return { error };
+  };
+
   useEffect(() => {
     if (user) {
       fetchProviders();
@@ -162,6 +173,7 @@ export function useProviders() {
     deleteProvider,
     addPurchase,
     markPurchaseAsPaid,
+    deletePurchase,
     refetch: () => { fetchProviders(); fetchPurchases(); }
   };
 }
