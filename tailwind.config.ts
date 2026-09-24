@@ -20,6 +20,9 @@ export default {
       },
       colors: {
         border: "hsl(var(--border))",
+        studio: "hsl(var(--studio))",
+        sale: "hsl(var(--sale))",
+        success: "hsl(var(--success))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",

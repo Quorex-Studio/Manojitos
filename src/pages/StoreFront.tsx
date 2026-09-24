@@ -1,337 +1,220 @@
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Truck, Shield, CreditCard, Star, Sparkles, Package } from 'reicon-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { ArrowRight, Truck, Shield, CreditCard, Star, Package } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { StoreLayout } from '@/components/store/StoreLayout';
-import { ProductCard } from '@/components/ui/premium/product-card';
-import { usePublicProducts } from '@/hooks/usePublicProducts';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ProductCard } from '@/components/store/ProductCard';
+import { usePublicProducts, PublicProduct } from '@/hooks/usePublicProducts';
+import { BRAND, BRAND_NAME } from '@/config/brand';
 
-// Variantes para animaciones escalonadas (stagger)
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.12
-    }
-  }
-};
+const BENEFITS = [
+  { icon: Truck, title: 'Envíos a toda Venezuela', description: 'Delivery local y agencias nacionales.' },
+  { icon: CreditCard, title: 'Paga como prefieras', description: 'Pago Móvil, transferencia, Zelle o efectivo.' },
+  { icon: Star, title: 'Compra a crédito', description: 'Paga una inicial y el resto en cuotas.' },
+  { icon: Shield, title: 'Compra protegida', description: 'Confirmamos cada pedido antes de despacharlo.' },
+];
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 50, damping: 20 } }
-};
+// Foto de producto o bloque "estudio" mientras carga / si no hay imagen
+function HeroImage({ product, className }: { product?: PublicProduct; className: string }) {
+  return (
+    <div className={`relative overflow-hidden rounded-2xl bg-studio ${className}`}>
+      {product?.image_url ? (
+        <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center">
+          <Package className="h-10 w-10 text-muted-foreground/25" />
+        </div>
+      )}
+    </div>
+  );
+}
 
-// Variante para la aparición palabra por palabra del headline
-const wordVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 }
-};
-
-// Página principal de la tienda (Home) — Editorial luxury
+// Página principal de la tienda (ver DESIGN.md: "la foto manda")
 export default function StoreFront() {
-  // --- DERIVED ---
   const { products, loading, categories } = usePublicProducts();
+  const reduceMotion = useReducedMotion();
+  const fadeUp = reduceMotion
+    ? {}
+    : { initial: { opacity: 0, y: 12 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.2 }, transition: { duration: 0.3 } };
 
-  // Obtener productos destacados (los primeros 8 con stock)
   const featuredProducts = products.slice(0, 8);
+  const heroProducts = products.filter(p => p.image_url).slice(0, 3);
+  // Portada de cada categoría: su producto más vendido con foto
+  const categoryCovers = categories.map(category => ({
+    category,
+    cover: [...products]
+      .filter(p => p.category === category && p.image_url)
+      .sort((a, b) => (b.sold_count || 0) - (a.sold_count || 0))[0],
+    count: products.filter(p => p.category === category).length,
+  }));
 
-  // Beneficios de la tienda
-  const benefits = [
-    {
-      icon: Truck,
-      title: 'Envío Nacional',
-      description: 'Envíos rápidos y asegurados a toda Venezuela.'
-    },
-    {
-      icon: Shield,
-      title: 'Compra Protegida',
-      description: 'Tu seguridad es nuestra prioridad en cada transacción.'
-    },
-    {
-      icon: CreditCard,
-      title: 'Pagos Flexibles',
-      description: 'Pago Móvil, Zelle, Binance y Transferencias.'
-    },
-    {
-      icon: Star,
-      title: 'Calidad Premium',
-      description: 'Curaduría exclusiva de productos de alta gama.'
-    }
-  ];
-
-  // --- RENDER ---
   return (
     <StoreLayout>
-      {/* ========================
-          HERO SECTION — Full viewport, editorial
-          ======================== */}
-      <section className="relative overflow-hidden min-h-screen flex items-center justify-center grain-overlay isolate">
-        {/* Dynamic background using theme tokens */}
-        <div className="absolute inset-0 bg-background transition-colors duration-500" />
-
-        {/* Floating decorative orbs — subtle opacity adjustments for light/dark */}
-        <div className="absolute top-20 right-10 w-[500px] h-[500px] bg-primary/20 dark:bg-primary/20 rounded-full blur-[150px] animate-orb-1 opacity-60 dark:opacity-100" />
-        <div className="absolute bottom-20 left-10 w-[600px] h-[600px] bg-gold/15 dark:bg-gold/15 rounded-full blur-[180px] animate-orb-2 opacity-50 dark:opacity-100" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-rose-dark/10 dark:bg-rose-dark/10 rounded-full blur-[120px] animate-orb-3 opacity-40 dark:opacity-100" />
-
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-5xl mx-auto text-center space-y-10">
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-card/40 dark:bg-white/5 backdrop-blur-md border border-border/20 dark:border-white/10 text-foreground/60 dark:text-[#F5EDE8]/60 text-xs font-medium tracking-[0.15em] uppercase">
-                <Sparkles className="h-3.5 w-3.5 text-gold" />
-                Nueva Colección Disponible
-              </span>
-            </motion.div>
-
-            {/* Giant headline — stagger word entrance */}
-            <div className="overflow-hidden py-4 -my-4">
-              <motion.h1
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-semibold leading-[1.1] md:leading-[1.1] tracking-tighter break-words hyphens-auto"
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-              >
-                <motion.span
-                  variants={wordVariants}
-                  transition={{ duration: 0.8, delay: 0.2 }}
-                  className="block text-foreground dark:text-[#F5EDE8]"
-                >
-                  Elegancia que
-                </motion.span>
-                <motion.span
-                  variants={wordVariants}
-                  transition={{ duration: 0.8, delay: 0.5 }}
-                  className="block italic text-primary text-glow-rosa drop-shadow-[0_0_20px_rgba(255,105,180,0.3)]"
-                >
-                  Inspira
-                </motion.span>
-              </motion.h1>
+      {/* ===== HERO: texto + collage de productos reales ===== */}
+      <section className="container mx-auto px-4 pb-10 pt-6 md:pb-16 md:pt-12">
+        <div className="grid items-center gap-8 md:grid-cols-2 md:gap-12">
+          <div className="order-2 space-y-6 md:order-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
+              Nueva colección · {BRAND_NAME}
+            </p>
+            <h1 className="font-serif text-4xl font-medium leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+              Moda que te acompaña todos los días
+            </h1>
+            <p className="max-w-md text-base leading-relaxed text-muted-foreground md:text-lg">
+              {BRAND.tagline} Precios en dólares y bolívares, envíos a toda Venezuela y compra a crédito.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Button asChild size="lg" className="h-12 rounded-full px-8 text-base font-semibold">
+                <Link to="/tienda">
+                  Ver la tienda
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="h-12 rounded-full border-border bg-card px-8 text-base">
+                <Link to="/faq">¿Cómo funciona el crédito?</Link>
+              </Button>
             </div>
+          </div>
 
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
-              className="text-base md:text-lg text-muted-foreground/80 dark:text-[#F5EDE8]/35 max-w-2xl mx-auto font-light leading-relaxed tracking-[0.05em]"
-            >
-              Descubre una selección exclusiva diseñada para resaltar tu esencia única. Calidad, estilo y distinción en cada detalle.
-            </motion.p>
-
-            {/* CTAs */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 1 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-4"
-            >
-              <Link to="/tienda">
-                <Button size="lg" className="h-14 px-12 rounded-full text-base font-medium border border-primary/50 bg-primary/10 text-foreground dark:text-[#F5EDE8] hover:bg-primary/20 hover:border-primary/70 transition-all duration-500 btn-shimmer-rosa backdrop-blur-sm">
-                  Explorar Tienda
-                  <ArrowRight className="ml-2 h-4.5 w-4.5" />
-                </Button>
-              </Link>
-              <Link to="/tienda?category=destacados">
-                <Button size="lg" variant="ghost" className="h-14 px-12 rounded-full text-base text-muted-foreground dark:text-[#F5EDE8]/50 border border-border dark:border-[#F5EDE8]/10 hover:text-foreground dark:hover:text-[#F5EDE8]/80 hover:border-border/40 dark:hover:border-[#F5EDE8]/20 transition-all duration-500 backdrop-blur-sm">
-                  Ver Destacados
-                </Button>
-              </Link>
-            </motion.div>
+          <div className="order-1 grid aspect-[5/4] grid-cols-5 grid-rows-2 gap-3 md:order-2 md:gap-4">
+            <HeroImage product={heroProducts[0]} className="col-span-3 row-span-2" />
+            <HeroImage product={heroProducts[1]} className="col-span-2" />
+            <HeroImage product={heroProducts[2]} className="col-span-2" />
           </div>
         </div>
       </section>
 
-      {/* ========================
-          CATEGORIES — Glassmorphism pills
-          ======================== */}
-      {categories.length > 0 && (
-        <section className="py-24 relative">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-14">
-              <h2 className="text-3xl md:text-5xl font-serif font-medium text-foreground mb-4 tracking-tight">
-                Colecciones
-              </h2>
-              <div className="h-px w-16 bg-gold/30 mx-auto" />
+      {/* ===== BENEFICIOS (franja compacta) ===== */}
+      <section className="border-y border-border/70 bg-card">
+        <div className="container mx-auto grid grid-cols-2 gap-x-4 gap-y-6 px-4 py-6 md:grid-cols-4 md:py-8">
+          {BENEFITS.map(({ icon: Icon, title, description }) => (
+            <div key={title} className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-studio">
+                <Icon className="h-5 w-5 text-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">{title}</p>
+                <p className="text-xs leading-snug text-muted-foreground">{description}</p>
+              </div>
             </div>
+          ))}
+        </div>
+      </section>
 
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, amount: 0.1 }}
-              className="flex flex-wrap justify-center gap-3"
-            >
-              {categories.map((category) => (
-                <motion.div variants={itemVariants} key={category}>
-                  <Link to={`/tienda?category=${encodeURIComponent(category)}`}>
-                    <Button
-                      variant="ghost"
-                      className="h-auto py-3 px-7 text-sm font-normal rounded-full bg-card/80 backdrop-blur-md border border-primary/10 text-foreground/70 hover:text-foreground hover:border-primary/30 hover:shadow-[0_0_20px_hsl(var(--rose)/0.15)] transition-all duration-400 tracking-wide"
-                    >
-                      {category}
-                    </Button>
-                  </Link>
-                </motion.div>
-              ))}
-              <motion.div variants={itemVariants}>
-                <Link to="/tienda">
-                  <Button variant="link" className="text-gold text-sm tracking-wide">
-                    Ver todo el catálogo <ArrowRight className="ml-2 h-3.5 w-3.5" />
-                  </Button>
-                </Link>
-              </motion.div>
-            </motion.div>
+      {/* ===== CATEGORÍAS con foto ===== */}
+      {categoryCovers.length > 0 && (
+        <section className="container mx-auto px-4 py-10 md:py-16">
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <h2 className="font-serif text-2xl font-medium tracking-tight text-foreground md:text-3xl">
+              Compra por categoría
+            </h2>
+            <Link to="/tienda" className="text-sm font-semibold text-foreground underline-offset-4 hover:underline">
+              Ver todo
+            </Link>
+          </div>
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:px-0">
+            {categoryCovers.map(({ category, cover, count }) => (
+              <Link
+                key={category}
+                to={`/tienda?category=${encodeURIComponent(category)}`}
+                className="group w-40 shrink-0 snap-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:w-auto rounded-2xl"
+              >
+                <div className="relative aspect-square overflow-hidden rounded-2xl bg-studio">
+                  {cover?.image_url ? (
+                    <img
+                      src={cover.image_url}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <Package className="h-10 w-10 text-muted-foreground/25" />
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 flex items-baseline justify-between gap-2 px-0.5">
+                  <span className="font-semibold text-foreground group-hover:text-primary">{category}</span>
+                  <span className="text-xs text-muted-foreground">{count} {count === 1 ? 'producto' : 'productos'}</span>
+                </div>
+              </Link>
+            ))}
           </div>
         </section>
       )}
 
-      {/* ========================
-          FEATURED PRODUCTS — Editorial grid
-          ======================== */}
-      <section className="py-24">
-        <div className="container mx-auto px-4">
-          <div className="flex items-end justify-between mb-14">
-            <div>
-              <h2 className="text-4xl md:text-6xl font-serif font-medium text-foreground mb-3 tracking-tight">
-                Tendencias
-              </h2>
-              <p className="text-muted-foreground/60 text-sm tracking-wide">
-                Los favoritos de nuestra comunidad
-              </p>
-            </div>
-            <Link to="/tienda" className="hidden md:flex items-center text-gold text-sm tracking-wide hover:underline decoration-gold/30 underline-offset-4 transition-all">
-              Ver colección completa <ArrowRight className="ml-2 h-3.5 w-3.5" />
-            </Link>
+      {/* ===== TENDENCIAS ===== */}
+      <section className="container mx-auto px-4 py-10 md:py-16">
+        <div className="mb-6 flex items-end justify-between gap-4">
+          <div>
+            <h2 className="font-serif text-2xl font-medium tracking-tight text-foreground md:text-3xl">
+              Lo más nuevo
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">Recién llegado a la tienda</p>
           </div>
-
-          <div className="min-h-[400px]">
-            {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="space-y-3">
-                    <div className="aspect-[3/4] rounded-2xl skeleton-shimmer" />
-                    <div className="h-3 w-3/4 rounded-full skeleton-shimmer" />
-                    <div className="h-4 w-1/4 rounded-full skeleton-shimmer" />
-                  </div>
-                ))}
-              </div>
-            ) : featuredProducts.length > 0 ? (
-              <>
-                <motion.div
-                  variants={containerVariants}
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true, amount: 0.05 }}
-                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6"
-                >
-                  {featuredProducts.map((product) => (
-                    <motion.div variants={itemVariants} key={product.id}>
-                      <ProductCard product={product} />
-                    </motion.div>
-                  ))}
-                </motion.div>
-
-                <div className="mt-14 text-center md:hidden">
-                  <Link to="/tienda">
-                    <Button variant="outline" size="lg" className="w-full rounded-full border-border/20 hover:border-primary/30 transition-all duration-300">
-                      Ver colección completa
-                    </Button>
-                  </Link>
-                </div>
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-24 rounded-3xl border border-dashed border-border/20">
-                <Package className="h-16 w-16 text-muted-foreground/15 mb-4" />
-                <p className="text-lg text-muted-foreground/40 font-light tracking-wide">
-                  Estamos reponiendo nuestro inventario exclusivo.
-                </p>
-              </div>
-            )}
-          </div>
+          <Link to="/tienda" className="hidden items-center text-sm font-semibold text-foreground underline-offset-4 hover:underline md:flex">
+            Ver toda la tienda <ArrowRight className="ml-1.5 h-4 w-4" />
+          </Link>
         </div>
-      </section>
 
-      {/* ========================
-          BENEFITS — Glassmorphism with gold borders
-          ======================== */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="container mx-auto px-4 relative">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {benefits.map((benefit, index) => (
-              <motion.div
-                key={benefit.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
-                whileHover={{ y: -8, transition: { duration: 0.3 } }}
-                className="group p-8 rounded-2xl bg-card/80 backdrop-blur-md border border-gold/10 flex flex-col items-center text-center hover:border-gold/25 hover:shadow-[0_16px_48px_hsl(var(--gold)/0.1)] transition-all duration-500"
-              >
-                <div className="w-14 h-14 rounded-full bg-gold/8 border border-gold/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-gold/12 transition-all duration-300">
-                  <benefit.icon className="h-6 w-6 text-gold" />
-                </div>
-                <h3 className="font-serif font-semibold text-lg text-foreground mb-2 tracking-tight">
-                  {benefit.title}
-                </h3>
-                <p className="text-muted-foreground/70 text-sm leading-relaxed tracking-wide">
-                  {benefit.description}
-                </p>
-              </motion.div>
+        {loading ? (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="space-y-3">
+                <div className="aspect-[4/5] animate-pulse rounded-2xl bg-studio" />
+                <div className="h-3 w-1/3 animate-pulse rounded-full bg-studio" />
+                <div className="h-4 w-3/4 animate-pulse rounded-full bg-studio" />
+              </div>
             ))}
           </div>
-        </div>
+        ) : featuredProducts.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 lg:grid-cols-4">
+              {featuredProducts.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} allProducts={products} />
+              ))}
+            </div>
+            <div className="mt-10 text-center md:hidden">
+              <Button asChild variant="outline" size="lg" className="h-12 w-full rounded-full bg-card">
+                <Link to="/tienda">Ver toda la tienda</Link>
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border py-20 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-studio">
+              <Package className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="font-serif text-xl text-foreground">Muy pronto, nueva colección</p>
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+              Estamos preparando los productos. Vuelve en unos días o escríbenos para apartar lo que buscas.
+            </p>
+          </div>
+        )}
       </section>
 
-      {/* ========================
-          CTA FINAL — Editorial full-width
-          ======================== */}
-      <section className="py-12 container mx-auto px-4">
-        <div className="relative rounded-3xl overflow-hidden text-center py-16 px-6 grain-overlay">
-          {/* Dynamic background using theme tokens */}
-          <div className="absolute inset-0 bg-background transition-colors duration-500" />
-          {/* Fashion editorial photo at 10% opacity */}
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-[0.05] dark:opacity-[0.08] mix-blend-multiply dark:mix-blend-screen" />
-
-          <div className="relative z-10 max-w-2xl mx-auto space-y-8">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-4xl md:text-6xl font-serif text-foreground dark:text-[#F5EDE8] tracking-tight"
-            >
-              Tu estilo, redefinido.
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="text-muted-foreground/80 dark:text-[#F5EDE8]/30 text-base md:text-lg font-light tracking-wide"
-            >
-              Únete a miles de clientes satisfechos que han encontrado su esencia con nosotros.
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-            >
-              <Link to="/tienda">
-                <Button size="lg" className="btn-gold rounded-full h-14 px-14 text-base font-medium animate-glow-pulse-gold">
-                  Comenzar a Comprar
-                </Button>
-              </Link>
-            </motion.div>
+      {/* ===== CRÉDITO (diferenciador) ===== */}
+      <motion.section {...fadeUp} className="container mx-auto px-4 pb-16 md:pb-24">
+        <div className="grid items-center gap-6 rounded-3xl bg-foreground px-6 py-10 text-background md:grid-cols-[1.4fr_1fr] md:px-12 md:py-14">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Crédito {BRAND_NAME}</p>
+            <h2 className="font-serif text-3xl font-medium leading-tight md:text-4xl">
+              Llévalo hoy y paga en partes
+            </h2>
+            <p className="max-w-lg text-sm leading-relaxed text-background/70 md:text-base">
+              Regístrate, verifica tu identidad una sola vez y compra pagando una inicial. El resto lo pagas en cuotas quincenales, sin sorpresas.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row md:flex-col md:items-end">
+            <Button asChild size="lg" className="h-12 rounded-full px-8 text-base font-semibold">
+              <Link to="/cliente/auth">Crear mi cuenta</Link>
+            </Button>
+            <Button asChild variant="ghost" size="lg" className="h-12 rounded-full px-8 text-base text-background hover:bg-background/10 hover:text-background">
+              <Link to="/faq">Ver preguntas frecuentes</Link>
+            </Button>
           </div>
         </div>
-      </section>
+      </motion.section>
     </StoreLayout>
   );
 }

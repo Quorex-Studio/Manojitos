@@ -174,7 +174,7 @@ export default function ProductDetail() {
             El producto que buscas no existe o no está disponible
           </p>
           <Link to="/tienda">
-            <Button className="rounded-full btn-gold px-8">
+            <Button className="rounded-full px-8">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver a la tienda
             </Button>
@@ -228,7 +228,7 @@ export default function ProductDetail() {
             className="relative"
           >
             <div 
-              className="aspect-[3/4] rounded-2xl overflow-hidden bg-secondary cursor-zoom-in group"
+              className="aspect-[4/5] rounded-2xl overflow-hidden bg-studio cursor-zoom-in group"
               onMouseEnter={() => setImageZoomed(true)}
               onMouseLeave={() => setImageZoomed(false)}
             >
@@ -236,7 +236,7 @@ export default function ProductDetail() {
                 <motion.img
                   src={product.image_url}
                   alt={product.name}
-                  className="w-full h-full object-contain p-4"
+                  className="w-full h-full object-cover"
                   animate={{ scale: imageZoomed ? 1.08 : 1 }}
                   transition={{ duration: 0.6, ease: 'easeOut' }}
                 />
@@ -300,10 +300,10 @@ export default function ProductDetail() {
             {/* Stock Status — pulsing dot */}
             <div className="flex items-center gap-2.5">
               <div className={`w-2 h-2 rounded-full ${
-                product.stock > 5 ? 'bg-primary' : product.stock > 0 ? 'bg-gold animate-pulse' : 'bg-destructive'
+                product.stock > 5 ? 'bg-success' : product.stock > 0 ? 'bg-sale' : 'bg-sale'
               }`} />
               <span className={`text-sm ${
-                product.stock > 5 ? 'text-primary/80' : product.stock > 0 ? 'text-gold/80' : 'text-destructive/80'
+                product.stock > 5 ? 'text-success' : 'text-sale'
               }`}>
                 {product.stock > 5 
                   ? `En stock (${product.stock} disponibles)`
@@ -340,7 +340,7 @@ export default function ProductDetail() {
                     Tallas disponibles
                   </label>
                   {isSizeRequired && !selectedSize && (
-                    <span className="text-[10px] text-gold/80 tracking-wide animate-pulse">
+                    <span className="text-[11px] text-sale tracking-wide">
                       * Selección obligatoria
                     </span>
                   )}
@@ -354,8 +354,8 @@ export default function ProductDetail() {
                         onClick={() => setSelectedSize(size)}
                         className={`px-4 py-2 text-xs font-medium tracking-wide rounded-full border transition-all duration-300 ${
                           isSelected
-                            ? 'bg-gold border-gold text-black shadow-md shadow-gold/25'
-                            : 'border-border/15 hover:border-gold/50 text-foreground/80 hover:text-foreground bg-card/40'
+                            ? 'bg-foreground border-foreground text-background'
+                            : 'border-border hover:border-foreground text-foreground bg-card'
                         }`}
                       >
                         {size === 'Única' ? 'Talla Única' : size}
@@ -404,10 +404,10 @@ export default function ProductDetail() {
                   </div>
                 </div>
 
-                {/* Add to Cart Button — Full-width gold gradient */}
+                {/* Botón principal (DESIGN.md: pill rosa, una acción por vista) */}
                 <Button
                   size="lg"
-                  className="w-full btn-gold btn-shimmer rounded-full text-base h-14"
+                  className="w-full rounded-full text-base font-semibold h-14"
                   onClick={handleAddToCart}
                   disabled={isAdding || quantity <= 0}
                 >
@@ -450,11 +450,11 @@ export default function ProductDetail() {
             {/* Benefits */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-3 p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
-                <Truck className="h-4 w-4 text-gold/70 flex-shrink-0" />
+                <Truck className="h-4 w-4 text-foreground flex-shrink-0" />
                 <span className="text-xs text-foreground/60 tracking-wide">Envío nacional</span>
               </div>
               <div className="flex items-center gap-3 p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
-                <Shield className="h-4 w-4 text-gold/70 flex-shrink-0" />
+                <Shield className="h-4 w-4 text-foreground flex-shrink-0" />
                 <span className="text-xs text-foreground/60 tracking-wide">Compra segura</span>
               </div>
             </div>

@@ -26,7 +26,7 @@ export function PriceDisplay({
   // Funciones de formateo rápido
   const formatUSD = (val: number) => `$${val.toFixed(2)}`;
   const formatVES = (val: number) => `${formatBS(val)}`;
-  const formatEUR = (val: number) => `€${formatBS(val)}`;
+  const formatEUR = (val: number) => `€${val.toFixed(2)}`;
 
   let PrimaryComponent = null;
   let SecondaryComponent = null;
@@ -62,8 +62,7 @@ export function PriceDisplay({
       if (showSecondary) {
         SecondaryComponent = (
           <div className="flex gap-2">
-            <span className={secondaryClassName}>({formatVES(VES)})</span>
-            {EUR > 0 && <span className={secondaryClassName}>({formatEUR(EUR)})</span>}
+            {VES > 0 && <span className={secondaryClassName}>{formatVES(VES)}</span>}
           </div>
         );
       }

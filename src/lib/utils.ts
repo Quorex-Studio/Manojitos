@@ -17,7 +17,7 @@ export function formatBS(amount: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(amount);
-  return `${formatted}bs`;
+  return `Bs ${formatted}`;
 }
 
 // Tasa de cambio aproximada para fines de visualización si no hay API

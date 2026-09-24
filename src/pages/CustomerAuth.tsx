@@ -47,17 +47,6 @@ export default function CustomerAuth() {
     }
   }, [user, navigate, redirectTo]);
 
-  // Solicitar ubicación automáticamente al entrar a la vista de registro
-  useEffect(() => {
-    if (!isLogin && !hasPromptedLocation && !form.locationCoords && navigator.geolocation) {
-      setHasPromptedLocation(true);
-      // Pequeño delay para no abrumar al instante
-      const timer = setTimeout(() => {
-        handleGetLocationClick();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isLogin, hasPromptedLocation, form.locationCoords, handleGetLocationClick]);
 
   // --- HANDLERS ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,6 +93,18 @@ export default function CustomerAuth() {
       }
     });
   }, [handleGetLocation]);
+
+  // Solicitar ubicación automáticamente al entrar a la vista de registro
+  useEffect(() => {
+    if (!isLogin && !hasPromptedLocation && !form.locationCoords && navigator.geolocation) {
+      setHasPromptedLocation(true);
+      // Pequeño delay para no abrumar al instante
+      const timer = setTimeout(() => {
+        handleGetLocationClick();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLogin, hasPromptedLocation, form.locationCoords, handleGetLocationClick]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
