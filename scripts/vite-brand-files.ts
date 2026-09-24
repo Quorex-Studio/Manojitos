@@ -4,6 +4,21 @@ import type { Plugin } from "vite";
 
 type Env = Record<string, string>;
 
+// Valores por defecto de la marca: si falta una variable en .env / Vercel, el build
+// sigue funcionando (index.html usa %VITE_*% y un placeholder vacío rompe el build).
+export const BRAND_ENV_DEFAULTS: Env = {
+  VITE_BRAND_NAME: "EINA",
+  VITE_BRAND_DOMAIN: "einashopv.com",
+  VITE_GTM_ID: "",
+};
+
+/** Completa process.env con los valores por defecto que falten (loadEnv los incluye). */
+export function applyBrandEnvDefaults(): void {
+  for (const [key, value] of Object.entries(BRAND_ENV_DEFAULTS)) {
+    if (process.env[key] === undefined) process.env[key] = value;
+  }
+}
+
 const manifest = (env: Env) =>
   JSON.stringify(
     {

@@ -1,10 +1,11 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { brandFiles } from "./scripts/vite-brand-files";
+import { applyBrandEnvDefaults, brandFiles } from "./scripts/vite-brand-files";
 
 export default defineConfig(({ mode }: { mode: string }) => {
   const isProd = mode === 'production';
+  applyBrandEnvDefaults();
   const env = loadEnv(mode, process.cwd(), 'VITE_');
 
   const plugins = [
