@@ -15,7 +15,7 @@ No hay que tocar el código. Decisión de arquitectura: [`docs/ADR-001`](docs/AD
 | 3 | Reemplazar logos | `src/assets/`, `public/` |
 | 4 | (Opcional) Colores | `src/index.css` |
 | 5 | Crear proyecto Supabase y preparar Vault | Supabase |
-| 6 | Aplicar migraciones, secretos y edge functions | Supabase CLI |
+| 6 | Migraciones, funciones, secretos y primer admin | Supabase CLI + SQL |
 | 7 | Deploy y dominio | Vercel |
 
 ---
@@ -65,27 +65,42 @@ sale de `VITE_BRAND_THEME_COLOR`.
 ## 5. Supabase: proyecto nuevo
 1. Crea el proyecto y copia la **Project URL** y la **anon key** al `.env`.
 2. `supabase/config.toml` → `project_id = "<ref>"`, luego `supabase link --project-ref <ref>`.
-3. **Vault** (lo usan las tareas programadas; sin esto los crons no saben a qué URL llamar).
+3. **Vault**: lo usan las tareas programadas para saber a qué URL llamar.
    En el SQL Editor:
    ```sql
    select vault.create_secret('https://<ref>.supabase.co', 'project_url');
    select vault.create_secret('<anon key>', 'anon_key');
    ```
+   (El secreto `cron_secret` del cron de alertas lo genera sola la migración `20260924000100_cron_secret`.)
 
-## 6. Migraciones, secretos y funciones
+## 6. Migraciones, funciones, secretos y admin
 ```bash
-supabase db push                       # aplica supabase/migrations en orden
-supabase secrets set \
-  BRAND_NAME="Mi Tienda" ASSISTANT_NAME="Ángela" \
-  VAPID_CONTACT_EMAIL="admin@midominio.com" VAPID_PRIVATE_KEY="..." VITE_VAPID_PUBLIC_KEY="..." \
-  RESEND_API_KEY="..." RESEND_FROM_EMAIL="Mi Tienda <no-reply@midominio.com>"
-  # + las claves de IA que usa ai-assistant
-supabase functions deploy
-BRAND_NAME="Mi Tienda" SUPABASE_PROJECT_REF=<ref> SUPABASE_ACCESS_TOKEN=<token> \
-  node supabase/emails/update_templates.js   # emails de Auth con la marca
+supabase db push            # aplica supabase/migrations en orden (incluye reconciliación y hardening)
+supabase functions deploy   # las 8 funciones (verify_jwt según config.toml)
 ```
-Claves VAPID para notificaciones push: `npx web-push generate-vapid-keys`.
-Después, crea el primer usuario admin desde Auth y ejecuta los *advisors* de seguridad en el dashboard.
+
+**Secretos de las edge functions** (Dashboard → Edge Functions → Secrets, o `supabase secrets set`):
+
+| Secreto | Para qué | ¿Obligatorio? |
+|---|---|---|
+| `BRAND_NAME`, `ASSISTANT_NAME` | Nombre en correos, push y en la asistente IA | Recomendado |
+| `BRAND_WHATSAPP`, `STORE_HOURS` | Contacto y horario que da la asistente | Opcional |
+| `GEMINI_API_KEY` | Respuestas con IA (sin esto la asistente usa respuestas predefinidas) | Opcional |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Correos de recibo, KYC y recordatorios de crédito | Para correos |
+| `VAPID_PRIVATE_KEY`, `VITE_VAPID_PUBLIC_KEY`, `VAPID_CONTACT_EMAIL` | Notificaciones push (`npx web-push generate-vapid-keys`) | Para push |
+
+**Primer admin**: regístrate en la tienda con el correo del dueño y luego, en el SQL Editor:
+```sql
+UPDATE auth.users
+SET raw_app_meta_data = raw_app_meta_data || '{"is_super_admin": true}'::jsonb
+WHERE email = 'correo-del-dueño@dominio.com';
+```
+Cierra sesión y vuelve a entrar para que el panel admin aparezca.
+
+**Emails de Auth con la marca** (opcional):
+`BRAND_NAME="Mi Tienda" SUPABASE_PROJECT_REF=<ref> SUPABASE_ACCESS_TOKEN=<token> node supabase/emails/update_templates.js`
+
+Luego revisa **Advisors → Security** en el dashboard.
 
 ## 7. Vercel
 1. Importa el repo y en **Settings → Environment Variables** pega el contenido del `.env`.

@@ -4,6 +4,9 @@ project_id = "texjndtgxwbkpjqdqbud"
 [functions.get-bcv-rate]
 verify_jwt = false
 
+[functions.send-email]
+verify_jwt = true
+
 [functions.send-credit-notifications]
 verify_jwt = true
 

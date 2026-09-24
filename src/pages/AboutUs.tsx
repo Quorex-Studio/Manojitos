@@ -101,7 +101,7 @@ export default function AboutUs() {
                   <div>
                     <h3 className="font-semibold mb-1">Teléfono / WhatsApp</h3>
                     <p className="text-muted-foreground text-sm">
-                      +58 426-3863042<br />
+                      {BRAND.whatsapp && <>{BRAND.whatsapp}<br /></>}
                       Escríbenos para atención personalizada
                     </p>
                   </div>
@@ -135,8 +135,7 @@ export default function AboutUs() {
                   <div>
                     <h3 className="font-semibold mb-1">Horario de Atención</h3>
                     <p className="text-muted-foreground text-sm">
-                      Lunes a Viernes: 8:00 AM - 6:00 PM<br />
-                      Sábados: 9:00 AM - 1:00 PM
+                      {BRAND.hours}
                     </p>
                   </div>
                 </div>

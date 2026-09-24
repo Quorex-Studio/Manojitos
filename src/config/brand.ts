@@ -18,6 +18,12 @@ export const BRAND = {
   supportEmail: env.VITE_BRAND_SUPPORT_EMAIL || env.VITE_BRAND_CONTACT_EMAIL || 'soporte@einashopv.com',
   /** Usuario de Instagram sin @ */
   instagram: env.VITE_BRAND_INSTAGRAM || 'einashopv',
+  /** WhatsApp / teléfono de atención en formato internacional (+58 412 0000000). Vacío = se oculta */
+  whatsapp: env.VITE_BRAND_WHATSAPP || '',
+  /** Horario de atención (texto libre) */
+  hours: env.VITE_BRAND_HOURS || 'Lunes a Viernes: 8:00 AM - 6:00 PM · Sábados: 9:00 AM - 1:00 PM',
+  /** Ubicación mostrada en el footer */
+  location: env.VITE_BRAND_LOCATION || 'Venezuela',
   /** Nombre de la asistente virtual (chat con IA) */
   assistantName: env.VITE_ASSISTANT_NAME || 'Ángela',
   /** Prefijo para claves de localStorage (evita mezclar datos entre tiendas) */
@@ -27,6 +33,7 @@ export const BRAND = {
 export const BRAND_NAME = BRAND.name;
 export const BRAND_NAME_UPPER = BRAND.name.toUpperCase();
 export const BRAND_SITE_URL = `https://${BRAND.domain}`;
+export const BRAND_WHATSAPP_URL = BRAND.whatsapp ? `https://wa.me/${BRAND.whatsapp.replace(/\D/g, '')}` : '';
 export const BRAND_INSTAGRAM_URL = `https://www.instagram.com/${BRAND.instagram}/`;
 export const BRAND_FILE_SLUG = BRAND.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
 

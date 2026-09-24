@@ -13,12 +13,24 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Setup Web Push
-const VAPID_PUBLIC_KEY = Deno.env.get("VITE_VAPID_PUBLIC_KEY")!;
-const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
+// Setup Web Push (si faltan las claves VAPID la función responde 503 en vez de caerse al arrancar)
+const VAPID_PUBLIC_KEY = Deno.env.get("VITE_VAPID_PUBLIC_KEY") ?? "";
+const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
 const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "EINA";
-const VAPID_CONTACT = Deno.env.get("VAPID_CONTACT_EMAIL") ?? "admin@eina.shop";
-webPush.setVapidDetails(`mailto:${VAPID_CONTACT}`, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+const VAPID_CONTACT = Deno.env.get("VAPID_CONTACT_EMAIL") ?? "admin@einashopv.com";
+const pushConfigured = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+if (pushConfigured) {
+  webPush.setVapidDetails(`mailto:${VAPID_CONTACT}`, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
+
+// Solo pueden enviar push: el service_role (webhooks de la DB) o un admin autenticado.
+async function isAuthorized(req: Request): Promise<boolean> {
+  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!token) return false;
+  if (token === supabaseServiceKey) return true;
+  const { data } = await supabase.auth.getUser(token);
+  return data?.user?.app_metadata?.is_super_admin === true;
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -27,8 +39,20 @@ serve(async (req) => {
   }
 
   try {
+    if (!(await isAuthorized(req))) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!pushConfigured) {
+      return new Response(JSON.stringify({ error: "Notificaciones push no configuradas (faltan claves VAPID)" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const payload = await req.json();
-    console.log("Received Webhook Payload:", payload);
 
     // The webhook payload contains a 'record' object when triggered from DB insert
     let notification = payload.record;
@@ -83,7 +107,8 @@ serve(async (req) => {
       } catch (err: unknown) {
         console.error(`Error sending push to endpoint ${sub.endpoint}:`, err);
         // If the endpoint is no longer valid (e.g. 410 Gone), delete it from DB
-        if (err.statusCode === 410 || err.statusCode === 404) {
+        const statusCode = (err as { statusCode?: number }).statusCode;
+        if (statusCode === 410 || statusCode === 404) {
           await supabase.from("push_subscriptions").delete().eq("id", sub.id);
           console.log(`Deleted invalid push subscription ${sub.id}`);
         }
@@ -97,7 +122,7 @@ serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error("Error in send-push function:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Error enviando push" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

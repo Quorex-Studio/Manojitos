@@ -101,17 +101,19 @@ export function StoreFooter() {
           <div className="space-y-5">
             <h4 className="font-serif text-[#F5EDE8]/90 text-sm tracking-[0.15em] uppercase">Contacto</h4>
             <ul className="space-y-4">
-              <li className="flex items-center gap-3 text-[#F5EDE8]/40 text-sm tracking-wide">
-                <Phone className="h-4 w-4 text-gold/70 flex-shrink-0" />
-                <span>+58 426-3863042</span>
-              </li>
+              {BRAND.whatsapp && (
+                <li className="flex items-center gap-3 text-[#F5EDE8]/40 text-sm tracking-wide">
+                  <Phone className="h-4 w-4 text-gold/70 flex-shrink-0" />
+                  <span>{BRAND.whatsapp}</span>
+                </li>
+              )}
               <li className="flex items-center gap-3 text-[#F5EDE8]/40 text-sm tracking-wide">
                 <Mailbox className="h-4 w-4 text-gold/70 flex-shrink-0" />
                 <span>{BRAND.contactEmail}</span>
               </li>
               <li className="flex items-start gap-3 text-[#F5EDE8]/40 text-sm tracking-wide">
                 <Location className="h-4 w-4 text-gold/70 mt-0.5 flex-shrink-0" />
-                <span>Venezuela</span>
+                <span>{BRAND.location}</span>
               </li>
             </ul>
           </div>

@@ -31,6 +31,22 @@ serve(async (req) => {
       }
     }
 
+    // Una tasa manual cambia los montos en Bs de toda la tienda: solo un admin
+    // autenticado puede fijarla. El cron (sin tasa manual) solo consulta APIs públicas.
+    if (manualRate !== null) {
+      const authHeader = req.headers.get('Authorization') ?? '';
+      const token = authHeader.replace(/^Bearer\s+/i, '');
+      const authClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!);
+      const { data: userData } = token ? await authClient.auth.getUser(token) : { data: { user: null } };
+      const isAdmin = userData?.user?.app_metadata?.is_super_admin === true;
+      if (!isAdmin) {
+        return new Response(
+          JSON.stringify({ error: 'No autorizado para fijar la tasa manualmente' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        );
+      }
+    }
+
     let rate: number | null = manualRate;
     const source = manualRate ? 'manual' : 'BCV';
 

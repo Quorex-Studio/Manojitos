@@ -261,9 +261,9 @@ export function CustomerDashboard() {
             <div className="border border-primary/20 rounded-xl p-4 bg-primary/5 relative">
               <Badge className="absolute -top-3 -right-2 bg-primary/20 text-primary hover:bg-primary/30 border-none shadow-none">Predeterminada</Badge>
               <h3 className="font-medium text-base mb-1">{profile?.full_name || 'Tu Nombre'}</h3>
-              <p className="text-sm text-muted-foreground mb-1">Edo nueva esparta, municipio gomez, la vecindad</p>
-              <p className="text-sm text-muted-foreground mb-3">La Vecindad, Nueva Esparta, 6314, Venezuela</p>
-              <p className="text-sm text-muted-foreground mb-4">Número de teléfono: {profile?.phone || '04123574858'}</p>
+              <p className="text-sm text-muted-foreground mb-1">{profile?.address || 'Aún no has guardado una dirección'}</p>
+              <p className="text-sm text-muted-foreground mb-3">{[profile?.city, profile?.state].filter(Boolean).join(', ') || '—'}</p>
+              <p className="text-sm text-muted-foreground mb-4">Número de teléfono: {profile?.phone || '—'}</p>
               <div className="flex gap-4 border-t border-primary/10 pt-3">
                 <button className="text-sm text-primary font-medium hover:underline focus:outline-none">Editar</button>
                 <button className="text-sm text-muted-foreground hover:text-destructive focus:outline-none transition-colors">Eliminar</button>

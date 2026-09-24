@@ -1,4 +1,4 @@
-import { BRAND, BRAND_NAME } from '@/config/brand';
+import { BRAND, BRAND_NAME, BRAND_WHATSAPP_URL } from '@/config/brand';
 // Página de Atención al Cliente / Soporte
 import { motion } from 'framer-motion';
 import { Phone, Mailbox, Clock, MessageSquare, AlertTriangle, ShieldCheck, HelpCircle } from 'reicon-react';
@@ -74,18 +74,18 @@ export default function Atencion() {
               <div className="space-y-2">
                 <p className="text-sm font-semibold flex items-center gap-1.5">
                   Teléfono / WhatsApp:
-                  <span className="text-pink-600 dark:text-pink-400 font-mono">+58 426-3863042</span>
+                  <span className="text-pink-600 dark:text-pink-400 font-mono">{BRAND.whatsapp || 'Próximamente'}</span>
                 </p>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> Lunes a Viernes: 8:00 AM - 6:00 PM | Sábados: 9:00 AM - 1:00 PM
+                  <Clock className="h-3 w-3" /> {BRAND.hours}
                 </p>
               </div>
-              <Button 
-                onClick={() => window.open('https://wa.me/584263863042', '_blank')}
+              {BRAND_WHATSAPP_URL && <Button 
+                onClick={() => window.open(BRAND_WHATSAPP_URL, '_blank', 'noopener,noreferrer')}
                 className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white gap-2"
               >
                 Escribir por WhatsApp
-              </Button>
+              </Button>}
             </CardContent>
           </Card>
 
