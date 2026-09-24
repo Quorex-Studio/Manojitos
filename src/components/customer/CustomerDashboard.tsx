@@ -48,45 +48,39 @@ interface QuickLinkProps {
 
 const QuickLink = memo(function QuickLink({ to, onClick, icon, label, description, badge, badgeVariant = 'secondary', accent }: QuickLinkProps) {
   const content = (
-    <div className={cn(
-      "flex flex-col p-4 md:p-5 rounded-2xl h-full transition-all duration-300 group text-left w-full",
-      "bg-card/80 hover:bg-card border border-border/40 hover:border-primary/20",
-      "hover:shadow-md hover:-translate-y-0.5",
-      accent && "border-primary/20 bg-primary/5"
-    )}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-2.5 rounded-xl bg-primary/5 text-primary/70 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-          {icon}
-        </div>
-        {badge !== undefined && badge !== 0 && (
-          <Badge variant={badgeVariant} className="text-[10px] px-2 h-5 rounded-full shadow-sm font-medium">
-            {badge}
-          </Badge>
-        )}
-      </div>
-      <div className="mt-auto">
-        <h3 className="font-medium text-[15px] text-foreground mb-1 group-hover:text-primary transition-colors tracking-tight line-clamp-1">{label}</h3>
-        {description && (
-          <p className="text-[13px] text-muted-foreground/80 leading-snug line-clamp-2">{description}</p>
-        )}
-      </div>
+    <div className="group flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/50">
+      <span className={cn(
+        'flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors',
+        accent ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
+      )}>
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-medium text-foreground">{label}</span>
+        {description && <span className="block text-[13px] leading-snug text-muted-foreground">{description}</span>}
+      </span>
+      {badge !== undefined && badge !== 0 && (
+        <Badge variant={badgeVariant} className="h-5 shrink-0 rounded-full px-2 text-[10px] font-medium">{badge}</Badge>
+      )}
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </div>
   );
 
-  return (
-    <motion.div variants={item} className="h-full">
-      {to ? (
-        <Link to={to} className="block h-full">
-          {content}
-        </Link>
-      ) : (
-        <button type="button" onClick={onClick} className="block h-full w-full">
-          {content}
-        </button>
-      )}
-    </motion.div>
+  return to ? (
+    <Link to={to} className="block">{content}</Link>
+  ) : (
+    <button type="button" onClick={onClick} className="block w-full">{content}</button>
   );
 });
+
+function LinkGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <motion.section variants={item}>
+      <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</h2>
+      <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">{children}</div>
+    </motion.section>
+  );
+}
 
 export function CustomerDashboard() {
   const { profile, hasProfile } = useCustomerProfile();
@@ -124,128 +118,93 @@ export function CustomerDashboard() {
         </motion.div>
       )}
 
-      {/* Bienvenida Hero — editorial con gradient sutil */}
-      <motion.div
-        variants={item}
-        className="relative overflow-hidden rounded-2xl p-7 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/8"
-      >
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 text-primary/60 mb-2.5">
-            <Sparkles className="h-3.5 w-3.5 fill-primary/20" />
-            <span className="text-[10px] font-bold tracking-[0.15em] uppercase">Área Exclusiva</span>
-          </div>
-          <h2 className="text-2xl md:text-3xl font-serif font-medium text-foreground tracking-tight">
-            {hasProfile && profile?.full_name
-              ? `Hola, ${profile.full_name.split(' ')[0]}`
-              : 'Bienvenido'}
-          </h2>
-          <p className="text-sm text-muted-foreground/75 dark:text-muted-foreground max-w-[250px] tracking-wide mt-1">
-            Gestiona tu cuenta y revisa tus compras en {BRAND_NAME}.
-          </p>
-        </div>
-        <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
+      {/* Resumen: toca para ir a cada sección */}
+      <motion.div variants={item} className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card">
+        {([
+          ['/cliente/pedidos', orders.length, 'Pedidos'],
+          ['/cliente/favoritos', wishlistCount, 'Favoritos'],
+          ['/cliente/notificaciones', unreadCount, 'Avisos'],
+        ] as [string, number, string][]).map(([to, value, label]) => (
+          <Link key={label} to={to} className="px-2 py-4 text-center transition-colors first:rounded-l-2xl last:rounded-r-2xl hover:bg-muted/50">
+            <p className="font-serif text-2xl font-semibold tabular-nums text-primary">{value}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+          </Link>
+        ))}
       </motion.div>
 
-      {/* Grid de estadísticas — Gold numbers */}
-      <motion.div variants={item} className="grid grid-cols-3 gap-3">
-        <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-gold/10">
-          <p className="text-xl font-bold font-serif text-gradient-gold">{orders.length}</p>
-          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground mt-0.5">Pedidos</p>
-        </div>
-        <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
-          <p className="text-xl font-bold font-serif text-gradient-gold">{wishlistCount}</p>
-          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground mt-0.5">Favoritos</p>
-        </div>
-        <div className="text-center p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
-          <p className="text-xl font-bold font-serif text-gradient-gold">{unreadCount}</p>
-          <p className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground mt-0.5">Avisos</p>
-        </div>
-      </motion.div>
-
-      {/* Grid de accesos rápidos — Estilo Amazon */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+      <LinkGroup title="Compras">
         <QuickLink
           to="/cliente/pedidos"
-          icon={<ShoppingBag className="h-6 w-6" />}
-          label="Mis Pedidos"
-          description="Rastrea y gestiona tus compras"
+          icon={<ShoppingBag className="h-5 w-5" />}
+          label="Mis pedidos"
+          description={pendingOrders > 0 ? `${pendingOrders} en curso · sigue su estado` : 'Estado, seguimiento y recibos'}
           badge={pendingOrders > 0 ? pendingOrders : undefined}
           badgeVariant="default"
-          accent={pendingOrders > 0}
         />
-
         <QuickLink
-          icon={<Shield className="h-6 w-6" />}
-          label="Inicio de sesión y seguridad"
-          description="Editar nombre, teléfono y contraseña"
-          onClick={openSecurityModal}
+          to="/cliente/favoritos"
+          icon={<Heart className="h-5 w-5" />}
+          label="Lista de deseos"
+          description="Lo que guardaste para después"
+          badge={wishlistCount > 0 ? wishlistCount : undefined}
         />
-
-        <QuickLink
-          icon={<Location className="h-6 w-6" />}
-          label="Tus Direcciones"
-          description="Editar, eliminar o establecer predeterminada"
-          onClick={openAddressModal}
-        />
-
         {hasCredit ? (
           <QuickLink
             to="/cliente/credito"
-            icon={<Wallet className="h-6 w-6" />}
-            label="Mi Crédito"
-            description="Ver transacciones y administrar saldo"
+            icon={<Wallet className="h-5 w-5" />}
+            label="Mi crédito"
+            description="Saldo, cuotas y reportar pagos"
             badge={credit?.status}
             badgeVariant={credit?.status === 'VENCIDO' ? 'destructive' : 'secondary'}
           />
         ) : (
           <QuickLink
             to="/cliente/credito"
-            icon={<CreditCard className="h-6 w-6" />}
-            label="Solicitar Crédito"
-            description="Activa tu línea de crédito con la tienda"
+            icon={<CreditCard className="h-5 w-5" />}
+            label="Solicitar crédito"
+            description="Compra ahora y paga después"
             accent
           />
         )}
+      </LinkGroup>
 
+      <LinkGroup title="Mi cuenta">
         <QuickLink
-          to="/cliente/favoritos"
-          icon={<Heart className="h-6 w-6" />}
-          label="Lista de Deseos"
-          description="Productos que te encantan"
-          badge={wishlistCount > 0 ? wishlistCount : undefined}
+          icon={<Shield className="h-5 w-5" />}
+          label="Datos y seguridad"
+          description="Nombre, teléfono y contraseña"
+          onClick={openSecurityModal}
         />
-
         <QuickLink
-          icon={<Headphones className="h-6 w-6" />}
-          label="Servicio al Cliente"
-          description="Explorar opciones de ayuda o contáctanos"
+          icon={<Location className="h-5 w-5" />}
+          label="Direcciones"
+          description="Dónde te enviamos tus pedidos"
+          onClick={openAddressModal}
+        />
+        <QuickLink
+          to="/cliente/metodos-pago"
+          icon={<CreditCard className="h-5 w-5" />}
+          label="Métodos de pago"
+          description="Tus datos para pagar más rápido"
+        />
+        <QuickLink
+          to="/cliente/configuracion"
+          icon={<Settings className="h-5 w-5" />}
+          label="Configuración"
+          description="Moneda, avisos y contraseña"
+        />
+      </LinkGroup>
+
+      <LinkGroup title="Ayuda">
+        <QuickLink
+          icon={<Headphones className="h-5 w-5" />}
+          label="Atención al cliente"
+          description="Escríbenos, te respondemos rápido"
           badge={unreadCount > 0 ? unreadCount : undefined}
           badgeVariant="destructive"
           onClick={openSupportModal}
         />
-      </div>
-
-      {/* Acciones rápidas — styled pills */}
-      <motion.div variants={item} className="pt-2">
-        <div className="grid grid-cols-2 gap-3">
-          <Link to="/tienda">
-            <div className="p-5 rounded-xl bg-card/80 border border-border/10 hover:border-primary/15 hover:bg-card/80 transition-all duration-300 cursor-pointer group text-center">
-              <div className="w-12 h-12 bg-primary/5 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-300">
-                <ShoppingBag className="h-5 w-5 text-primary/60" />
-              </div>
-              <p className="font-medium text-xs tracking-[0.1em] uppercase text-foreground/60">Ir a la Tienda</p>
-            </div>
-          </Link>
-          <Link to="/cliente/pedidos">
-            <div className="p-5 rounded-xl bg-card/80 border border-border/10 hover:border-gold/15 hover:bg-card/80 transition-all duration-300 cursor-pointer group text-center">
-              <div className="w-12 h-12 bg-gold/5 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 group-hover:bg-gold/10 transition-all duration-300">
-                <Clock className="h-5 w-5 text-gold/60" />
-              </div>
-              <p className="font-medium text-xs tracking-[0.1em] uppercase text-foreground/60">Rastrear Pedido</p>
-            </div>
-          </Link>
-        </div>
-      </motion.div>
+      </LinkGroup>
 
       {/* Modal de Direcciones Estilo Amazon */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
