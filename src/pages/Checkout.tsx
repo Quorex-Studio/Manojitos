@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,7 +40,7 @@ const BASE_PAYMENT_METHODS = [
   { id: 'efectivo_bs', label: 'Efectivo Bs', description: 'Pago en bolívares al entregar' },
 ];
 
-// Datos de pago de Manojitos
+// Datos de pago de la tienda
 const PAYMENT_INFO = {
   contacto: '+58 426 3863042',
 };
@@ -198,7 +199,7 @@ export default function Checkout() {
   const [numeroReferencia, setNumeroReferencia] = useState('');
   const [telefonoEmisor, setTelefonoEmisor] = useState('');
 
-  // Financiamiento Manojitos
+  // Financiamiento la tienda
   const montoFinanciado = subtotal * 0.50;
   const montoCuota = montoFinanciado / 2;
   const montoInicialTotal = subtotal * 0.50;
@@ -216,7 +217,7 @@ export default function Checkout() {
 
   const allMethodsWithCredit = useMemo(() => [
     ...allPaymentMethods,
-    ...(hasCredit ? [{ id: 'credito', method_key: 'credito', label: 'Crédito Manojitos (Pago en partes)', description: `Crédito financia el 50%. Paga la Inicial hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales de $${montoCuota.toFixed(2)}.`, disabled: !creditAvailable, enabled: true }] : [])
+    ...(hasCredit ? [{ id: 'credito', method_key: 'credito', label: `Crédito ${BRAND_NAME} (Pago en partes)`, description: `Crédito financia el 50%. Paga la Inicial hoy ($${montoInicialTotal.toFixed(2)}). Resto en 2 cuotas quincenales de $${montoCuota.toFixed(2)}.`, disabled: !creditAvailable, enabled: true }] : [])
   ].filter(m => m.enabled), [allPaymentMethods, hasCredit, creditAvailable, montoInicialTotal, montoCuota]);
 
 
@@ -410,7 +411,7 @@ export default function Checkout() {
       const montoInicialBs = rate > 0 ? montoInicialTotal * rate : 0;
       const metodoLegible = sanitizeText(casheaMethod).replace(/_/g, ' ');
       const notesPrefix = paymentMethod === 'credito'
-        ? `Inicial de Crédito Manojitos: $${montoInicialTotal.toFixed(2)}${rate > 0 ? ` (Bs ${montoInicialBs.toFixed(2)} a tasa ${rate.toFixed(2)})` : ''}, Método: ${metodoLegible}, Referencia: ${casheaRef ? sanitizeText(casheaRef) : 'N/A'}${casheaBank ? `, Banco: ${sanitizeText(casheaBank)}` : ''}${casheaPhone ? `, Tlf. Emisor: ${sanitizeText(casheaPhone)}` : ''}. `
+        ? `Inicial de Crédito ${BRAND_NAME}: $${montoInicialTotal.toFixed(2)}${rate > 0 ? ` (Bs ${montoInicialBs.toFixed(2)} a tasa ${rate.toFixed(2)})` : ''}, Método: ${metodoLegible}, Referencia: ${casheaRef ? sanitizeText(casheaRef) : 'N/A'}${casheaBank ? `, Banco: ${sanitizeText(casheaBank)}` : ''}${casheaPhone ? `, Tlf. Emisor: ${sanitizeText(casheaPhone)}` : ''}. `
         : '';
 
       const checkoutItems = items.map(item => ({
@@ -1069,7 +1070,7 @@ export default function Checkout() {
                   >
                     <div className="flex items-center gap-2 pb-2 border-b border-primary/20">
                       <Wallet className="h-5 w-5 text-primary" />
-                      <p className="text-sm font-bold text-primary uppercase tracking-wide">Compra a Crédito Manojitos</p>
+                      <p className="text-sm font-bold text-primary uppercase tracking-wide">Compra a Crédito {BRAND_NAME}</p>
                     </div>
 
                     <div className="space-y-3 text-sm">
@@ -1342,7 +1343,7 @@ export default function Checkout() {
                         <label htmlFor="accept-credit-terms" className="text-xs text-muted-foreground">
                           He leído y estoy de acuerdo con los{' '}
                           <Link to="/terminos" target="_blank" className="underline text-primary">
-                            Términos y Condiciones de Manojitos
+                            Términos y Condiciones de {BRAND_NAME}
                           </Link>
                         </label>
                       </div>

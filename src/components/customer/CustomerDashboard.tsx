@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import React, { useState, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -139,7 +140,7 @@ export function CustomerDashboard() {
               : 'Bienvenido'}
           </h2>
           <p className="text-sm text-muted-foreground/75 dark:text-muted-foreground/40 max-w-[250px] tracking-wide mt-1">
-            Gestiona tu cuenta y revisa tus compras en Manojitos.
+            Gestiona tu cuenta y revisa tus compras en {BRAND_NAME}.
           </p>
         </div>
         <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />

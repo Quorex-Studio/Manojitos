@@ -1,3 +1,5 @@
+// Marca configurable por secreto de Supabase (supabase secrets set BRAND_NAME=...)
+const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "EINA";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -630,7 +632,7 @@ async function handleSendReminder(data: { creditId?: string; clientName?: string
 
   const credit = credits[0];
 
-  const message = `Hola ${credit.client_name}, te recordamos que tienes un saldo pendiente de $${credit.current_balance}. Fecha de vencimiento: ${credit.next_due_date || 'Por definir'}. ¡Gracias por tu preferencia! - Manojitos 🩷`;
+  const message = `Hola ${credit.client_name}, te recordamos que tienes un saldo pendiente de $${credit.current_balance}. Fecha de vencimiento: ${credit.next_due_date || 'Por definir'}. ¡Gracias por tu preferencia! - ${BRAND_NAME} 🩷`;
 
   const { error: reminderError } = await supabase
     .from('credit_reminders')
@@ -1085,7 +1087,7 @@ serve(async (req: Request) => {
     console.log('Generated suggestions:', suggestions.length);
 
     // ================== CONSTRUIR PROMPT CONTEXTUALIZADO ==================
-    let contextPrompt = `Eres Ángela, asistente inteligente de Manojitos (tienda en Venezuela).
+    let contextPrompt = `Eres Ángela, asistente inteligente de ${BRAND_NAME} (tienda en Venezuela).
 Personalidad: cercana, clara, profesional, confiable. Usa español venezolano.
 Tono: amable, seguro, sin exagerar emojis (máximo 2-3 por respuesta).
 
@@ -1361,7 +1363,7 @@ function generateFallbackResponse(
   // ── RESPUESTAS CORTESÍA / ESTADO / CASUALES ──
   if (msg.includes('todo bien') || msg.includes('cómo estás') || msg.includes('como estas') ||
       msg.includes('como te va') || msg.includes('cómo te va') || msg.includes('qué tal') || msg.includes('que tal')) {
-    return `🩷 ¡Todo excelente por aquí! 😊 ¿En qué te puedo ayudar hoy con nuestro catálogo de Manojitos? ✨`;
+    return `🩷 ¡Todo excelente por aquí! 😊 ¿En qué te puedo ayudar hoy con nuestro catálogo de ${BRAND_NAME}? ✨`;
   }
 
   if (msg.includes('gracias') || msg.includes('agradecido') || msg.includes('agradecida')) {
@@ -1378,7 +1380,7 @@ function generateFallbackResponse(
   if (msg.includes('tienda') || msg.includes('ubicacion') || msg.includes('ubicación') ||
       msg.includes('direccion') || msg.includes('dirección') || msg.includes('donde estan') ||
       msg.includes('dónde están') || msg.includes('local') || msg.includes('donde queda') || msg.includes('dónde queda')) {
-    return `🩷 Manojitos es principalmente una tienda virtual con atención y envíos a toda Venezuela. Realizamos entregas personales seguras y envíos por las agencias nacionales.\n\n📞 Si deseas coordinar una entrega o tienes alguna pregunta específica, puedes contactarnos al WhatsApp **+58 426-3863042**. ✨`;
+    return `🩷 ${BRAND_NAME} es principalmente una tienda virtual con atención y envíos a toda Venezuela. Realizamos entregas personales seguras y envíos por las agencias nacionales.\n\n📞 Si deseas coordinar una entrega o tienes alguna pregunta específica, puedes contactarnos al WhatsApp **+58 426-3863042**. ✨`;
   }
 
   // ── ENVÍOS / DELIVERY ──
@@ -1417,7 +1419,7 @@ function generateFallbackResponse(
     if (isAdmin) {
       return `🩷 ¡Hola! Soy **Ángela**.\n\n📊 **Resumen rápido:**\n• Ventas 7 días: $${context.recentSales.toFixed(2)}\n• Stock bajo: ${context.lowStockProducts.length} productos\n• Créditos pendientes: ${context.pendingCredits.length}\n\n¿Qué necesitas? ✨`;
     }
-    return `🩷 ¡Hola! Soy **Ángela**, tu asistente de Manojitos. 👋\n\nPuedo ayudarte con:\n• 🛒 Productos y recomendaciones\n• 💰 Precios y cálculos\n• 💳 Tu crédito\n\n¿En qué te puedo ayudar? ✨`;
+    return `🩷 ¡Hola! Soy **Ángela**, tu asistente de ${BRAND_NAME}. 👋\n\nPuedo ayudarte con:\n• 🛒 Productos y recomendaciones\n• 💰 Precios y cálculos\n• 💳 Tu crédito\n\n¿En qué te puedo ayudar? ✨`;
   }
 
   // ── TASA BCV ──
@@ -1467,7 +1469,7 @@ function generateFallbackResponse(
   // ── CRÉDITO ──
   if (msg.includes('crédito') || msg.includes('credito') || msg.includes('saldo') || msg.includes('deuda') || msg.includes('fiado') || msg.includes('debo')) {
     if (context.customerHistory) {
-      return `🩷 **Tu crédito en Manojitos:**\n\n• Estado: ${context.customerHistory.creditStatus}\n• Límite: $${context.customerHistory.creditLimit}\n• Compras totales: ${context.customerHistory.totalPurchases}\n\n¿Necesitas más detalles? ✨`;
+      return `🩷 **Tu crédito en ${BRAND_NAME}:**\n\n• Estado: ${context.customerHistory.creditStatus}\n• Límite: $${context.customerHistory.creditLimit}\n• Compras totales: ${context.customerHistory.totalPurchases}\n\n¿Necesitas más detalles? ✨`;
     }
     if (isAdmin) return `🩷 ¿De qué cliente necesitas información de crédito? ✨`;
     return `🩷 Puedo mostrarte tu información de crédito. ¿Quieres ver tu saldo o límite disponible? ✨`;

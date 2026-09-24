@@ -1,3 +1,4 @@
+import { BRAND_FILE_SLUG, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChartSuccess, FileText, Download, Calendar, ArrowUp, DollarSign, ShoppingCart } from 'reicon-react';
@@ -114,12 +115,12 @@ export default function Reports() {
 
   const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Manojitos';
+    workbook.creator = BRAND_NAME;
     const sheet = workbook.addWorksheet('Ventas', { views: [{ state: 'frozen', ySplit: 4 }] });
 
     sheet.mergeCells('A1:G1');
     const titleCell = sheet.getCell('A1');
-    titleCell.value = 'MANOJITOS — Reporte de Ventas';
+    titleCell.value = `${BRAND_NAME_UPPER} — Reporte de Ventas`;
     titleCell.font = { name: 'Georgia', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
     titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
     titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD69729' } };
@@ -177,7 +178,7 @@ export default function Reports() {
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `reporte_ventas_manojitos_${startDate}_${endDate}.xlsx`;
+    link.download = `reporte_ventas_${BRAND_FILE_SLUG}_${startDate}_${endDate}.xlsx`;
     link.click();
   };
 
@@ -192,7 +193,7 @@ export default function Reports() {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text('MANOJITOS', 14, 14);
+    doc.text(BRAND_NAME_UPPER, 14, 14);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Boutique & Lifestyle — Reporte de Ventas', 14, 21);
@@ -221,7 +222,7 @@ export default function Reports() {
       footStyles: { fillColor: [243, 233, 215], textColor: darkColor, fontStyle: 'bold' },
     });
 
-    doc.save(`reporte_ventas_manojitos_${startDate}_${endDate}.pdf`);
+    doc.save(`reporte_ventas_${BRAND_FILE_SLUG}_${startDate}_${endDate}.pdf`);
   };
 
   // --- RENDER ---

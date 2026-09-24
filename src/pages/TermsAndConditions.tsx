@@ -1,3 +1,4 @@
+import { BRAND, BRAND_NAME } from '@/config/brand';
 // Página de Términos y Condiciones
 import { motion } from 'framer-motion';
 import { TickCircle, FileText, CheckCircle } from 'reicon-react';
@@ -9,42 +10,42 @@ export default function TermsAndConditions() {
   const sections = [
     {
       title: "1. Introducción",
-      content: `Las presentes Condiciones regulan el uso de Manojitos, y cualquier otro Contrato o relación jurídica conexos celebrados con el Titular de forma jurídicamente vinculante. Las palabras en mayúsculas se definen en la sección correspondiente específica del presente documento.
+      content: `Las presentes Condiciones regulan el uso de ${BRAND_NAME}, y cualquier otro Contrato o relación jurídica conexos celebrados con el Titular de forma jurídicamente vinculante. Las palabras en mayúsculas se definen en la sección correspondiente específica del presente documento.
 
 Los Usuarios deben leer atentamente el presente documento.
 
-Los presentes términos y condiciones de Manojitos constituyen el contrato entre el Usuario y Manojitos, que rige el uso de la aplicación móvil, el sitio web, el software y los servicios prestados.
+Los presentes términos y condiciones de ${BRAND_NAME} constituyen el contrato entre el Usuario y ${BRAND_NAME}, que rige el uso de la aplicación móvil, el sitio web, el software y los servicios prestados.
 
-El Usuario al momento de realizar su registro en la aplicación de Manojitos, se compromete a leer y aceptar los presentes términos y condiciones, las Preguntas Frecuentes (FAQs), las Políticas de Cookies y el Aviso de Privacidad, y en caso de no encontrarse de acuerdo con los mismos, el Usuario deberá abstenerse de hacer uso de los servicios ofrecidos por Manojitos.
+El Usuario al momento de realizar su registro en la aplicación de ${BRAND_NAME}, se compromete a leer y aceptar los presentes términos y condiciones, las Preguntas Frecuentes (FAQs), las Políticas de Cookies y el Aviso de Privacidad, y en caso de no encontrarse de acuerdo con los mismos, el Usuario deberá abstenerse de hacer uso de los servicios ofrecidos por ${BRAND_NAME}.
 
-Manojitos pone también a disposición del Usuario una sección de Preguntas y Respuestas (FAQs) en su aplicación móvil y página web con la finalidad de aclarar dudas o inquietudes, siendo parte integrante de los presentes términos y condiciones. Asimismo, Manojitos se reserva el derecho a realizar modificaciones parciales o totales a los presentes términos y condiciones y el Usuario declara que al aceptar los mismos se adhiere integralmente a todas sus disposiciones y acepta que Manojitos podrá realizar cambios cuando así lo considere pertinente.`
+${BRAND_NAME} pone también a disposición del Usuario una sección de Preguntas y Respuestas (FAQs) en su aplicación móvil y página web con la finalidad de aclarar dudas o inquietudes, siendo parte integrante de los presentes términos y condiciones. Asimismo, ${BRAND_NAME} se reserva el derecho a realizar modificaciones parciales o totales a los presentes términos y condiciones y el Usuario declara que al aceptar los mismos se adhiere integralmente a todas sus disposiciones y acepta que ${BRAND_NAME} podrá realizar cambios cuando así lo considere pertinente.`
     },
     {
       title: "2. Definiciones",
       content: `A los efectos de los presentes términos y condiciones, se entenderá por:
 
-• Manojitos App: Aplicación web y/o móvil de Manojitos.
-• Club Manojitos Más (o equivalente): Programa de beneficios para los Usuarios que premia el consumo responsable y el pago a tiempo.
-• Comercios Afiliados: Persona natural o jurídica que presta servicios o vende bienes a cuotas a través de Manojitos.
+• ${BRAND_NAME} App: Aplicación web y/o móvil de ${BRAND_NAME}.
+• Club ${BRAND_NAME} Más (o equivalente): Programa de beneficios para los Usuarios que premia el consumo responsable y el pago a tiempo.
+• Comercios Afiliados: Persona natural o jurídica que presta servicios o vende bienes a cuotas a través de ${BRAND_NAME}.
 • Cuotas: Pagos o porciones fijas que debe pagar el Usuario a cada determinado tiempo para completar el pago de sus compras.
-• Embajadores: Personal propio de Manojitos destinado a asistir a los Usuarios.
+• Embajadores: Personal propio de ${BRAND_NAME} destinado a asistir a los Usuarios.
 • Factura / Orden de Compra: Documento emitido que evidencia la operación de compraventa del bien o servicio por parte del Usuario.
 • Indemnización: Penalidad pecuniaria impuesta al Usuario por incumplir con el pago oportuno de una cuota.
 • Inicial Flexible: Pago que debe realizar el Usuario al hacer la compra a cuotas. Representa un porcentaje del valor total (ej. 50%).
-• Línea de Compra: Monto máximo asignado por Manojitos al Usuario para cubrir las cuotas de las compras después del pago de la Inicial.
+• Línea de Compra: Monto máximo asignado por ${BRAND_NAME} al Usuario para cubrir las cuotas de las compras después del pago de la Inicial.
 • Línea de Compra Disponible: El monto de la Línea de Compra que no ha sido utilizado por el Usuario.
 • Monto de la Compra: Es el precio total de la venta de los bienes y servicios.
 • Monto Mínimo de Compra: Es el monto mínimo exigido que debe cumplir la Orden de Compra para que los Usuarios puedan adquirir productos a cuotas.
 • Pago Oportuno de las Cuotas: La aplicación fijará el plazo para el pago de las cuotas. Los Usuarios deberán honrar dichas cuotas en los plazos establecidos para evitar la imposición de penalidades.
-• Usuario: Persona natural, mayor de edad, con cédula de identidad vigente y domiciliada en la República Bolivariana de Venezuela, que haya completado su perfil en Manojitos.`
+• Usuario: Persona natural, mayor de edad, con cédula de identidad vigente y domiciliada en la República Bolivariana de Venezuela, que haya completado su perfil en ${BRAND_NAME}.`
     },
     {
-      title: "3. Introducción sobre Manojitos",
-      content: `Manojitos no es una institución financiera ni pertenece al sector bancario, no realiza ningún tipo de intermediación financiera. Manojitos opera una plataforma tecnológica que permite a los Usuarios solicitar y obtener una línea de compra para realizar adquisiciones a cuotas bajo condiciones favorables. Este servicio no requiere de tarjeta de crédito, permitiendo a los Usuarios satisfacer una necesidad de consumo sin costos fijos ni cargos ocultos en los casos de cumplimiento oportuno. Manojitos recomienda el uso responsable de la aplicación y la realización de compras necesarias y planificadas, y sugiere que los Usuarios realicen compras a cuotas estrictamente por los productos y servicios que tengan capacidad de honrar económicamente.`
+      title: `3. Introducción sobre ${BRAND_NAME}`,
+      content: `${BRAND_NAME} no es una institución financiera ni pertenece al sector bancario, no realiza ningún tipo de intermediación financiera. ${BRAND_NAME} opera una plataforma tecnológica que permite a los Usuarios solicitar y obtener una línea de compra para realizar adquisiciones a cuotas bajo condiciones favorables. Este servicio no requiere de tarjeta de crédito, permitiendo a los Usuarios satisfacer una necesidad de consumo sin costos fijos ni cargos ocultos en los casos de cumplimiento oportuno. ${BRAND_NAME} recomienda el uso responsable de la aplicación y la realización de compras necesarias y planificadas, y sugiere que los Usuarios realicen compras a cuotas estrictamente por los productos y servicios que tengan capacidad de honrar económicamente.`
     },
     {
       title: "4. Requisitos y Registro",
-      content: `Manojitos estará disponible únicamente para personas naturales, mayores de edad, con cédula de identidad válida, legalmente hábiles y domiciliados en la República Bolivariana de Venezuela. El uso de la cuenta es estrictamente personal, por lo que está expresamente prohibido que un Usuario permita el acceso a su cuenta a otra persona.
+      content: `${BRAND_NAME} estará disponible únicamente para personas naturales, mayores de edad, con cédula de identidad válida, legalmente hábiles y domiciliados en la República Bolivariana de Venezuela. El uso de la cuenta es estrictamente personal, por lo que está expresamente prohibido que un Usuario permita el acceso a su cuenta a otra persona.
 
 El Usuario deberá seguir los siguientes pasos:
 • Tener un teléfono inteligente o dispositivo con acceso a internet.
@@ -55,24 +56,24 @@ El Usuario deberá seguir los siguientes pasos:
     },
     {
       title: "5. Compras a Cuotas y Pagos",
-      content: `• Protección de los Usuarios: Las compras a cuotas a través de Manojitos no serán recargadas, incrementadas ni condicionadas de forma oculta.
+      content: `• Protección de los Usuarios: Las compras a cuotas a través de ${BRAND_NAME} no serán recargadas, incrementadas ni condicionadas de forma oculta.
 • Moneda de referencia: Todas las compras a cuotas se fijan y establecen en dólares estadounidenses como moneda de referencia. Todas las compras podrán ser pagadas por los Usuarios en Bolívares, calculados a la tasa del Banco Central de Venezuela correspondiente al día del pago.
 • Pago oportuno: Al efectuar una compra a cuotas, el sistema indicará el precio total, la inicial a ser pagada, los montos de cada cuota y sus fechas de vencimiento. El Usuario manifiesta su aceptación expresa al confirmar su compra, asumiendo el compromiso de cumplir con los pagos de forma oportuna.
 • Indemnización por pago tardío: En caso de que el Usuario pague tardíamente su cuota, se generará una penalidad administrativa. El incumplimiento o mora en el pago de una cuota será suficiente para que se considere vencido de pleno derecho el total del monto pendiente y la cuenta podrá ser bloqueada.`
     },
     {
       title: "6. Garantías, Cancelaciones y Reembolsos",
-      content: `• Garantías: Manojitos garantiza que los productos entregados cumplen con la calidad ofrecida. Los cambios o devoluciones se rigen por la política interna de la tienda.
+      content: `• Garantías: ${BRAND_NAME} garantiza que los productos entregados cumplen con la calidad ofrecida. Los cambios o devoluciones se rigen por la política interna de la tienda.
 • Reembolsos y Sobrantes: En caso de que una orden sea cancelada, o si el Usuario realiza un pago superior al monto adeudado por error o devolución, cualquier pago realizado en exceso es primero aplicado a otras cuotas de sus compras vigentes, y luego registrado como saldo a favor administrativo, el cual no será devuelto en efectivo sino que servirá para compras futuras.
 • Si el Usuario considera que hay un error en su facturación, pone a disposición su servicio de atención al cliente para ayudarlo a canalizar sus reclamos.`
     },
     {
       title: "7. Aceptación a las Comunicaciones",
-      content: `El Usuario acepta que Manojitos o terceros contratados puedan enviar mensajes de texto, WhatsApp, notificaciones push, correos electrónicos y llamadas telefónicas, con el fin de recordar el pago de cuotas, realizar campañas de marketing, informar descuentos, promociones y cualquier otro concepto que Manojitos considere relevante.`
+      content: `El Usuario acepta que ${BRAND_NAME} o terceros contratados puedan enviar mensajes de texto, WhatsApp, notificaciones push, correos electrónicos y llamadas telefónicas, con el fin de recordar el pago de cuotas, realizar campañas de marketing, informar descuentos, promociones y cualquier otro concepto que ${BRAND_NAME} considere relevante.`
     },
     {
       title: "8. Uso Correcto de la Plataforma y Sanciones",
-      content: `Manojitos App sólo podrá utilizarse dentro del ámbito para los fines previstos en los presentes Términos y Condiciones, y de conformidad con la legislación aplicable. Los Usuarios serán los únicos responsables de asegurarse de su correcta utilización y a preservar la confidencialidad de su información de acceso. Por consiguiente, Manojitos se reserva el derecho a adoptar las medidas oportunas para proteger sus intereses legítimos, incluyendo la denegación de Líneas de Compra, la terminación de contratos, la presentación de denuncias ante las autoridades competentes cuando se realicen, o se sospeche que se han realizado, cualquiera de las siguientes actividades: Infracciones de las leyes, los reglamentos y/o de las presentes condiciones; Vulneración de los derechos de terceros; Causar un perjuicio considerable a los intereses legítimos de Manojitos o de sus Comercios Afiliados; Ofensas contra Manojitos o contra cualquier tercero; e incumplimiento de los pagos de las cuotas.`
+      content: `${BRAND_NAME} App sólo podrá utilizarse dentro del ámbito para los fines previstos en los presentes Términos y Condiciones, y de conformidad con la legislación aplicable. Los Usuarios serán los únicos responsables de asegurarse de su correcta utilización y a preservar la confidencialidad de su información de acceso. Por consiguiente, ${BRAND_NAME} se reserva el derecho a adoptar las medidas oportunas para proteger sus intereses legítimos, incluyendo la denegación de Líneas de Compra, la terminación de contratos, la presentación de denuncias ante las autoridades competentes cuando se realicen, o se sospeche que se han realizado, cualquiera de las siguientes actividades: Infracciones de las leyes, los reglamentos y/o de las presentes condiciones; Vulneración de los derechos de terceros; Causar un perjuicio considerable a los intereses legítimos de ${BRAND_NAME} o de sus Comercios Afiliados; Ofensas contra ${BRAND_NAME} o contra cualquier tercero; e incumplimiento de los pagos de las cuotas.`
     }
   ];
 
@@ -109,7 +110,7 @@ El Usuario deberá seguir los siguientes pasos:
           <Card className="mb-6">
             <CardContent className="p-6">
               <p className="text-muted-foreground">
-                Bienvenido a Manojitos. Estos términos y condiciones describen las reglas y 
+                Bienvenido a {BRAND_NAME}. Estos términos y condiciones describen las reglas y 
                 regulaciones para el uso de nuestra plataforma.
                 Por favor, léalos cuidadosamente antes de utilizar nuestros servicios.
               </p>
@@ -145,8 +146,8 @@ El Usuario deberá seguir los siguientes pasos:
               <h3 className="font-semibold mb-2">¿Tienes preguntas?</h3>
               <p className="text-sm text-muted-foreground">
                 Si tienes alguna duda sobre estos términos, contáctanos a{' '}
-                <a href="mailto:contacto@manojitos.com" className="text-pink-600 hover:underline">
-                  contacto@manojitos.com
+                <a href={`mailto:${BRAND.contactEmail}`} className="text-pink-600 hover:underline">
+                  {BRAND.contactEmail}
                 </a>
               </p>
             </CardContent>

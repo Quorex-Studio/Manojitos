@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -325,7 +326,7 @@ export default function CustomerAuth() {
             {/* Header */}
             <div className="text-center mb-8">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden border border-border/50 shadow-sm bg-white">
-                <img src={logoImage} alt="Manojitos" className="w-full h-full object-cover" />
+                <img src={logoImage} alt={BRAND_NAME} className="w-full h-full object-cover" />
               </div>
               <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground">
                 {isForgotPassword ? 'Recuperar Clave' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}

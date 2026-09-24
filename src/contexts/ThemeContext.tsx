@@ -1,3 +1,4 @@
+import { storageKey } from '@/config/brand';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 
 // Tipos para el contexto de tema
@@ -18,7 +19,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Inicializar tema desde localStorage o preferencia del sistema
   useEffect(() => {
-    const storedTheme = localStorage.getItem('manojitos-theme') as Theme | null;
+    const storedTheme = localStorage.getItem(storageKey('theme', '-')) as Theme | null;
     
     if (storedTheme) {
       setThemeState(storedTheme);
@@ -39,7 +40,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     
     // Aplicar el nuevo tema
     setThemeState(newTheme);
-    localStorage.setItem('manojitos-theme', newTheme);
+    localStorage.setItem(storageKey('theme', '-'), newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
     
     // Remover clase de transición después de completar

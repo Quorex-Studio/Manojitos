@@ -1,3 +1,4 @@
+import { BRAND, BRAND_NAME } from '@/config/brand';
 // Página de Política de Privacidad
 import { motion } from 'framer-motion';
 import { Shield, Eye, Lock, UserCheck, Database, Bell } from 'reicon-react';
@@ -55,7 +56,7 @@ export default function PrivacyPolicy() {
 • **Oposición:** Oponerte al procesamiento de tus datos para ciertos fines
 • **Limitación:** Restringir el uso de tus datos en ciertas circunstancias
 
-Para ejercer estos derechos, contáctanos a contacto@manojitos.com`
+Para ejercer estos derechos, contáctanos a ${BRAND.contactEmail}`
     },
     {
       icon: Bell,
@@ -103,7 +104,7 @@ Puedes gestionar tus preferencias de notificación desde tu perfil de usuario en
           <Card className="mb-8">
             <CardContent className="p-6">
               <p className="text-muted-foreground">
-                En Manojitos, respetamos tu privacidad y nos comprometemos a proteger tus datos personales. 
+                En {BRAND_NAME}, respetamos tu privacidad y nos comprometemos a proteger tus datos personales. 
                 Esta política describe cómo recopilamos, usamos y protegemos tu información cuando utilizas 
                 nuestra plataforma de comercio electrónico.
               </p>
@@ -207,8 +208,8 @@ Puedes gestionar tus preferencias de notificación desde tu perfil de usuario en
               <h3 className="font-semibold mb-2">¿Tienes preguntas sobre tu privacidad?</h3>
               <p className="text-sm text-muted-foreground">
                 Contáctanos a{' '}
-                <a href="mailto:contacto@manojitos.com" className="text-pink-600 hover:underline">
-                  contacto@manojitos.com
+                <a href={`mailto:${BRAND.contactEmail}`} className="text-pink-600 hover:underline">
+                  {BRAND.contactEmail}
                 </a>
                 {' '}y te responderemos lo antes posible.
               </p>

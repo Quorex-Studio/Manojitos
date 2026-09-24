@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 /**
  * useNotifications — Hook to manage system-wide notifications and credit reminders.
  * Supports internal, email, SMS, and WhatsApp channels via Edge Functions.
@@ -226,7 +227,7 @@ export function useNotifications() {
               duration: 6000,
             });
             await showNotification(
-              `🩷 Manojitos: ${notif.title}`,
+              `🩷 ${BRAND_NAME}: ${notif.title}`,
               notif.message,
               { tag: notif.id, url: '/' }
             );

@@ -1,3 +1,4 @@
+import { BRAND, BRAND_NAME } from '@/config/brand';
 // Página de Atención al Cliente / Soporte
 import { motion } from 'framer-motion';
 import { Phone, Mailbox, Clock, MessageSquare, AlertTriangle, ShieldCheck, HelpCircle } from 'reicon-react';
@@ -22,7 +23,7 @@ export default function Atencion() {
     },
     {
       question: "¿Cuál es la política para deudas vencidas?",
-      answer: "Manojitos mantiene una política estricta de cumplimiento financiero. En caso de transcurrir más de un (1) mes con una deuda pendiente y sin comunicación por parte del cliente, se procederá a la apertura de un expediente legal con respaldo de nuestro equipo de abogados y las autoridades policiales competentes."
+      answer: `${BRAND_NAME} mantiene una política estricta de cumplimiento financiero. En caso de transcurrir más de un (1) mes con una deuda pendiente y sin comunicación por parte del cliente, se procederá a la apertura de un expediente legal con respaldo de nuestro equipo de abogados y las autoridades policiales competentes.`
     },
     {
       question: "¿Hacen envíos a todo el país?",
@@ -102,8 +103,8 @@ export default function Atencion() {
               <div className="space-y-2">
                 <p className="text-sm font-semibold">
                   Email:{' '}
-                  <a href="mailto:contacto@manojitos.com" className="text-pink-600 hover:underline font-mono">
-                    contacto@manojitos.com
+                  <a href={`mailto:${BRAND.contactEmail}`} className="text-pink-600 hover:underline font-mono">
+                    {BRAND.contactEmail}
                   </a>
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -112,7 +113,7 @@ export default function Atencion() {
               </div>
               <Button 
                 variant="outline"
-                onClick={() => window.location.href = 'mailto:contacto@manojitos.com'}
+                onClick={() => window.location.href = `mailto:${BRAND.contactEmail}`}
                 className="w-full gap-2"
               >
                 Enviar Correo
@@ -135,7 +136,7 @@ export default function Atencion() {
                 <div className="space-y-1.5">
                   <h3 className="font-semibold text-red-800 dark:text-red-300">AVISO IMPORTANTE - POLÍTICA DE COBRANZA</h3>
                   <p className="text-sm text-red-700 dark:text-red-400/90 leading-relaxed">
-                    Manojitos confía plenamente en su clientela ofreciendo facilidades de crédito. Sin embargo, en caso de transcurrir <strong>más de un (1) mes con deuda pendiente</strong> y sin comunicación del titular para regularizar la situación, se iniciará formalmente un <strong>expediente legal con el respaldo de nuestro cuerpo de abogados y las autoridades policiales competentes</strong>.
+                    {BRAND_NAME} confía plenamente en su clientela ofreciendo facilidades de crédito. Sin embargo, en caso de transcurrir <strong>más de un (1) mes con deuda pendiente</strong> y sin comunicación del titular para regularizar la situación, se iniciará formalmente un <strong>expediente legal con el respaldo de nuestro cuerpo de abogados y las autoridades policiales competentes</strong>.
                   </p>
                 </div>
               </div>

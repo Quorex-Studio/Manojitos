@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Layout, Package, ShoppingCart, CreditCard, Truck, FileText, Settings, Logout, Menu, CloseSquare, Store, FileUp, Wallet, Users } from 'reicon-react';
@@ -80,13 +81,13 @@ export function AppSidebar() {
           <div className={cn("mb-8 flex items-center", isCollapsed && !isMobile ? "justify-center pt-2" : "gap-3 pt-2")}>
             <img 
               src={logoImage} 
-              alt="Manojitos" 
+              alt={BRAND_NAME} 
               className="h-11 w-11 rounded-full object-cover ring-1 ring-gold/20 flex-shrink-0"
             />
             {(!isCollapsed || isMobile) && (
               <div className="overflow-hidden">
                 <h1 className="font-serif text-xl font-bold text-gradient-gold tracking-normal whitespace-nowrap">
-                  Manojitos
+                  {BRAND_NAME}
                 </h1>
                 <p className="text-sidebar-foreground/30 text-[10px] font-sans tracking-[0.15em] uppercase whitespace-nowrap">Sistema de Gestión</p>
               </div>

@@ -1,5 +1,5 @@
 /**
- * AngelaMascot — Representación visual animada de Ángela (mascota rosa de Manojitos).
+ * AngelaMascot — Representación visual animada de Ángela (mascota rosa de la tienda).
  *
  * Reutiliza el asset existente del repositorio (src/assets/stitch-rosa-mascot.png)
  * — una criatura rosa de orejas y ojos grandes — y le da un acabado tipo 3D con

@@ -1,3 +1,4 @@
+import { storageKey } from '@/config/brand';
 /**
  * useCashRegister — Hook to manage daily cash register sessions and summaries.
  * Persistence: LocalStorage
@@ -11,7 +12,7 @@ import { useAuth } from './useAuth';
 import { useSales } from './useSales';
 import { useCredits } from './useCredits';
 
-const CASH_REGISTER_KEY = 'manojitos_cash_register';
+const CASH_REGISTER_KEY = storageKey('cash_register');
 
 export interface CashRegisterSession {
   id: string;

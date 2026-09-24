@@ -1,3 +1,4 @@
+import { storageKey } from '@/config/brand';
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,7 +28,7 @@ interface CartContextType {
 
 // Helper para obtener la clave de almacenamiento por usuario
 const getCartKey = (userId: string | null) =>
-  userId ? `manojitos_cart_${userId}` : 'manojitos_cart_guest';
+  userId ? storageKey(`cart_${userId}`) : storageKey('cart_guest');
 
 // Helper para cargar el carrito
 const loadCart = (userId: string | null): CartItem[] => {

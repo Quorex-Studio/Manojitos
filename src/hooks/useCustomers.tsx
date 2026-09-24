@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -73,7 +74,7 @@ export function useCustomers() {
           user_id: variables.userId,
           title: variables.status === 'approved' ? 'Tu identidad fue verificada ✅' : 'Verificación de identidad rechazada',
           message: variables.status === 'approved'
-            ? 'Tu verificación KYC fue aprobada. Ya puedes solicitar tu línea de crédito Manojitos.'
+            ? `Tu verificación KYC fue aprobada. Ya puedes solicitar tu línea de crédito ${BRAND_NAME}.`
             : 'Tu verificación KYC fue rechazada. Por favor revisa tus fotos y vuelve a enviarlas.',
           type: variables.status === 'approved' ? 'success' : 'warning',
           channel: 'internal',

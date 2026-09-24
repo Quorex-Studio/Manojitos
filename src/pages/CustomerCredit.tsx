@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
@@ -1014,7 +1015,7 @@ export default function CustomerCredit() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
-                    Cronograma de Cuotas (Financiamiento Manojitos)
+                    Cronograma de Cuotas (Financiamiento {BRAND_NAME})
                   </CardTitle>
                   <CardDescription>
                     Visualiza el estado de tus cuotas quincenales para cada compra financiada.

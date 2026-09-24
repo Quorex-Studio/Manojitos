@@ -16,7 +16,9 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // Setup Web Push
 const VAPID_PUBLIC_KEY = Deno.env.get("VITE_VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
-webPush.setVapidDetails("mailto:admin@manojitos.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "EINA";
+const VAPID_CONTACT = Deno.env.get("VAPID_CONTACT_EMAIL") ?? "admin@eina.shop";
+webPush.setVapidDetails(`mailto:${VAPID_CONTACT}`, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -60,7 +62,7 @@ serve(async (req) => {
     }
 
     const pushPayload = JSON.stringify({
-      title: title || "Manojitos",
+      title: title || BRAND_NAME,
       body: message || "Tienes una nueva notificación",
       url: url || "/",
     });

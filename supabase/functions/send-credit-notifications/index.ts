@@ -1,3 +1,5 @@
+// Marca configurable por secreto de Supabase (supabase secrets set BRAND_NAME=...)
+const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "EINA";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
@@ -75,22 +77,22 @@ const REMINDER_TEMPLATES = {
   "3_DAYS_BEFORE": {
     title: "Recordatorio de pago próximo",
     message: (credit: Credit, dueDate: string) =>
-      `Estimado/a ${credit.client_name}, le recordamos que su próximo pago vence el ${dueDate}. El monto pendiente es de $${credit.current_balance.toFixed(2)}. Agradecemos su puntualidad. - Manojitos`,
+      `Estimado/a ${credit.client_name}, le recordamos que su próximo pago vence el ${dueDate}. El monto pendiente es de $${credit.current_balance.toFixed(2)}. Agradecemos su puntualidad. - ${BRAND_NAME}`,
   },
   "DUE_DATE": {
     title: "Vencimiento de pago hoy",
     message: (credit: Credit, dueDate: string) =>
-      `Estimado/a ${credit.client_name}, hoy ${dueDate} es la fecha de vencimiento de su pago. El monto pendiente es de $${credit.current_balance.toFixed(2)}. Por favor, realice su pago lo antes posible. - Manojitos`,
+      `Estimado/a ${credit.client_name}, hoy ${dueDate} es la fecha de vencimiento de su pago. El monto pendiente es de $${credit.current_balance.toFixed(2)}. Por favor, realice su pago lo antes posible. - ${BRAND_NAME}`,
   },
   "1_DAY_AFTER": {
     title: "Pago atrasado - 1 día",
     message: (credit: Credit, dueDate: string) =>
-      `Estimado/a ${credit.client_name}, su pago venció ayer (${dueDate}). El monto pendiente es de $${credit.current_balance.toFixed(2)}. Le invitamos a ponerse al día para evitar inconvenientes. - Manojitos`,
+      `Estimado/a ${credit.client_name}, su pago venció ayer (${dueDate}). El monto pendiente es de $${credit.current_balance.toFixed(2)}. Le invitamos a ponerse al día para evitar inconvenientes. - ${BRAND_NAME}`,
   },
   "3_DAYS_AFTER": {
     title: "AVISO FINAL - Pago vencido",
     message: (credit: Credit, dueDate: string) =>
-      `Estimado/a ${credit.client_name}, su pago tiene 3 días de atraso desde el ${dueDate}. El monto pendiente es de $${credit.current_balance.toFixed(2)}. Este es un aviso final antes de suspender el crédito. Por favor, comuníquese con nosotros inmediatamente. - Manojitos`,
+      `Estimado/a ${credit.client_name}, su pago tiene 3 días de atraso desde el ${dueDate}. El monto pendiente es de $${credit.current_balance.toFixed(2)}. Este es un aviso final antes de suspender el crédito. Por favor, comuníquese con nosotros inmediatamente. - ${BRAND_NAME}`,
   },
 };
 
@@ -227,7 +229,7 @@ async function sendEmailNotification(
     return { success: false, error: "Client has no email" };
   }
 
-  const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "Manojitos <onboarding@resend.dev>";
+  const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || `${BRAND_NAME} <onboarding@resend.dev>`;
 
   try {
     const { error } = await resend.emails.send({
@@ -237,7 +239,7 @@ async function sendEmailNotification(
       html: `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #FFB5C5 0%, #D4AF37 100%); padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">Manojitos</h1>
+            <h1 style="color: white; margin: 0; font-size: 24px;">${BRAND_NAME}</h1>
           </div>
           <div style="background: #fff; padding: 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 10px 10px;">
             <h2 style="color: #333; margin-top: 0;">${title}</h2>

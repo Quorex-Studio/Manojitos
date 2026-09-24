@@ -1,4 +1,4 @@
-# 🌸 Manojitos — Plataforma E-commerce + ERP/CRM con IA
+# 🌸 EINA — Plataforma E-commerce + ERP/CRM con IA
 
 <div align="center">
 
@@ -14,9 +14,28 @@
 
 -----
 
+## 🧩 Usar como plantilla (otra tienda)
+
+La marca **no está escrita en el código**: sale de `src/config/brand.ts`, que lee variables de entorno.
+Para montar otra tienda solo hay que cambiar:
+
+| Dónde | Variable | Ejemplo |
+|---|---|---|
+| `.env` / Vercel | `VITE_BRAND_NAME` | `EINA` |
+| `.env` / Vercel | `VITE_BRAND_CONTACT_EMAIL`, `VITE_BRAND_SUPPORT_EMAIL` | `contacto@eina.shop` |
+| `.env` / Vercel | `VITE_BRAND_INSTAGRAM` | `eina.shop` |
+| `.env` / Vercel | `VITE_BRAND_STORAGE_KEY` | `eina` (prefijo de localStorage) |
+| `.env` / Vercel | `VITE_GTM_ID` | vacío = sin Google Tag Manager |
+| `.env` / Vercel | `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID` | datos del proyecto Supabase |
+| Secrets de Supabase (edge functions) | `BRAND_NAME`, `VAPID_CONTACT_EMAIL`, `RESEND_FROM_EMAIL` | `EINA` |
+
+Además: reemplazar los logos (`src/assets/logo.jpeg`, `public/logo.jpeg`, favicons) y el nombre en `public/site.webmanifest` y `public/sw.js`.
+
+-----
+
 ## 🚀 ¿Qué es esto?
 
-Manojitos es una **Single Page Application (SPA) completa** que fusiona tres sistemas en uno:
+EINA es una **Single Page Application (SPA) completa** que fusiona tres sistemas en uno:
 
 - 🛒 **E-commerce B2C** — Tienda online con experiencia de compra premium
 - 👤 **Portal de Clientes** — Panel personal con historial, crédito y métodos de pago

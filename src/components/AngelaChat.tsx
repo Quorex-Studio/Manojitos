@@ -1,5 +1,6 @@
+import { BRAND_NAME } from '@/config/brand';
 /**
- * AngelaChat — Interfaz de chat flotante para Ángela, la asistente de Manojitos.
+ * AngelaChat — Interfaz de chat flotante para Ángela, la asistente de la tienda.
  *
  * Se comunica EXCLUSIVAMENTE con el backend a través de
  * `supabase.functions.invoke('ai-assistant', ...)`, que adjunta automáticamente
@@ -43,7 +44,7 @@ interface AiAssistantResponse {
 const WELCOME: ChatMessage = {
   role: "assistant",
   content:
-    "🩷 ¡Hola! Soy Ángela, tu asistente de Manojitos. ¿En qué te puedo ayudar hoy? Puedo orientarte con productos, precios en USD y Bs, y tu crédito. ✨",
+    `🩷 ¡Hola! Soy Ángela, tu asistente de ${BRAND_NAME}. ¿En qué te puedo ayudar hoy? Puedo orientarte con productos, precios en USD y Bs, y tu crédito. ✨`,
 };
 
 const ERROR_MESSAGE =
@@ -219,7 +220,7 @@ export default function AngelaChat() {
                 <div className="leading-tight">
                   <p className="text-sm font-semibold">Ángela</p>
                   <p className="text-[11px] opacity-80">
-                    {sending ? "Ángela está pensando…" : "Asistente de Manojitos"}
+                    {sending ? "Ángela está pensando…" : `Asistente de ${BRAND_NAME}`}
                   </p>
                 </div>
               </div>

@@ -1,3 +1,4 @@
+import { BRAND, BRAND_INSTAGRAM_URL, BRAND_NAME } from '@/config/brand';
 import { Link } from 'react-router-dom';
 import { Location, Instagram, Global, Mailbox, Phone, Heart } from 'reicon-react';
 
@@ -13,7 +14,7 @@ export function StoreFooter() {
           {/* Brand */}
           <div className="space-y-5 lg:col-span-1">
             <h3 className="text-3xl font-serif font-bold text-gradient-gold">
-              Manojitos
+              {BRAND_NAME}
             </h3>
             <p className="text-[#F5EDE8]/50 text-sm leading-relaxed tracking-wide">
               Tu tienda de confianza con los mejores productos. 
@@ -21,7 +22,7 @@ export function StoreFooter() {
             </p>
             <div className="flex gap-3 pt-2">
               <a 
-                href="https://www.instagram.com/manojitos.shop/" 
+                href={BRAND_INSTAGRAM_URL} 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-[#F5EDE8]/5 border border-[#F5EDE8]/10 flex items-center justify-center hover:bg-primary/20 hover:border-primary/30 transition-all duration-300"
@@ -106,7 +107,7 @@ export function StoreFooter() {
               </li>
               <li className="flex items-center gap-3 text-[#F5EDE8]/40 text-sm tracking-wide">
                 <Mailbox className="h-4 w-4 text-gold/70 flex-shrink-0" />
-                <span>contacto@manojitos.com</span>
+                <span>{BRAND.contactEmail}</span>
               </li>
               <li className="flex items-start gap-3 text-[#F5EDE8]/40 text-sm tracking-wide">
                 <Location className="h-4 w-4 text-gold/70 mt-0.5 flex-shrink-0" />
@@ -121,7 +122,7 @@ export function StoreFooter() {
       <div className="border-t border-[#F5EDE8]/5">
         <div className="container mx-auto px-4 py-5">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-[#F5EDE8]/30 tracking-widest uppercase">
-            <p>© {currentYear} Manojitos. Todos los derechos reservados.</p>
+            <p>© {currentYear} {BRAND_NAME}. Todos los derechos reservados.</p>
             <p className="flex items-center gap-1.5">
               Desarrollado por Quorex Studio
             </p>

@@ -46,31 +46,26 @@
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Manojitos</title>
+  <title>%VITE_BRAND_NAME%</title>
   <meta name="description"
-    content="Manojitos - Boutique de lujo. Ropa, accesorios y lencería exclusiva. Envíos a toda Venezuela." />
-  <meta name="author" content="Manojitos" />
+    content="%VITE_BRAND_NAME% - Boutique de lujo. Ropa, accesorios y lencería exclusiva. Envíos a toda Venezuela." />
+  <meta name="author" content="%VITE_BRAND_NAME%" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <meta property="og:title" content="Manojitos - Luxury Boutique" />
+  <meta property="og:title" content="%VITE_BRAND_NAME% - Luxury Boutique" />
   <meta property="og:description"
     content="Ropa, accesorios y lencería fashion. Elegancia que inspira a toda Venezuela." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="/logo.jpeg" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:site" content="@Manojitos" />
   <meta name="twitter:image" content="/logo.jpeg" />
 </head>
 
 <body>
-  <!-- Google Tag Manager (noscript) -->
-  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W7SP74CQ" height="0" width="0"
-      style="display:none;visibility:hidden"></iframe></noscript>
-  <!-- End Google Tag Manager (noscript) -->
   <div id="root">
     <div class="initial-loader">
       <div class="initial-loader-spinner"></div>
@@ -80,14 +75,17 @@
 
   <!-- Google Tag Manager (deferido con requestIdleCallback/setTimeout) -->
   <script>
+    // ID de Google Tag Manager propio de cada tienda (VITE_GTM_ID en .env). Vacío = sin GTM.
+    var GTM_ID = '%VITE_GTM_ID%';
     function loadGTM() {
+      if (!GTM_ID || GTM_ID.charAt(0) === '%') return;
       (function (w, d, s, l, i) {
         w[l] = w[l] || []; w[l].push({
           'gtm.start': new Date().getTime(), event: 'gtm.js'
         }); var f = d.getElementsByTagName(s)[0],
           j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
             'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-      })(window, document, 'script', 'dataLayer', 'GTM-W7SP74CQ');
+      })(window, document, 'script', 'dataLayer', GTM_ID);
     }
     
     // Cargar GTM cuando el hilo principal esté inactivo, o después de 3s

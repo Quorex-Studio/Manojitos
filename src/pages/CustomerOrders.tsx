@@ -1,3 +1,4 @@
+import { BRAND_FILE_SLUG, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -219,7 +220,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
     doc.setFont('courier', 'bold');
     doc.setFontSize(13);
     doc.setTextColor(...goldColor);
-    doc.text('MANOJITOS', 40, y, { align: 'center' });
+    doc.text(BRAND_NAME_UPPER, 40, y, { align: 'center' });
     y += 5;
     doc.setFont('courier', 'normal');
     doc.setFontSize(7);
@@ -255,9 +256,9 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
     doc.text(`Bs ${(receiptOrder.total_bs || 0).toFixed(2)}`, 76, y, { align: 'right' });
     y += 7;
     doc.setFontSize(6);
-    doc.text('¡Gracias por tu compra en Manojitos!', 40, y, { align: 'center' });
+    doc.text(`¡Gracias por tu compra en ${BRAND_NAME}!`, 40, y, { align: 'center' });
 
-    doc.save(`recibo_manojitos_${receiptOrder.id.split('-')[0]}.pdf`);
+    doc.save(`recibo_${BRAND_FILE_SLUG}_${receiptOrder.id.split('-')[0]}.pdf`);
   };
 
   return (
@@ -506,7 +507,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
           <div className="p-8 bg-white text-black print-exact font-mono" id="receipt-content">
             <div className="h-1.5 -mx-8 -mt-8 mb-6" style={{ background: 'linear-gradient(90deg, #D69729, #D36983)' }} />
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-serif font-bold" style={{ color: '#D69729' }}>Manojitos</h2>
+              <h2 className="text-2xl font-serif font-bold" style={{ color: '#D69729' }}>{BRAND_NAME}</h2>
               <p className="text-xs uppercase tracking-widest mt-1" style={{ color: '#D36983' }}>Boutique & Lifestyle</p>
               <div className="mt-4 text-sm">
                 <p>Recibo de Compra</p>
@@ -548,7 +549,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
             </div>
 
             <div className="mt-8 text-center text-xs">
-              <p>¡Gracias por tu compra en Manojitos!</p>
+              <p>¡Gracias por tu compra en {BRAND_NAME}!</p>
               <p className="mt-1 opacity-70">Conserva este recibo para reclamos o cambios.</p>
             </div>
           </div>
