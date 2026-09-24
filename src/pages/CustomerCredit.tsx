@@ -916,7 +916,7 @@ export default function CustomerCredit() {
                               <div>
                                 <p className="font-medium text-sm">pago a Crédito (Reportado)</p>
                                 <p className="text-xs text-muted-foreground">
-                                  Ref: {refText} • Método: {methodText.toUpperCase()}
+                                  Ref: {refText} • Método: {(methodText || "—").toUpperCase()}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground">
                                   {format(new Date(pago.created_at), "dd MMM yyyy, HH:mm", { locale: es })}
