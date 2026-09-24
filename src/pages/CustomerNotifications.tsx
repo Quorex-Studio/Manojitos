@@ -82,7 +82,7 @@ export default function CustomerNotifications() {
                 </Button>
               </Link>
               <div>
-                <h1 className="page-header">Notificaciones</h1>
+                <h1 className="store-page-title">Notificaciones</h1>
                 <p className="text-muted-foreground">
                   {unreadCount > 0 ? `${unreadCount} sin leer` : 'Todas leídas'}
                 </p>

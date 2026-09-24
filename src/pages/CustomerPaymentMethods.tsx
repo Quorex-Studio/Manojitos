@@ -119,27 +119,24 @@ export default function CustomerPaymentMethods() {
           animate={{ opacity: 1, y: 0 }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <Link to="/cliente/configuracion">
-                <Button variant="ghost" size="icon">
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <Link to="/cliente/configuracion" aria-label="Volver a configuración">
+                <Button variant="ghost" size="icon" className="shrink-0 rounded-full">
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
-              <div>
-                <h1 className="page-header flex items-center gap-2">
-                  <CreditCard className="h-6 w-6" />
-                  Métodos de Pago
-                </h1>
-                <p className="text-muted-foreground">Gestiona tus métodos de pago preferidos</p>
+              <div className="min-w-0">
+                <h1 className="store-page-title">Métodos de pago</h1>
+                <p className="text-sm text-muted-foreground">Tus datos para pagar más rápido</p>
               </div>
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
+                <Button className="shrink-0 gap-1.5 rounded-full max-sm:h-10 max-sm:w-10 max-sm:px-0" aria-label="Agregar método de pago">
                   <Plus className="h-4 w-4" />
-                  Agregar
+                  <span className="max-sm:sr-only">Agregar</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">

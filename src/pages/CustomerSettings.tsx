@@ -146,18 +146,15 @@ export default function CustomerSettings() {
           animate={{ opacity: 1, y: 0 }}
         >
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <Link to="/cliente/perfil">
-              <Button variant="ghost" size="icon">
+          <div className="flex items-center gap-3 mb-6">
+            <Link to="/cliente/perfil" aria-label="Volver a mi cuenta">
+              <Button variant="ghost" size="icon" className="shrink-0 rounded-full">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <div>
-              <h1 className="page-header flex items-center gap-2">
-                <Settings className="h-6 w-6" />
-                Configuración
-              </h1>
-              <p className="text-muted-foreground">Seguridad y preferencias de tu cuenta</p>
+            <div className="min-w-0">
+              <h1 className="store-page-title">Configuración</h1>
+              <p className="text-sm text-muted-foreground">Seguridad y preferencias de tu cuenta</p>
             </div>
           </div>
 

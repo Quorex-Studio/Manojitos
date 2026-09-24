@@ -146,7 +146,7 @@ function CreditRequestView({ user, profile, rate, hasPendingRequest }: { user: U
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <h1 className="page-header">Mi Crédito</h1>
+          <h1 className="store-page-title">Mi Crédito</h1>
         </div>
 
         <Card className="glass-card overflow-hidden">
@@ -534,19 +534,19 @@ export default function CustomerCredit() {
       <div className="container py-8 max-w-4xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <Link to="/cliente/perfil">
-              <Button variant="ghost" size="icon">
+          <div className="flex items-center gap-3 mb-6">
+            <Link to="/cliente/perfil" aria-label="Volver a mi cuenta">
+              <Button variant="ghost" size="icon" className="shrink-0 rounded-full">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <div className="flex-1">
-              <h1 className="page-header">Mi Crédito</h1>
-              <p className="text-muted-foreground">Estado de tu línea de crédito</p>
+            <div className="min-w-0 flex-1">
+              <h1 className="store-page-title">Mi crédito</h1>
+              <p className="text-sm text-muted-foreground">Estado de tu línea de crédito</p>
             </div>
-            <div className={cn("px-4 py-2 rounded-full flex items-center gap-2", trustConfig.bg)}>
-              <TrustIcon className={cn("h-5 w-5", trustConfig.color)} />
-              <span className={cn("font-semibold", trustConfig.color)}>{trustConfig.label}</span>
+            <div className={cn("flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5", trustConfig.bg)}>
+              <TrustIcon className={cn("h-4 w-4", trustConfig.color)} />
+              <span className={cn("text-xs font-semibold", trustConfig.color)}>{trustConfig.label}</span>
             </div>
           </div>
 
@@ -839,7 +839,7 @@ export default function CustomerCredit() {
               <CardContent className="p-4 flex items-center gap-3">
                 <Award className="h-6 w-6 text-primary" />
                 <div>
-                  <p className="font-semibold text-primary">Descuento por pago Puntual</p>
+                  <p className="font-semibold text-primary">Descuento por pago puntual</p>
                   <p className="text-sm text-muted-foreground">
                     Obtén un {credit.early_payment_discount}% de descuento al pagar antes del vencimiento
                   </p>
@@ -849,38 +849,28 @@ export default function CustomerCredit() {
           )}
 
           {/* Contador de días */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <Card className={cn(credit.daysUntilDue && credit.daysUntilDue > 0 ? "border-green-500/30" : "")}>
-              <CardContent className="p-4 text-center">
-                <Clock className="h-5 w-5 mx-auto text-primary mb-2" />
-                <p className="text-2xl font-bold text-primary">{credit.daysUntilDue || 0}</p>
-                <p className="text-xs text-muted-foreground">Días para pagar</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <Calendar className="h-5 w-5 mx-auto text-muted-foreground mb-2" />
-                <p className="text-2xl font-bold">{credit.grace_days}</p>
-                <p className="text-xs text-muted-foreground">Días de gracia</p>
-              </CardContent>
-            </Card>
-            <Card className={cn(credit.daysOverdue && credit.daysOverdue > 0 ? "border-red-500/30" : "")}>
-              <CardContent className="p-4 text-center">
-                <AlertTriangle className="h-5 w-5 mx-auto text-destructive mb-2" />
-                <p className="text-2xl font-bold text-destructive">{credit.daysOverdue || 0}</p>
-                <p className="text-xs text-muted-foreground">Días vencido</p>
-              </CardContent>
-            </Card>
-          </div>
+          <section className="mb-6 grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card p-4">
+            {([
+              ['Para pagar', credit.daysUntilDue || 0, Clock, 'text-primary'],
+              ['De gracia', credit.grace_days, Calendar, 'text-foreground'],
+              ['Vencido', credit.daysOverdue || 0, AlertTriangle, (credit.daysOverdue || 0) > 0 ? 'text-destructive' : 'text-foreground'],
+            ] as [string, number, typeof Clock, string][]).map(([label, days, Icon, color]) => (
+              <div key={label} className="min-w-0 px-2 text-center first:pl-0 last:pr-0">
+                <Icon className="mx-auto mb-1 h-4 w-4 text-muted-foreground" />
+                <p className={cn('font-serif text-2xl font-semibold tabular-nums', color)}>{days}<span className="ml-1 text-xs font-normal text-muted-foreground">{days === 1 ? 'día' : 'días'}</span></p>
+                <p className="truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+              </div>
+            ))}
+          </section>
 
           {/* Perfil Financiero */}
           <CreditFinancialProfile creditData={credit} />
 
           {/* Tabs */}
           <Tabs defaultValue="transactions" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="admin-tabs">
               <TabsTrigger value="transactions">Movimientos</TabsTrigger>
-              <TabsTrigger value="cuotas">Mis Cuotas</TabsTrigger>
+              <TabsTrigger value="cuotas">Mis cuotas</TabsTrigger>
               <TabsTrigger value="promises">Compromisos</TabsTrigger>
               <TabsTrigger value="timeline">
                 <History className="h-4 w-4 mr-1" />
@@ -902,7 +892,7 @@ export default function CustomerCredit() {
                     <div className="space-y-3">
                       <h3 className="text-sm font-semibold text-gold flex items-center gap-2">
                         <Clock className="h-4 w-4 animate-spin text-gold" />
-                        pagos Pendientes de Verificación ({pendingpagos.length})
+                        Pagos por verificar ({pendingpagos.length})
                       </h3>
                       <div className="space-y-2 border-l-2 border-gold pl-3">
                         {pendingpagos.map(pago => {
@@ -914,7 +904,7 @@ export default function CustomerCredit() {
                           return (
                             <div key={pago.id} className="flex justify-between items-center p-3 rounded-lg bg-gold/5 border border-gold/10">
                               <div>
-                                <p className="font-medium text-sm">pago a Crédito (Reportado)</p>
+                                <p className="font-medium text-sm">Abono reportado</p>
                                 <p className="text-xs text-muted-foreground">
                                   Ref: {refText} • Método: {(methodText || "—").toUpperCase()}
                                 </p>
@@ -971,7 +961,7 @@ export default function CustomerCredit() {
 
                                       return (
                                         <div className="flex flex-col">
-                                          <span className="capitalize">pago {method}</span>
+                                          <span className="capitalize">Pago {method}</span>
                                           <span className="text-xs text-muted-foreground font-normal">Ref: {ref}</span>
                                           {note && <span className="text-[10px] text-muted-foreground/70 italic max-w-[220px] truncate">"{note}"</span>}
                                         </div>

@@ -68,7 +68,7 @@ export default function CustomerWishlist() {
               </Button>
             </Link>
             <div className="flex-1">
-              <h1 className="page-header">Lista de Deseos</h1>
+              <h1 className="store-page-title">Lista de Deseos</h1>
               <p className="text-muted-foreground">{wishlist.length} productos guardados</p>
             </div>
             <Heart className="h-8 w-8 text-primary" />

@@ -299,6 +299,12 @@
     font-family: Constantia, 'Crimson Pro', Georgia, serif;
   }
 
+  /* Título de páginas de la tienda (cuenta de la clienta): visible también en móvil */
+  .store-page-title {
+    @apply flex items-center gap-2 text-2xl md:text-3xl font-semibold tracking-tight text-foreground;
+    font-family: Constantia, 'Crimson Pro', Georgia, serif;
+  }
+
   .page-subtitle {
     @apply text-muted-foreground text-sm md:text-base md:mt-1;
     font-family: 'Source Sans 3', system-ui, sans-serif;
