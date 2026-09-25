@@ -36,7 +36,17 @@ const money = (value: unknown) => {
   return Number.isFinite(n) ? `$${n.toFixed(2)}` : "";
 };
 const shortId = (id?: string) => (id ? `#${String(id).slice(0, 8).toUpperCase()}` : "");
-const methodLabel = (m?: string) => esc((m || "").replace(/_/g, " "));
+const METHOD_LABELS: Record<string, string> = {
+  pago_movil: "Pago Móvil",
+  transferencia: "Transferencia Bs",
+  zelle: "Zelle",
+  binance: "Binance",
+  zinli: "Zinli",
+  wally: "Wally",
+  efectivo_usd: "Efectivo (USD)",
+  credito: "Crédito",
+};
+const methodLabel = (m?: string) => esc(METHOD_LABELS[m || ""] ?? (m || "").replace(/_/g, " "));
 
 const button = (href: string, label: string) => `
   <table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px auto 8px;">
@@ -204,5 +214,35 @@ export const createKycRejectedEmail = (data: EmailData) => layout({
   body: `
     <p>Revisamos tus documentos pero no pudimos aprobar el crédito por ahora. Verifica que las fotos se lean bien, estén vigentes y coincidan con los datos de tu perfil.</p>
     ${button(`${SITE_URL}/cliente/perfil`, "Volver a enviar documentos")}
+  `,
+});
+
+/** Abono a crédito reportado por la clienta: aprobado o rechazado por la administración. */
+export const createCreditPaymentEmail = (status: "approved" | "rejected", data: EmailData) => {
+  const approved = status === "approved";
+  return layout({
+    preheader: approved ? `Aplicamos tu abono de ${money(data.total_usd)}` : "Revisa tu abono reportado",
+    title: approved ? "¡Recibimos tu abono!" : "No pudimos confirmar tu abono",
+    body: `
+      <p>${data.client_name ? `Hola ${esc(data.client_name)}. ` : ""}${approved
+        ? "Verificamos tu pago y ya lo aplicamos a tu crédito. ¡Gracias por estar al día!"
+        : `Revisamos el pago que reportaste pero no pudimos confirmarlo.${data.reason ? ` Motivo: <strong>${esc(data.reason)}</strong>.` : ""} Verifica la referencia o escríbenos para ayudarte.`}</p>
+      ${box(`
+        ${data.total_usd !== undefined ? `<div><strong>Monto:</strong> ${money(data.total_usd)}</div>` : ""}
+        ${data.reference ? `<div><strong>Referencia:</strong> ${esc(data.reference)}</div>` : ""}
+        ${approved && data.balance_usd !== undefined ? `<div><strong>Saldo pendiente:</strong> ${money(data.balance_usd)}</div>` : ""}
+      `)}
+      ${button(`${SITE_URL}/cliente/credito`, "Ver mi crédito")}
+    `,
+  });
+};
+
+/** Recordatorios de cuotas y vencimientos del crédito (send-credit-notifications). */
+export const createCreditReminderEmail = (title: string, message: string) => layout({
+  preheader: title,
+  title,
+  body: `
+    <p>${esc(message)}</p>
+    ${button(`${SITE_URL}/cliente/credito`, "Ver mi crédito")}
   `,
 });

@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type OrderEmailAction = 'order_confirmed' | 'order_rejected' | 'order_shipped' | 'order_delivered';
+export type OrderEmailAction =
+  | 'order_confirmed' | 'order_rejected' | 'order_shipped' | 'order_delivered'
+  | 'credit_payment_approved' | 'credit_payment_rejected';
 
 interface NotifyCustomerInput {
   userId?: string | null;
@@ -52,7 +54,7 @@ export async function notifyCustomer({ userId, email, title, message, type = 'su
     );
     tasks.push(
       supabase.functions.invoke('send-push', {
-        body: { userId, title, message, url: '/cliente/pedidos' },
+        body: { userId, title, message, url: emailAction?.startsWith('credit_') ? '/cliente/credito' : '/cliente/pedidos' },
       })
     );
   }

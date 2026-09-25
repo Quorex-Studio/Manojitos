@@ -49,6 +49,7 @@ import { sanitizeText } from '@/lib/validations';
 import { CustomerOfMonthCard } from '@/components/credits/CustomerOfMonthCard';
 import { Order, Credit } from '@/types';
 import { Link } from 'react-router-dom';
+import { notifyCustomer } from '@/lib/notify';
 
 // Configuración de estados con colores
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -236,15 +237,34 @@ export default function Credits() {
 
       if (orderError) throw orderError;
 
-      toast.success('pago aprobado y aplicado correctamente.');
+      toast.success('Pago aprobado y aplicado correctamente.');
       queryClient.invalidateQueries({ queryKey: ['admin-reported-pagos'] });
       queryClient.invalidateQueries({ queryKey: ['credits'] });
+
+      // Aviso a la clienta (interno, push y correo); nunca bloquea la aprobación
+      const amount = Number(pagoOrder.total_usd) || 0;
+      notifyCustomer({
+        userId: pagoOrder.customer_user_id,
+        email: pagoOrder.customer_email,
+        title: 'Recibimos tu abono',
+        message: `Aplicamos tu pago de $${amount.toFixed(2)} a tu crédito. ¡Gracias!`,
+        type: 'success',
+        orderId: pagoOrder.id,
+        emailAction: 'credit_payment_approved',
+        emailData: {
+          client_name: pagoOrder.customer_name,
+          total_usd: amount,
+          reference: pagoOrder.notes?.match(/Referencia:\s*([^.]+)/i)?.[1]?.trim(),
+          balance_usd: Math.max(0, Number(targetCredit.current_balance || 0) - amount),
+        },
+      });
     } catch (e: unknown) {
       toast.error(`Error al aprobar pago: ${e.message}`);
     }
   };
 
   const handleRejectReportedpago = async (pagoOrderId: string) => {
+    const pagoOrder = reportedpagos.find(o => o.id === pagoOrderId);
     try {
       const { error: orderError } = await supabase
         .from('orders')
@@ -256,8 +276,25 @@ export default function Credits() {
 
       if (orderError) throw orderError;
       
-      toast.success('pago rechazado correctamente.');
+      toast.success('Pago rechazado.');
       queryClient.invalidateQueries({ queryKey: ['admin-reported-pagos'] });
+
+      if (pagoOrder) {
+        notifyCustomer({
+          userId: pagoOrder.customer_user_id,
+          email: pagoOrder.customer_email,
+          title: 'No pudimos confirmar tu abono',
+          message: 'Revisa la referencia del pago que reportaste o escríbenos para ayudarte.',
+          type: 'warning',
+          orderId: pagoOrder.id,
+          emailAction: 'credit_payment_rejected',
+          emailData: {
+            client_name: pagoOrder.customer_name,
+            total_usd: Number(pagoOrder.total_usd) || 0,
+            reference: pagoOrder.notes?.match(/Referencia:\s*([^.]+)/i)?.[1]?.trim(),
+          },
+        });
+      }
     } catch (e: unknown) {
       toast.error(`Error al rechazar pago: ${e.message}`);
     }
