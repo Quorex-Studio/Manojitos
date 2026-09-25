@@ -16,7 +16,8 @@ Guía humana completa: `PLANTILLA.md`. Arquitectura: `docs/ADR-001-plantilla-mul
 | `<title>`, SEO, GTM | `index.html` con `%VITE_*%` |
 | Manifest y robots.txt | los genera `scripts/vite-brand-files.ts` (no existen en `public/`) |
 | Colores | `src/index.css` (`--primary`, `--gold`, en `:root` y `.dark`) |
-| Edge functions | secretos `BRAND_NAME`, `ASSISTANT_NAME`, `VAPID_CONTACT_EMAIL`, `RESEND_FROM_EMAIL` |
+| Edge functions | secretos `BRAND_NAME`, `ASSISTANT_NAME`, `BRAND_WHATSAPP`, `STORE_HOURS`, `VAPID_CONTACT_EMAIL`; correo: `resend_api_key` y `resend_from_email` en Vault (o `RESEND_API_KEY`/`RESEND_FROM_EMAIL`) |
+| Asistente IA (qué vende, envíos, pagos, cambios, estilos) | `supabase/functions/ai-assistant/index.ts` — ver `docs/ASISTENTE-VIRTUAL-INA-ANGELA.md` |
 | Crons | leen `project_url` y `anon_key` del Vault de Supabase |
 
 ## Flujo
