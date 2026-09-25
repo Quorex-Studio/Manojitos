@@ -16,7 +16,7 @@ import { ReturnSaleDialog } from '@/components/sales/ReturnSaleDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { ReceiptDialog } from '@/components/receipts/ReceiptDialog';
 import { receiptNumber, type ReceiptData } from '@/lib/receipt';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -190,7 +190,9 @@ export default function Sales() {
   const [abonoExchangeRate, setAbonoExchangeRate] = useState<string>('');
   const [abonoUsdtRate, setAbonoUsdtRate] = useState<string>('');
   const [abonoUsdtBought, setAbonoUsdtBought] = useState<string>('');
-  const [abonoPaymentMethod, setAbonoPaymentMethod] = useState<string>('pago_movil');
+  const [abonoPaymentMethod, setAbonoPaymentMethod] = useState<string>('');
+  // true = "Marcar pagado": salda todo el saldo, pero igual pide cómo pagó
+  const [abonoSettle, setAbonoSettle] = useState(false);
   const [abonoNotes, setAbonoNotes] = useState<string>('');
 
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -310,8 +312,16 @@ export default function Sales() {
     setAbonoExchangeRate('');
     setAbonoUsdtRate('');
     setAbonoUsdtBought('');
-    setAbonoPaymentMethod('pago_movil');
+    setAbonoPaymentMethod('');
+    setAbonoSettle(false);
     setAbonoNotes('');
+  };
+
+  const openAbono = (group: GroupedReceivable, settle: boolean) => {
+    setAbonoGroup(group);
+    setAbonoSettle(settle);
+    setAbonoAmount(settle ? Math.max(0, group.total_usd - group.amount_paid).toFixed(2) : '');
+    setAbonoPaymentMethod('');
   };
 
   const handleSubmitAbono = async () => {
@@ -319,6 +329,10 @@ export default function Sales() {
     const amount = Number(abonoAmount);
     if (isNaN(amount) || amount <= 0) {
       toast.error('Ingrese un monto en USD válido');
+      return;
+    }
+    if (!abonoPaymentMethod) {
+      toast.error('Indica cómo pagó la clienta');
       return;
     }
     
@@ -334,7 +348,7 @@ export default function Sales() {
         paymentMethod: abonoPaymentMethod,
         notes: abonoNotes
       });
-      toast.success('Abono registrado correctamente');
+      toast.success(abonoSettle ? 'Cuenta marcada como pagada' : 'Abono registrado correctamente');
       resetAbonoForm();
     } catch (error) {
       console.error('Error al registrar abono:', error);
@@ -815,7 +829,7 @@ export default function Sales() {
 
       setActiveSalesTab('cuentas-cobrar');
       setReceivableTab('pending');
-      setAbonoGroup(grouped);
+      openAbono(grouped, false);
     } else {
       toast.error('No se pudo cargar la cuenta. Puede que ya esté pagada o no exista.');
     }
@@ -945,10 +959,7 @@ export default function Sales() {
                             <Button
                               className="flex-1"
                               variant="outline"
-                              onClick={() => {
-                                setAbonoGroup(group);
-                                setAbonoAmount('');
-                              }}
+                              onClick={() => openAbono(group, false)}
                             >
                               <DollarSign className="h-4 w-4 mr-2" />
                               Reportar Abono
@@ -956,15 +967,7 @@ export default function Sales() {
                             <Button
                               className="flex-1"
                               variant={isPartial ? "default" : "secondary"}
-                              onClick={async () => {
-                                if (await confirmDialog({ title: '¿Saldar la deuda completa?', description: `Se registrará un pago de $${pendingAmountUsd.toFixed(2)} y la cuenta quedará pagada.`, confirmText: 'Saldar deuda' })) {
-                                  await registerSalePayment({
-                                    saleGroupId: group.id,
-                                    amountUsd: pendingAmountUsd,
-                                    paymentMethod: group.payment_method || 'pago_movil'
-                                  });
-                                }
-                              }}
+                              onClick={() => openAbono(group, true)}
                             >
                               <TickCircle className="h-4 w-4 mr-2" />
                               Marcar Pagado
@@ -1584,15 +1587,20 @@ export default function Sales() {
       }}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Reportar Abono</DialogTitle>
+            <DialogTitle>{abonoSettle ? 'Marcar como pagada' : 'Reportar Abono'}</DialogTitle>
+            {abonoSettle && abonoGroup && (
+              <DialogDescription>
+                Se registra el pago de ${(abonoGroup.total_usd - abonoGroup.amount_paid).toFixed(2)} de {abonoGroup.client_name} y la cuenta queda saldada. Indica cómo pagó.
+              </DialogDescription>
+            )}
           </DialogHeader>
           <div className="space-y-4 py-4">
             
             <div className="space-y-2">
-              <Label>Método de Pago del Abono</Label>
+              <Label>¿Cómo pagó? *</Label>
               <Select value={abonoPaymentMethod} onValueChange={setAbonoPaymentMethod}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione el método de pago" />
+                <SelectTrigger aria-invalid={!abonoPaymentMethod}>
+                  <SelectValue placeholder="Elige el método de pago" />
                 </SelectTrigger>
                 <SelectContent>
                   {activePaymentMethods.map(m => (
@@ -1613,6 +1621,7 @@ export default function Sales() {
                   placeholder="0.00"
                   className="pl-9 font-bold text-primary"
                   value={abonoAmount}
+                  readOnly={abonoSettle}
                   onChange={(e) => setAbonoAmount(e.target.value)}
                 />
               </div>
@@ -1688,10 +1697,10 @@ export default function Sales() {
             </Button>
             <Button 
               onClick={handleSubmitAbono}
-              disabled={!abonoAmount || Number(abonoAmount) <= 0 || isSubmitting}
+              disabled={!abonoAmount || Number(abonoAmount) <= 0 || !abonoPaymentMethod || isSubmitting}
               className="btn-gold"
             >
-              Confirmar Abono
+              {abonoSettle ? 'Marcar pagada' : 'Confirmar Abono'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1803,7 +1812,7 @@ export default function Sales() {
                     )}
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="outline" className="text-[10px] capitalize">
-                        {payment.payment_method.replace('_', ' ')}
+                        {formatPaymentMethod(payment.payment_method)}
                       </Badge>
                       {payment.notes && <span className="text-xs text-muted-foreground truncate">{payment.notes}</span>}
                     </div>
