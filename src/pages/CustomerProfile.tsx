@@ -35,6 +35,8 @@ type PurchaseHistoryItem = {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { sanitizeText } from '@/lib/validations';
+import { MAX_PHOTO_BYTES, resolveKycUrl, uploadAvatar, uploadErrorMessage, uploadKycFile } from '@/lib/customerFiles';
+import { useQueryClient } from '@tanstack/react-query';
 
 const profileSchema = z.object({
   dni: z.string().min(4, 'DNI muy corto').max(20).optional().nullable().transform(val => val ? sanitizeText(val) : val),
@@ -57,6 +59,7 @@ export default function CustomerProfile() {
   const { purchases, totalSpent, totalPurchases, isLoading: purchasesLoading } = useCustomerPurchaseHistory();
   const { hasCredit } = useCustomerCredit();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const initialTab = ['dashboard', 'profile', 'kyc', 'purchases'].includes(searchParams.get('tab') || '')
     ? searchParams.get('tab')!
@@ -109,11 +112,16 @@ export default function CustomerProfile() {
         state: profile.state || '',
         zip_code: profile.zip_code || '',
       });
-      setKycPreviews({
-        dni: profile.dni_photo_url || null,
-        face: profile.face_photo_url || null,
-        verification: profile.verification_photo_url || null
+      // Los documentos son privados: se muestran con enlaces firmados
+      let cancelled = false;
+      Promise.all([
+        resolveKycUrl(profile.dni_photo_url),
+        resolveKycUrl(profile.face_photo_url),
+        resolveKycUrl(profile.verification_photo_url),
+      ]).then(([dni, face, verification]) => {
+        if (!cancelled) setKycPreviews({ dni, face, verification });
       });
+      return () => { cancelled = true; };
     }
   }, [profile, form]);
 
@@ -130,13 +138,13 @@ export default function CustomerProfile() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Límite de 5MB
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: 'Archivo muy grande',
-        description: 'El tamaño máximo permitido es de 5MB.',
-        variant: 'destructive',
-      });
+    // La foto se reduce antes de subirla; solo se rechazan archivos enormes o que no son imagen
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Solo fotos', description: 'Elige una imagen JPG o PNG.', variant: 'destructive' });
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      toast({ title: 'Archivo muy grande', description: 'Elige una foto de menos de 15 MB.', variant: 'destructive' });
       return;
     }
 
@@ -152,56 +160,31 @@ export default function CustomerProfile() {
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = ''; // permite volver a elegir la misma foto
     if (!file || !user) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: 'Archivo muy grande',
-        description: 'El tamaño máximo permitido es de 5MB.',
-        variant: 'destructive',
-      });
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Solo fotos', description: 'Elige una imagen JPG o PNG.', variant: 'destructive' });
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      toast({ title: 'Archivo muy grande', description: 'Elige una foto de menos de 15 MB.', variant: 'destructive' });
       return;
     }
 
     setIsUploadingAvatar(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_avatar.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('customer-avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('customer-avatars')
-        .getPublicUrl(filePath);
-
-      // Update the profile with the new avatar_url
-      await supabase
+      const publicUrl = await uploadAvatar(user.id, file);
+      const { error: updateError } = await supabase
         .from('customer_profiles')
         .update({ avatar_url: publicUrl })
         .eq('user_id', user.id);
-
-      // Refresh data
-      upsertProfile.mutate({
-        ...form.getValues(),
-        // Trigger a refetch indirectly or rely on queryClient invalidate in upsertProfile
-      });
-      
-      toast({
-        title: 'Foto actualizada',
-        description: 'Tu foto de perfil se ha guardado correctamente.',
-      });
+      if (updateError) throw updateError;
+      await queryClient.invalidateQueries({ queryKey: ['customer-profile'] });
+      toast({ title: 'Foto actualizada', description: 'Tu foto de perfil se guardó correctamente.' });
     } catch (error: unknown) {
       console.error('Error uploading avatar:', error);
-      toast({
-        title: 'Error',
-        description: 'No se pudo subir la foto de perfil.',
-        variant: 'destructive',
-      });
+      toast({ title: 'No se pudo subir la foto', description: uploadErrorMessage(error), variant: 'destructive' });
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -229,23 +212,13 @@ export default function CustomerProfile() {
 
       const uploadTasks = [];
 
+      // Documentos al bucket privado: solo la clienta y la administración pueden verlos
       for (const [type, file] of Object.entries(kycFiles) as [keyof typeof kycFiles, File | null][]) {
         if (file) {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Date.now()}_${type}.${fileExt}`;
-          const filePath = `${user.id}/${fileName}`;
-
           uploadTasks.push(
-            supabase.storage
-              .from('customer-avatars')
-              .upload(filePath, file, { upsert: true })
-              .then(({ data, error }) => {
-                if (error) throw error;
-                const { data: { publicUrl } } = supabase.storage
-                  .from('customer-avatars')
-                  .getPublicUrl(filePath);
-                urlsToSave[`${type}_photo_url` as keyof typeof urlsToSave] = publicUrl;
-              })
+            uploadKycFile(user.id, type, file).then(ref => {
+              urlsToSave[`${type}_photo_url` as keyof typeof urlsToSave] = ref;
+            })
           );
         }
       }
@@ -260,8 +233,8 @@ export default function CustomerProfile() {
     } catch (error: unknown) {
       console.error('Error uploading KYC:', error);
       toast({
-        title: 'Error de subida',
-        description: error.message || 'No se pudieron subir los documentos. Intenta de nuevo.',
+        title: 'No se pudieron subir los documentos',
+        description: uploadErrorMessage(error),
         variant: 'destructive'
       });
     } finally {

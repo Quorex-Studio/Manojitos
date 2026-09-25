@@ -14,6 +14,7 @@ export interface CustomerProfile {
   dni: string | null;
   dni_photo_url: string | null;
   face_photo_url: string | null;
+  avatar_url?: string | null;
   verification_photo_url: string | null;
   kyc_status: 'pending' | 'approved' | 'rejected' | 'none';
   created_at: string;

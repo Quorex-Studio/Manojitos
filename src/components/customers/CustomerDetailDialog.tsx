@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { CustomerProfile } from '@/hooks/useCustomers';
 import { KycBadge, initials, whatsappLink } from './customerUi';
+import { useKycUrl } from '@/hooks/useKycUrl';
 
 type KycStatus = 'approved' | 'rejected' | 'pending';
 type AdminAction = 'suspend' | 'restore' | 'delete' | 'change_password';
@@ -86,7 +87,9 @@ function InfoRow({ icon, label, value, action }: { icon: React.ReactNode; label:
   );
 }
 
-function KycPhoto({ url, label }: { url: string | null; label: string }) {
+function KycPhoto({ url: stored, label }: { url: string | null; label: string }) {
+  // Documentos privados: enlace firmado que vence en una hora
+  const url = useKycUrl(stored);
   return (
     <figure className="space-y-2">
       <figcaption className="text-sm font-medium">{label}</figcaption>
@@ -108,6 +111,7 @@ function KycPhoto({ url, label }: { url: string | null; label: string }) {
 export function CustomerDetailDialog({ customer, onOpenChange, onUpdateStatus, isUpdating }: CustomerDetailDialogProps) {
   const confirmDialog = useConfirm();
   const [tab, setTab] = useState('resumen');
+  const faceUrl = useKycUrl(customer?.face_photo_url);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const { data: history, isLoading: loadingHistory } = useCustomerHistory(customer?.user_id, customer?.phone);
@@ -174,7 +178,7 @@ export function CustomerDetailDialog({ customer, onOpenChange, onUpdateStatus, i
             <DialogHeader className="space-y-4 border-b border-border p-5 sm:p-6">
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16 shrink-0 border border-border">
-                  <AvatarImage src={customer.face_photo_url || ''} alt="" className="object-cover" />
+                  <AvatarImage src={faceUrl || customer.avatar_url || ''} alt="" className="object-cover" />
                   <AvatarFallback className="bg-primary/10 font-serif text-xl text-primary">{initials(customer.full_name)}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1 space-y-1.5">
