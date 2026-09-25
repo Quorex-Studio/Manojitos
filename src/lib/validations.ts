@@ -22,7 +22,7 @@ export const productSchema = z.object({
   description: z.string().max(2000, 'Máximo 2000 caracteres').optional().nullable().transform(val => val ? sanitizeText(val) : val),
   category: z.string().max(100, 'Máximo 100 caracteres').optional().nullable().transform(val => val ? sanitizeText(val) : val),
   // Enlaces de Drive/Dropbox se guardan ya convertidos a la imagen directa
-  image_url: z.string().url('URL inválida').max(500).optional().nullable().transform(val => normalizeImageUrl(val)),
+  image_url: z.string().url('La URL de la imagen no es válida').max(2000, 'La URL de la imagen es demasiado larga').optional().nullable().transform(val => normalizeImageUrl(val)),
   // Tallas o tonos que elige la clienta (según la categoría)
   sizes: z.array(z.string().trim().min(1).max(30)).max(30).optional().nullable(),
   presentation: z.string().trim().max(60, 'Máximo 60 caracteres').optional().nullable().transform(val => val ? sanitizeText(val) : null),
@@ -139,6 +139,22 @@ export function validateInput<T>(schema: z.ZodSchema<T>, data: unknown): T {
   if (!result.success) {
     const firstError = result.error.errors[0];
     throw new Error(firstError?.message || 'Datos inválidos');
+  }
+  return result.data;
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  name: 'Nombre', price_usd: 'Precio (USD)', price_bs_usd: 'Precio en bolívares', stock: 'Stock',
+  image_url: 'Imagen', description: 'Descripción', category: 'Categoría', presentation: 'Contenido o medidas',
+};
+
+/** Valida y, si falla, lanza un error legible ("Imagen: La URL … es demasiado larga") en vez del JSON de Zod. */
+export function validateFriendly<T>(schema: z.ZodSchema<T>, data: unknown): T {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    const e = result.error.errors[0];
+    const field = FIELD_LABELS[String(e?.path?.[0] ?? '')];
+    throw new Error(field ? `${field}: ${e.message}` : e?.message || 'Datos inválidos');
   }
   return result.data;
 }

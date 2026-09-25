@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { isOutOfStock, needsRestock } from '@/lib/stock';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -182,100 +182,21 @@ export default function Products() {
     setForm(prev => ({ ...prev, price_eur: val }));
   };
 
-  // --- REVERSE CALCULATE ON BLUR TO AVOID INFINITE LOOPS ---
-  const handlePriceUsdBlur = useCallback(() => {
-    if (showCalculator && usdRate > 0 && eurRate > 0) {
-      const usdPrice = parseFloat(form.price_usd) || 0;
-      if (usdPrice > 0) {
-        const eurPrice = (usdPrice * usdRate) / eurRate;
-        const multiplier = pricingConfig?.usd_to_eur_multiplier || 2;
-        const targetCost = eurPrice / multiplier;
-        
-        const units = parseInt(costCalc.purchaseUnits) || 1;
-        const shipping = parseFloat(costCalc.purchaseShippingUsd) || 0;
-        const merch = (targetCost * units) - shipping;
-        
-        if (merch >= 0) {
-          setCostCalc(prev => ({
-            ...prev,
-            purchaseUnits: String(units),
-            purchaseMerchUsd: merch.toFixed(2),
-          }));
-        }
-      }
-    } else {
-      // If calculator is closed, auto-fill EUR if it's empty
-      const usdPrice = parseFloat(form.price_usd) || 0;
-      if (usdPrice > 0 && !form.price_eur && usdRate > 0 && eurRate > 0) {
-        const eurPrice = (usdPrice * usdRate) / eurRate;
-        setForm(prev => ({ ...prev, price_eur: eurPrice.toFixed(2) }));
-      }
-    }
-  }, [showCalculator, usdRate, eurRate, form.price_usd, form.price_eur, pricingConfig, costCalc.purchaseUnits, costCalc.purchaseShippingUsd]);
-
-  const handlePriceEurBlur = useCallback(() => {
-    if (showCalculator && usdRate > 0 && eurRate > 0) {
-      const eurPrice = parseFloat(form.price_eur) || 0;
-      if (eurPrice > 0) {
-        const multiplier = pricingConfig?.usd_to_eur_multiplier || 2;
-        const targetCost = eurPrice / multiplier;
-        
-        const units = parseInt(costCalc.purchaseUnits) || 1;
-        const shipping = parseFloat(costCalc.purchaseShippingUsd) || 0;
-        const merch = (targetCost * units) - shipping;
-        
-        if (merch >= 0) {
-          setCostCalc(prev => ({
-            ...prev,
-            purchaseUnits: String(units),
-            purchaseMerchUsd: merch.toFixed(2),
-          }));
-        }
-      }
-    } else {
-      // If calculator is closed, auto-fill USD if it's empty
-      const eurPrice = parseFloat(form.price_eur) || 0;
-      if (eurPrice > 0 && !form.price_usd && eurRate > 0 && usdRate > 0) {
-        const usdPrice = eurToUsd(eurPrice, usdRate, eurRate);
-        setForm(prev => ({ ...prev, price_usd: usdPrice.toFixed(2) }));
-      }
-    }
-  }, [showCalculator, usdRate, eurRate, form.price_eur, form.price_usd, pricingConfig, costCalc.purchaseUnits, costCalc.purchaseShippingUsd]);
-
-  const handlePriceBsUsdBlur = () => {
-    if (showCalculator && form.price_usd && form.price_bs_usd) {
-      const usdPrice = parseFloat(form.price_usd);
-      const bsUsdPrice = parseFloat(form.price_bs_usd);
-      if (usdPrice > 0 && bsUsdPrice >= usdPrice) {
-        const derivedSurcharge = Math.round(((bsUsdPrice / usdPrice) - 1) * 100);
-        setCostCalc(prev => ({
-          ...prev,
-          bsSurchargePct: derivedSurcharge.toString()
-        }));
-      }
+  // El precio que escribe la persona manda. Al salir del campo, la otra moneda se ajusta a la
+  // tasa del día (el último que se editó gana). La calculadora ya no pisa estos precios.
+  const handlePriceUsdBlur = () => {
+    const usdPrice = parseFloat(form.price_usd) || 0;
+    if (usdPrice > 0 && usdRate > 0 && eurRate > 0) {
+      setForm(prev => ({ ...prev, price_eur: ((usdPrice * usdRate) / eurRate).toFixed(2) }));
     }
   };
 
-  // --- REVERSE CALCULATE ONCE WHEN CALCULATOR OPENS ---
-  const hasReversed = useRef(false);
-  useEffect(() => {
-    if (showCalculator && !hasReversed.current && usdRate > 0 && eurRate > 0) {
-      hasReversed.current = true;
-      const usdPrice = parseFloat(form.price_usd) || 0;
-      const eurPrice = parseFloat(form.price_eur) || 0;
-      const merchStr = costCalc.purchaseMerchUsd.trim();
-      if ((usdPrice > 0 || eurPrice > 0) && merchStr === '') {
-        if (eurPrice > 0) {
-          handlePriceEurBlur();
-        } else {
-          handlePriceUsdBlur();
-        }
-      }
+  const handlePriceEurBlur = () => {
+    const eurPrice = parseFloat(form.price_eur) || 0;
+    if (eurPrice > 0 && eurRate > 0 && usdRate > 0) {
+      setForm(prev => ({ ...prev, price_usd: eurToUsd(eurPrice, usdRate, eurRate).toFixed(2) }));
     }
-    if (!showCalculator) {
-      hasReversed.current = false;
-    }
-  }, [showCalculator, costCalc.purchaseMerchUsd, eurRate, form.price_eur, form.price_usd, handlePriceEurBlur, handlePriceUsdBlur, usdRate]);
+  };
 
   const resetForm = () => {
     setForm({ name: '', description: '', price_usd: '', price_eur: '', price_bs_usd: '', stock: '', category: '', image_url: '', variants: [], presentation: '' });
@@ -307,32 +228,6 @@ export default function Products() {
       })),
       presentation: product.presentation || '',
     });
-
-    // If product has cost data, populate the calculator
-    if (product.cost_usd && product.cost_usd > 0) {
-      setShowCalculator(true);
-      
-      let derivedSurcharge = '15';
-      if (product.price_bs_usd && product.price_usd && product.price_usd > 0) {
-        derivedSurcharge = Math.round(((product.price_bs_usd / product.price_usd) - 1) * 100).toString();
-      }
-      
-      setCostCalc(prev => ({
-        ...prev,
-        purchaseUnits: String(product.stock), // Estimate based on current stock
-        bsSurchargePct: derivedSurcharge
-      }));
-
-      setCalculatedPrices({
-        costPerUnit: product.cost_usd,
-        costRounded: Math.ceil(product.cost_usd),
-        priceWholesaleEur: product.price_wholesale_eur || 0,
-        priceRetailEur: product.price_retail_eur || 0,
-        priceCreditEur: product.price_retail_eur
-          ? Math.round(product.price_retail_eur * (1 + (pricingConfig?.credit_surcharge_pct || 10) / 100) * 100) / 100
-          : 0,
-      });
-    }
 
     setIsOpen(true);
   };
@@ -367,7 +262,8 @@ export default function Products() {
       description: form.description ? sanitizeText(form.description) : null,
       price_usd: Number(form.price_usd),
       price_bs_usd: form.price_bs_usd ? Number(form.price_bs_usd) : null,
-      cost_usd: calculatedPrices.costRounded || calculatedPrices.costPerUnit || 0,
+      // Sin datos nuevos en la calculadora se conserva el costo guardado (antes quedaba en 0)
+      cost_usd: calculatedPrices.costRounded || calculatedPrices.costPerUnit || editingProduct?.cost_usd || 0,
       price_wholesale_eur: Number(form.price_eur) || calculatedPrices.priceWholesaleEur || 0,
       price_retail_eur: Number(form.price_eur) 
         ? Number(form.price_eur) * (1 + (pricingConfig?.retail_markup_pct ?? 15) / 100) 
@@ -386,6 +282,11 @@ export default function Products() {
       price_usd: v.price.trim() && Number(v.price) >= 0 ? Math.round(Number(v.price) * 100) / 100 : null,
     }));
 
+    // Los errores del producto ya los avisa useProducts; aquí solo se avisan los de las variantes
+    const saveOptions = (id: string, list: typeof rows) => saveVariants(id, list).catch((e: unknown) => {
+      throw Object.assign(new Error((e as { message?: string })?.message || 'No se pudieron guardar las opciones'), { fromVariants: true });
+    });
+
     try {
       if (editingProduct) {
         const hadVariants = (editingProduct.product_variants?.length ?? 0) > 0;
@@ -393,9 +294,9 @@ export default function Products() {
           // El stock lo calcula la base a partir de las variantes
           const { stock: _omit, ...withoutStock } = productData;
           await updateProduct({ id: editingProduct.id, updates: withoutStock });
-          await saveVariants(editingProduct.id, rows);
+          await saveOptions(editingProduct.id, rows);
         } else {
-          if (hadVariants) await saveVariants(editingProduct.id, []);
+          if (hadVariants) await saveOptions(editingProduct.id, []);
           if (costCalc.addToStock && costCalc.purchaseUnits && parseInt(costCalc.purchaseUnits) > 0) {
             productData.stock = editingProduct.stock + parseInt(costCalc.purchaseUnits);
           }
@@ -403,11 +304,13 @@ export default function Products() {
         }
       } else {
         const created = await addProduct({ ...productData, stock: hasVariants ? 0 : productData.stock, sizes: null } as Parameters<typeof addProduct>[0]);
-        if (hasVariants && created?.id) await saveVariants(created.id, rows);
+        if (hasVariants && created?.id) await saveOptions(created.id, rows);
       }
     } catch (err) {
-      toast({ title: 'No se pudo guardar', description: err instanceof Error ? err.message : 'Inténtalo de nuevo.', variant: 'destructive' });
-      return;
+      if ((err as { fromVariants?: boolean })?.fromVariants) {
+        toast({ title: 'No se pudieron guardar las tallas, tonos o presentaciones', description: (err as Error).message, variant: 'destructive' });
+      }
+      return; // el formulario queda abierto para corregir
     }
 
     handleOpenChange(false);
@@ -751,7 +654,6 @@ export default function Products() {
                       min="0"
                       value={form.price_bs_usd}
                       onChange={(e) => setForm({ ...form, price_bs_usd: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) })}
-                      onBlur={handlePriceBsUsdBlur}
                       placeholder="Ej: 13.00"
                       className="input-glass rounded-xl"
                     />

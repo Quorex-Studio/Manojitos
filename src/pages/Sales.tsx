@@ -2,7 +2,7 @@ import { BRAND, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle, Receipt } from 'reicon-react';
+import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle, Receipt, ArrowRight2 } from 'reicon-react';
 import { getNextTwoCutoffDates, getNextThreeCutoffDates, formatCutoffDate } from '@/lib/cutoffDates';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -821,6 +821,166 @@ export default function Sales() {
     }
   };
 
+  // Por cobrar agrupado por clienta: suma sus facturas y muestra cuántas son
+  const [openReceivableClient, setOpenReceivableClient] = useState<string | null>(null);
+  const receivableClients = useMemo(() => {
+    const norm = (n: string) => n.trim().replace(/\s+/g, ' ').toLowerCase();
+    const map = new Map<string, { key: string; name: string; groups: GroupedReceivable[]; total: number; paid: number; pending: number; lastDate: string }>();
+    for (const g of groupedReceivables) {
+      const name = (g.client_name || '').trim() || 'Cliente sin nombre';
+      const key = norm(name);
+      const c = map.get(key) || { key, name, groups: [], total: 0, paid: 0, pending: 0, lastDate: g.created_at };
+      c.groups.push(g);
+      c.total += g.total_usd;
+      c.paid += g.amount_paid;
+      c.pending += Math.max(0, g.total_usd - g.amount_paid);
+      if (new Date(g.created_at) > new Date(c.lastDate)) c.lastDate = g.created_at;
+      map.set(key, c);
+    }
+    // Facturas de la más antigua a la más reciente (así se cobra); clientas por mayor deuda
+    const list = [...map.values()].map(c => ({ ...c, groups: [...c.groups].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) }));
+    return list.sort((a, b) => (receivableTab === 'paid' ? new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime() : b.pending - a.pending));
+  }, [groupedReceivables, receivableTab]);
+  const openClient = receivableClients.find(c => c.key === openReceivableClient) ?? null;
+  // Clientas que deben (para el contador de la pestaña): se agrupa por venta y luego por nombre
+  const pendingClientsCount = useMemo(() => {
+    const byGroup = new Map<string, { name: string; pending: number }>();
+    for (const sale of sales) {
+      const key = sale.sale_group_id || sale.id;
+      const g = byGroup.get(key) || { name: (sale.client_name || '').trim().replace(/\s+/g, ' ').toLowerCase(), pending: 0 };
+      g.pending += Number(sale.total_usd || 0) - Number(sale.amount_paid || 0);
+      byGroup.set(key, g);
+    }
+    return new Set([...byGroup.values()].filter(g => g.pending > 0.009).map(g => g.name)).size;
+  }, [sales]);
+
+  // Tarjeta de una factura (venta) por cobrar o pagada
+  const renderReceivableCard = (group: GroupedReceivable) => {
+                    const pendingAmountUsd = group.total_usd - group.amount_paid;
+                    const isPartial = group.amount_paid > 0 && group.amount_paid < group.total_usd;
+                    const isBsPayment = ['pago_movil', 'efectivo_bs', 'transferencia', 'credito'].includes(group.payment_method);
+                    const remainingBs = group.total_bs ? (group.total_bs * (pendingAmountUsd / group.total_usd)) : 0;
+                  
+                  return (
+                    <Card key={group.id} className="glass-card overflow-hidden">
+                      <div className={`h-1.5 w-full ${group.sale_modality === 'fiado' ? 'bg-purple-500' : group.sale_modality === 'dos_partes' ? 'bg-blue-500' : 'bg-amber-500'}`} />
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold flex items-center gap-1.5">
+                                <User className="h-4 w-4 text-primary" />
+                                {group.client_name || 'Cliente sin nombre'}
+                              </p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-primary hover:bg-primary/20 bg-primary/10 rounded-full"
+                                onClick={() => {
+                                  setDetailsGroup(group);
+                                  loadGroupPayments(group);
+                                }}
+                              >
+                                <InfoCircle className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <Badge variant="outline" className="mt-1 capitalize">
+                              {group.sale_modality?.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">Deuda Total</p>
+                            {isBsPayment && group.total_bs > 0 ? (
+                              <>
+                                <p className="font-bold text-lg text-destructive">{formatBS(remainingBs)}</p>
+                                <p className="text-xs text-muted-foreground">${pendingAmountUsd.toFixed(2)}</p>
+                              </>
+                            ) : (
+                              <p className="font-bold text-lg text-destructive">${pendingAmountUsd.toFixed(2)}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          {group.sales.map((sale: Sale) => (
+                            <div key={sale.id} className="bg-secondary/50 rounded-lg p-2 text-sm flex justify-between items-center group/sale">
+                              <span className="text-muted-foreground truncate flex-1" title={sale.product_name}>
+                                {sale.product_name} x{sale.quantity}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium ml-2">${Number(sale.total_usd).toFixed(2)}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 py-0 text-xs text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+                                  onClick={() => {
+                                    setEditingSale(sale);
+                                    setEditSaleForm({
+                                      amount_paid: sale.amount_paid ? String(sale.amount_paid) : '0',
+                                      total_usd: sale.total_usd ? String(sale.total_usd) : '0',
+                                      total_bs: sale.total_bs ? String(sale.total_bs) : '0',
+                                    });
+                                  }}
+                                >
+                                  Editar
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/10 pt-2">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {new Date(group.created_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                          <span>Pagado: ${Number(group.amount_paid).toFixed(2)}</span>
+                        </div>
+
+                        {/* Solo permitir abonar / marcar pagado si aún hay saldo.
+                            Una cuenta saldada (pendingAmountUsd <= 0) no debe poder
+                            recibir más abonos ni volver a marcarse como pagada. */}
+                        {pendingAmountUsd > 0.005 ? (
+                          <div className="flex gap-2 w-full mt-2">
+                            <Button
+                              className="flex-1"
+                              variant="outline"
+                              onClick={() => {
+                                setAbonoGroup(group);
+                                setAbonoAmount('');
+                              }}
+                            >
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              Reportar Abono
+                            </Button>
+                            <Button
+                              className="flex-1"
+                              variant={isPartial ? "default" : "secondary"}
+                              onClick={async () => {
+                                if (await confirmDialog({ title: '¿Saldar la deuda completa?', description: `Se registrará un pago de $${pendingAmountUsd.toFixed(2)} y la cuenta quedará pagada.`, confirmText: 'Saldar deuda' })) {
+                                  await registerSalePayment({
+                                    saleGroupId: group.id,
+                                    amountUsd: pendingAmountUsd,
+                                    paymentMethod: group.payment_method || 'pago_movil'
+                                  });
+                                }
+                              }}
+                            >
+                              <TickCircle className="h-4 w-4 mr-2" />
+                              Marcar Pagado
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-2 w-full mt-2 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-500 text-sm font-medium">
+                            <TickCircle className="h-4 w-4" />
+                            Cuenta pagada
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+  };
+
   // --- RENDER ---
   return (
     <AppLayout>
@@ -839,9 +999,9 @@ export default function Sales() {
             <TabsTrigger value="cuentas-cobrar">
               <ClipboardList className="h-4 w-4 hidden sm:inline" />
               Por cobrar
-              {sales.filter(s => s.payment_status !== 'paid').length > 0 && (
-                <Badge variant="destructive" className="px-1.5 py-0.5 text-[10px] rounded-full">
-                  {sales.filter(s => s.payment_status !== 'paid').length}
+              {pendingClientsCount > 0 && (
+                <Badge variant="destructive" className="px-1.5 py-0.5 text-[10px] rounded-full" aria-label={`${pendingClientsCount} clientas con deuda`}>
+                  {pendingClientsCount}
                 </Badge>
               )}
             </TabsTrigger>
@@ -1040,141 +1200,74 @@ export default function Sales() {
               </div>
             </div>
 
-            {groupedReceivables.length === 0 ? (
+            {receivableClients.length === 0 ? (
               <div className="text-center py-16">
                 <TickCircle className="h-16 w-16 text-green-500/50 mx-auto mb-4" />
-                <p className="text-muted-foreground font-medium text-lg">Todo está al día</p>
-                <p className="text-muted-foreground text-sm">No hay ventas con saldo pendiente</p>
+                <p className="text-muted-foreground font-medium text-lg">{receivableTab === 'paid' ? 'Aún no hay cuentas pagadas' : 'Todo está al día'}</p>
+                <p className="text-muted-foreground text-sm">{receivableTab === 'paid' ? 'Aquí aparecerán las ventas fiadas ya saldadas' : 'No hay ventas con saldo pendiente'}</p>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {groupedReceivables.map(group => {
-                    const pendingAmountUsd = group.total_usd - group.amount_paid;
-                    const isPartial = group.amount_paid > 0 && group.amount_paid < group.total_usd;
-                    const isBsPayment = ['pago_movil', 'efectivo_bs', 'transferencia', 'credito'].includes(group.payment_method);
-                    const remainingBs = group.total_bs ? (group.total_bs * (pendingAmountUsd / group.total_usd)) : 0;
-                  
-                  return (
-                    <Card key={group.id} className="glass-card overflow-hidden">
-                      <div className={`h-1.5 w-full ${group.sale_modality === 'fiado' ? 'bg-purple-500' : group.sale_modality === 'dos_partes' ? 'bg-blue-500' : 'bg-amber-500'}`} />
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold flex items-center gap-1.5">
-                                <User className="h-4 w-4 text-primary" />
-                                {group.client_name || 'Cliente sin nombre'}
-                              </p>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 text-primary hover:bg-primary/20 bg-primary/10 rounded-full"
-                                onClick={() => {
-                                  setDetailsGroup(group);
-                                  loadGroupPayments(group);
-                                }}
-                              >
-                                <InfoCircle className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <Badge variant="outline" className="mt-1 capitalize">
-                              {group.sale_modality?.replace('_', ' ')}
-                            </Badge>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm text-muted-foreground">Deuda Total</p>
-                            {isBsPayment && group.total_bs > 0 ? (
-                              <>
-                                <p className="font-bold text-lg text-destructive">{formatBS(remainingBs)}</p>
-                                <p className="text-xs text-muted-foreground">${pendingAmountUsd.toFixed(2)}</p>
-                              </>
-                            ) : (
-                              <p className="font-bold text-lg text-destructive">${pendingAmountUsd.toFixed(2)}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          {group.sales.map((sale: Sale) => (
-                            <div key={sale.id} className="bg-secondary/50 rounded-lg p-2 text-sm flex justify-between items-center group/sale">
-                              <span className="text-muted-foreground truncate flex-1" title={sale.product_name}>
-                                {sale.product_name} x{sale.quantity}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium ml-2">${Number(sale.total_usd).toFixed(2)}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-2 py-0 text-xs text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
-                                  onClick={() => {
-                                    setEditingSale(sale);
-                                    setEditSaleForm({
-                                      amount_paid: sale.amount_paid ? String(sale.amount_paid) : '0',
-                                      total_usd: sale.total_usd ? String(sale.total_usd) : '0',
-                                      total_bs: sale.total_bs ? String(sale.total_bs) : '0',
-                                    });
-                                  }}
-                                >
-                                  Editar
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/10 pt-2">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3.5 w-3.5" />
-                            {new Date(group.created_at).toLocaleDateString()}
-                          </span>
-                          <span>Pagado: ${Number(group.amount_paid).toFixed(2)}</span>
-                        </div>
-
-                        {/* Solo permitir abonar / marcar pagado si aún hay saldo.
-                            Una cuenta saldada (pendingAmountUsd <= 0) no debe poder
-                            recibir más abonos ni volver a marcarse como pagada. */}
-                        {pendingAmountUsd > 0.005 ? (
-                          <div className="flex gap-2 w-full mt-2">
-                            <Button
-                              className="flex-1"
-                              variant="outline"
-                              onClick={() => {
-                                setAbonoGroup(group);
-                                setAbonoAmount('');
-                              }}
-                            >
-                              <DollarSign className="h-4 w-4 mr-2" />
-                              Reportar Abono
-                            </Button>
-                            <Button
-                              className="flex-1"
-                              variant={isPartial ? "default" : "secondary"}
-                              onClick={async () => {
-                                if (await confirmDialog({ title: '¿Saldar la deuda completa?', description: `Se registrará un pago de $${pendingAmountUsd.toFixed(2)} y la cuenta quedará pagada.`, confirmText: 'Saldar deuda' })) {
-                                  await registerSalePayment({
-                                    saleGroupId: group.id,
-                                    amountUsd: pendingAmountUsd,
-                                    paymentMethod: group.payment_method || 'pago_movil'
-                                  });
-                                }
-                              }}
-                            >
-                              <TickCircle className="h-4 w-4 mr-2" />
-                              Marcar Pagado
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center gap-2 w-full mt-2 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-500 text-sm font-medium">
-                            <TickCircle className="h-4 w-4" />
-                            Cuenta pagada
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                  })}
-              </div>
+              <>
+                {receivableTab === 'pending' && (
+                  <p className="text-sm text-muted-foreground">
+                    {receivableClients.length === 1 ? '1 clienta debe' : `${receivableClients.length} clientas deben`} en total{' '}
+                    <strong className="text-foreground">${receivableClients.reduce((s, c) => s + c.pending, 0).toFixed(2)}</strong>
+                  </p>
+                )}
+                {/* Una tarjeta por clienta: deuda total y cuántas facturas la forman */}
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {receivableClients.map(client => (
+                    <button
+                      key={client.key}
+                      type="button"
+                      onClick={() => setOpenReceivableClient(client.key)}
+                      className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-semibold">{client.name}</p>
+                        <p className={`text-xl font-bold tabular-nums ${receivableTab === 'paid' ? 'text-foreground' : 'text-destructive'}`}>
+                          ${(receivableTab === 'paid' ? client.total : client.pending).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(client.lastDate).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {client.paid > 0 && receivableTab === 'pending' && ` · abonado $${client.paid.toFixed(2)}`}
+                        </p>
+                      </div>
+                      <span
+                        className="grid h-9 min-w-9 shrink-0 place-items-center rounded-full bg-success/15 px-2 text-sm font-bold text-success"
+                        aria-label={`${client.groups.length} ${client.groups.length === 1 ? 'factura' : 'facturas'}`}
+                        title={`${client.groups.length} ${client.groups.length === 1 ? 'factura' : 'facturas'}`}
+                      >
+                        {client.groups.length}
+                      </span>
+                      <ArrowRight2 className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
+
+            {/* Facturas de la clienta elegida */}
+            <Dialog open={!!openClient} onOpenChange={o => !o && setOpenReceivableClient(null)}>
+              <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+                {openClient && (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>{openClient.name}</DialogTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {openClient.groups.length} {openClient.groups.length === 1 ? 'factura' : 'facturas'}
+                        {receivableTab === 'pending'
+                          ? <> · debe <strong className="text-destructive">${openClient.pending.toFixed(2)}</strong>{openClient.paid > 0 && ` · abonado $${openClient.paid.toFixed(2)}`}</>
+                          : <> · total ${openClient.total.toFixed(2)}</>}
+                      </p>
+                    </DialogHeader>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {openClient.groups.map(group => renderReceivableCard(group))}
+                    </div>
+                  </>
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* TAB: PEDIDOS DE CLIENTES */}

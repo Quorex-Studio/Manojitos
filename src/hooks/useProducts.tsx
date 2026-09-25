@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
-import { productSchema, validateInput } from '@/lib/validations';
+import { productSchema, validateFriendly } from '@/lib/validations';
 import type { Product } from '@/types';
 import { withDirectImage } from '@/lib/imageUrl';
 export type { Product };
@@ -43,7 +43,7 @@ export function useProducts() {
       if (!user) throw new Error('No autenticado');
       if (!product) throw new Error('Datos de producto requeridos');
 
-      const validated = validateInput(productSchema, product);
+      const validated = validateFriendly(productSchema, product);
 
       const { data, error } = await supabase
         .from('products')
@@ -82,7 +82,7 @@ export function useProducts() {
       if (!id) throw new Error('ID de producto requerido');
       if (!updates || typeof updates !== 'object') throw new Error('Datos de actualización requeridos');
 
-      const validated = productSchema.partial().parse(updates);
+      const validated = validateFriendly(productSchema.partial(), updates);
 
       const { data, error } = await supabase
         .from('products')
