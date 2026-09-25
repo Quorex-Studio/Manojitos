@@ -1,11 +1,10 @@
-import { BRAND, BRAND_COLOR_RGB, BRAND_FILE_SLUG, BRAND_NAME, BRAND_NAME_UPPER, BRAND_WHATSAPP_URL } from '@/config/brand';
+import { BRAND_WHATSAPP_URL } from '@/config/brand';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { TickCircle, Location, Loader, Package, Truck, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag, Receipt, MessageSquare } from 'reicon-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import jsPDF from 'jspdf';
 
 import { useState } from 'react';
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -17,6 +16,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/contexts/CartContext';
+import { ReceiptDialog } from '@/components/receipts/ReceiptDialog';
+import { receiptNumber, type ReceiptData } from '@/lib/receipt';
 import { Order, OrderItem } from '@/types';
 
 type ExtendedOrderItem = OrderItem & { id?: string; price?: number; price_usd?: number };
@@ -217,57 +218,24 @@ function OrderList({ orders, emptyAll }: { orders: ReturnType<typeof useCustomer
     );
   }
 
-  const exportReceiptToPDF = () => {
-    if (!receiptOrder) return;
-    const goldColor = BRAND_COLOR_RGB; // color de marca
-    const darkColor: [number, number, number] = [24, 16, 19];
-    const itemCount = receiptOrder.items?.length || 0;
-    const pageHeight = 62 + itemCount * 6;
-    const doc = new jsPDF({ unit: 'mm', format: [80, pageHeight] });
-    let y = 8;
-
-    doc.setFont('courier', 'bold');
-    doc.setFontSize(13);
-    doc.setTextColor(...goldColor);
-    doc.text(BRAND_NAME_UPPER, 40, y, { align: 'center' });
-    y += 5;
-    doc.setFont('courier', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(...darkColor);
-    doc.text(BRAND.category.toUpperCase(), 40, y, { align: 'center' });
-    y += 6;
-    doc.text('Recibo de Compra', 40, y, { align: 'center' });
-    y += 4;
-    doc.text(`Nº: ${receiptOrder.id.split('-')[0].toUpperCase()}`, 40, y, { align: 'center' });
-    y += 4;
-    doc.text(`Fecha: ${format(new Date(receiptOrder.created_at), 'dd/MM/yyyy HH:mm')}`, 40, y, { align: 'center' });
-    y += 4;
-    doc.setDrawColor(...goldColor);
-    doc.line(4, y, 76, y);
-    y += 5;
-
-    (receiptOrder.items as ExtendedOrderItem[])?.forEach((item: ExtendedOrderItem) => {
-      doc.setFontSize(7);
-      doc.text(`${item.quantity}x ${item.product_name}`, 4, y);
-      doc.text(`$${(item.total || 0).toFixed(2)}`, 76, y, { align: 'right' });
-      y += 5;
-    });
-
-    doc.setDrawColor(...goldColor);
-    doc.line(4, y, 76, y);
-    y += 5;
-    doc.setFont('courier', 'bold');
-    doc.text('TOTAL USD', 4, y);
-    doc.text(`$${(receiptOrder.total_usd || 0).toFixed(2)}`, 76, y, { align: 'right' });
-    y += 5;
-    doc.setFont('courier', 'normal');
-    doc.text('TOTAL BS', 4, y);
-    doc.text(`Bs ${(receiptOrder.total_bs || 0).toFixed(2)}`, 76, y, { align: 'right' });
-    y += 7;
-    doc.setFontSize(6);
-    doc.text(`¡Gracias por tu compra en ${BRAND_NAME}!`, 40, y, { align: 'center' });
-
-    doc.save(`recibo_${BRAND_FILE_SLUG}_${receiptOrder.id.split('-')[0]}.pdf`);
+  const toReceipt = (order: Order): ReceiptData => {
+    const items = (order.items || []) as ExtendedOrderItem[];
+    return {
+      kind: 'pedido',
+      number: receiptNumber(order.id),
+      date: new Date(order.created_at),
+      customerName: order.customer_name,
+      paymentMethod: order.payment_method,
+      items: items.map(it => {
+        const shown = getItemDisplay(it);
+        const qty = Number(it.quantity) || 1;
+        return { name: shown.name, quantity: qty, unitPrice: Number(it.unit_price ?? shown.total / qty) || 0 };
+      }),
+      delivery: Number(order.delivery_fee) || 0,
+      total: Number(order.total_usd) || 0,
+      totalBs: Number(order.total_bs) || null,
+      status: order.payment_status === 'paid' ? 'pagado' : 'pendiente',
+    };
   };
 
   return (
@@ -469,65 +437,8 @@ function OrderList({ orders, emptyAll }: { orders: ReturnType<typeof useCustomer
         </DialogContent>
       </Dialog>
 
-      {/* Recibo / Factura Modal */}
-      <Dialog open={!!receiptOrder} onOpenChange={(open) => !open && setReceiptOrder(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[400px] p-0 bg-background border border-gold/30 shadow-2xl">
-          <div className="p-8 bg-white text-black print-exact font-mono" id="receipt-content">
-            <div className="h-1.5 -mx-8 -mt-8 mb-6" style={{ background: BRAND.color }} />
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-serif font-bold" style={{ color: BRAND.color }}>{BRAND_NAME}</h2>
-              <p className="text-xs uppercase tracking-widest mt-1" style={{ color: BRAND.color }}>{BRAND.category}</p>
-              <div className="mt-4 text-sm">
-                <p>Recibo de Compra</p>
-                <p>Nº: {receiptOrder?.id.split('-')[0].toUpperCase()}</p>
-                <p>Fecha: {receiptOrder ? format(new Date(receiptOrder.created_at), "dd/MM/yyyy HH:mm") : ''}</p>
-              </div>
-            </div>
-            
-            <Separator className="my-4" style={{ backgroundColor: '#D4B277' }} />
-            
-            <div className="space-y-3 mb-6">
-              {(receiptOrder?.items as ExtendedOrderItem[])?.map((item: ExtendedOrderItem, idx: number) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <div className="flex-1">
-                    <p className="line-clamp-2">{item.quantity}x {getItemDisplay(item).name}</p>
-                  </div>
-                  <div className="text-right pl-4">
-                    <p>${getItemDisplay(item).total.toFixed(2)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Separator className="my-4 border-dashed" style={{ backgroundColor: '#D4B277' }} />
-            
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>${(receiptOrder?.subtotal || receiptOrder?.total_usd || 0).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-base mt-2">
-                <span>TOTAL USD</span>
-                <span>${(receiptOrder?.total_usd || 0).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground mt-1">
-                <span>TOTAL BS</span>
-                <span>Bs {(receiptOrder?.total_bs || 0).toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="mt-8 text-center text-xs">
-              <p>¡Gracias por tu compra en {BRAND_NAME}!</p>
-              <p className="mt-1 opacity-70">Conserva este recibo para reclamos o cambios.</p>
-            </div>
-          </div>
-          <div className="p-4 border-t border-border flex justify-end gap-2 bg-muted/20">
-            <Button variant="outline" onClick={() => setReceiptOrder(null)}>Cerrar</Button>
-            <Button variant="outline" onClick={() => window.print()}>Imprimir</Button>
-            <Button onClick={exportReceiptToPDF}>Descargar PDF</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Recibo: misma vista y PDF que en el panel */}
+      <ReceiptDialog data={receiptOrder ? toReceipt(receiptOrder) : null} onClose={() => setReceiptOrder(null)} />
     </div>
   );
 }

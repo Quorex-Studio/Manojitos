@@ -2,7 +2,7 @@ import { BRAND, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle } from 'reicon-react';
+import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle, Receipt } from 'reicon-react';
 import { getNextTwoCutoffDates, getNextThreeCutoffDates, formatCutoffDate } from '@/lib/cutoffDates';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ReceiptDialog } from '@/components/receipts/ReceiptDialog';
+import { receiptNumber, type ReceiptData } from '@/lib/receipt';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -63,6 +65,28 @@ export interface GroupedSale {
 const formatPaymentMethod = (method: string) => {
   if (!method) return '';
   return PAYMENT_METHOD_LABELS[method] || method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
+/** Recibo de una venta del panel (agrupa sus líneas; en fiado muestra abonado y saldo). */
+const saleGroupReceipt = (group: GroupedSale): ReceiptData => {
+  const first = group.items[0];
+  const paid = group.is_credit
+    ? group.items.reduce((sum, s) => sum + Number(s.amount_paid || 0), 0)
+    : group.total_usd;
+  const totalBs = group.items.every(s => s.total_bs) ? group.items.reduce((sum, s) => sum + Number(s.total_bs), 0) : null;
+  return {
+    kind: 'venta',
+    number: receiptNumber(group.id),
+    date: new Date(group.created_at),
+    customerName: group.client_name,
+    customerPhone: first?.client_phone,
+    paymentMethod: group.is_credit ? null : group.payment_method,
+    items: group.items.map(s => ({ name: s.product_name, quantity: Number(s.quantity), unitPrice: Number(s.unit_price_usd) })),
+    total: group.total_usd,
+    paid,
+    totalBs,
+    status: group.is_credit && group.total_usd - paid > 0.009 ? 'por_cobrar' : 'pagado',
+  };
 };
 
 const renderOrderNotes = (notes: string) => {
@@ -186,6 +210,7 @@ export default function Sales() {
   });
 
   const [detailsGroup, setDetailsGroup] = useState<GroupedSale | null>(null);
+  const [receiptGroup, setReceiptGroup] = useState<GroupedSale | null>(null);
   const [groupPayments, setGroupPayments] = useState<SalePayment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 
@@ -901,6 +926,16 @@ export default function Sales() {
                               {group.is_credit ? 'Por Cobrar' : formatPaymentMethod(group.payment_method)}
                             </Badge>
                           </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setReceiptGroup(group)}
+                            className="flex-shrink-0 gap-1.5"
+                            aria-label="Ver recibo"
+                          >
+                            <Receipt className="h-4 w-4" />
+                            <span className="hidden sm:inline">Recibo</span>
+                          </Button>
                           {group.items.some(s => (Number(s.quantity) - Number(s.returned_quantity || 0)) > 0) && (
                             <Button
                               size="sm"
@@ -952,7 +987,8 @@ export default function Sales() {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => handleDelete(sale.id)}
-                                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                    aria-label={`Eliminar ${sale.product_name} de esta venta`}
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
@@ -1606,6 +1642,8 @@ export default function Sales() {
       </Dialog>
 
       {/* MODAL HISTORIAL DE ABONOS */}
+      <ReceiptDialog data={receiptGroup ? saleGroupReceipt(receiptGroup) : null} onClose={() => setReceiptGroup(null)} />
+
       <Dialog open={!!detailsGroup} onOpenChange={(open) => !open && setDetailsGroup(null)}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
