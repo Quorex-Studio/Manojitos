@@ -1,4 +1,5 @@
 import { BRAND, BRAND_NAME, BRAND_PAYMENT_METHODS, BRAND_WHATSAPP_URL } from '@/config/brand';
+import { useStorePaymentLabels } from '@/hooks/usePaymentMethods';
 // Página de Atención al Cliente / Soporte
 import { motion } from 'framer-motion';
 import { Phone, Mailbox, Clock, MessageSquare, AlertTriangle, ShieldCheck, HelpCircle } from 'reicon-react';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { StoreLayout } from '@/components/store/StoreLayout';
 
 export default function Atencion() {
+  const payLabels = useStorePaymentLabels(BRAND_PAYMENT_METHODS);
   const faqs = [
     {
       question: "¿Cómo puedo solicitar un límite de crédito?",
@@ -15,7 +17,7 @@ export default function Atencion() {
     },
     {
       question: "¿Cuáles son los métodos de pago aceptados?",
-      answer: `Aceptamos ${BRAND_PAYMENT_METHODS.join(', ')}. Los precios son referenciales a tasa BCV del día. Los datos para pagar se muestran al finalizar tu compra.`
+      answer: `Aceptamos ${payLabels.join(', ')}. Los precios son referenciales a tasa BCV del día. Los datos para pagar se muestran al finalizar tu compra.`
     },
     {
       question: "¿Qué pasa si me retraso con el pago de mi crédito?",
@@ -69,22 +71,29 @@ export default function Atencion() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Escríbenos por WhatsApp o llámanos directamente para una respuesta inmediata.
+                {BRAND.whatsapp
+                  ? 'Escríbenos por WhatsApp o llámanos directamente para una respuesta inmediata.'
+                  : 'Escríbenos por mensaje directo en Instagram y te respondemos rápido.'}
               </p>
               <div className="space-y-2">
                 <p className="text-sm font-semibold flex items-center gap-1.5">
-                  Teléfono / WhatsApp:
-                  <span className="text-primary font-mono">{BRAND.whatsapp || 'Próximamente'}</span>
+                  {BRAND.whatsapp ? 'Teléfono / WhatsApp:' : 'Instagram:'}
+                  <span className="text-primary">{BRAND.whatsapp || `@${BRAND.instagram}`}</span>
                 </p>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3 w-3" /> {BRAND.hours}
                 </p>
               </div>
-              {BRAND_WHATSAPP_URL && <Button 
+              {BRAND_WHATSAPP_URL ? <Button 
                 onClick={() => window.open(BRAND_WHATSAPP_URL, '_blank', 'noopener,noreferrer')}
                 className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white gap-2"
               >
                 Escribir por WhatsApp
+              </Button> : <Button
+                onClick={() => window.open(`https://ig.me/m/${BRAND.instagram}`, '_blank', 'noopener,noreferrer')}
+                className="w-full rounded-full gap-2"
+              >
+                Escribir por Instagram
               </Button>}
             </CardContent>
           </Card>
@@ -103,7 +112,7 @@ export default function Atencion() {
               <div className="space-y-2">
                 <p className="text-sm font-semibold">
                   Email:{' '}
-                  <a href={`mailto:${BRAND.contactEmail}`} className="text-primary hover:underline font-mono">
+                  <a href={`mailto:${BRAND.contactEmail}`} className="text-primary hover:underline">
                     {BRAND.contactEmail}
                   </a>
                 </p>

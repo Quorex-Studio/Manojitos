@@ -61,12 +61,15 @@ const NE_MUNICIPIOS = [
   { value: 'Tubores', label: 'Tubores' },
   { value: 'Villalba', label: 'Villalba' },
 ];
+// Fuera de Margarita se despacha por encomienda (MRW, Zoom o Tealca) y el envío lo cobra la agencia en destino
+const MRW = 'Envío nacional MRW';
+const DELIVERY_ZONES = [...NE_MUNICIPIOS, { value: MRW, label: 'Otra ciudad de Venezuela (MRW, Zoom o Tealca)' }];
 const RUTA_CORTA = ['Gómez', 'Díaz'];
 const RUTA_GRATIS = ['Marcano'];
 
 function calcDeliveryFee(subtotal: number, municipio: string, method: 'delivery' | 'pickup'): number {
   if (method === 'pickup') return 0;
-  if (!municipio) return 0;
+  if (!municipio || municipio === MRW) return 0;
   if (subtotal > 30) return 0;
   if (RUTA_GRATIS.includes(municipio)) return 0;
   if (RUTA_CORTA.includes(municipio)) return 2;
@@ -198,7 +201,7 @@ export default function Checkout() {
         .single();
       
       if (data && !error) {
-        const validMunicipio = NE_MUNICIPIOS.some(m => m.value === data.city) ? data.city : '';
+        const validMunicipio = DELIVERY_ZONES.some(m => m.value === data.city) ? data.city : '';
         setShippingData(prev => ({
           ...prev,
           fullName: prev.fullName || data.full_name || '',
@@ -435,7 +438,7 @@ export default function Checkout() {
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                   <span className="text-muted-foreground">Tipo de Entrega:</span>
                   <span className="font-medium text-foreground">
-                    {deliveryMethod === 'pickup' ? 'Retiro en Tienda' : 'Delivery'}
+                    {deliveryMethod === 'pickup' ? 'Retiro en Tienda' : shippingData.city === MRW ? 'Envío nacional por encomienda' : 'Delivery'}
                   </span>
                 </div>
                 {deliveryMethod === 'delivery' && (
@@ -644,12 +647,12 @@ export default function Checkout() {
                                     className="grid gap-4 overflow-hidden"
                                   >
                                     <div>
-                                      <Label htmlFor="modal-address" className="text-sm">Dirección Exacta <span className="text-destructive">*</span></Label>
+                                      <Label htmlFor="modal-address" className="text-sm">{shippingData.city === MRW ? 'Ciudad, estado y agencia de encomienda (o dirección)' : 'Dirección Exacta'} <span className="text-destructive">*</span></Label>
                                       <div className="flex flex-col sm:flex-row gap-2 mt-1">
                                         <div className="relative flex-1">
                                           <Input
                                             id="modal-address"
-                                            placeholder="Calle, número, punto de referencia..."
+                                            placeholder={shippingData.city === MRW ? 'Ej: Valencia, Carabobo. Agencia MRW Av. Bolívar' : 'Calle, número, punto de referencia...'}
                                             value={shippingData.address}
                                             onChange={(e) => setShippingData(prev => ({...prev, address: e.target.value.replace(/[^A-Za-z0-9Á-Úá-úñÑ\s.,#-]/g, '').slice(0, 100)}))}
                                             name="address"
@@ -674,18 +677,22 @@ export default function Checkout() {
                                     </div>
 
                                     <div>
-                                      <Label htmlFor="modal-city" className="text-sm">Municipio <span className="text-destructive">*</span></Label>
+                                      <Label htmlFor="modal-city" className="text-sm">Municipio o destino <span className="text-destructive">*</span></Label>
                                       <Select value={shippingData.city} onValueChange={(val) => setShippingData(prev => ({...prev, city: val}))}>
                                         <SelectTrigger className="mt-1">
                                           <SelectValue placeholder="Selecciona tu municipio" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          {NE_MUNICIPIOS.map(m => (
+                                          {DELIVERY_ZONES.map(m => (
                                             <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                                           ))}
                                         </SelectContent>
                                       </Select>
-                                      {deliveryMethod === 'delivery' && shippingData.city && (
+                                      {deliveryMethod === 'delivery' && shippingData.city === MRW ? (
+                                        <p className="text-xs mt-1.5 text-muted-foreground">
+                                          El envío lo cobra la agencia (MRW, Zoom o Tealca) al recibir, según el destino. Te escribimos con la guía cuando salga.
+                                        </p>
+                                      ) : deliveryMethod === 'delivery' && shippingData.city && (
                                         <p className="text-xs mt-1.5 text-muted-foreground">
                                           Delivery: {deliveryFee === 0 ? <span className="text-primary font-medium">GRATIS</span> : <span className="font-medium">${deliveryFee.toFixed(2)}</span>}
                                         </p>
@@ -710,7 +717,7 @@ export default function Checkout() {
                             </div>
                             
                             <Button 
-                              className="w-full mt-4 h-11 bg-[#FFD814] hover:bg-[#F7CA00] text-black font-medium"
+                              className="w-full mt-4 h-11 rounded-full font-medium"
                               onClick={() => setIsSelectingShipping(false)}
                             >
                               Guardar y continuar
@@ -722,7 +729,14 @@ export default function Checkout() {
                   </div>
                   <div className="text-sm text-muted-foreground pr-10">
                     {deliveryMethod === 'delivery' && shippingData.address ? (
-                      <p className="leading-relaxed">{shippingData.address}{shippingData.city ? `, ${shippingData.city}` : ''}</p>
+                      <>
+                        <p className="leading-relaxed">{shippingData.address}{shippingData.city ? `, ${shippingData.city}` : ''}</p>
+                        {!shippingData.city && (
+                          <button type="button" onClick={() => setIsSelectingShipping(true)} className="mt-2 text-xs font-medium text-destructive underline underline-offset-2">
+                            Falta elegir el municipio o destino. Tócalo aquí
+                          </button>
+                        )}
+                      </>
                     ) : (
                       <p className="leading-relaxed">Retiro en Tienda - {shippingData.phone || 'Sin número'}</p>
                     )}
@@ -1184,6 +1198,8 @@ export default function Checkout() {
                     <span className="text-primary font-medium">Retiro en tienda</span>
                   ) : !shippingData.city ? (
                     <span className="text-muted-foreground/60 text-xs">Selecciona municipio</span>
+                  ) : shippingData.city === MRW ? (
+                    <span className="text-muted-foreground text-xs">Lo cobra la agencia</span>
                   ) : deliveryFee === 0 ? (
                     <span className="text-primary font-medium">GRATIS</span>
                   ) : (
@@ -1293,7 +1309,7 @@ export default function Checkout() {
                           !shippingData.fullName.trim() && 'Nombre completo',
                           !shippingData.phone.trim() && 'Teléfono',
                           deliveryMethod !== 'pickup' && !shippingData.address.trim() && 'Dirección',
-                          deliveryMethod !== 'pickup' && !shippingData.city.trim() && 'Ciudad'
+                          deliveryMethod !== 'pickup' && !shippingData.city.trim() && 'Municipio o destino'
                         ].filter(Boolean).join(', ')}
                       </div>
                     )}
