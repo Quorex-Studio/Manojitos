@@ -12,6 +12,7 @@ import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { productSchema, validateInput } from '@/lib/validations';
 import type { Product } from '@/types';
+import { withDirectImage } from '@/lib/imageUrl';
 export type { Product };
 
 export interface VariantDraft { id?: string; label: string; stock: number; price_usd: number | null }
@@ -30,7 +31,7 @@ export function useProducts() {
         .limit(1000); // el catálogo completo (antes 200 escondía productos)
 
       if (error) throw error;
-      return data as Product[];
+      return (data as Product[]).map(withDirectImage);
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 2, // 2 minutos

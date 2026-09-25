@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { formatBS } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { normalizeImageUrl } from '@/lib/imageUrl';
 import { useProductCategories } from '@/hooks/useProductCategories';
 import { CategoryDetailFields, type VariantRow } from '@/components/products/CategoryDetailFields';
 import { sortedVariants } from '@/lib/productCategories';
@@ -87,6 +88,8 @@ export default function Products() {
   });
 
   const [showCalculator, setShowCalculator] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const previewUrl = /^https?:\/\//i.test(form.image_url.trim()) ? normalizeImageUrl(form.image_url) : null;
 
   // --- Recalculate prices when cost fields change ---
   useEffect(() => {
@@ -279,6 +282,7 @@ export default function Products() {
     setCostCalc({ purchaseMerchUsd: '', purchaseShippingUsd: '', purchaseUnits: '', bsSurchargePct: '15', addToStock: true });
     setCalculatedPrices({ costPerUnit: 0, costRounded: 0, priceWholesaleEur: 0, priceRetailEur: 0, priceCreditEur: 0 });
     setShowCalculator(false);
+    setImageError(false);
     setEditingProduct(null);
   };
 
@@ -861,14 +865,31 @@ export default function Products() {
                 )}
 
                 <div className="space-y-2">
-                  <Label>URL de imagen</Label>
+                  <Label htmlFor="p-image">URL de imagen</Label>
                   <Input
+                    id="p-image"
                     type="url"
                     value={form.image_url}
-                    onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                    placeholder="https://..."
+                    onChange={(e) => { setForm({ ...form, image_url: e.target.value }); setImageError(false); }}
+                    placeholder="https://... (sirve un enlace de Google Drive)"
                     className="input-glass rounded-xl"
                   />
+                  {/* Vista previa: se ve exactamente lo que verá la clienta */}
+                  {previewUrl && (
+                    <div className="flex items-center gap-3">
+                      {!imageError ? (
+                        <img src={previewUrl} alt="Vista previa" onError={() => setImageError(true)}
+                          className="h-20 w-16 shrink-0 rounded-xl bg-studio object-cover" />
+                      ) : (
+                        <span className="grid h-20 w-16 shrink-0 place-items-center rounded-xl bg-studio"><Gallery className="h-5 w-5 text-muted-foreground/50" /></span>
+                      )}
+                      <p className={`text-xs ${imageError ? 'text-destructive' : 'text-muted-foreground'}`}>
+                        {imageError
+                          ? 'No se pudo cargar. Si es de Google Drive, compártela como “Cualquier persona con el enlace”.'
+                          : previewUrl !== form.image_url.trim() ? 'Enlace de Drive convertido a imagen directa.' : 'Así se verá en la tienda.'}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <Button type="submit" className="w-full btn-gold rounded-xl">

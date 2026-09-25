@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { SaleStatus } from '@/types';
+import { normalizeImageUrl } from '@/lib/imageUrl';
 
 // Sanitize text to prevent XSS - removes potential HTML tags
 export const sanitizeText = (text: string): string => {
@@ -20,7 +21,8 @@ export const productSchema = z.object({
   stock: z.number().int('El stock debe ser entero').nonnegative('El stock no puede ser negativo'),
   description: z.string().max(2000, 'Máximo 2000 caracteres').optional().nullable().transform(val => val ? sanitizeText(val) : val),
   category: z.string().max(100, 'Máximo 100 caracteres').optional().nullable().transform(val => val ? sanitizeText(val) : val),
-  image_url: z.string().url('URL inválida').max(500).optional().nullable(),
+  // Enlaces de Drive/Dropbox se guardan ya convertidos a la imagen directa
+  image_url: z.string().url('URL inválida').max(500).optional().nullable().transform(val => normalizeImageUrl(val)),
   // Tallas o tonos que elige la clienta (según la categoría)
   sizes: z.array(z.string().trim().min(1).max(30)).max(30).optional().nullable(),
   presentation: z.string().trim().max(60, 'Máximo 60 caracteres').optional().nullable().transform(val => val ? sanitizeText(val) : null),

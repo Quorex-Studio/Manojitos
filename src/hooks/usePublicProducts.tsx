@@ -8,6 +8,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PublicProduct } from '@/types';
+import { withDirectImage } from '@/lib/imageUrl';
 import { useProductCategories } from './useProductCategories';
 
 export type { PublicProduct };
@@ -28,7 +29,7 @@ export function usePublicProducts() {
         .limit(1000); // todo el catálogo con stock (antes 100 escondía productos)
 
       if (error) throw error;
-      return data as PublicProduct[];
+      return (data as PublicProduct[]).map(withDirectImage);
     },
     staleTime: 1000 * 60 * 5, // 5 minutos de caché (evita lecturas innecesarias)
     gcTime: 1000 * 60 * 30, // Mantener en memoria 30 min
@@ -57,7 +58,7 @@ export function usePublicProducts() {
       .maybeSingle();
 
     if (error || !data) return null;
-    return data as PublicProduct;
+    return withDirectImage(data as PublicProduct);
   };
 
   return {
