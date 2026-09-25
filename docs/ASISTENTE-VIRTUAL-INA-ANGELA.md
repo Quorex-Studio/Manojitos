@@ -41,6 +41,7 @@ Fecha de corte de esta guía: 25 sep 2026. Commit base de Manojitos del que sali
 | 15 | **Acciones con confirmación**: la clienta compra desde el chat y la administración registra ventas, compras, abonos y entradas de stock escribiéndole | Funcional | ✅ Sí, prioritario |
 | 16 | La tasa BCV del asistente se filtra por `currency = 'USD'` (antes podía tomar la del euro) | **Bug** | ✅ Sí, prioritario |
 | 17 | “Quiero esto” en la ficha de un producto: el chat envía la página y la IA sabe qué producto está en pantalla | Funcional | ✅ Sí |
+| 18 | Variantes: `preparar_carrito`, `preparar_venta` y `preparar_entrada_stock` aceptan `variant` (talla, tono o presentación); si falta, devuelven las opciones para que la IA pregunte | Funcional | ✅ Sí, junto con la tabla `product_variants` |
 
 ---
 
@@ -215,6 +216,7 @@ La asistente pasa de solo consultar a **trabajar**, sin perder seguridad. Regla 
    la persona** (`createClient(url, anonKey, { Authorization })`): RLS e `is_admin()` siguen
    aplicando. La clienta no puede confirmar nada de administración (403).
 5. Las ventas creadas llevan la nota `[Registrada por la asistente]` para identificarlas.
+6. **Variantes** (migración `product_variants`): si el producto tiene tallas, tonos o presentaciones, cada ítem lleva `variant`. Con una sola variante se usa sola; con varias y sin `variant`, la herramienta responde `falta_dato` con `options` (etiqueta, stock y precio). La venta guarda `variant_id`/`variant_label` y `confirm_pos_sale` descuenta esa variante.
 
 **Para Manojitos:** copiar `actions.ts` tal cual. En `index.ts`, importar sus exportaciones,
 agregar el bloque `ADMIN_EXECUTABLE` antes del manejo de `action` antiguo, sumar
@@ -347,7 +349,7 @@ Hacerlo en una rama nueva y con un PR, igual que en EINA.
 
 | Pieza | Estado |
 |---|---|
-| `ai-assistant` | Desplegada (v3): política de cambios de 72 horas, acciones con confirmación y tasa USD. |
+| `ai-assistant` | Desplegada (v4): política de 72 horas, acciones con confirmación, tasa USD y variantes. |
 | `angela-cron-alerts` | Desplegada, con el secreto en Vault. |
 | `angela-proactive` | Sin cambios respecto a Manojitos (no tiene nombres de marca). |
 | Nombre en la web | `VITE_ASSISTANT_NAME=Ina` en Vercel. |

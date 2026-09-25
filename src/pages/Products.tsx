@@ -20,8 +20,8 @@ import { Badge } from '@/components/ui/badge';
 import { formatBS } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useProductCategories } from '@/hooks/useProductCategories';
-import { CategoryDetailFields } from '@/components/products/CategoryDetailFields';
-import { usesPresentation, usesVariants } from '@/lib/productCategories';
+import { CategoryDetailFields, type VariantRow } from '@/components/products/CategoryDetailFields';
+import { sortedVariants } from '@/lib/productCategories';
 
 // ── Pricing helper ──
 function eurToUsd(eur: number, usdRate: number, eurRate: number): number {
@@ -32,7 +32,7 @@ function eurToUsd(eur: number, usdRate: number, eurRate: number): number {
 
 export default function Products() {
   // --- STATE ---
-  const { products, loading, addProduct, updateProduct, deleteProduct } = useProducts();
+  const { products, loading, addProduct, updateProduct, deleteProduct, saveVariants } = useProducts();
   const { rate: usdRate, rates, convertToBS } = useExchangeRate();
   const eurRate = rates?.EUR?.rate ?? 0;
   const { config: pricingConfig, calculatePrices } = usePricingConfig();
@@ -64,7 +64,7 @@ export default function Products() {
     stock: '',
     category: '',
     image_url: '',
-    sizes: [] as string[],
+    variants: [] as VariantRow[],
     presentation: '',
   });
 
@@ -151,6 +151,10 @@ export default function Products() {
     ...products.map(p => p.category).filter((c): c is string => !!c && c.trim() !== ''),
   ])];
   const selectedCategory = byName(form.category);
+  const variantKind = selectedCategory?.detail_kind;
+  const variantMode = (variantKind === 'tallas' || variantKind === 'tonos' || variantKind === 'contenido') && form.variants.length > 0;
+  const variantTotal = form.variants.reduce((s, v) => s + (Number(v.stock) || 0), 0);
+  const optionWord = variantKind === 'tallas' ? 'las tallas' : variantKind === 'tonos' ? 'los tonos' : 'las presentaciones';
   const legacyCategory = form.category && !selectedCategory ? form.category : null;
 
   // Paginación
@@ -271,7 +275,7 @@ export default function Products() {
   }, [showCalculator, costCalc.purchaseMerchUsd, eurRate, form.price_eur, form.price_usd, handlePriceEurBlur, handlePriceUsdBlur, usdRate]);
 
   const resetForm = () => {
-    setForm({ name: '', description: '', price_usd: '', price_eur: '', price_bs_usd: '', stock: '', category: '', image_url: '', sizes: [], presentation: '' });
+    setForm({ name: '', description: '', price_usd: '', price_eur: '', price_bs_usd: '', stock: '', category: '', image_url: '', variants: [], presentation: '' });
     setCostCalc({ purchaseMerchUsd: '', purchaseShippingUsd: '', purchaseUnits: '', bsSurchargePct: '15', addToStock: true });
     setCalculatedPrices({ costPerUnit: 0, costRounded: 0, priceWholesaleEur: 0, priceRetailEur: 0, priceCreditEur: 0 });
     setShowCalculator(false);
@@ -294,7 +298,9 @@ export default function Products() {
       stock: String(product.stock),
       category: product.category || '',
       image_url: product.image_url || '',
-      sizes: (product.sizes || []).filter(s => s !== 'Única'),
+      variants: sortedVariants(product.product_variants).map(v => ({
+        key: v.id, id: v.id, label: v.label, stock: String(v.stock), price: v.price_usd != null ? String(v.price_usd) : '',
+      })),
       presentation: product.presentation || '',
     });
 
@@ -333,8 +339,21 @@ export default function Products() {
       toast({ title: 'Elige una categoría', description: 'Así el producto aparece en la sección correcta de la tienda.', variant: 'destructive' });
       return;
     }
-    if (selectedCategory?.detail_kind === 'tallas' && form.sizes.length === 0) {
+    const kind = selectedCategory?.detail_kind;
+    // Tallas, tonos y presentaciones llevan su propio stock; el del producto es la suma
+    const variantRows = kind === 'tallas' || kind === 'tonos' || kind === 'contenido' ? form.variants : [];
+    const hasVariants = variantRows.length > 0;
+    if (kind === 'tallas' && !hasVariants) {
       toast({ title: 'Marca al menos una talla', variant: 'destructive' });
+      return;
+    }
+    if (variantRows.some(v => !v.label.trim())) {
+      toast({ title: 'Falta completar una opción', description: 'Escribe el tono o el contenido de cada fila, o quítala.', variant: 'destructive' });
+      return;
+    }
+    const labels = variantRows.map(v => v.label.trim().toLowerCase());
+    if (new Set(labels).size !== labels.length) {
+      toast({ title: 'Hay opciones repetidas', description: 'Cada talla, tono o presentación debe aparecer una sola vez.', variant: 'destructive' });
       return;
     }
 
@@ -352,19 +371,39 @@ export default function Products() {
       stock: Number(form.stock),
       category: form.category || null,
       image_url: form.image_url ? sanitizeText(form.image_url) : null,
-      // Solo se guarda el detalle que pide la categoría; lo demás se limpia
-      sizes: usesVariants(selectedCategory?.detail_kind) && form.sizes.length > 0 ? form.sizes : null,
-      presentation: usesPresentation(selectedCategory?.detail_kind) && form.presentation.trim() ? form.presentation.trim() : null,
+      // Solo se guarda el detalle que pide la categoría; lo demás se limpia.
+      // Con una sola presentación (p. ej. 30 ml) se muestra debajo del nombre.
+      presentation: kind === 'medidas' && form.presentation.trim()
+        ? form.presentation.trim()
+        : kind === 'contenido' && variantRows.length === 1 ? variantRows[0].label.trim() : null,
     };
+    const rows = variantRows.map(v => ({
+      id: v.id, label: v.label.trim(), stock: Number(v.stock) || 0,
+      price_usd: v.price.trim() && Number(v.price) >= 0 ? Math.round(Number(v.price) * 100) / 100 : null,
+    }));
 
-    if (editingProduct) {
-      // If editing and addToStock is true and there are new units, add them
-      if (costCalc.addToStock && costCalc.purchaseUnits && parseInt(costCalc.purchaseUnits) > 0) {
-        productData.stock = editingProduct.stock + parseInt(costCalc.purchaseUnits);
+    try {
+      if (editingProduct) {
+        const hadVariants = (editingProduct.product_variants?.length ?? 0) > 0;
+        if (hasVariants) {
+          // El stock lo calcula la base a partir de las variantes
+          const { stock: _omit, ...withoutStock } = productData;
+          await updateProduct({ id: editingProduct.id, updates: withoutStock });
+          await saveVariants(editingProduct.id, rows);
+        } else {
+          if (hadVariants) await saveVariants(editingProduct.id, []);
+          if (costCalc.addToStock && costCalc.purchaseUnits && parseInt(costCalc.purchaseUnits) > 0) {
+            productData.stock = editingProduct.stock + parseInt(costCalc.purchaseUnits);
+          }
+          await updateProduct({ id: editingProduct.id, updates: { ...productData, sizes: null } });
+        }
+      } else {
+        const created = await addProduct({ ...productData, stock: hasVariants ? 0 : productData.stock, sizes: null } as Parameters<typeof addProduct>[0]);
+        if (hasVariants && created?.id) await saveVariants(created.id, rows);
       }
-      await updateProduct({ id: editingProduct.id, updates: productData });
-    } else {
-      await addProduct(productData);
+    } catch (err) {
+      toast({ title: 'No se pudo guardar', description: err instanceof Error ? err.message : 'Inténtalo de nuevo.', variant: 'destructive' });
+      return;
     }
 
     handleOpenChange(false);
@@ -432,7 +471,7 @@ export default function Products() {
                       const next = byName(val);
                       // Al cambiar de tipo de detalle se descarta lo que ya no aplica
                       const sameKind = next?.detail_kind === byName(prev.category)?.detail_kind;
-                      return { ...prev, category: val, sizes: sameKind ? prev.sizes : [], presentation: sameKind ? prev.presentation : '' };
+                      return { ...prev, category: val, variants: sameKind ? prev.variants : [], presentation: sameKind ? prev.presentation : '' };
                     })}
                   >
                     <SelectTrigger id="p-category" className="h-11 rounded-xl">
@@ -450,7 +489,8 @@ export default function Products() {
                 <CategoryDetailFields
                   category={selectedCategory}
                   presentation={form.presentation}
-                  sizes={form.sizes}
+                  variants={form.variants}
+                  productPrice={form.price_usd}
                   onChange={(next) => setForm(prev => ({ ...prev, ...next }))}
                 />
                 <div className="space-y-2">
@@ -548,7 +588,10 @@ export default function Products() {
                               </div>
                             </div>
 
-                            {editingProduct && (
+                            {editingProduct && variantMode && (
+                              <p className="text-xs text-muted-foreground">Las unidades nuevas se suman en cada talla, tono o presentación (abajo).</p>
+                            )}
+                            {editingProduct && !variantMode && (
                               <label className="flex items-center gap-2 text-xs cursor-pointer">
                                 <input
                                   type="checkbox"
@@ -714,6 +757,11 @@ export default function Products() {
                   </div>
                   <div className="space-y-2">
                     <Label>Stock *</Label>
+                    {variantMode ? (
+                      <p className="flex h-10 items-center rounded-xl bg-studio px-3 text-sm">
+                        <strong className="mr-1 tabular-nums">{variantTotal}</strong> uds · suma de {optionWord}
+                      </p>
+                    ) : (
                     <Input
                       type="number"
                       min="0"
@@ -723,6 +771,7 @@ export default function Products() {
                       className="input-glass rounded-xl"
                       required
                     />
+                    )}
                     {showCalculator && costCalc.addToStock && editingProduct && costCalc.purchaseUnits && (
                       <p className="text-xs text-muted-foreground">
                         Se sumarán +{costCalc.purchaseUnits} al stock actual
@@ -934,11 +983,13 @@ export default function Products() {
                 <div className="flex min-w-0 flex-1 flex-col sm:p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{product.category || 'Sin categoría'}</p>
                   <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground sm:text-base">{product.name}</h3>
-                  {(product.presentation || (product.sizes?.length ?? 0) > 1) && (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {product.presentation || product.sizes!.filter(s => s !== 'Única').join(' · ')}
+                  {(product.product_variants?.length ?? 0) > 1 ? (
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
+                      {sortedVariants(product.product_variants).map(v => `${v.label}: ${v.stock}`).join(' · ')}
                     </p>
-                  )}
+                  ) : product.presentation ? (
+                    <p className="truncate text-xs text-muted-foreground">{product.presentation}</p>
+                  ) : null}
                   <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                     <span className="text-base font-bold tabular-nums text-foreground">${Number(product.price_usd).toFixed(2)}</span>
                     {usdRate > 0 && <span className="text-xs tabular-nums text-muted-foreground">{formatBS(convertToBS(Number(product.price_usd)))}</span>}

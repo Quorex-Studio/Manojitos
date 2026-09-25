@@ -34,12 +34,13 @@ export const DETAIL_KINDS: Record<DetailKind, { label: string; help: string; opt
 export const DETAIL_KIND_ORDER: DetailKind[] = ['ninguno', 'contenido', 'medidas', 'tallas', 'tonos'];
 
 /** Detalle que se guarda en products.presentation */
-export const usesPresentation = (kind?: DetailKind | null) => kind === 'contenido' || kind === 'medidas';
-/** Detalle que se guarda en products.sizes y la clienta elige al comprar */
-export const usesVariants = (kind?: DetailKind | null) => kind === 'tallas' || kind === 'tonos';
+export const usesPresentation = (kind?: DetailKind | null) => kind === 'medidas';
+/** Detalle que se carga como variantes con stock propio y la clienta elige al comprar */
+export const usesVariants = (kind?: DetailKind | null) => kind === 'tallas' || kind === 'tonos' || kind === 'contenido';
 
-/** Nombre de la opción que elige la clienta: "Talla", "Tono" u "Opción". */
-export const variantLabel = (kind?: DetailKind | null) => (kind === 'tallas' ? 'Talla' : kind === 'tonos' ? 'Tono' : 'Opción');
+/** Nombre de la opción que elige la clienta: "Talla", "Tono", "Presentación" u "Opción". */
+export const variantLabel = (kind?: DetailKind | null) =>
+  kind === 'tallas' ? 'Talla' : kind === 'tonos' ? 'Tono' : kind === 'contenido' ? 'Presentación' : 'Opción';
 
 /** "30 ml" → { amount: '30', unit: 'ml' } */
 export function splitContent(presentation: string | null | undefined, units: string[]): { amount: string; unit: string } {
@@ -68,3 +69,11 @@ export function cleanOptions(list: string[]): string[] {
 
 /** Opciones que elige la clienta. "Única" (dato viejo) equivale a no tener opciones. */
 export const productVariants = (sizes?: string[] | null): string[] => (sizes || []).filter(s => s && s !== 'Única');
+
+/** Variantes de un producto en el orden definido al cargarlo */
+export const sortedVariants = <T extends { sort_order: number }>(variants?: T[] | null): T[] =>
+  [...(variants || [])].sort((a, b) => a.sort_order - b.sort_order);
+
+/** Precio que se cobra: el de la variante si tiene uno propio, si no el del producto */
+export const variantPrice = (productPrice: number, variant?: { price_usd: number | null } | null): number =>
+  variant && variant.price_usd != null ? Number(variant.price_usd) : Number(productPrice);

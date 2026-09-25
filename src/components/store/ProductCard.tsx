@@ -8,7 +8,7 @@ import { PublicProduct } from '@/hooks/usePublicProducts';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { FavoriteButton } from './FavoriteButton';
-import { productVariants, variantLabel } from '@/lib/productCategories';
+import { productVariants, sortedVariants, variantLabel, variantPrice } from '@/lib/productCategories';
 import { useProductCategories } from '@/hooks/useProductCategories';
 import { cn } from '@/lib/utils';
 
@@ -31,8 +31,12 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
   const soldOut = product.stock <= 0;
   // Con varias tallas o tonos la clienta elige en la ficha; con una sola, se agrega directo
   const { byName } = useProductCategories();
-  const variants = productVariants(product.sizes);
+  const variantRows = sortedVariants(product.product_variants);
+  const variants = variantRows.length ? variantRows.map(v => v.label) : productVariants(product.sizes);
   const requiresSize = variants.length > 1;
+  const only = variantRows.length === 1 ? variantRows[0] : null;
+  const prices = variantRows.map(v => variantPrice(product.price_usd, v));
+  const fromPrice = prices.length > 1 && Math.max(...prices) !== Math.min(...prices) ? Math.min(...prices) : null;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -55,11 +59,12 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
     const cartItem: CartItem = {
       id: product.id,
       name: product.name,
-      price_usd: product.price_usd,
+      price_usd: variantPrice(product.price_usd, only),
       quantity: 1,
       image_url: product.image_url,
-      stock: product.stock,
+      stock: only ? only.stock : product.stock,
       size: variants.length === 1 ? variants[0] : undefined,
+      variant_id: only?.id,
       size_label: variants.length === 1 ? variantLabel(byName(product.category)?.detail_kind) : undefined,
     };
 
@@ -179,8 +184,9 @@ export const ProductCard = memo(forwardRef<HTMLDivElement, ProductCardProps>(fun
             {product.name}
           </h3>
           {product.presentation && <p className="text-xs text-muted-foreground">{product.presentation}</p>}
+          {fromPrice != null && <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">Desde</p>}
           <PriceDisplay
-            amountUsd={product.price_usd}
+            amountUsd={fromPrice ?? variantPrice(product.price_usd, only)}
             className="flex flex-col"
             primaryClassName="text-base font-bold tabular-nums text-foreground"
             secondaryClassName="text-xs tabular-nums text-muted-foreground"

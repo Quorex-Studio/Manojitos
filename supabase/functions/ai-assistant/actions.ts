@@ -71,6 +71,7 @@ const ITEMS_SCHEMA = {
       product: { type: 'STRING', description: 'nombre del producto como lo dijo la persona' },
       quantity: { type: 'NUMBER', description: 'unidades (por defecto 1)' },
       unit_price: { type: 'NUMBER', description: 'precio unitario en USD solo si la persona lo dijo; si no, se usa el del catálogo' },
+      variant: { type: 'STRING', description: 'talla, tono o presentación si el producto las tiene (ej. "M", "120 Classic Ivory", "50 ml")' },
     },
     required: ['product'],
   },
@@ -106,18 +107,20 @@ export const ACTION_TOOL_DECLARATIONS = [
     parameters: { type: 'OBJECT', properties: {
       product: { type: 'STRING' },
       quantity: { type: 'NUMBER' },
+      variant: { type: 'STRING', description: 'talla, tono o presentación si el producto las tiene' },
     }, required: ['product', 'quantity'] } },
 ];
 
 export const isActionTool = (name: string) => name.startsWith('preparar_');
 
-type ProductRow = { id: string; name: string; price_usd: number; stock: number; image_url: string | null };
+type VariantRow = { id: string; label: string; stock: number; price_usd: number | null; sort_order: number };
+type ProductRow = { id: string; name: string; price_usd: number; stock: number; image_url: string | null; product_variants?: VariantRow[] | null };
 
 /** Busca un producto real. Nunca inventa: único, ambiguo (opciones) o no encontrado. */
 async function resolveProduct(db: Db, term: string): Promise<{ status: 'ok'; product: ProductRow } | { status: 'ambiguous'; options: string[] } | { status: 'none' }> {
   const clean = term.trim().replace(/[%,()]/g, ' ').replace(/\s+/g, ' ');
   if (!clean) return { status: 'none' };
-  const cols = 'id, name, price_usd, stock, image_url';
+  const cols = 'id, name, price_usd, stock, image_url, product_variants(id, label, stock, price_usd, sort_order)';
   let { data } = await db.from('products').select(cols).ilike('name', `%${clean}%`).limit(8);
   if (!data?.length) {
     // Todas las palabras, en cualquier orden ("base matte" → "Base líquida matte")
@@ -136,23 +139,43 @@ async function resolveProduct(db: Db, term: string): Promise<{ status: 'ok'; pro
   return { status: 'ambiguous', options: rows.map(r => `${r.name} (${money(Number(r.price_usd))}, ${r.stock} disp.)`) };
 }
 
-type RawItem = { product?: unknown; quantity?: unknown; unit_price?: unknown };
+type RawItem = { product?: unknown; quantity?: unknown; unit_price?: unknown; variant?: unknown };
+
+const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 
 /** Resuelve todos los productos de una lista; si alguno falla, devuelve el problema para que la IA pregunte. */
 async function resolveItems(db: Db, rawItems: unknown, checkStock: boolean) {
   const items = Array.isArray(rawItems) ? (rawItems as RawItem[]) : [];
   if (!items.length) return { error: { status: 'error', message: 'No entendí qué productos. Pregunta cuáles.' } };
-  const resolved: { product: ProductRow; quantity: number; unitPrice: number }[] = [];
+  const resolved: { product: ProductRow; variant: VariantRow | null; quantity: number; unitPrice: number }[] = [];
   for (const it of items) {
     const quantity = Math.max(1, Math.floor(Number(it.quantity) || 1));
     const r = await resolveProduct(db, String(it.product ?? ''));
     if (r.status === 'none') return { error: { status: 'no_encontrado', product: it.product, message: `No encontré "${it.product}" en el catálogo.` } };
     if (r.status === 'ambiguous') return { error: { status: 'ambiguo', product: it.product, options: r.options, message: 'Hay varios productos parecidos: pregunta cuál.' } };
-    if (checkStock && r.product.stock < quantity) {
-      return { error: { status: 'sin_stock', product: r.product.name, disponible: r.product.stock, message: `Solo hay ${r.product.stock} unidades de ${r.product.name}.` } };
+    // Tallas, tonos o presentaciones: cada una tiene su stock y puede tener su precio
+    const variants = [...(r.product.product_variants || [])].sort((a, b) => a.sort_order - b.sort_order);
+    let variant: VariantRow | null = null;
+    if (variants.length === 1) variant = variants[0];
+    else if (variants.length > 1) {
+      const wanted = norm(String(it.variant ?? ''));
+      variant = wanted ? variants.find(v => norm(v.label) === wanted) ?? variants.find(v => norm(v.label).includes(wanted)) ?? null : null;
+      if (!variant) {
+        return { error: {
+          status: 'falta_dato', product: r.product.name,
+          options: variants.map(v => `${v.label} (${v.stock} disp., ${money(v.price_usd != null ? Number(v.price_usd) : Number(r.product.price_usd))})`),
+          message: `${r.product.name} viene en varias opciones: pregunta cuál quiere.`,
+        } };
+      }
     }
-    const price = Number(it.unit_price) > 0 ? Number(it.unit_price) : Number(r.product.price_usd);
-    resolved.push({ product: r.product, quantity, unitPrice: round2(price) });
+    const available = variant ? variant.stock : r.product.stock;
+    const fullName = variant ? `${r.product.name} (${variant.label})` : r.product.name;
+    if (checkStock && available < quantity) {
+      return { error: { status: 'sin_stock', product: fullName, disponible: available, message: `Solo hay ${available} unidades de ${fullName}.` } };
+    }
+    const listPrice = variant && variant.price_usd != null ? Number(variant.price_usd) : Number(r.product.price_usd);
+    const price = Number(it.unit_price) > 0 ? Number(it.unit_price) : listPrice;
+    resolved.push({ product: r.product, variant, quantity, unitPrice: round2(price) });
   }
   return { resolved };
 }
@@ -174,18 +197,21 @@ export async function prepareAction(name: string, args: Record<string, unknown>,
       case 'preparar_carrito': {
         const { resolved, error } = await resolveItems(db, args.items, true);
         if (error) return error;
-        const total = round2(resolved!.reduce((s, i) => s + i.quantity * Number(i.product.price_usd), 0));
+        // En la tienda siempre se cobra el precio de lista (no el que diga la IA)
+        const listPrice = (i: typeof resolved[number]) => i.variant && i.variant.price_usd != null ? Number(i.variant.price_usd) : Number(i.product.price_usd);
+        const total = round2(resolved!.reduce((s, i) => s + i.quantity * listPrice(i), 0));
         return push({
           type: 'ADD_TO_CART',
           title: 'Agregar al carrito',
-          lines: resolved!.map(i => `${i.quantity} × ${i.product.name} — ${money(i.quantity * Number(i.product.price_usd))}`),
+          lines: resolved!.map(i => `${i.quantity} × ${i.product.name}${i.variant ? ` (${i.variant.label})` : ''} — ${money(i.quantity * listPrice(i))}`),
           total,
           confirmLabel: 'Agregar al carrito',
           clientSide: true,
           data: {
             items: resolved!.map(i => ({
-              id: i.product.id, name: i.product.name, price_usd: Number(i.product.price_usd),
-              quantity: i.quantity, image_url: i.product.image_url, stock: i.product.stock,
+              id: i.product.id, name: i.product.name, price_usd: listPrice(i),
+              quantity: i.quantity, image_url: i.product.image_url, stock: i.variant ? i.variant.stock : i.product.stock,
+              variant_id: i.variant?.id ?? null, size: i.variant?.label ?? null,
             })),
           },
         });
@@ -206,7 +232,7 @@ export async function prepareAction(name: string, args: Record<string, unknown>,
         const total = round2(resolved!.reduce((s, i) => s + i.quantity * i.unitPrice, 0));
         const abono = modality === 'fiado' ? Math.min(round2(Number(args.abono_inicial) || 0), total) : total;
         const lines = [
-          ...resolved!.map(i => `${i.quantity} × ${i.product.name} — ${money(i.quantity * i.unitPrice)}`),
+          ...resolved!.map(i => `${i.quantity} × ${i.product.name}${i.variant ? ` (${i.variant.label})` : ''} — ${money(i.quantity * i.unitPrice)}`),
           clientName ? `Cliente: ${clientName}` : 'Cliente: venta de mostrador',
           modality === 'contado'
             ? `Pagado completo por ${PAYMENT_LABELS[method!]}`
@@ -220,7 +246,10 @@ export async function prepareAction(name: string, args: Record<string, unknown>,
           total,
           confirmLabel: 'Registrar venta',
           data: {
-            items: resolved!.map(i => ({ product_id: i.product.id, name: i.product.name, quantity: i.quantity, unit_price: i.unitPrice })),
+            items: resolved!.map(i => ({
+              product_id: i.product.id, name: i.product.name, quantity: i.quantity, unit_price: i.unitPrice,
+              variant_id: i.variant?.id ?? null, variant_label: i.variant?.label ?? null,
+            })),
             client_name: clientName || null,
             client_phone: String(args.client_phone ?? '').trim() || null,
             payment_method: method,
@@ -323,12 +352,21 @@ export async function prepareAction(name: string, args: Record<string, unknown>,
         const r = await resolveProduct(db, String(args.product ?? ''));
         if (r.status === 'none') return { status: 'no_encontrado', message: `No encontré "${args.product}". Si es nuevo, créalo en Productos.` };
         if (r.status === 'ambiguous') return { status: 'ambiguo', options: r.options, message: 'Pregunta cuál producto.' };
+        // Con tallas, tonos o presentaciones las unidades entran a una de ellas
+        const variants = [...(r.product.product_variants || [])].sort((a, b) => a.sort_order - b.sort_order);
+        let variant: VariantRow | null = variants.length === 1 ? variants[0] : null;
+        if (variants.length > 1) {
+          const wanted = norm(String(args.variant ?? ''));
+          variant = wanted ? variants.find(v => norm(v.label) === wanted) ?? variants.find(v => norm(v.label).includes(wanted)) ?? null : null;
+          if (!variant) return { status: 'falta_dato', options: variants.map(v => `${v.label} (${v.stock} disp.)`), message: `Pregunta a cuál opción de ${r.product.name} entran las unidades.` };
+        }
+        const current = variant ? variant.stock : r.product.stock;
         return push({
           type: 'ADD_STOCK',
           title: 'Sumar al inventario',
-          lines: [`${r.product.name}`, `+${quantity} unidades · quedaría en ${r.product.stock + quantity}`],
+          lines: [`${r.product.name}${variant ? ` (${variant.label})` : ''}`, `+${quantity} unidades · quedaría en ${current + quantity}`],
           confirmLabel: 'Sumar al inventario',
-          data: { product_id: r.product.id, name: r.product.name, quantity },
+          data: { product_id: r.product.id, name: r.product.name, quantity, variant_id: variant?.id ?? null, variant_label: variant?.label ?? null },
         });
       }
 
@@ -357,18 +395,21 @@ export async function executeConfirmedAction(type: string, data: Record<string, 
   try {
     switch (type) {
       case 'CREATE_SALE': {
-        const items = (Array.isArray(data.items) ? data.items : []) as { product_id: string; name: string; quantity: number; unit_price: number }[];
+        const items = (Array.isArray(data.items) ? data.items : []) as { product_id: string; name: string; quantity: number; unit_price: number; variant_id?: string | null; variant_label?: string | null }[];
         if (!items.length) return { success: false, message: 'La venta no tiene productos.' };
         const modality = data.modality === 'fiado' ? 'fiado' : 'contado';
         const method = normalizeMethod(data.payment_method) ?? 'efectivo_usd';
         // Revalidar stock actual antes de escribir nada (evita ventas a medias)
         const ids = items.map(i => i.product_id);
-        const { data: stockRows, error: stockErr } = await db.from('products').select('id, name, stock').in('id', ids);
+        const { data: stockRows, error: stockErr } = await db.from('products').select('id, name, stock, product_variants(id, label, stock)').in('id', ids);
         if (stockErr) throw stockErr;
         for (const it of items) {
-          const row = (stockRows || []).find((r: { id: string }) => r.id === it.product_id) as { stock: number; name: string } | undefined;
+          const row = (stockRows || []).find((r: { id: string }) => r.id === it.product_id) as { stock: number; name: string; product_variants?: { id: string; label: string; stock: number }[] } | undefined;
           if (!row) return { success: false, message: `El producto ${it.name} ya no existe.` };
-          if (row.stock < num(it.quantity)) return { success: false, message: `Ya no hay suficiente ${row.name} (quedan ${row.stock}).` };
+          const v = it.variant_id ? row.product_variants?.find(x => x.id === it.variant_id) : null;
+          if (it.variant_id && !v) return { success: false, message: `La opción ${it.variant_label} de ${row.name} ya no existe.` };
+          const left = v ? v.stock : row.stock;
+          if (left < num(it.quantity)) return { success: false, message: `Ya no hay suficiente ${row.name}${v ? ` (${v.label})` : ''} (quedan ${left}).` };
         }
         const groupId = crypto.randomUUID();
         const rate = ctx.bcvRate > 0 ? ctx.bcvRate : null;
@@ -379,7 +420,9 @@ export async function executeConfirmedAction(type: string, data: Record<string, 
           total += lineTotal;
           const { data: sale, error } = await db.from('sales').insert({
             product_id: it.product_id,
-            product_name: it.name,
+            product_name: it.variant_label ? `${it.name} (${it.variant_label})` : it.name,
+            variant_id: it.variant_id || null,
+            variant_label: it.variant_label || null,
             quantity: qty,
             unit_price_usd: num(it.unit_price),
             total_usd: lineTotal,
@@ -475,6 +518,14 @@ export async function executeConfirmedAction(type: string, data: Record<string, 
       case 'ADD_STOCK': {
         const qty = Math.floor(num(data.quantity));
         if (qty <= 0) return { success: false, message: 'La cantidad debe ser mayor a cero.' };
+        if (data.variant_id) {
+          const { data: v, error: vErr } = await db.from('product_variants').select('stock, label').eq('id', data.variant_id as string).single();
+          if (vErr || !v) return { success: false, message: 'No encontré esa opción del producto.' };
+          const nextV = num((v as { stock: number }).stock) + qty;
+          const { error } = await db.from('product_variants').update({ stock: nextV, updated_at: new Date().toISOString() }).eq('id', data.variant_id as string);
+          if (error) throw error;
+          return { success: true, message: `✅ ${data.name} (${(v as { label: string }).label}): ahora hay ${nextV} unidades.` };
+        }
         const { data: row, error: readErr } = await db.from('products').select('stock, name').eq('id', data.product_id as string).single();
         if (readErr || !row) return { success: false, message: 'No encontré el producto.' };
         const next = num((row as { stock: number }).stock) + qty;

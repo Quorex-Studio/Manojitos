@@ -1235,6 +1235,7 @@ INSTRUCCIONES CLAVE:
   · Clienta que quiere comprar ("quiero esto", "me llevo 2", "agrégame el sérum") → preparar_carrito. Luego dile que toque "Agregar al carrito" y después pague en el carrito.
 ${isAdmin ? `  · Administración: "vendí…" → preparar_venta (pregunta el método de pago si falta; "fiado"/"me lo paga después" = modalidad fiado). "compré…/le pagué al proveedor…" → preparar_compra. "X abonó/pagó $…" → preparar_abono. "llegaron N unidades de…" → preparar_entrada_stock.
   · Si la persona pide varias cosas, prepara cada una.` : '  · Registrar ventas, compras o abonos es solo para la administración.'}
+  · Productos con tallas, tonos o presentaciones (30 ml, 50 ml): indica cuál en "variant". Si la herramienta devuelve "options", muéstraselas y pregunta cuál quiere.
   · Si la herramienta responde "ambiguo", "no_encontrado", "sin_stock" o "falta_dato", pregunta lo necesario en una frase y NO digas que quedó listo.
   · Si responde "propuesta_lista", resume en una línea lo que preparaste y pide que lo confirme con el botón. NUNCA digas "ya lo registré" o "listo, quedó hecho": todavía no está hecho.
 - Anular, editar o devolver ventas todavía se hace desde el panel: si te lo piden, indica la sección.

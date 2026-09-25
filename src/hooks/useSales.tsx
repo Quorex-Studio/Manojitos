@@ -78,6 +78,8 @@ export function useSales() {
           // dejando ventas con sale_group_id NULL que no podían recibir abonos).
           // Si no viene, la BD asigna un grupo por defecto.
           sale_group_id: validated.sale_group_id ?? undefined,
+          variant_id: validated.variant_id ?? null,
+          variant_label: validated.variant_label ?? null,
           amount_paid: validated.amount_paid,
           payment_status: validated.payment_status,
           notes: validated.notes,
@@ -152,6 +154,8 @@ export function useSales() {
     name: string;
     quantity: number;
     price_usd: number;
+    /** Talla, tono o presentación elegida (si el producto las tiene) */
+    variant_id?: string | null;
   }
 
   interface CheckoutData {
@@ -178,11 +182,10 @@ export function useSales() {
     const errors: StockValidationError[] = [];
 
     for (const item of items) {
-      const { data: product, error } = await supabase
-        .from('products')
-        .select('stock')
-        .eq('id', item.id)
-        .single();
+      // Con variante se valida el stock de esa talla/tono/presentación, no el total
+      const { data: product, error } = item.variant_id
+        ? await supabase.from('product_variants').select('stock').eq('id', item.variant_id).single()
+        : await supabase.from('products').select('stock').eq('id', item.id).single();
 
       if (error || !product) {
         errors.push({

@@ -97,6 +97,9 @@ export const saleSchema = z.object({
   // Agrupa las líneas de una misma venta. Debe persistirse para que la cuenta
   // pueda recibir abonos por la ruta de grupo; si se omite, la BD asigna uno.
   sale_group_id: z.string().uuid().optional().nullable(),
+  // Talla, tono o presentación vendida (descuenta su propio stock)
+  variant_id: z.string().uuid().optional().nullable(),
+  variant_label: z.string().max(40).optional().nullable(),
   amount_paid: z.number().nonnegative().default(0),
   payment_status: z.enum(['pending', 'partial', 'paid']).default('paid'),
   notes: z.string().max(1000).optional().nullable().transform(val => val ? sanitizeText(val) : val),

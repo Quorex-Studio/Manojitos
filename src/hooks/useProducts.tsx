@@ -14,6 +14,8 @@ import { productSchema, validateInput } from '@/lib/validations';
 import type { Product } from '@/types';
 export type { Product };
 
+export interface VariantDraft { id?: string; label: string; stock: number; price_usd: number | null }
+
 export function useProducts() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -23,7 +25,7 @@ export function useProducts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, product_variants(id, label, stock, price_usd, sort_order)')
         .order('created_at', { ascending: false })
         .limit(1000); // el catálogo completo (antes 200 escondía productos)
 
@@ -118,6 +120,31 @@ export function useProducts() {
     },
   });
 
+  /**
+   * Guarda las tallas/tonos/presentaciones de un producto tal como quedaron en el formulario:
+   * borra las que se quitaron, actualiza las existentes y crea las nuevas. El stock y las
+   * etiquetas del producto los recalcula la base (trigger).
+   */
+  const saveVariants = async (productId: string, rows: VariantDraft[]) => {
+    const { data: current, error: readErr } = await supabase.from('product_variants').select('id').eq('product_id', productId);
+    if (readErr) throw readErr;
+    const keep = new Set(rows.filter(r => r.id).map(r => r.id));
+    const removed = (current || []).map(v => v.id).filter(id => !keep.has(id));
+    if (removed.length) {
+      const { error } = await supabase.from('product_variants').delete().in('id', removed);
+      if (error) throw error;
+    }
+    for (const [i, r] of rows.entries()) {
+      const row = { label: r.label.trim(), stock: Math.max(0, Math.floor(r.stock)), price_usd: r.price_usd, sort_order: i + 1 };
+      const { error } = r.id
+        ? await supabase.from('product_variants').update(row).eq('id', r.id)
+        : await supabase.from('product_variants').insert({ ...row, product_id: productId });
+      if (error) throw error;
+    }
+    queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+    queryClient.invalidateQueries({ queryKey: ['public-products'] });
+  };
+
   // Las mutaciones ya invalidan el caché automáticamente.
   // No se necesita suscripción realtime.
 
@@ -127,6 +154,7 @@ export function useProducts() {
     addProduct: addProduct.mutateAsync,
     updateProduct: updateProduct.mutateAsync,
     deleteProduct: deleteProduct.mutateAsync,
+    saveVariants,
     refetch,
   };
 }

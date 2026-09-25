@@ -56,6 +56,8 @@ export interface Product {
   sizes: string[] | null;
   /** Contenido neto o medidas ("30 ml", "20 × 15 cm"), según la categoría */
   presentation?: string | null;
+  /** Tallas, tonos o presentaciones con stock propio (stock del producto = su suma) */
+  product_variants?: ProductVariant[];
   sold_count: number;
   created_at: string;
   updated_at: string;
@@ -72,8 +74,20 @@ export interface PublicProduct {
   sizes: string[] | null;
   /** Contenido neto o medidas ("30 ml", "20 × 15 cm"), según la categoría */
   presentation?: string | null;
+  /** Tallas, tonos o presentaciones con stock propio (stock del producto = su suma) */
+  product_variants?: ProductVariant[];
   sold_count: number;
   created_at: string;
+}
+
+/** Talla, tono o presentación de un producto, con sus unidades y (opcional) su precio */
+export interface ProductVariant {
+  id: string;
+  label: string;
+  stock: number;
+  /** null = usa el precio del producto */
+  price_usd: number | null;
+  sort_order: number;
 }
 
 // ─── SALES & ORDERS ──────────────────────────────────────────
@@ -85,6 +99,9 @@ export interface Sale {
   user_id: string;
   product_id: string | null;
   product_name: string;
+  /** Talla, tono o presentación vendida */
+  variant_id?: string | null;
+  variant_label?: string | null;
   quantity: number;
   unit_price_usd: number;
   total_usd: number;

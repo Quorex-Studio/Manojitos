@@ -983,6 +983,47 @@ export type Database = {
         }
         Relationships: []
       }
+      product_variants: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          price_usd: number | null
+          product_id: string
+          sort_order: number
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          price_usd?: number | null
+          product_id: string
+          sort_order?: number
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          price_usd?: number | null
+          product_id?: string
+          sort_order?: number
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -1338,6 +1379,8 @@ export type Database = {
           total_usd: number
           unit_price_usd: number
           user_id: string
+          variant_id: string | null
+          variant_label: string | null
         }
         Insert: {
           amount_paid?: number
@@ -1365,6 +1408,8 @@ export type Database = {
           total_usd: number
           unit_price_usd: number
           user_id: string
+          variant_id?: string | null
+          variant_label?: string | null
         }
         Update: {
           amount_paid?: number
@@ -1392,6 +1437,8 @@ export type Database = {
           total_usd?: number
           unit_price_usd?: number
           user_id?: string
+          variant_id?: string | null
+          variant_label?: string | null
         }
         Relationships: [
           {

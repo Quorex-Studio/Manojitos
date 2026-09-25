@@ -268,7 +268,8 @@ export default function Checkout() {
           id: item.id,
           name: item.size ? `${item.name} (${item.size_label || 'Talla'}: ${item.size})` : item.name,
           quantity: item.quantity,
-          price_usd: item.price_usd
+          price_usd: item.price_usd,
+          variant_id: item.variant_id ?? null,
         }))
       );
 
@@ -327,7 +328,8 @@ export default function Checkout() {
         id: item.id,
         name: item.size ? `${item.name} (${item.size_label || 'Talla'}: ${item.size})` : item.name,
         quantity: item.quantity,
-        price_usd: item.price_usd
+        price_usd: item.price_usd,
+        variant_id: item.variant_id ?? null,
       }));
 
       const { error, saleIds } = await processCheckout(

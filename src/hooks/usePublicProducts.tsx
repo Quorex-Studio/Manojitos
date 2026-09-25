@@ -22,7 +22,7 @@ export function usePublicProducts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, description, price_usd, stock, category, image_url, sizes, presentation, sold_count, created_at')
+        .select('id, name, description, price_usd, stock, category, image_url, sizes, presentation, sold_count, created_at, product_variants(id, label, stock, price_usd, sort_order)')
         .gt('stock', 0) // Solo productos con stock
         .order('created_at', { ascending: false })
         .limit(1000); // todo el catálogo con stock (antes 100 escondía productos)
@@ -52,7 +52,7 @@ export function usePublicProducts() {
     // Si no está en caché (ej. navegación directa), buscar en DB
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, description, price_usd, stock, category, image_url, sizes, presentation, sold_count, created_at')
+      .select('id, name, description, price_usd, stock, category, image_url, sizes, presentation, sold_count, created_at, product_variants(id, label, stock, price_usd, sort_order)')
       .eq('id', id)
       .maybeSingle();
 

@@ -19,11 +19,14 @@ import { formatBS, cn } from '@/lib/utils';
 import { PAYMENT_METHOD_LABELS } from '@/lib/paymentMethodFields';
 import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { toast } from 'sonner';
+import { sortedVariants, variantLabel, variantPrice } from '@/lib/productCategories';
+import { useProductCategories } from '@/hooks/useProductCategories';
 
 type SaleModality = 'contado' | 'dos_partes' | 'financiamiento' | 'fiado';
 type ClientMode = 'walkin' | 'search' | 'new';
 type ClientMatch = { name: string; dni: string; phone: string; email: string; address: string };
-interface CartLine { productId: string; qty: number }
+/** Una línea por producto y variante (talla, tono o presentación) */
+interface CartLine { key: string; productId: string; variantId?: string; qty: number }
 
 const EMPTY_CLIENT = { dni: '', name: '', phone: '', email: '', address: '' };
 const BS_METHODS = ['efectivo_bs', 'pago_movil', 'transferencia'];
@@ -74,6 +77,9 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const [notes, setNotes] = useState('');
   const [showNotes, setShowNotes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Producto con varias tallas/tonos/presentaciones: se elige cuál antes de agregarlo
+  const [pickFor, setPickFor] = useState<string | null>(null);
+  const { byName } = useProductCategories();
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const reset = () => {
@@ -106,23 +112,37 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     return list.slice(0, q ? 12 : 8);
   }, [products, productQuery]);
 
-  const qtyInCart = (productId: string) => cart.find(l => l.productId === productId)?.qty ?? 0;
+  const qtyInCart = (productId: string) => cart.filter(l => l.productId === productId).reduce((n, l) => n + l.qty, 0);
+  const variantOf = (productId: string, variantId?: string) =>
+    variantId ? productById.get(productId)?.product_variants?.find(v => v.id === variantId) ?? null : null;
+  const lineStock = (productId: string, variantId?: string) =>
+    variantId ? variantOf(productId, variantId)?.stock ?? 0 : productById.get(productId)?.stock ?? 0;
 
-  const addProduct = (productId: string) => {
+  const addLine = (productId: string, variantId?: string) => {
     const product = productById.get(productId);
     if (!product) return;
-    const current = qtyInCart(productId);
-    if (current >= product.stock) {
-      toast.error('No hay más unidades', { description: `${product.name}: ${product.stock} en stock.` });
+    const key = `${productId}:${variantId ?? ''}`;
+    const current = cart.find(l => l.key === key)?.qty ?? 0;
+    const stock = lineStock(productId, variantId);
+    if (current >= stock) {
+      const v = variantOf(productId, variantId);
+      toast.error('No hay más unidades', { description: `${product.name}${v ? ` (${v.label})` : ''}: ${stock} en stock.` });
       return;
     }
-    setCart(prev => current ? prev.map(l => l.productId === productId ? { ...l, qty: l.qty + 1 } : l) : [...prev, { productId, qty: 1 }]);
+    setCart(prev => current ? prev.map(l => l.key === key ? { ...l, qty: l.qty + 1 } : l) : [...prev, { key, productId, variantId, qty: 1 }]);
   };
 
-  const setQty = (productId: string, qty: number) => {
-    const stock = productById.get(productId)?.stock ?? 0;
-    const next = Math.max(0, Math.min(qty, stock));
-    setCart(prev => next === 0 ? prev.filter(l => l.productId !== productId) : prev.map(l => l.productId === productId ? { ...l, qty: next } : l));
+  const addProduct = (productId: string) => {
+    const variants = sortedVariants(productById.get(productId)?.product_variants);
+    if (variants.length > 1) { setPickFor(productId); return; }
+    addLine(productId, variants[0]?.id);
+  };
+
+  const setQty = (key: string, qty: number) => {
+    const line = cart.find(l => l.key === key);
+    if (!line) return;
+    const next = Math.max(0, Math.min(qty, lineStock(line.productId, line.variantId)));
+    setCart(prev => next === 0 ? prev.filter(l => l.key !== key) : prev.map(l => l.key === key ? { ...l, qty: next } : l));
   };
 
   // ── Montos ──
@@ -130,9 +150,13 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const surchargePct = modality === 'financiamiento' ? (pricingConfig?.credit_surcharge_pct || 10) : 0;
   const lines = cart.map(l => {
     const p = productById.get(l.productId)!;
-    const base = isBsPayment && p.price_bs_usd != null && Number(p.price_bs_usd) > 0 ? Number(p.price_bs_usd) : Number(p.price_usd);
+    const variant = p ? variantOf(l.productId, l.variantId) : null;
+    // Una variante con precio propio manda; si no, el precio del producto (o su precio en Bs)
+    const base = variant && variant.price_usd != null
+      ? variantPrice(p.price_usd, variant)
+      : isBsPayment && p?.price_bs_usd != null && Number(p.price_bs_usd) > 0 ? Number(p.price_bs_usd) : Number(p?.price_usd);
     const unit = base * (1 + surchargePct / 100);
-    return { ...l, product: p, unit, subtotal: unit * l.qty };
+    return { ...l, product: p, variant, stock: lineStock(l.productId, l.variantId), unit, subtotal: unit * l.qty };
   }).filter(l => l.product);
   const total = lines.reduce((s, l) => s + l.subtotal, 0);
   const totalBs = convertToBS(total);
@@ -256,7 +280,11 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
         modality === 'financiamiento' ? itemTotal / 3 : 0;
       const { data, error } = await addSale({
         product_id: line.productId,
-        product_name: line.product.name,
+        product_name: line.variant
+          ? `${line.product.name} (${variantLabel(byName(line.product.category)?.detail_kind)}: ${line.variant.label})`
+          : line.product.name,
+        variant_id: line.variant?.id ?? null,
+        variant_label: line.variant?.label ?? null,
         quantity: line.qty,
         unit_price_usd: line.unit,
         total_usd: itemTotal,
@@ -400,7 +428,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                   <AnimatePresence initial={false}>
                     {lines.map(l => (
                       <motion.li
-                        key={l.productId}
+                        key={l.key}
                         layout={!reduceMotion}
                         initial={reduceMotion ? false : { opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
@@ -409,14 +437,15 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                       >
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{l.product.name}</p>
+                          {l.variant && <p className="truncate text-xs font-medium text-primary">{l.variant.label}</p>}
                           <p className="text-xs text-muted-foreground">{money(l.unit)} c/u</p>
                         </div>
                         <div className="flex items-center rounded-full border border-border">
-                          <button type="button" onClick={() => setQty(l.productId, l.qty - 1)} aria-label="Quitar uno" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted">
+                          <button type="button" onClick={() => setQty(l.key, l.qty - 1)} aria-label="Quitar uno" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted">
                             {l.qty === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <Minus className="h-4 w-4" />}
                           </button>
                           <span className="w-7 text-center text-sm font-semibold tabular-nums">{l.qty}</span>
-                          <button type="button" onClick={() => setQty(l.productId, l.qty + 1)} disabled={l.qty >= l.product.stock} aria-label="Agregar uno" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40">
+                          <button type="button" onClick={() => setQty(l.key, l.qty + 1)} disabled={l.qty >= l.stock} aria-label="Agregar uno" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40">
                             <Plus className="h-4 w-4" />
                           </button>
                         </div>
@@ -632,6 +661,42 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
           </div>
         </div>
       </DialogContent>
+
+      {/* Elegir talla, tono o presentación */}
+      <Dialog open={!!pickFor} onOpenChange={o => !o && setPickFor(null)}>
+        <DialogContent className="sm:max-w-sm">
+          {pickFor && (() => {
+            const p = productById.get(pickFor)!;
+            const name = variantLabel(byName(p.category)?.detail_kind);
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{p.name}</DialogTitle>
+                  <DialogDescription>Elige {name.toLowerCase()}.</DialogDescription>
+                </DialogHeader>
+                <ul className="grid gap-2">
+                  {sortedVariants(p.product_variants).map(v => {
+                    const inCart = cart.find(l => l.key === `${p.id}:${v.id}`)?.qty ?? 0;
+                    const left = v.stock - inCart;
+                    return (
+                      <li key={v.id}>
+                        <button type="button" disabled={left <= 0}
+                          onClick={() => { addLine(p.id, v.id); setPickFor(null); }}
+                          className="flex h-12 w-full items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 text-left hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-40">
+                          <span className="font-medium">{v.label}</span>
+                          <span className="text-sm tabular-nums text-muted-foreground">
+                            ${variantPrice(p.price_usd, v).toFixed(2)} · {left > 0 ? `${left} uds` : 'Agotado'}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

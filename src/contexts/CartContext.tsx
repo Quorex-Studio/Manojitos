@@ -14,6 +14,8 @@ export interface CartItem {
   size?: string;
   /** Cómo se llama esa opción: "Talla", "Tono"… */
   size_label?: string;
+  /** Variante con stock propio (tallas, tonos, presentaciones) */
+  variant_id?: string;
 }
 
 // Interfaz del contexto del carrito

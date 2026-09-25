@@ -212,15 +212,22 @@ export default function AngelaChat() {
     updateProposal(p.id, { state: "working" });
 
     if (p.type === "ADD_TO_CART") {
-      const items = (p.data.items as { id: string; name: string; price_usd: number; quantity: number; image_url: string | null; stock: number }[]) || [];
+      const items = (p.data.items as { id: string; name: string; price_usd: number; quantity: number; image_url: string | null; stock: number; variant_id?: string | null; size?: string | null }[]) || [];
       // Un producto con varias tallas o tonos no se agrega a ciegas: la clienta elige en su ficha
       const { data: rows } = await supabase.from("products").select("id, sizes, category").in("id", items.map((it) => it.id));
       const variantsOf = (id: string) => productVariants((rows || []).find((r) => r.id === id)?.sizes);
-      const direct = items.filter((it) => variantsOf(it.id).length <= 1);
-      const choose = items.filter((it) => variantsOf(it.id).length > 1).map((it) => ({ id: it.id, name: it.name }));
+      // Ina ya resolvió la variante (talla, tono o presentación) o el producto tiene una sola
+      const direct = items.filter((it) => it.variant_id || variantsOf(it.id).length <= 1);
+      const choose = items.filter((it) => !it.variant_id && variantsOf(it.id).length > 1).map((it) => ({ id: it.id, name: it.name }));
       direct.forEach((it) => {
-        const only = variantsOf(it.id)[0];
-        addItem({ ...it, size: only, size_label: only ? variantLabel(byName((rows || []).find((r) => r.id === it.id)?.category)?.detail_kind) : undefined });
+        const size = it.size || variantsOf(it.id)[0];
+        const { variant_id, size: _s, ...rest } = it;
+        addItem({
+          ...rest,
+          size: size || undefined,
+          variant_id: variant_id || undefined,
+          size_label: size ? variantLabel(byName((rows || []).find((r) => r.id === it.id)?.category)?.detail_kind) : undefined,
+        });
       });
       const units = direct.reduce((n, it) => n + it.quantity, 0);
       const parts = [
