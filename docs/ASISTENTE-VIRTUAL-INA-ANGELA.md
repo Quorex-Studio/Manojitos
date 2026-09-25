@@ -38,6 +38,9 @@ Fecha de corte de esta guía: 25 sep 2026. Commit base de Manojitos del que sali
 | 12 | Mapa de estilos (“fiesta”, “piel grasa”, “playa”…) de maquillaje/skincare | Contenido | ❌ No (Manojitos conserva el suyo de ropa y perfumes) |
 | 13 | Avatar: isotipo de EINA en círculo vino, en vez de la mascota rosa | Marca | ❌ No (Manojitos conserva su mascota) |
 | 14 | Se quitó la variable sin uso `HUGGING_FACE_ACCESS_TOKEN` | Limpieza | ✅ Sí |
+| 15 | **Acciones con confirmación**: la clienta compra desde el chat y la administración registra ventas, compras, abonos y entradas de stock escribiéndole | Funcional | ✅ Sí, prioritario |
+| 16 | La tasa BCV del asistente se filtra por `currency = 'USD'` (antes podía tomar la del euro) | **Bug** | ✅ Sí, prioritario |
+| 17 | “Quiero esto” en la ficha de un producto: el chat envía la página y la IA sabe qué producto está en pantalla | Funcional | ✅ Sí |
 
 ---
 
@@ -186,6 +189,47 @@ En Vercel (o en el `.env`) de Manojitos: `VITE_ASSISTANT_NAME=Ángela`.
 Se quitó `const HF_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');`: no se usaba. El
 asistente usa solo Gemini (`GEMINI_API_KEY`).
 
+### 2.7 Acciones: preparar → confirmar (`ai-assistant/actions.ts`)
+
+La asistente pasa de solo consultar a **trabajar**, sin perder seguridad. Regla de oro: la IA
+**nunca escribe** en la base de datos.
+
+1. Gemini recibe herramientas `preparar_*` además de las de lectura:
+
+   | Herramienta | Quién | Ejemplo | Al confirmar |
+   |---|---|---|---|
+   | `preparar_carrito` | Clienta y admin | “quiero 2 de esos sérums” | Se agrega al carrito en el navegador (`addItem`); luego paga en el checkout |
+   | `preparar_venta` | Solo admin | “vendí 2 bases a María por pago móvil” / “…fiado, abonó $10” | Filas `sales` en estado `pending` con un `sale_group_id` → `confirm_pos_sale` (descuenta stock y registra el pago) → `process_group_abono` si hay abono inicial |
+   | `preparar_compra` | Solo admin | “compré $80 en YesStyle” | Crea el proveedor si no existe y guarda la compra `paid` |
+   | `preparar_abono` | Solo admin | “María abonó $20 por Zelle” | `process_group_abono` repartido desde la deuda fiada más antigua |
+   | `preparar_entrada_stock` | Solo admin | “llegaron 10 protectores” | Suma unidades al producto |
+
+2. Cada `preparar_*` **valida con datos reales** (producto único, stock, método de pago, deuda
+   pendiente). Si algo falta responde `ambiguo`, `no_encontrado`, `sin_stock`, `falta_dato`,
+   `excede` o `sin_deuda`, y la IA pregunta en vez de inventar.
+3. Si todo está bien devuelve `propuesta_lista` y la respuesta del chat trae `proposals[]`. El
+   chat muestra una tarjeta con el detalle y los botones **Confirmar / Cancelar**. El prompt
+   prohíbe decir “ya lo registré” antes de que la persona confirme.
+4. Confirmar envía `{ action: { type, data } }`. El servidor **vuelve a comprobar que es admin**
+   (token verificado, no el cuerpo de la petición), revalida el stock y escribe con el **token de
+   la persona** (`createClient(url, anonKey, { Authorization })`): RLS e `is_admin()` siguen
+   aplicando. La clienta no puede confirmar nada de administración (403).
+5. Las ventas creadas llevan la nota `[Registrada por la asistente]` para identificarlas.
+
+**Para Manojitos:** copiar `actions.ts` tal cual. En `index.ts`, importar sus exportaciones,
+agregar el bloque `ADMIN_EXECUTABLE` antes del manejo de `action` antiguo, sumar
+`ACTION_TOOL_DECLARATIONS` a las herramientas (la clienta solo `preparar_carrito`), enrutar
+`isActionTool` a `prepareAction` y devolver `proposals`. En `AngelaChat.tsx`, copiar
+`ProposalCard` y `confirmProposal`. Revisar que `PAYMENT_LABELS` tenga los métodos de
+Manojitos. Verificado en EINA: las cuatro escrituras corrieron como admin dentro de una
+transacción que se deshizo al final (stock, pago, abono parcial y compra correctos).
+
+### 2.8 Bug de la tasa
+
+`buildBusinessContext` leía la última fila de `exchange_rates` sin filtrar la moneda. Como la
+tabla guarda también el euro, la asistente podía calcular precios en Bs con la tasa del euro.
+Ahora usa `.eq('currency', 'USD')`, igual que la confirmación de acciones.
+
 ---
 
 ## 3. Cambios propios de EINA (no copiar el contenido)
@@ -303,7 +347,7 @@ Hacerlo en una rama nueva y con un PR, igual que en EINA.
 
 | Pieza | Estado |
 |---|---|
-| `ai-assistant` | Desplegada (v2). **Pendiente:** redesplegar para que Ina conozca la política de cambios de 72 horas (el cambio ya está en el repositorio, PR #18). |
+| `ai-assistant` | Desplegada (v3): política de cambios de 72 horas, acciones con confirmación y tasa USD. |
 | `angela-cron-alerts` | Desplegada, con el secreto en Vault. |
 | `angela-proactive` | Sin cambios respecto a Manojitos (no tiene nombres de marca). |
 | Nombre en la web | `VITE_ASSISTANT_NAME=Ina` en Vercel. |

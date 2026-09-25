@@ -10,6 +10,7 @@ const CONTACT_LINE = BRAND_WHATSAPP
   : "la sección de **Atención al Cliente** de la web";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { ACTION_TOOL_DECLARATIONS, ADMIN_EXECUTABLE, executeConfirmedAction, isActionTool, prepareAction, type Proposal } from './actions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -217,6 +218,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
   const { data: rateData } = await supabase
     .from('exchange_rates')
     .select('rate')
+    .eq('currency', 'USD') // la tabla también guarda la tasa del euro
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -996,7 +998,7 @@ serve(async (req: Request) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     const body = await req.json();
-    const { messages, context, action, customerId: requestCustomerId } = body;
+    const { messages, context, action, page, customerId: requestCustomerId } = body;
 
     // ================== AUTHENTICATION CHECK ==================
     const authHeader = req.headers.get('Authorization');
@@ -1054,6 +1056,25 @@ serve(async (req: Request) => {
     // ================== ACTION AUTHORIZATION (A-02, A-03) ==================
     // Administrative actions must be executed only by a verified admin. This is
     // enforced server-side and never trusts the frontend, body, or Gemini.
+    // Operaciones preparadas por la asistente y CONFIRMADAS por la persona (botón).
+    // Se vuelve a exigir admin y se escribe con el token de la persona (RLS + is_admin()).
+    if (action && ADMIN_EXECUTABLE.includes(action.type)) {
+      if (!isAdminVerified) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'Solo la administración puede confirmar esta operación.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const userDb = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader! } } });
+      const { data: rateRow } = await getSupabaseClient().from('exchange_rates').select('rate').eq('currency', 'USD').order('created_at', { ascending: false }).limit(1);
+      const result = await executeConfirmedAction(action.type, action.data || {}, {
+        userDb,
+        userId: authenticatedUserId as string,
+        bcvRate: Number(rateRow?.[0]?.rate) || 0,
+      });
+      return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     if (action) {
       const ADMIN_ACTIONS = ['REGISTER_SALE', 'SEND_REMINDER', 'GET_CREDIT_INFO', 'CHECK_STOCK'];
       if (ADMIN_ACTIONS.includes(action.type) && !isAdminVerified) {
@@ -1174,6 +1195,15 @@ Simplifica tus respuestas y ofrece ayuda clara. Si persiste, ofrece atención hu
       contextPrompt += `\nCONTEXTO ADICIONAL: ${context}`;
     }
 
+    // Página que está viendo la persona: "quiero comprar esto" se refiere a este producto
+    const productMatch = typeof page === 'string' ? page.match(/^\/producto\/([0-9a-f-]{36})/i) : null;
+    if (productMatch) {
+      const { data: viewed } = await supabase.from('products').select('name, price_usd, stock').eq('id', productMatch[1]).maybeSingle();
+      if (viewed) {
+        contextPrompt += `\nPRODUCTO EN PANTALLA: ${viewed.name} — $${viewed.price_usd} (${viewed.stock} disponibles). Si dice "esto", "este" o "lo quiero", se refiere a este producto.`;
+      }
+    }
+
     // Memoria de sesión: turnos recientes para resolver referencias como "ella"
     // o "esa venta". NO otorga permisos: cada herramienta revalida rol/entidad.
     const recentTurns = (messages || [])
@@ -1201,7 +1231,13 @@ INSTRUCCIONES CLAVE:
 - Para datos concretos (deudas, cuentas por cobrar, ventas, pagos, stock, precios, créditos, resúmenes), USA las herramientas disponibles y responde SOLO con lo que devuelvan. NUNCA inventes clientes, montos, saldos, IDs ni fechas.
 - "Cuentas por cobrar" o "a quién cobrar" = ventas fiadas (herramientas de CxC/deuda), NO los créditos del sistema; son fuentes distintas.
 - Si una herramienta devuelve varias coincidencias (ambiguo), pregunta al usuario cuál antes de continuar. Si devuelve "no_encontrado", dilo con claridad.
-- Las herramientas son de SOLO LECTURA: no puedes registrar, modificar, anular ni devolver nada en esta versión; si te lo piden, explica que aún no está disponible.
+- OPERACIONES: no escribes nada directamente. Con las herramientas preparar_* PREPARAS la operación y la persona la confirma con un botón que aparece debajo de tu mensaje.
+  · Clienta que quiere comprar ("quiero esto", "me llevo 2", "agrégame el sérum") → preparar_carrito. Luego dile que toque "Agregar al carrito" y después pague en el carrito.
+${isAdmin ? `  · Administración: "vendí…" → preparar_venta (pregunta el método de pago si falta; "fiado"/"me lo paga después" = modalidad fiado). "compré…/le pagué al proveedor…" → preparar_compra. "X abonó/pagó $…" → preparar_abono. "llegaron N unidades de…" → preparar_entrada_stock.
+  · Si la persona pide varias cosas, prepara cada una.` : '  · Registrar ventas, compras o abonos es solo para la administración.'}
+  · Si la herramienta responde "ambiguo", "no_encontrado", "sin_stock" o "falta_dato", pregunta lo necesario en una frase y NO digas que quedó listo.
+  · Si responde "propuesta_lista", resume en una línea lo que preparaste y pide que lo confirme con el botón. NUNCA digas "ya lo registré" o "listo, quedó hecho": todavía no está hecho.
+- Anular, editar o devolver ventas todavía se hace desde el panel: si te lo piden, indica la sección.
 - Para contacto con la tienda remite a ${BRAND_WHATSAPP ? `el WhatsApp ${BRAND_WHATSAPP}` : 'la sección de Atención al Cliente de la web'}. Horario: ${STORE_HOURS}.
 
 Respuesta de ${ASSISTANT_NAME}:`;
@@ -1210,6 +1246,8 @@ Respuesta de ${ASSISTANT_NAME}:`;
     console.log('Calling Gemini Flash for Angela response...');
 
     let generatedText = '';
+    const proposals: Proposal[] = [];
+    const actionCtx = { supabase, isAdmin, bcvRate: 0, proposals };
 
     if (GEMINI_KEY) {
       const modelsToTry = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'];
@@ -1221,7 +1259,12 @@ Respuesta de ${ASSISTANT_NAME}:`;
         authenticatedUserId: authenticatedUserId as string,
         bcvRate: businessContext.bcvRate,
       };
-      const geminiTools = [{ functionDeclarations: READONLY_TOOL_DECLARATIONS }];
+      // La clienta solo puede preparar su carrito; la administración, todas las operaciones.
+      const actionDeclarations = isAdmin
+        ? ACTION_TOOL_DECLARATIONS
+        : ACTION_TOOL_DECLARATIONS.filter(d => d.name === 'preparar_carrito');
+      const geminiTools = [{ functionDeclarations: [...READONLY_TOOL_DECLARATIONS, ...actionDeclarations] }];
+      actionCtx.bcvRate = businessContext.bcvRate;
 
       for (const model of modelsToTry) {
         try {
@@ -1262,7 +1305,9 @@ Respuesta de ${ASSISTANT_NAME}:`;
               contents.push({ role: 'model', parts });
               const responseParts: any[] = [];
               for (const call of fnCalls) {
-                const result = await executeReadOnlyTool(call.name, call.args || {}, toolCtx);
+                const result = isActionTool(call.name)
+                  ? await prepareAction(call.name, call.args || {}, actionCtx)
+                  : await executeReadOnlyTool(call.name, call.args || {}, toolCtx);
                 console.log(`Tool executed: ${call.name}`);
                 responseParts.push({ functionResponse: { name: call.name, response: result } });
               }
@@ -1293,6 +1338,9 @@ Respuesta de ${ASSISTANT_NAME}:`;
     }
 
     // Si no hay respuesta útil, generar respuesta contextual
+    if ((!generatedText || generatedText.length < 10) && proposals.length) {
+      generatedText = 'Te lo dejé preparado 👇 Revísalo y confirma con el botón.';
+    }
     if (!generatedText || generatedText.length < 10) {
       generatedText = generateFallbackResponse(lastUserMessage, businessContext, isAdmin, conversationAnalysis);
     }
@@ -1330,7 +1378,8 @@ Respuesta de ${ASSISTANT_NAME}:`;
     return new Response(
       JSON.stringify({
         content: generatedText,
-        suggestions: suggestions,
+        suggestions: proposals.length ? [] : suggestions,
+        proposals,
         analysis: conversationAnalysis,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
