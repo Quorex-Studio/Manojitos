@@ -953,6 +953,36 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          detail_kind: string
+          id: string
+          name: string
+          options: string[]
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detail_kind?: string
+          id?: string
+          name: string
+          options?: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detail_kind?: string
+          id?: string
+          name?: string
+          options?: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string | null
@@ -966,6 +996,7 @@ export type Database = {
           price_bs_usd: number | null
           price_retail_eur: number | null
           price_usd: number
+          presentation: string | null
           price_wholesale_eur: number | null
           sizes: string[] | null
           sold_count: number
@@ -985,6 +1016,7 @@ export type Database = {
           price_bs_usd?: number | null
           price_retail_eur?: number | null
           price_usd?: number
+          presentation?: string | null
           price_wholesale_eur?: number | null
           sizes?: string[] | null
           sold_count?: number
@@ -1004,6 +1036,7 @@ export type Database = {
           price_bs_usd?: number | null
           price_retail_eur?: number | null
           price_usd?: number
+          presentation?: string | null
           price_wholesale_eur?: number | null
           sizes?: string[] | null
           sold_count?: number

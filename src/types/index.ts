@@ -54,6 +54,8 @@ export interface Product {
   category: string | null;
   image_url: string | null;
   sizes: string[] | null;
+  /** Contenido neto o medidas ("30 ml", "20 × 15 cm"), según la categoría */
+  presentation?: string | null;
   sold_count: number;
   created_at: string;
   updated_at: string;
@@ -68,6 +70,8 @@ export interface PublicProduct {
   category: string | null;
   image_url: string | null;
   sizes: string[] | null;
+  /** Contenido neto o medidas ("30 ml", "20 × 15 cm"), según la categoría */
+  presentation?: string | null;
   sold_count: number;
   created_at: string;
 }

@@ -266,7 +266,7 @@ export default function Checkout() {
       const { valid, errors } = await validateStock(
         items.map(item => ({
           id: item.id,
-          name: item.size ? `${item.name} (Talla: ${item.size})` : item.name,
+          name: item.size ? `${item.name} (${item.size_label || 'Talla'}: ${item.size})` : item.name,
           quantity: item.quantity,
           price_usd: item.price_usd
         }))
@@ -325,7 +325,7 @@ export default function Checkout() {
 
       const checkoutItems = items.map(item => ({
         id: item.id,
-        name: item.size ? `${item.name} (Talla: ${item.size})` : item.name,
+        name: item.size ? `${item.name} (${item.size_label || 'Talla'}: ${item.size})` : item.name,
         quantity: item.quantity,
         price_usd: item.price_usd
       }));
@@ -1154,7 +1154,7 @@ export default function Checkout() {
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                       <p className="text-sm font-semibold text-foreground line-clamp-2 leading-tight">{item.name}</p>
                       {item.size && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Talla: {item.size === 'Única' ? 'Única' : item.size}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{item.size_label || 'Talla'}: {item.size}</p>
                       )}
                       <p className="text-xs text-muted-foreground mt-1">x{item.quantity} unidades</p>
                     </div>

@@ -10,7 +10,10 @@ export interface CartItem {
   quantity: number;
   image_url: string | null;
   stock: number;
+  /** Talla o tono elegido (según la categoría) */
   size?: string;
+  /** Cómo se llama esa opción: "Talla", "Tono"… */
+  size_label?: string;
 }
 
 // Interfaz del contexto del carrito

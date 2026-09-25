@@ -25,7 +25,7 @@ export function useProducts() {
         .from('products')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(1000); // el catálogo completo (antes 200 escondía productos)
 
       if (error) throw error;
       return data as Product[];
@@ -56,6 +56,7 @@ export function useProducts() {
           category: validated.category,
           image_url: validated.image_url,
           sizes: validated.sizes ?? null,
+          presentation: validated.presentation ?? null,
           user_id: user.id
         }])
         .select()

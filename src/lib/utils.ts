@@ -28,25 +28,3 @@ export function convertToBS(amount: number, rate: number = ESTIMATED_RATE): numb
   return amount * rate;
 }
 
-export const getAvailableSizes = (name: string, category: string): string[] => {
-  const normName = name.toLowerCase();
-  const normCategory = (category || '').toLowerCase();
-  
-  const isJeans = normName.includes('jean') || normCategory.includes('jean') || normCategory.includes('pantalones');
-  const isShorts = normName.includes('short') || normCategory.includes('short');
-  const isTrajeBano = normName.includes('baño') || normName.includes('bano') || normCategory.includes('baño') || normCategory.includes('bano') || normCategory.includes('playa');
-  
-  if (isJeans || isShorts || isTrajeBano) {
-    return ['S', 'M', 'L', 'XL'];
-  }
-  
-  const isSetPlayero = normName.includes('set playero') || normName.includes('sets playeros') || normName.includes('playero') || normCategory.includes('set playero') || normCategory.includes('playero');
-  const isBody = normName.includes('body') || normName.includes('bodys') || normCategory.includes('body') || normCategory.includes('bodys');
-  const isCaballero = normName.includes('caballero') || normCategory.includes('caballero');
-  
-  if (isSetPlayero || isBody || isCaballero) {
-    return ['Única'];
-  }
-  
-  return ['Única'];
-};

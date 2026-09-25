@@ -26,6 +26,8 @@ import { ADMIN_NAV_FLAT, isAdminPathActive } from "@/components/layout/adminNav"
 import { OPEN_ANGELA_EVENT } from "@/lib/events";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { productVariants, variantLabel } from "@/lib/productCategories";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import AngelaMascot, { type MascotState } from "@/components/AngelaMascot";
 
 /** Operación que la asistente dejó preparada; solo se ejecuta al confirmar. */
@@ -40,6 +42,8 @@ interface Proposal {
   data: Record<string, unknown>;
   state?: "pending" | "working" | "done" | "cancelled" | "error";
   result?: string;
+  /** Productos con varias tallas/tonos: la clienta los elige en su ficha */
+  choose?: { id: string; name: string }[];
 }
 
 interface ChatMessage {
@@ -85,6 +89,7 @@ const ERROR_MESSAGE =
 export default function AngelaChat() {
   const { user, loading, isAdmin } = useAuth();
   const { addItem } = useCart();
+  const { byName } = useProductCategories();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -208,9 +213,21 @@ export default function AngelaChat() {
 
     if (p.type === "ADD_TO_CART") {
       const items = (p.data.items as { id: string; name: string; price_usd: number; quantity: number; image_url: string | null; stock: number }[]) || [];
-      items.forEach((it) => addItem({ ...it }));
-      const units = items.reduce((n, it) => n + it.quantity, 0);
-      updateProposal(p.id, { state: "done", result: `Agregado al carrito (${units} ${units === 1 ? "unidad" : "unidades"}).` });
+      // Un producto con varias tallas o tonos no se agrega a ciegas: la clienta elige en su ficha
+      const { data: rows } = await supabase.from("products").select("id, sizes, category").in("id", items.map((it) => it.id));
+      const variantsOf = (id: string) => productVariants((rows || []).find((r) => r.id === id)?.sizes);
+      const direct = items.filter((it) => variantsOf(it.id).length <= 1);
+      const choose = items.filter((it) => variantsOf(it.id).length > 1).map((it) => ({ id: it.id, name: it.name }));
+      direct.forEach((it) => {
+        const only = variantsOf(it.id)[0];
+        addItem({ ...it, size: only, size_label: only ? variantLabel(byName((rows || []).find((r) => r.id === it.id)?.category)?.detail_kind) : undefined });
+      });
+      const units = direct.reduce((n, it) => n + it.quantity, 0);
+      const parts = [
+        units > 0 ? `Agregado al carrito (${units} ${units === 1 ? "unidad" : "unidades"}).` : "",
+        choose.length ? `Elige el tono o la talla de ${choose.map((c) => c.name).join(", ")} en su ficha.` : "",
+      ].filter(Boolean);
+      updateProposal(p.id, { state: "done", result: parts.join(" "), choose });
       return;
     }
 
@@ -455,6 +472,11 @@ function ProposalCard({ proposal: p, onConfirm, onCancel, onGo }: {
       {p.result && (p.state === "done" || p.state === "error") && (
         <p className={cn("mt-2 text-xs font-medium", done ? "text-success" : "text-destructive")}>{p.result}</p>
       )}
+      {done && p.choose?.map((c) => (
+        <Button key={c.id} size="sm" variant="outline" className="mt-2 w-full rounded-full" onClick={() => onGo(`/producto/${c.id}`)}>
+          Elegir opción de {c.name}
+        </Button>
+      ))}
       {done && p.type === "ADD_TO_CART" && (
         <div className="mt-2 flex gap-2">
           <Button size="sm" variant="outline" className="flex-1 rounded-full" onClick={() => onGo("/carrito")}>Ver carrito</Button>

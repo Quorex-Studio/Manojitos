@@ -21,7 +21,9 @@ export const productSchema = z.object({
   description: z.string().max(2000, 'Máximo 2000 caracteres').optional().nullable().transform(val => val ? sanitizeText(val) : val),
   category: z.string().max(100, 'Máximo 100 caracteres').optional().nullable().transform(val => val ? sanitizeText(val) : val),
   image_url: z.string().url('URL inválida').max(500).optional().nullable(),
-  sizes: z.array(z.enum(['Única', 'S', 'M', 'L', 'XL'])).optional().nullable(),
+  // Tallas o tonos que elige la clienta (según la categoría)
+  sizes: z.array(z.string().trim().min(1).max(30)).max(30).optional().nullable(),
+  presentation: z.string().trim().max(60, 'Máximo 60 caracteres').optional().nullable().transform(val => val ? sanitizeText(val) : null),
 });
 
 export type ProductInput = z.infer<typeof productSchema>;

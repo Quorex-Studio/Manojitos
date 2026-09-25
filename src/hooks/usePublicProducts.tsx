@@ -8,22 +8,24 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PublicProduct } from '@/types';
+import { useProductCategories } from './useProductCategories';
 
 export type { PublicProduct };
 
 
 // Hook para obtener productos públicos
 export function usePublicProducts() {
+  const { categories: configured } = useProductCategories();
 
   const { data: products = [], isLoading, refetch } = useQuery({
     queryKey: ['public-products'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, description, price_usd, stock, category, image_url, sold_count, created_at')
+        .select('id, name, description, price_usd, stock, category, image_url, sizes, presentation, sold_count, created_at')
         .gt('stock', 0) // Solo productos con stock
         .order('created_at', { ascending: false })
-        .limit(100); // Limitar a 100 productos para carga inicial
+        .limit(1000); // todo el catálogo con stock (antes 100 escondía productos)
 
       if (error) throw error;
       return data as PublicProduct[];
@@ -33,12 +35,13 @@ export function usePublicProducts() {
     refetchOnWindowFocus: false, // No recargar al cambiar de tab
   });
 
-  // Derivar categorías de los datos en caché
+  // Categorías con productos disponibles, en el orden de Configuración → Categorías
+  const order = new Map(configured.map((c, i) => [c.name, i]));
   const categories = [...new Set(
     products
       .map(p => p.category)
       .filter((c): c is string => c !== null && c.trim() !== '')
-  )];
+  )].sort((a, b) => (order.get(a) ?? 999) - (order.get(b) ?? 999) || a.localeCompare(b));
 
   // Función helper para obtener un producto específico (usa caché si existe)
   const getProductById = async (id: string): Promise<PublicProduct | null> => {
@@ -49,7 +52,7 @@ export function usePublicProducts() {
     // Si no está en caché (ej. navegación directa), buscar en DB
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, description, price_usd, stock, category, image_url, sold_count, created_at')
+      .select('id, name, description, price_usd, stock, category, image_url, sizes, presentation, sold_count, created_at')
       .eq('id', id)
       .maybeSingle();
 

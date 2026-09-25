@@ -18,6 +18,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { formatBS } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
+import { useProductCategories } from '@/hooks/useProductCategories';
+import { CategoryDetailFields } from '@/components/products/CategoryDetailFields';
+import { usesPresentation, usesVariants } from '@/lib/productCategories';
 
 // ── Pricing helper ──
 function eurToUsd(eur: number, usdRate: number, eurRate: number): number {
@@ -32,6 +36,7 @@ export default function Products() {
   const { rate: usdRate, rates, convertToBS } = useExchangeRate();
   const eurRate = rates?.EUR?.rate ?? 0;
   const { config: pricingConfig, calculatePrices } = usePricingConfig();
+  const { categories, byName } = useProductCategories();
   const [search, setSearch] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   // Filtros en la URL: el KPI "Stock bajo" del panel enlaza a /products?stock=bajo
@@ -60,6 +65,7 @@ export default function Products() {
     category: '',
     image_url: '',
     sizes: [] as string[],
+    presentation: '',
   });
 
   // Cost calculator fields
@@ -139,11 +145,13 @@ export default function Products() {
     }
   });
 
-  const existingCategories = [...new Set(
-    products
-      .map(p => p.category)
-      .filter((c): c is string => c !== null && c.trim() !== '')
-  )];
+  // Categorías configuradas + las que aún tengan productos viejos (para no esconderlos)
+  const existingCategories = [...new Set([
+    ...categories.map(c => c.name),
+    ...products.map(p => p.category).filter((c): c is string => !!c && c.trim() !== ''),
+  ])];
+  const selectedCategory = byName(form.category);
+  const legacyCategory = form.category && !selectedCategory ? form.category : null;
 
   // Paginación
   const {
@@ -263,7 +271,7 @@ export default function Products() {
   }, [showCalculator, costCalc.purchaseMerchUsd, eurRate, form.price_eur, form.price_usd, handlePriceEurBlur, handlePriceUsdBlur, usdRate]);
 
   const resetForm = () => {
-    setForm({ name: '', description: '', price_usd: '', price_eur: '', price_bs_usd: '', stock: '', category: '', image_url: '', sizes: [] });
+    setForm({ name: '', description: '', price_usd: '', price_eur: '', price_bs_usd: '', stock: '', category: '', image_url: '', sizes: [], presentation: '' });
     setCostCalc({ purchaseMerchUsd: '', purchaseShippingUsd: '', purchaseUnits: '', bsSurchargePct: '15', addToStock: true });
     setCalculatedPrices({ costPerUnit: 0, costRounded: 0, priceWholesaleEur: 0, priceRetailEur: 0, priceCreditEur: 0 });
     setShowCalculator(false);
@@ -286,7 +294,8 @@ export default function Products() {
       stock: String(product.stock),
       category: product.category || '',
       image_url: product.image_url || '',
-      sizes: product.sizes || []
+      sizes: (product.sizes || []).filter(s => s !== 'Única'),
+      presentation: product.presentation || '',
     });
 
     // If product has cost data, populate the calculator
@@ -320,6 +329,14 @@ export default function Products() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.category) {
+      toast({ title: 'Elige una categoría', description: 'Así el producto aparece en la sección correcta de la tienda.', variant: 'destructive' });
+      return;
+    }
+    if (selectedCategory?.detail_kind === 'tallas' && form.sizes.length === 0) {
+      toast({ title: 'Marca al menos una talla', variant: 'destructive' });
+      return;
+    }
 
     const { sanitizeText } = await import('@/lib/validations');
     const productData = {
@@ -333,9 +350,11 @@ export default function Products() {
         ? Number(form.price_eur) * (1 + (pricingConfig?.retail_markup_pct ?? 15) / 100) 
         : (calculatedPrices.priceRetailEur || 0),
       stock: Number(form.stock),
-      category: form.category ? sanitizeText(form.category) : null,
+      category: form.category || null,
       image_url: form.image_url ? sanitizeText(form.image_url) : null,
-      sizes: form.sizes.length > 0 ? form.sizes : null
+      // Solo se guarda el detalle que pide la categoría; lo demás se limpia
+      sizes: usesVariants(selectedCategory?.detail_kind) && form.sizes.length > 0 ? form.sizes : null,
+      presentation: usesPresentation(selectedCategory?.detail_kind) && form.presentation.trim() ? form.presentation.trim() : null,
     };
 
     if (editingProduct) {
@@ -401,6 +420,39 @@ export default function Products() {
                     required
                   />
                 </div>
+                {/* ── CATEGORÍA Y SU DETALLE (ml, medidas, tallas o tonos) ── */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="p-category">Categoría *</Label>
+                    <Link to="/settings?tab=categorias" className="text-xs font-medium text-primary hover:underline">Administrar categorías</Link>
+                  </div>
+                  <Select
+                    value={form.category || undefined}
+                    onValueChange={(val) => setForm(prev => {
+                      const next = byName(val);
+                      // Al cambiar de tipo de detalle se descarta lo que ya no aplica
+                      const sameKind = next?.detail_kind === byName(prev.category)?.detail_kind;
+                      return { ...prev, category: val, sizes: sameKind ? prev.sizes : [], presentation: sameKind ? prev.presentation : '' };
+                    })}
+                  >
+                    <SelectTrigger id="p-category" className="h-11 rounded-xl">
+                      <SelectValue placeholder="Elige una categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                      {legacyCategory && <SelectItem value={legacyCategory}>{legacyCategory} (sin configurar)</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                  {legacyCategory && (
+                    <p className="text-xs text-muted-foreground">Esta categoría no está en Configuración. Elige una de la lista o créala allí.</p>
+                  )}
+                </div>
+                <CategoryDetailFields
+                  category={selectedCategory}
+                  presentation={form.presentation}
+                  sizes={form.sizes}
+                  onChange={(next) => setForm(prev => ({ ...prev, ...next }))}
+                />
                 <div className="space-y-2">
                   <Label>Descripción</Label>
                   <Textarea
@@ -759,22 +811,6 @@ export default function Products() {
                   </motion.div>
                 )}
 
-                {/* ── CATEGORÍA, IMAGEN, TALLAS ── */}
-                <div className="space-y-2">
-                  <Label>Categoría</Label>
-                  <Input
-                    list="categories-list"
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50) })}
-                    placeholder="Ej: Accesorios, Ropa..."
-                    className="input-glass rounded-xl"
-                  />
-                  <datalist id="categories-list">
-                    {existingCategories.map(cat => (
-                      <option key={cat} value={cat} />
-                    ))}
-                  </datalist>
-                </div>
                 <div className="space-y-2">
                   <Label>URL de imagen</Label>
                   <Input
@@ -784,44 +820,6 @@ export default function Products() {
                     placeholder="https://..."
                     className="input-glass rounded-xl"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tallas disponibles</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {(['Única', 'S', 'M', 'L', 'XL'] as const).map((size) => {
-                      const isUnique = size === 'Única';
-                      const hasOtherSizes = form.sizes.some(s => s !== 'Única');
-                      const isSelected = form.sizes.includes(size);
-                      const isDisabled = isUnique ? hasOtherSizes : form.sizes.includes('Única');
-                      return (
-                        <button
-                          key={size}
-                          type="button"
-                          disabled={isDisabled}
-                          onClick={() => {
-                            if (isSelected) {
-                              setForm({ ...form, sizes: form.sizes.filter(s => s !== size) });
-                            } else {
-                              const newSizes = isUnique ? ['Única'] : form.sizes.filter(s => s !== 'Única').concat(size);
-                              setForm({ ...form, sizes: newSizes });
-                            }
-                          }}
-                          className={[
-                            'px-3 py-1.5 rounded-lg text-sm font-medium border transition-all',
-                            isSelected
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-card/80 border-border/40 text-muted-foreground hover:border-primary/50',
-                            isDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'
-                          ].join(' ')}
-                        >
-                          {size === 'Única' ? 'Talla Única' : size}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {form.sizes.length === 0 && (
-                    <p className="text-xs text-muted-foreground">Sin tallas (aplica para todos)</p>
-                  )}
                 </div>
 
                 <Button type="submit" className="w-full btn-gold rounded-xl">
@@ -936,6 +934,11 @@ export default function Products() {
                 <div className="flex min-w-0 flex-1 flex-col sm:p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{product.category || 'Sin categoría'}</p>
                   <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground sm:text-base">{product.name}</h3>
+                  {(product.presentation || (product.sizes?.length ?? 0) > 1) && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {product.presentation || product.sizes!.filter(s => s !== 'Única').join(' · ')}
+                    </p>
+                  )}
                   <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                     <span className="text-base font-bold tabular-nums text-foreground">${Number(product.price_usd).toFixed(2)}</span>
                     {usdRate > 0 && <span className="text-xs tabular-nums text-muted-foreground">{formatBS(convertToBS(Number(product.price_usd)))}</span>}
