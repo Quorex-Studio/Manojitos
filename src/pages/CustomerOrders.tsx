@@ -17,7 +17,8 @@ import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/contexts/CartContext';
 import { ReceiptDialog } from '@/components/receipts/ReceiptDialog';
-import { receiptNumber, type ReceiptData } from '@/lib/receipt';
+import { receiptNumber, type ReceiptData, type ReceiptPayment } from '@/lib/receipt';
+import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderItem } from '@/types';
 
 type ExtendedOrderItem = OrderItem & { id?: string; price?: number; price_usd?: number };
@@ -191,6 +192,25 @@ function OrderList({ orders, emptyAll }: { orders: ReturnType<typeof useCustomer
   };
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
+  const [receiptPayments, setReceiptPayments] = useState<ReceiptPayment[]>([]);
+
+  // Compra a crédito hecha en la tienda física: el recibo trae sus abonos uno por uno
+  const openReceipt = async (order: Order) => {
+    setReceiptPayments([]);
+    setReceiptOrder(order);
+    if (order.source !== 'sale' || !order.is_credit) return;
+    const filters = [`sale_group_id.eq.${order.sale_group_id || order.id}`];
+    if (order.sale_ids?.length) filters.push(`sale_id.in.(${order.sale_ids.join(',')})`);
+    const { data, error } = await supabase
+      .from('sale_payments')
+      .select('amount_usd, amount_bs, payment_method, created_at, status')
+      .or(filters.join(','))
+      .order('created_at', { ascending: true });
+    if (error) return;
+    setReceiptPayments((data || [])
+      .filter(p => (p as { status?: string }).status !== 'void')
+      .map(p => ({ date: new Date(p.created_at ?? Date.now()), amount: Number(p.amount_usd), method: p.payment_method, amountBs: p.amount_bs ? Number(p.amount_bs) : null })));
+  };
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
 
   const getItemDisplay = (item: ExtendedOrderItem): { name: string; total: number } => {
@@ -220,8 +240,10 @@ function OrderList({ orders, emptyAll }: { orders: ReturnType<typeof useCustomer
 
   const toReceipt = (order: Order): ReceiptData => {
     const items = (order.items || []) as ExtendedOrderItem[];
+    const isSale = order.source === 'sale';
+    const credit = isSale && order.is_credit;
     return {
-      kind: 'pedido',
+      kind: isSale ? 'venta' : 'pedido',
       number: receiptNumber(order.id),
       date: new Date(order.created_at),
       customerName: order.customer_name,
@@ -234,7 +256,8 @@ function OrderList({ orders, emptyAll }: { orders: ReturnType<typeof useCustomer
       delivery: Number(order.delivery_fee) || 0,
       total: Number(order.total_usd) || 0,
       totalBs: Number(order.total_bs) || null,
-      status: order.payment_status === 'paid' ? 'pagado' : 'pendiente',
+      ...(credit ? { paid: order.amount_paid ?? 0, payments: receiptPayments } : {}),
+      status: order.payment_status === 'paid' ? 'pagado' : credit ? 'por_cobrar' : 'pendiente',
     };
   };
 
@@ -242,7 +265,10 @@ function OrderList({ orders, emptyAll }: { orders: ReturnType<typeof useCustomer
     <div className="space-y-4">
       {orders.map(order => {
         const statusConfig = ORDER_STATUS_LABELS[order.status] || ORDER_STATUS_LABELS.pending;
-        const paymentConfig = PAYMENT_STATUS_LABELS[order.payment_status] || PAYMENT_STATUS_LABELS.pending;
+        const owes = order.source === 'sale' && order.is_credit && order.payment_status !== 'paid';
+        const paymentConfig = owes
+          ? { label: `Por pagar · debes $${Math.max(0, order.total_usd - (order.amount_paid ?? 0)).toFixed(2)}`, color: 'text-amber-700 dark:text-amber-400' }
+          : PAYMENT_STATUS_LABELS[order.payment_status] || PAYMENT_STATUS_LABELS.pending;
         const items = (order.items || []) as ExtendedOrderItem[];
         const units = items.reduce((n, it) => n + Number(it.quantity || 0), 0);
         const canReorder = items.some(it => it.product_id && it.id !== 'credit_payment' && it.id !== 'credit_request');
@@ -257,7 +283,7 @@ function OrderList({ orders, emptyAll }: { orders: ReturnType<typeof useCustomer
             <div className="space-y-4 p-4 md:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Pedido #{order.id.slice(0, 8).toUpperCase()}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{order.source === 'sale' ? 'Compra en tienda' : 'Pedido'} #{order.id.slice(0, 8).toUpperCase()}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     {format(new Date(order.created_at), "d 'de' MMMM, yyyy", { locale: es })} · {units} {units === 1 ? 'artículo' : 'artículos'}
                   </p>
@@ -309,7 +335,7 @@ function OrderList({ orders, emptyAll }: { orders: ReturnType<typeof useCustomer
                 <Button variant="outline" size="sm" className="rounded-full" onClick={() => setTrackingOrder(order)}>
                   <Truck className="mr-1.5 h-4 w-4" />Seguir
                 </Button>
-                <Button variant="outline" size="sm" className="rounded-full" onClick={() => setReceiptOrder(order)}>
+                <Button variant="outline" size="sm" className="rounded-full" onClick={() => openReceipt(order)}>
                   <Receipt className="mr-1.5 h-4 w-4" />Recibo
                 </Button>
                 {canReorder ? (

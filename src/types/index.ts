@@ -175,6 +175,12 @@ export interface Order {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  /** Solo en ventas registradas en el panel (se muestran junto a los pedidos de la clienta) */
+  source?: 'order' | 'sale';
+  sale_group_id?: string | null;
+  sale_ids?: string[];
+  is_credit?: boolean;
+  amount_paid?: number;
 }
 
 export interface CheckoutItem {
