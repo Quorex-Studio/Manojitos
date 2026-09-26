@@ -17,6 +17,8 @@ export interface CustomerProfile {
   full_name: string | null;
   phone: string;
   phone_verified: boolean;
+  /** Cuenta creada desde el panel: debe completar su perfil al entrar */
+  profile_pending?: boolean;
   email: string | null;
   address: string | null;
   city: string | null;

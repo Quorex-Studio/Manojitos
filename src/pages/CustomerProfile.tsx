@@ -64,7 +64,7 @@ export default function CustomerProfile() {
   const initialTab = ['dashboard', 'profile', 'kyc', 'purchases'].includes(searchParams.get('tab') || '')
     ? searchParams.get('tab')!
     : 'dashboard';
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState(searchParams.get('completar') ? 'profile' : initialTab);
 
   // --- KYC STATE ---
   const [kycFiles, setKycFiles] = useState<{
@@ -126,6 +126,13 @@ export default function CustomerProfile() {
   }, [profile, form]);
 
   const onSubmit = (data: ProfileFormData) => {
+    if (profile?.profile_pending) {
+      const falta = [!data.full_name && 'tu nombre', !data.dni && 'tu cédula', !data.address && 'tu dirección'].filter(Boolean);
+      if (falta.length) {
+        toast({ title: 'Faltan datos', description: `Para terminar tu perfil agrega ${falta.join(' y ')}.`, variant: 'destructive' });
+        return;
+      }
+    }
     upsertProfile.mutate(data as CustomerProfileInput);
   };
 
@@ -321,6 +328,16 @@ export default function CustomerProfile() {
               </div>
             </div>
           </div>
+
+          {/* Cuenta creada por la tienda: debe completar sus datos antes de seguir */}
+          {profile?.profile_pending && (
+            <div role="status" className="mb-6 rounded-2xl border border-primary/25 bg-primary/5 p-4 sm:p-5">
+              <p className="font-serif text-xl text-foreground">Completa tu perfil para continuar</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                La tienda creó tu cuenta con tus compras. Revisa tu nombre y teléfono, y agrega tu cédula y tu dirección de entrega. Luego toca «Guardar Cambios».
+              </p>
+            </div>
+          )}
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
             <TabsList className="grid w-full grid-cols-4 p-1 bg-card/80 backdrop-blur-sm border border-border/10 rounded-full h-11">

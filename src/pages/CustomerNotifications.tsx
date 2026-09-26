@@ -183,6 +183,9 @@ function NotificationItem({
         !notification.is_read && "bg-primary/5"
       )}
       onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
     >
       <div className="flex gap-4">
         <div className={cn("p-2 rounded-full h-fit", config.bg)}>

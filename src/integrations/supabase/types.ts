@@ -482,6 +482,7 @@ export type Database = {
           notification_preferences: Json | null
           phone: string | null
           phone_verified: boolean | null
+          profile_pending: boolean
           state: string | null
           updated_at: string
           user_id: string
@@ -505,6 +506,7 @@ export type Database = {
           notification_preferences?: Json | null
           phone?: string | null
           phone_verified?: boolean | null
+          profile_pending?: boolean
           state?: string | null
           updated_at?: string
           user_id: string
@@ -528,6 +530,7 @@ export type Database = {
           notification_preferences?: Json | null
           phone?: string | null
           phone_verified?: boolean | null
+          profile_pending?: boolean
           state?: string | null
           updated_at?: string
           user_id?: string

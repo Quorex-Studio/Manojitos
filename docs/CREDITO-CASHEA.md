@@ -3,6 +3,11 @@
 Estado: **borrador para decidir**. Aplica a las dos tiendas (misma base de código). Lo que es
 propio de una marca va marcado **[marca]**.
 
+> **Decisión (26/09/2026):** por ahora sigue el **Crédito EINA** propio (lo que describe la
+> sección 1). **Cashea** se usará más adelante: EINA está gestionando la afiliación. Cuando esté
+> aprobada, Cashea entra como **método de pago** (la clienta paga su inicial y Cashea financia el
+> resto; la tienda cobra completo), sin reemplazar el Crédito EINA hasta que se decida lo contrario.
+
 ## 1. Cómo funciona hoy el crédito
 
 | Pieza | Qué hace hoy | Dónde |

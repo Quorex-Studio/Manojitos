@@ -80,11 +80,12 @@ const ITEMS_SCHEMA = {
 export const ACTION_TOOL_DECLARATIONS = [
   { name: 'preparar_carrito', description: 'Prepara agregar productos al carrito de la clienta (cuando dice "quiero comprar…", "agrégame…", "me llevo…"). No compra: la clienta confirma y luego paga en el checkout.',
     parameters: { type: 'OBJECT', properties: { items: ITEMS_SCHEMA }, required: ['items'] } },
-  { name: 'preparar_venta', description: 'SOLO ADMIN. Prepara registrar una venta hecha en persona ("vendí 2 bases a María por pago móvil"). Varios productos en una sola venta. modalidad: "contado" (pagada completa) o "fiado" (queda por cobrar, con abono_inicial opcional).',
+  { name: 'preparar_venta', description: 'SOLO ADMIN. Prepara registrar una venta hecha en persona ("vendí 2 bases a María por pago móvil"). Varios productos en una sola venta. modalidad: "contado" (pagada completa) o "fiado" (queda por cobrar, con abono_inicial opcional). Si la clienta es nueva, su correo es obligatorio: con él se le crea su cuenta.',
     parameters: { type: 'OBJECT', properties: {
       items: ITEMS_SCHEMA,
       client_name: { type: 'STRING' },
       client_phone: { type: 'STRING' },
+      client_email: { type: 'STRING', description: 'correo de la clienta; obligatorio si es nueva' },
       payment_method: { type: 'STRING', description: 'pago_movil, transferencia, zelle, binance, zinli, wally, efectivo_usd o efectivo_bs' },
       modalidad: { type: 'STRING', description: 'contado o fiado' },
       abono_inicial: { type: 'NUMBER', description: 'USD pagados hoy en una venta fiada' },
@@ -229,11 +230,29 @@ export async function prepareAction(name: string, args: Record<string, unknown>,
         if (modality === 'fiado' && !clientName) {
           return { status: 'falta_dato', message: 'Una venta fiada necesita el nombre de la clienta. Pregúntalo.' };
         }
+        // Clienta nueva (no está en Clientes): se le crea su cuenta con el correo, que es obligatorio
+        const clientPhone = String(args.client_phone ?? '').trim();
+        const clientEmail = String(args.client_email ?? '').trim().toLowerCase();
+        let newCustomer = false;
+        if (clientName) {
+          const phone10 = clientPhone.replace(/\D/g, '').slice(-10);
+          const { data: byName } = await db.from('customer_profiles').select('user_id').ilike('full_name', clientName).limit(1);
+          const { data: byPhone } = phone10.length === 10
+            ? await db.from('customer_profiles').select('user_id').ilike('phone', `%${phone10}`).limit(1)
+            : { data: [] };
+          const { data: byEmail } = clientEmail
+            ? await db.from('customer_profiles').select('user_id').ilike('email', clientEmail).limit(1)
+            : { data: [] };
+          newCustomer = !byName?.length && !byPhone?.length && !byEmail?.length;
+          if (newCustomer && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clientEmail)) {
+            return { status: 'falta_dato', message: `${clientName} es una clienta nueva: pide su correo (obligatorio, con él se le crea su cuenta y le llega la factura) y su teléfono.` };
+          }
+        }
         const total = round2(resolved!.reduce((s, i) => s + i.quantity * i.unitPrice, 0));
         const abono = modality === 'fiado' ? Math.min(round2(Number(args.abono_inicial) || 0), total) : total;
         const lines = [
           ...resolved!.map(i => `${i.quantity} × ${i.product.name}${i.variant ? ` (${i.variant.label})` : ''} — ${money(i.quantity * i.unitPrice)}`),
-          clientName ? `Cliente: ${clientName}` : 'Cliente: venta de mostrador',
+          clientName ? `Cliente: ${clientName}${newCustomer ? ` (nueva: se crea su cuenta con ${clientEmail})` : ''}` : 'Cliente: venta de mostrador',
           modality === 'contado'
             ? `Pagado completo por ${PAYMENT_LABELS[method!]}`
             : `Fiado · abona hoy ${money(abono)}${abono > 0 && method ? ` por ${PAYMENT_LABELS[method]}` : ''} · queda ${money(total - abono)}`,
@@ -251,7 +270,9 @@ export async function prepareAction(name: string, args: Record<string, unknown>,
               variant_id: i.variant?.id ?? null, variant_label: i.variant?.label ?? null,
             })),
             client_name: clientName || null,
-            client_phone: String(args.client_phone ?? '').trim() || null,
+            client_phone: clientPhone || null,
+            client_email: clientEmail || null,
+            new_customer: newCustomer,
             payment_method: method,
             modality,
             abono_inicial: modality === 'fiado' ? abono : 0,
@@ -388,6 +409,28 @@ export interface ExecuteContext {
   bcvRate: number;
 }
 
+/**
+ * Cuenta de una clienta nueva: correo y SIN contraseña (la crea con "Olvidé mi contraseña") y perfil
+ * por completar. Misma regla que admin-actions/create_customer. Solo se llama tras confirmar una
+ * venta, cuando el servidor ya verificó que quien confirma es admin.
+ */
+async function createCustomerAccount(input: { email: string; full_name: string; phone: string | null }): Promise<{ userId?: string; existing?: boolean; error?: string }> {
+  const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
+  const { data: existingId, error: findError } = await admin.rpc('admin_find_user_by_email', { p_email: input.email });
+  if (findError) return { error: findError.message };
+  if (existingId) return { userId: existingId as string, existing: true };
+  const { data: taken } = await admin.rpc('check_unique_customer_data', { p_phone: input.phone, p_dni: null, p_email: input.email });
+  if (taken?.phone_taken) return { error: 'ese teléfono ya pertenece a otra cuenta' };
+  const { data, error } = await admin.auth.admin.createUser({
+    email: input.email,
+    email_confirm: true,
+    user_metadata: { full_name: input.full_name, phone: input.phone },
+    app_metadata: { created_by_admin: true },
+  });
+  if (error || !data.user) return { error: error?.message ?? 'no se pudo crear la cuenta' };
+  return { userId: data.user.id, existing: false };
+}
+
 const num = (v: unknown) => Number(v) || 0;
 
 export async function executeConfirmedAction(type: string, data: Record<string, unknown>, ctx: ExecuteContext): Promise<{ success: boolean; message: string; detail?: Record<string, unknown> }> {
@@ -411,6 +454,19 @@ export async function executeConfirmedAction(type: string, data: Record<string, 
           const left = v ? v.stock : row.stock;
           if (left < num(it.quantity)) return { success: false, message: `Ya no hay suficiente ${row.name}${v ? ` (${v.label})` : ''} (quedan ${left}).` };
         }
+        // Clienta nueva: primero su cuenta (correo, sin contraseña), para que la venta quede a su nombre
+        let customerUserId: string | null = null;
+        let accountNote = '';
+        if (data.new_customer && data.client_email) {
+          const account = await createCustomerAccount({
+            email: String(data.client_email).trim().toLowerCase(),
+            full_name: String(data.client_name ?? '').trim() || 'Clienta',
+            phone: (data.client_phone as string) || null,
+          });
+          if (!account.userId) return { success: false, message: `No se registró la venta: ${account.error}.` };
+          customerUserId = account.userId;
+          if (!account.existing) accountNote = ` Se creó su cuenta con ${data.client_email}: para entrar, toca «Olvidé mi contraseña» en la tienda.`;
+        }
         const groupId = crypto.randomUUID();
         const rate = ctx.bcvRate > 0 ? ctx.bcvRate : null;
         let total = 0;
@@ -430,6 +486,8 @@ export async function executeConfirmedAction(type: string, data: Record<string, 
             payment_method: method,
             client_name: (data.client_name as string) || null,
             client_phone: (data.client_phone as string) || null,
+            client_email: (data.client_email as string) || null,
+            ...(customerUserId ? { customer_user_id: customerUserId } : {}),
             is_credit: modality === 'fiado',
             sale_modality: modality,
             sale_group_id: groupId,
@@ -457,8 +515,8 @@ export async function executeConfirmedAction(type: string, data: Record<string, 
         return {
           success: true,
           message: modality === 'contado'
-            ? `✅ Venta registrada${who} por ${money(total)}. El inventario ya se actualizó.`
-            : `✅ Venta fiada registrada${who} por ${money(total)}${abono > 0 ? ` con abono de ${money(abono)}` : ''}. Queda por cobrar ${money(round2(total - abono))}.`,
+            ? `✅ Venta registrada${who} por ${money(total)}. El inventario ya se actualizó.${accountNote}`
+            : `✅ Venta fiada registrada${who} por ${money(total)}${abono > 0 ? ` con abono de ${money(abono)}` : ''}. Queda por cobrar ${money(round2(total - abono))}.${accountNote}`,
           detail: { sale_group_id: groupId, total },
         };
       }

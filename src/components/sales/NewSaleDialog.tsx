@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Search, Plus, Minus, Trash2, Loader, User, Check, Package, CloseSquare, ShoppingCart } from 'reicon-react';
+import { createCustomerAccount, isValidEmail } from '@/lib/customerAccounts';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -241,6 +242,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     if (modality !== 'contado' && !hasClient) return 'Las ventas a crédito necesitan un cliente';
     if (clientMode !== 'walkin' && !hasClient) return clientMode === 'search' ? 'Elige un cliente de la lista' : 'Escribe el nombre del cliente';
     if (clientMode === 'new' && !isValidVePhone(phoneNormalized)) return 'Completa el teléfono (7 dígitos después del prefijo)';
+    if (clientMode === 'new' && !isValidEmail(client.email)) return 'Escribe el correo del cliente (se le crea su cuenta)';
     if (modality !== 'fiado' && !method) return 'Elige el método de pago';
     if (isCash && payToday > 0 && receivedNum <= 0) return 'Indica cuánto recibiste';
     if (cashShort) return 'El monto recibido no alcanza';
@@ -265,6 +267,27 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
       finalNotes = `[FINANCIAMIENTO ${BRAND_NAME_UPPER} +${surchargePct}% - Inicial 33%, Cuota 1: ${formatCutoffDate(cut1)}, Cuota 2: ${formatCutoffDate(cut2)}] ${finalNotes}`.trim();
     } else if (modality === 'fiado') {
       finalNotes = `[FIADO QUINCENA - 100% al ${formatCutoffDate(cut1)}] ${finalNotes}`.trim();
+    }
+
+    // Cliente nuevo: primero su cuenta (correo, sin contraseña), para que la venta quede a su nombre
+    let customerUserId: string | null = null;
+    let accountCreated = false;
+    if (clientMode === 'new') {
+      try {
+        const account = await createCustomerAccount({
+          email: client.email.trim().toLowerCase(),
+          full_name: sanitizeText(client.name.trim()),
+          phone: phoneNormalized || null,
+          dni: client.dni.trim() || null,
+          address: client.address.trim() ? sanitizeText(client.address.trim()) : null,
+        });
+        customerUserId = account.userId;
+        accountCreated = !account.existing;
+      } catch (err) {
+        toast.error('No se pudo crear la cuenta del cliente', { description: err instanceof Error ? err.message : String(err) });
+        setSubmitting(false);
+        return;
+      }
     }
 
     const isCredit = modality !== 'contado';
@@ -293,6 +316,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
         client_name: withClient && client.name ? sanitizeText(client.name) : null,
         client_dni: withClient && client.dni ? sanitizeText(client.dni) : null,
         client_email: withClient && client.email ? sanitizeText(client.email) : null,
+        ...(customerUserId ? { customer_user_id: customerUserId } : {}),
         client_phone: withClient && phoneNormalized ? phoneNormalized : null,
         client_address: withClient && client.address ? sanitizeText(client.address) : null,
         is_credit: isCredit,
@@ -307,31 +331,14 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
       if (data?.id) await confirmSale(data.id);
     }
 
-    // Cliente nuevo: guardar su perfil para encontrarlo la próxima vez
-    if (!failed && clientMode === 'new' && client.name.trim()) {
-      try {
-        const profile = {
-          full_name: sanitizeText(client.name.trim()),
-          dni: client.dni.trim() || null,
-          phone: phoneNormalized || null,
-          email: client.email.trim() || null,
-          address: client.address.trim() || null,
-        };
-        const lookup = profile.dni ? { col: 'dni', val: profile.dni } : profile.phone ? { col: 'phone', val: profile.phone } : null;
-        const { data: existing } = lookup
-          ? await supabase.from('customer_profiles').select('id').eq(lookup.col, lookup.val).maybeSingle()
-          : { data: null };
-        if (existing) await supabase.from('customer_profiles').update(profile).eq('id', existing.id);
-        else await supabase.from('customer_profiles').insert({ ...profile, user_id: crypto.randomUUID() });
-        queryClient.invalidateQueries({ queryKey: ['customers'] });
-      } catch (err) {
-        console.warn('No se pudo guardar el perfil del cliente:', err);
-      }
-    }
+    if (!failed && clientMode === 'new') queryClient.invalidateQueries({ queryKey: ['customers'] });
 
     setSubmitting(false);
     if (!failed) {
-      toast.success('Venta registrada', { description: `$${total.toFixed(2)}${hasClient ? ` · ${client.name}` : ''}` });
+      toast.success('Venta registrada', {
+        description: `$${total.toFixed(2)}${hasClient ? ` · ${client.name}` : ''}${accountCreated ? `. Se creó su cuenta con ${client.email.trim()}: para entrar, toca «Olvidé mi contraseña» en la tienda.` : ''}`,
+        duration: accountCreated ? 9000 : undefined,
+      });
       onCreated?.();
       close(false);
     }
@@ -532,7 +539,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                     <DocumentIdInput id="ns-dni" value={client.dni} onChange={dni => setClient(c => ({ ...c, dni }))} inputClassName="h-11 rounded-xl" />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="ns-phone">Teléfono</Label>
+                    <Label htmlFor="ns-phone">Teléfono *</Label>
                     <PhoneInput
                       id="ns-phone"
                       value={client.phone}
@@ -541,13 +548,16 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="ns-email">Correo</Label>
-                    <Input id="ns-email" type="email" value={client.email} onChange={e => setClient(c => ({ ...c, email: e.target.value.slice(0, 100) }))} placeholder="para enviarle la factura" className="h-11 rounded-xl" />
+                    <Label htmlFor="ns-email">Correo *</Label>
+                    <Input id="ns-email" type="email" inputMode="email" autoComplete="off" value={client.email} onChange={e => setClient(c => ({ ...c, email: e.target.value.replace(/\s/g, '').slice(0, 100) }))} placeholder="nombre@correo.com" className={cn('h-11 rounded-xl', client.email && !isValidEmail(client.email) && 'border-sale')} />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="ns-address">Dirección</Label>
                     <Input id="ns-address" value={client.address} onChange={e => setClient(c => ({ ...c, address: e.target.value.slice(0, 150) }))} placeholder="opcional" className="h-11 rounded-xl" />
                   </div>
+                  <p className="text-xs text-muted-foreground sm:col-span-2">
+                    Con el correo se le crea su cuenta y le llega la factura. Para entrar, toca «Olvidé mi contraseña» en la tienda, crea su contraseña y completa su perfil.
+                  </p>
                 </div>
               )}
             </div>

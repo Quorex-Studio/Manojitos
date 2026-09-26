@@ -88,6 +88,8 @@ export function useCustomerProfile() {
         zip_code: validated.zip_code,
         notes: validated.notes,
         notification_preferences: validated.notification_preferences as Json,
+        // Con nombre, teléfono, cédula y dirección el perfil queda completo (cuentas creadas en el panel)
+        ...(validated.full_name && validated.phone && validated.dni && validated.address ? { profile_pending: false } : {}),
       };
 
       const { data, error } = await supabase
