@@ -4,8 +4,9 @@ project_id = "utfoempgdbhhikpvbvir"
 [functions.get-bcv-rate]
 verify_jwt = false
 
+# Se autentica sola: firma del hook de Auth, sesión de la usuaria o x-cron-secret (cola de correos)
 [functions.send-email]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-credit-notifications]
 verify_jwt = true

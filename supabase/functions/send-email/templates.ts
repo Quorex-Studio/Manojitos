@@ -246,3 +246,72 @@ export const createCreditReminderEmail = (title: string, message: string) => lay
     ${button(`${SITE_URL}/cliente/credito`, "Ver mi crédito")}
   `,
 });
+
+// ── Notificaciones y facturas automáticas (cola email_outbox) ────────────────
+/** Cualquier notificación de la campana, también por correo. */
+export const createNotificationEmail = (opts: { title: string; message: string; link: string; linkLabel: string }) => layout({
+  preheader: opts.message.slice(0, 120),
+  title: opts.title,
+  body: `
+    <p>${esc(opts.message)}</p>
+    ${button(`${SITE_URL}${opts.link}`, opts.linkLabel)}
+  `,
+});
+
+export interface ReceiptEmailData {
+  number: string;
+  date: string;
+  client_name?: string | null;
+  payment_method?: string | null;
+  items: { name: string; quantity: number; price_usd: number }[];
+  total_usd: number;
+  total_bs?: number | null;
+  credit: boolean;
+  paid: number;
+  payments: { date: string; method?: string | null; amount_usd: number; amount_bs?: number | null }[];
+  /** Si viene, el correo destaca ese abono ("Recibimos tu abono de $X") */
+  new_payment_usd?: number;
+}
+
+const bsText = (n: number) => `Bs ${n.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Factura de una venta (en tienda o por pedido aprobado), con el detalle de abonos si es a crédito. */
+export const createSaleReceiptEmail = (d: ReceiptEmailData) => {
+  const balance = Math.max(0, Math.round((d.total_usd - d.paid) * 100) / 100);
+  const title = d.new_payment_usd !== undefined ? "Recibimos tu abono" : "Tu factura";
+  const intro = d.new_payment_usd !== undefined
+    ? `Registramos tu abono de <strong>${money(d.new_payment_usd)}</strong>. Aquí está tu factura actualizada.`
+    : `Gracias por tu compra en ${esc(BRAND_NAME)}. Esta es tu factura.`;
+  const row = (label: string, value: string, strong = false) =>
+    `<tr><td style="padding:3px 0;${strong ? "font-weight:bold;font-size:16px;" : ""}">${label}</td><td style="padding:3px 0;text-align:right;${strong ? "font-weight:bold;font-size:16px;" : ""}">${value}</td></tr>`;
+  return layout({
+    preheader: `${title} ${d.number} · ${money(d.total_usd)}`,
+    title,
+    body: `
+      <p>${d.client_name ? `Hola ${esc(d.client_name)}. ` : ""}${intro}</p>
+      ${box(`
+        <div style="display:flex;justify-content:space-between;"><strong>Factura ${esc(d.number)}</strong></div>
+        <div style="color:#8a7f83;font-size:13px;">${esc(d.date)}${!d.credit && d.payment_method ? ` · ${methodLabel(d.payment_method ?? undefined)}` : ""}</div>
+        ${itemsTable(d.items)}
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;margin-top:10px;">
+          ${row("Total", money(d.total_usd), true)}
+          ${d.total_bs ? row("Total en bolívares", bsText(d.total_bs)) : ""}
+        </table>
+        ${d.credit && d.payments.length ? `
+          <div style="margin-top:14px;font-weight:bold;color:${BRAND_COLOR};font-size:12px;letter-spacing:1px;text-transform:uppercase;">Abonos</div>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;margin-top:4px;">
+            ${d.payments.map(p => `<tr>
+              <td style="padding:4px 0;border-bottom:1px solid #eadfd3;color:#5c5357;">${esc(p.date)}${p.method ? ` · ${methodLabel(p.method ?? undefined)}` : ""}${p.amount_bs ? ` · ${bsText(p.amount_bs)}` : ""}</td>
+              <td style="padding:4px 0;border-bottom:1px solid #eadfd3;text-align:right;white-space:nowrap;">${money(p.amount_usd)}</td>
+            </tr>`).join("")}
+          </table>` : ""}
+        ${d.credit ? `
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;margin-top:10px;">
+            ${row("Abonado", money(d.paid))}
+            ${row(balance > 0 ? "Saldo pendiente" : "Saldo", balance > 0 ? money(balance) : "Pagada", true)}
+          </table>` : ""}
+      `)}
+      ${button(`${SITE_URL}/cliente/pedidos`, "Ver mis compras")}
+    `,
+  });
+};

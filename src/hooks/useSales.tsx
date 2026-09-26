@@ -7,7 +7,6 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { notifyAdminNewOrder } from '@/lib/notify';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { saleSchema, validateInput } from '@/lib/validations';
@@ -291,7 +290,7 @@ export function useSales() {
             }
           }
         }).catch(fnError => console.error('Error enviando recibo de compra:', fnError));
-        if (orderId) notifyAdminNewOrder(orderId);
+        // El aviso a la administración sale solo: trigger en orders → notificación → correo (email_outbox)
 
         return { error: null, saleIds: data.sale_ids };
       } else {

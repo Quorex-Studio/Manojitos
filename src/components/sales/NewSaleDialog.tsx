@@ -542,7 +542,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="ns-email">Correo</Label>
-                    <Input id="ns-email" type="email" value={client.email} onChange={e => setClient(c => ({ ...c, email: e.target.value.slice(0, 100) }))} placeholder="opcional" className="h-11 rounded-xl" />
+                    <Input id="ns-email" type="email" value={client.email} onChange={e => setClient(c => ({ ...c, email: e.target.value.slice(0, 100) }))} placeholder="para enviarle la factura" className="h-11 rounded-xl" />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="ns-address">Dirección</Label>

@@ -5,6 +5,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 import { getEmailSecret } from "./config.ts";
+import { processOutbox } from "./outbox.ts";
 import {
   createWelcomeEmail,
   createCheckoutEmail,
@@ -75,6 +76,25 @@ serve(async (req) => {
 
     const rawBody = await req.text();
     const body = JSON.parse(rawBody);
+
+    // ===== FLUJO 3: COLA DE CORREOS AUTOMÁTICOS (pg_cron, cada 20 s) =====
+    // Notificaciones y facturas. Se autentica con el secreto del cron (Vault), no con un usuario.
+    if (body?.process_outbox) {
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const provided = req.headers.get("x-cron-secret") ?? "";
+      const { data: ok } = await admin.rpc("verify_cron_secret", { p_secret: provided });
+      if (ok !== true) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const summary = await processOutbox({ admin, mailer, from: await getFromEmail(), getAdminEmails });
+      return new Response(JSON.stringify({ success: true, ...summary }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const isWebhook = body.user && body.email_data;
 
