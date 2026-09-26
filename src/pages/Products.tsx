@@ -38,8 +38,9 @@ export default function Products() {
   const eurRate = rates?.EUR?.rate ?? 0;
   const { config: pricingConfig, calculatePrices } = usePricingConfig();
   const { categories, byName } = useProductCategories();
-  const [search, setSearch] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
+  // ?q= abre la lista ya buscando (p. ej. desde "Productos pedidos" → Reponer stock)
+  const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
   // Filtros en la URL: el KPI "Stock bajo" del panel enlaza a /products?stock=bajo
   const categoryFilter = searchParams.get('categoria') || 'all';
   const stockFilter = (searchParams.get('stock') || 'todos') as 'todos' | 'bajo' | 'agotado';

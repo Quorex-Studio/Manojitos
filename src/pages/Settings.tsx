@@ -6,6 +6,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Loader, Refresh, DollarSign, Euro, Calculator, CreditCard, Moon, Sun, Plus, Edit, Trash2, TickCircle, AlertTriangle, Category } from 'reicon-react';
 import { useSearchParams } from 'react-router-dom';
 import { CategoriesSettings } from '@/components/settings/CategoriesSettings';
+import { OwnerAlertsSettings } from '@/components/settings/OwnerAlertsSettings';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
@@ -389,6 +390,7 @@ export default function Settings() {
                 </div>
               </div>
             </SectionCard>
+            <OwnerAlertsSettings />
           </TabsContent>
         </Tabs>
       </div>

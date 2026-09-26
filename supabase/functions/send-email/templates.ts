@@ -253,7 +253,7 @@ export const createNotificationEmail = (opts: { title: string; message: string; 
   preheader: opts.message.slice(0, 120),
   title: opts.title,
   body: `
-    <p>${esc(opts.message)}</p>
+    <p style="white-space:pre-line;">${esc(opts.message)}</p>
     ${button(`${SITE_URL}${opts.link}`, opts.linkLabel)}
   `,
 });

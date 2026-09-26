@@ -19,6 +19,8 @@ const Products = lazy(() => import("./pages/Products"));
 const Sales = lazy(() => import("./pages/Sales"));
 const Providers = lazy(() => import("./pages/Providers"));
 const Reports = lazy(() => import("./pages/Reports"));
+const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
+const ProductRequests = lazy(() => import("./pages/ProductRequests"));
 const Settings = lazy(() => import("./pages/Settings"));
 const ImportProducts = lazy(() => import("./pages/ImportProducts"));
 const Credits = lazy(() => import("./pages/Credits"));
@@ -208,6 +210,8 @@ function AppRoutes() {
       <Route path="/credits" element={<LazyPage><ProtectedRoute><Credits /></ProtectedRoute></LazyPage>} />
       <Route path="/providers" element={<LazyPage><ProtectedRoute><Providers /></ProtectedRoute></LazyPage>} />
       <Route path="/reports" element={<LazyPage><ProtectedRoute><Reports /></ProtectedRoute></LazyPage>} />
+      <Route path="/notificaciones" element={<LazyPage><ProtectedRoute><AdminNotifications /></ProtectedRoute></LazyPage>} />
+      <Route path="/solicitudes" element={<LazyPage><ProtectedRoute><ProductRequests /></ProtectedRoute></LazyPage>} />
       <Route path="/settings" element={<LazyPage><ProtectedRoute><Settings /></ProtectedRoute></LazyPage>} />
       <Route path="/import-products" element={<LazyPage><ProtectedRoute><ImportProducts /></ProtectedRoute></LazyPage>} />
       <Route path="/reglas" element={<LazyPage><ProtectedRoute><BusinessRules /></ProtectedRoute></LazyPage>} />

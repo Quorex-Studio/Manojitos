@@ -292,7 +292,7 @@ export function useSales() {
         }).catch(fnError => console.error('Error enviando recibo de compra:', fnError));
         // El aviso a la administración sale solo: trigger en orders → notificación → correo (email_outbox)
 
-        return { error: null, saleIds: data.sale_ids };
+        return { error: null, saleIds: data.sale_ids as string[], orderId: orderId as string | undefined };
       } else {
         throw new Error('La transacción no se pudo completar');
       }

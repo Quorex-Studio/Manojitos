@@ -15,6 +15,7 @@ import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { BrandLogo } from '@/components/brand/BrandLogo';
+import { NotificationDetailDialog, type DetailNotification } from '@/components/notifications/NotificationDetailDialog';
 
 // Header de la tienda — Editorial luxury frosted glass
 export function StoreHeader() {
@@ -238,14 +239,7 @@ function CustomerNotificationBell() {
   const [open, setOpen] = useState(false);
   const recent = notifications.slice(0, 5);
 
-  const goToNotification = (notif: { metadata: Record<string, unknown> | null; credit_id: string | null }) => {
-    setOpen(false);
-    if (notif.metadata?.order_id) {
-      navigate('/cliente/pedidos');
-    } else if (notif.credit_id) {
-      navigate('/cliente/credito');
-    }
-  };
+  const [selected, setSelected] = useState<DetailNotification | null>(null);
 
   return (
     <div className="relative">
@@ -308,7 +302,7 @@ function CustomerNotificationBell() {
                 ) : recent.map(n => (
                   <div
                     key={n.id}
-                    onClick={() => { if (!n.is_read) markAsRead.mutate(n.id); goToNotification(n); }}
+                    onClick={() => { if (!n.is_read) markAsRead.mutate(n.id); setOpen(false); setSelected(n); }}
                     className={`p-3 cursor-pointer hover:bg-muted/40 transition-colors ${!n.is_read ? 'bg-primary/5' : ''}`}
                   >
                     <div className="flex items-start gap-2">
@@ -339,6 +333,7 @@ function CustomerNotificationBell() {
           </>
         )}
       </AnimatePresence>
+      <NotificationDetailDialog notification={selected} audience="customer" onClose={() => setSelected(null)} />
     </div>
   );
 }

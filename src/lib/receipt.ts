@@ -39,6 +39,8 @@ export interface ReceiptData {
   totalBs?: number | null;
   /** Abonos uno por uno (ventas a crédito/fiado), del más antiguo al más reciente. */
   payments?: ReceiptPayment[];
+  /** Datos extra del pedido (entrega, dirección, referencia del pago…), en el orden en que se muestran */
+  details?: { label: string; value: string }[];
   status?: 'pagado' | 'pendiente' | 'por_cobrar';
 }
 
@@ -76,7 +78,8 @@ export function buildReceiptPdf(data: ReceiptData): jsPDF {
   const muted: [number, number, number] = [120, 110, 114];
   const payments = data.payments ?? [];
   const extraLines = (data.customerName ? 1 : 0) + (data.customerPhone ? 1 : 0) + (data.delivery ? 1 : 0) + (balance > 0 || payments.length ? 2 : 0) + (data.totalBs ? 1 : 0)
-    + (payments.length ? 2 + payments.length * 1.9 : 0);
+    + (payments.length ? 2 + payments.length * 1.9 : 0)
+    + (data.details?.reduce((n, d) => n + Math.ceil((d.label.length + d.value.length + 2) / 48), 0) ?? 0);
   const doc = new jsPDF({ unit: 'mm', format: [80, 78 + data.items.length * 8 + extraLines * 4.5] });
   const W = 80;
   let y = 0;
@@ -108,6 +111,9 @@ export function buildReceiptPdf(data: ReceiptData): jsPDF {
   if (data.customerName) { doc.text(`Cliente: ${data.customerName}`, 5, y); y += 4.5; }
   if (data.customerPhone) { doc.text(`Teléfono: ${formatPhone(data.customerPhone)}`, 5, y); y += 4.5; }
   if (data.paymentMethod) { doc.text(`Pago: ${paymentLabel(data.paymentMethod)}`, 5, y); y += 4.5; }
+  data.details?.forEach(d => {
+    (doc.splitTextToSize(`${d.label}: ${d.value}`, W - 10) as string[]).forEach(line => { doc.text(line, 5, y); y += 4.5; });
+  });
 
   doc.setDrawColor(...brand);
   doc.setLineWidth(0.3);
@@ -187,6 +193,7 @@ export function receiptWhatsappText(data: ReceiptData): string {
     `*Total: ${money(data.total)}*`,
     data.totalBs ? `Total en bolívares: ${bs(data.totalBs)}` : '',
     data.paymentMethod ? `Pago: ${paymentLabel(data.paymentMethod)}` : '',
+    ...(data.details ?? []).map(d => `${d.label}: ${d.value}`),
     ...(data.payments?.length ? ['*Abonos*', ...data.payments.map(p => `• ${paymentDetail(p)} — ${money(p.amount)}`)] : []),
     balance > 0 || data.payments?.length ? `Abonado: ${money(paid)} · *${balance > 0 ? `Saldo pendiente: ${money(balance)}` : 'Cuenta pagada'}*` : '',
     '',

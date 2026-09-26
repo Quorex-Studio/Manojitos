@@ -5,7 +5,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 import { getEmailSecret } from "./config.ts";
-import { processOutbox } from "./outbox.ts";
+import { processOutbox, sendOwnerWhatsApp } from "./outbox.ts";
 import {
   createWelcomeEmail,
   createCheckoutEmail,
@@ -201,6 +201,20 @@ serve(async (req) => {
       const { action, data } = body;
       email = body.email;
       const isAdmin = user.app_metadata?.is_super_admin === true;
+
+      // Prueba de los avisos por WhatsApp (Configuración → Avisos a la dueña)
+      if (action === "owner_whatsapp_test") {
+        if (!isAdmin) throw new Error("Solo la administración puede probar los avisos");
+        const phone = String(data?.whatsapp_phone ?? "");
+        const apikey = String(data?.callmebot_apikey ?? "");
+        if (!phone || !apikey) throw new Error("Falta el número o la clave de CallMeBot");
+        const failed = await sendOwnerWhatsApp({ enabled: true, whatsapp_phone: phone, callmebot_apikey: apikey },
+          `*${BRAND_NAME}*\nAsí te llegarán los avisos de cada venta y pedido nuevo.`);
+        return new Response(JSON.stringify(failed ? { success: false, error: failed } : { success: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       if (action === "new_order_admin") {
         // Cualquier cliente autenticado puede avisar de SU pedido, pero el destinatario lo

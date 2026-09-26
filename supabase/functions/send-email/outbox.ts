@@ -9,7 +9,7 @@ const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
 
 interface OutboxRow {
   id: string;
-  kind: "notification" | "sale_receipt" | "payment_receipt";
+  kind: "notification" | "sale_receipt" | "payment_receipt" | "sale_admin";
   ref: string;
   payload: Record<string, unknown>;
 }
@@ -45,6 +45,32 @@ async function send(deps: Deps, to: string[], subject: string, html: string) {
   if (error) throw new Error(error.message);
 }
 
+interface OwnerAlerts { enabled?: boolean; whatsapp_phone?: string; callmebot_apikey?: string }
+
+/** Configuración de avisos por WhatsApp (business_rules 'owner_alerts', solo administración). */
+async function ownerAlerts(admin: SupabaseClient): Promise<OwnerAlerts | null> {
+  const { data } = await admin.from("business_rules").select("conditions").eq("rule_key", "owner_alerts").maybeSingle();
+  const c = (data?.conditions ?? null) as OwnerAlerts | null;
+  return c?.enabled && c.whatsapp_phone && c.callmebot_apikey ? c : null;
+}
+
+/** WhatsApp a la dueña vía CallMeBot. Devuelve el error como texto (nunca lanza). */
+export async function sendOwnerWhatsApp(cfg: OwnerAlerts, text: string): Promise<string | null> {
+  try {
+    const phone = String(cfg.whatsapp_phone).replace(/\D/g, "");
+    const url = `https://api.callmebot.com/whatsapp.php?phone=%2B${phone}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(String(cfg.callmebot_apikey))}`;
+    const res = await fetch(url);
+    const body = await res.text();
+    // CallMeBot responde HTML: "Message queued" cuando lo acepta; cualquier otra cosa es un error
+    if (!res.ok || !/queued|sent/i.test(body)) {
+      return `CallMeBot ${res.status}: ${body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200)}`;
+    }
+    return null;
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
 async function processNotification(deps: Deps, row: OutboxRow): Promise<Outcome> {
   const { admin } = deps;
   const { data: n } = await admin.from("notifications").select("*").eq("id", row.ref).maybeSingle();
@@ -57,6 +83,14 @@ async function processNotification(deps: Deps, row: OutboxRow): Promise<Outcome>
 
   const who = await userInfo(admin, n.user_id);
   if (who.isAdmin) {
+    // Ventas y pedidos también llegan por WhatsApp si la dueña lo activó (un fallo no frena el correo)
+    if (meta.order_id || meta.sale_group_id) {
+      const cfg = await ownerAlerts(admin);
+      if (cfg) {
+        const failed = await sendOwnerWhatsApp(cfg, `*${n.title}*\n${n.message}`);
+        if (failed) console.error("whatsapp", failed);
+      }
+    }
     const to = await deps.getAdminEmails();
     if (!to.length) return { status: "skipped", note: "sin correos de administración" };
     // Pedido nuevo: el correo lleva el detalle del pedido para aprobarlo desde el teléfono
@@ -73,15 +107,16 @@ async function processNotification(deps: Deps, row: OutboxRow): Promise<Outcome>
         return { status: "sent" };
       }
     }
-    const link = meta.order_id ? "/sales?tab=pedidos" : n.credit_id ? "/credits" : "/dashboard";
+    const link = meta.kind === "product_request" ? "/solicitudes" : meta.order_id ? "/sales?tab=pedidos"
+      : meta.sale_group_id ? "/sales" : n.credit_id ? "/credits" : "/notificaciones";
     await send(deps, to, `${n.title} · ${BRAND_NAME}`, createNotificationEmail({ title: n.title, message: n.message, link, linkLabel: "Abrir el panel" }));
     return { status: "sent" };
   }
 
   if (!who.email) return { status: "skipped", note: "la clienta no tiene correo" };
   if (!(await wantsEmail(admin, n.user_id))) return { status: "skipped", note: "la clienta desactivó los correos" };
-  const link = meta.order_id ? "/cliente/pedidos" : n.credit_id ? "/cliente/credito" : "/cliente/notificaciones";
-  const label = meta.order_id ? "Ver mis pedidos" : n.credit_id ? "Ver mi crédito" : "Ver en mi cuenta";
+  const link = meta.product_id ? `/producto/${meta.product_id}` : meta.order_id ? "/cliente/pedidos" : n.credit_id ? "/cliente/credito" : "/cliente/notificaciones";
+  const label = meta.product_id ? "Ver el producto" : meta.order_id ? "Ver mis pedidos" : n.credit_id ? "Ver mi crédito" : "Ver en mi cuenta";
   await send(deps, [who.email], `${n.title} · ${BRAND_NAME}`, createNotificationEmail({ title: n.title, message: n.message, link, linkLabel: label }));
   return { status: "sent" };
 }
@@ -142,6 +177,45 @@ async function processReceipt(deps: Deps, groupId: string, newPaymentId?: string
   return { status: "sent" };
 }
 
+const METHOD_LABELS: Record<string, string> = {
+  pago_movil: "pago móvil", transferencia: "transferencia", zelle: "Zelle", binance: "Binance", zinli: "Zinli",
+  wally: "Wally", efectivo_usd: "efectivo", efectivo: "efectivo", punto: "punto de venta", credito: "crédito",
+};
+
+/** Aviso a la dueña de una venta registrada en el panel: crea la notificación (que sale por correo y WhatsApp). */
+async function processSaleAdmin(deps: Deps, groupId: string): Promise<Outcome> {
+  const { admin } = deps;
+  const { data: lines } = await admin.from("sales").select("*").or(`sale_group_id.eq.${groupId},id.eq.${groupId}`).order("created_at");
+  const sales = (lines ?? []).filter(l => l.status === "confirmed");
+  if (!sales.length) return { status: "skipped", note: "venta no encontrada o no confirmada" };
+  const first = sales[0];
+  const total = sales.reduce((sum, s) => sum + Number(s.total_usd || 0), 0);
+  const units = sales.reduce((sum, s) => sum + Number(s.quantity || 0), 0);
+  const credit = sales.some(s => s.is_credit);
+  const method = METHOD_LABELS[String(first.payment_method || "").toLowerCase()] ?? first.payment_method ?? "";
+  const products = sales.slice(0, 4).map(s => `${Number(s.quantity)} × ${s.variant_label ? `${s.product_name} · ${s.variant_label}` : s.product_name}`).join("\n");
+  const more = sales.length > 4 ? `\n… y ${sales.length - 4} más` : "";
+  const message = [
+    `${first.client_name || "Cliente sin nombre"} · ${units} ${units === 1 ? "producto" : "productos"}${credit ? " · a crédito" : method ? ` · ${method}` : ""}`,
+    products + more,
+    `Factura ${shortId(groupId)}`,
+  ].join("\n");
+
+  const { data: users, error } = await admin.auth.admin.listUsers({ perPage: 200 });
+  if (error) throw error;
+  const admins = users.users.filter(u => u.app_metadata?.is_super_admin === true);
+  if (!admins.length) return { status: "skipped", note: "sin cuentas de administración" };
+  const { error: insertError } = await admin.from("notifications").insert(admins.map(u => ({
+    user_id: u.id,
+    title: `Venta registrada · $${total.toFixed(2)}`,
+    message,
+    type: "success",
+    metadata: { kind: "sale_registered", sale_group_id: groupId, total_usd: total },
+  })));
+  if (insertError) throw insertError;
+  return { status: "sent", note: "notificación creada" };
+}
+
 export async function processOutbox(deps: Deps) {
   const { data: rows, error } = await deps.admin.rpc("claim_email_outbox", { p_limit: 20 });
   if (error) throw error;
@@ -150,6 +224,8 @@ export async function processOutbox(deps: Deps) {
     try {
       const outcome = row.kind === "notification"
         ? await processNotification(deps, row)
+        : row.kind === "sale_admin"
+          ? await processSaleAdmin(deps, row.ref)
         : row.kind === "sale_receipt"
           ? await processReceipt(deps, row.ref)
           : await processReceipt(deps, String(row.payload?.sale_group_id ?? ""), row.ref);

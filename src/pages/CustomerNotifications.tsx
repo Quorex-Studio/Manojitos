@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { NotificationDetailDialog, type DetailNotification } from '@/components/notifications/NotificationDetailDialog';
 import { motion } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -41,6 +43,7 @@ export default function CustomerNotifications() {
   // --- DERIVED ---
   const { user } = useAuth();
   const { notifications, isLoading, unreadCount, markAsRead, markAllAsRead } = useCustomerNotifications();
+  const [selected, setSelected] = useState<DetailNotification | null>(null);
   const { permission, requestPermission } = usePushNotifications();
 
   // --- RENDER ---
@@ -139,7 +142,10 @@ export default function CustomerNotifications() {
                       <NotificationItem 
                         key={notification.id} 
                         notification={notification as unknown as LocalNotification}
-                        onMarkAsRead={() => markAsRead.mutate(notification.id)}
+                        onOpen={() => {
+                          if (!notification.is_read) markAsRead.mutate(notification.id);
+                          setSelected(notification as unknown as DetailNotification);
+                        }}
                         index={index}
                       />
                     ))}
@@ -150,17 +156,18 @@ export default function CustomerNotifications() {
           )}
         </motion.div>
       </div>
+      <NotificationDetailDialog notification={selected} audience="customer" onClose={() => setSelected(null)} />
     </StoreLayout>
   );
 }
 
 function NotificationItem({ 
   notification, 
-  onMarkAsRead,
+  onOpen,
   index 
 }: { 
   notification: LocalNotification; 
-  onMarkAsRead: () => void;
+  onOpen: () => void;
   index: number;
 }) {
   const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.info;
@@ -175,7 +182,7 @@ function NotificationItem({
         "p-4 hover:bg-secondary/80 transition-colors cursor-pointer",
         !notification.is_read && "bg-primary/5"
       )}
-      onClick={() => !notification.is_read && onMarkAsRead()}
+      onClick={onOpen}
     >
       <div className="flex gap-4">
         <div className={cn("p-2 rounded-full h-fit", config.bg)}>

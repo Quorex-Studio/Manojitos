@@ -32,6 +32,8 @@ import { sanitizeText } from '@/lib/validations';
 import { formatBS } from '@/lib/utils';
 import { PaymentInfoPanel } from '@/components/payments/PaymentInfoPanel';
 import { isCompletePhone } from '@/lib/venezuela';
+import { receiptNumber, type ReceiptData } from '@/lib/receipt';
+import { ReceiptActions, ReceiptView } from '@/components/receipts/ReceiptDialog';
 
 // Métodos de pago base (sin crédito — se agrega dinámicamente)
 const BASE_PAYMENT_METHODS = [
@@ -94,6 +96,8 @@ export default function Checkout() {
   const [step, setStep] = useState<'auth' | 'shipping' | 'payment' | 'confirm'>('shipping');
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
+  // Recibo de la compra recién hecha (el carrito se vacía, así que se guarda aquí)
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [stockErrors, setStockErrors] = useState<StockValidationError[]>([]);
   const [kycCompleted, setKycCompleted] = useState(false);
 
@@ -335,7 +339,7 @@ export default function Checkout() {
         variant_id: item.variant_id ?? null,
       }));
 
-      const { error, saleIds } = await processCheckout(
+      const { error, saleIds, orderId } = await processCheckout(
         checkoutItems,
         {
           payment_method: sanitizeText(paymentMethod),
@@ -352,6 +356,35 @@ export default function Checkout() {
       if (error) {
         throw error;
       }
+
+      // Mismo recibo que Mis pedidos y Ventas, con los datos de entrega y del pago
+      const entrega = deliveryMethod === 'pickup'
+        ? 'Retiro en tienda'
+        : shippingData.city === MRW ? 'Envío nacional por encomienda' : `Delivery · ${shippingData.city}`;
+      const details: { label: string; value: string }[] = [{ label: 'Entrega', value: entrega }];
+      if (deliveryMethod === 'delivery' && shippingData.address) details.push({ label: 'Dirección', value: shippingData.address });
+      if (paymentMethod === 'pago_movil' && bancoOrigen) details.push({ label: 'Banco de origen', value: bancoOrigen });
+      if (paymentMethod === 'pago_movil' && numeroReferencia) details.push({ label: 'Referencia', value: numeroReferencia });
+      if (paymentMethod === 'credito') {
+        details.push({ label: 'Inicial pagada hoy', value: `$${montoInicialTotal.toFixed(2)}` });
+        details.push({ label: 'Financiado', value: `$${montoFinanciado.toFixed(2)} en 2 cuotas de $${montoCuota.toFixed(2)}` });
+        if (casheaRef) details.push({ label: 'Referencia de la inicial', value: casheaRef });
+      }
+      const receiptId = orderId || saleIds?.[0];
+      setReceipt({
+        kind: 'pedido',
+        number: receiptId ? receiptNumber(receiptId) : 'Pedido nuevo',
+        date: new Date(),
+        customerName: shippingData.fullName,
+        customerPhone: shippingData.phone,
+        paymentMethod,
+        items: checkoutItems.map(i => ({ name: i.name, quantity: i.quantity, unitPrice: i.price_usd })),
+        delivery: deliveryMethod === 'delivery' ? deliveryFee : 0,
+        total: orderTotal,
+        totalBs: rate > 0 ? orderTotal * rate : null,
+        status: 'pendiente',
+        details,
+      });
 
       clearCart();
       setOrderComplete(true);
@@ -421,40 +454,15 @@ export default function Checkout() {
               </div>
             )}
 
-            <div className="glass-card rounded-2xl p-6 mb-6 text-left shadow-sm border border-border/60 bg-gradient-to-br from-background to-secondary/20">
-              <h3 className="font-semibold text-lg text-foreground mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
-                <Package className="h-5 w-5 text-primary" />
-                Resumen del pedido
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="text-muted-foreground">Nombre:</span>
-                  <span className="font-medium text-foreground">{shippingData.fullName}</span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="text-muted-foreground">Teléfono:</span>
-                  <span className="font-medium text-foreground">{shippingData.phone}</span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="text-muted-foreground">Tipo de Entrega:</span>
-                  <span className="font-medium text-foreground">
-                    {deliveryMethod === 'pickup' ? 'Retiro en Tienda' : shippingData.city === MRW ? 'Envío nacional por encomienda' : 'Delivery'}
-                  </span>
-                </div>
-                {deliveryMethod === 'delivery' && (
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span className="text-muted-foreground">Dirección:</span>
-                    <span className="font-medium text-foreground text-right">{shippingData.address}, {shippingData.city}</span>
-                  </div>
-                )}
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="text-muted-foreground">Método de pago:</span>
-                  <span className="font-medium text-foreground">{allMethodsWithCredit.find(m => m.method_key === paymentMethod)?.label}</span>
-                </div>
+            {receipt && (
+              <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm">
+                <ReceiptView data={receipt} />
+                <ReceiptActions data={receipt} className="border-t border-border p-3" />
               </div>
-            </div>
-
-
+            )}
+            <p className="mb-6 text-sm text-muted-foreground">
+              También te llegó por correo. Cuando confirmemos el pago te enviaremos la factura final.
+            </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/tienda">

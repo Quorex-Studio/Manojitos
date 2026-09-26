@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/store/ProductCard';
 import { FavoriteButton } from '@/components/store/FavoriteButton';
+import { RequestProductButton } from '@/components/store/RequestProductButton';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { usePublicProducts } from '@/hooks/usePublicProducts';
@@ -477,11 +478,7 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {product.stock === 0 && (
-              <Button size="lg" className="w-full rounded-full h-14" disabled>
-                Producto Agotado
-              </Button>
-            )}
+            {product.stock <= 0 && <RequestProductButton productId={product.id} productName={product.name} />}
 
             <div className="h-px bg-border/10" />
 
