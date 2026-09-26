@@ -292,4 +292,93 @@ detal ignoraba el recargo configurado).
 | Envío nacional MRW en el checkout | Nueva opción "Otra ciudad de Venezuela (MRW)" junto a los municipios de Margarita: pide ciudad, estado y agencia, y el envío sale como "Lo cobra MRW". Si el perfil trae dirección sin municipio, la tarjeta de entrega avisa y abre el formulario | La portada y la política prometían envíos nacionales, pero el checkout solo aceptaba municipios de Margarita; y "Faltan campos: Ciudad" no decía dónde completarlo | `Checkout.tsx` |
 | Métodos de pago según Configuración | Portada, Nosotros, Atención y FAQ muestran los métodos activos en Configuración (`useStorePaymentLabels`); la lista de marca queda solo como respaldo | Se anunciaban Zelle y Binance aunque estaban desactivados | `usePaymentMethods.tsx` |
 | FAQ, Atención y 404 de EINA | FAQ reescrita para una tienda de belleza (compras, envíos, cambios, crédito, cuenta); Atención ofrece Instagram cuando no hay WhatsApp; 404 en español dentro de la tienda | La FAQ describía una plataforma de cuotas, Atención decía "Próximamente" y el 404 estaba en inglés | `FAQ.tsx`, `Atencion.tsx`, `NotFound.tsx` |
+| Estructura de costos → precio de venta | Configuración → Precios guarda la planilla de costos (tasa de reposición, comisiones, gastos fijos ÷ meta, empaque, envío y margen por defecto). En el producto: costo base, envío y margen propios, desglose y "Usar $X". En Productos, "Precios sugeridos" compara y aplica en lote solo lo que elijas | La calculadora heredada usaba un factor EUR que no corresponde a EINA y pisaba precios; ahora el precio cubre reposición a tasa Binance y deja el margen | `lib/costStructure.ts`, `CostStructureSettings.tsx`, `CostStructurePanel.tsx`, `SuggestedPricesDialog.tsx` |
+| Costos a la vista en Configuración | Pestaña "Costos y precios" en segundo lugar (antes "Precios", cortada al borde en el teléfono) y la tasa de reposición (Binance) también en la pestaña Tasa, junto a la del BCV | Los datos de la estructura de costos no se encontraban; la tasa de Binance se cambia a diario igual que la del BCV | `Settings.tsx`, `CostStructureSettings.tsx` (`ReplacementRateCard`) |
+| Abonos en el recibo y orden de listas | El recibo de una venta por cobrar lista cada abono (fecha, método, Bs y monto) en pantalla, PDF y WhatsApp; los abonos anulados no salen; cuenta saldada dice "Pagada". Las tarjetas de Por cobrar tienen botón de recibo. Ventas se ordenan por fecha, monto o clienta; Por cobrar por deuda, antigüedad, última compra, número de facturas o clienta (orden en la URL) | El recibo solo decía el total abonado y las listas tenían un único orden fijo | `lib/receipt.ts` (+ test), `ReceiptDialog.tsx`, `Sales.tsx` |
 | Editar precios | El precio escrito manda: la calculadora solo propone precios cuando se cargan datos de compra; editar ya no abre la calculadora ni suma el stock otra vez, y se conserva el costo guardado. Los errores dicen qué campo falla | La calculadora recalculaba y pisaba el precio, borraba el costo (quedaba en $0) y podía volver a sumar el stock | `Products.tsx`, `validations.ts` |
+
+## 12. Guía de portado a Manojitos, cambio por cambio
+
+Lista **completa** de lo que se cambió en EINA, en orden (commit en `main` de EINA). Manojitos
+tiene la misma base de código, así que casi todo se porta con `git cherry-pick`:
+
+```bash
+# en el repo de Manojitos
+git remote add eina https://github.com/Quorex-Studio/EinaShopV.git && git fetch eina main
+git cherry-pick <commit>          # uno por uno, en este orden
+# conflictos: quedarse con la lógica de EINA y con la marca de Manojitos ([marca])
+```
+
+Reglas al portar:
+- **[marca]** = propio de EINA (colores, logos, textos de belleza, Isla de Margarita, "Ina").
+  En Manojitos se conserva su identidad y su asistente **Ángela** (ver `docs/ASISTENTE-VIRTUAL-INA-ANGELA.md`).
+- **BD** = trae migración: aplicarla en el Supabase de Manojitos (`supabase db push` o el SQL tal cual).
+  Todas son idempotentes (`if not exists`, `create or replace`, `on conflict`).
+- **EF** = cambia una edge function: volver a desplegarla en el proyecto de Manojitos.
+- **Secretos** (Resend, hook de Auth, cron): cada tienda los crea en **su** Vault; nunca van en el repo.
+- Después de cada commit: `npx tsc -p tsconfig.app.json --noEmit`, `npx vitest run`, `npx vite build`.
+
+### 12.1 Plantilla, infraestructura y seguridad
+
+| Commit | Cambio | Archivos clave | BD / EF | Portar |
+|---|---|---|---|---|
+| `f3c4f8b` | Tienda convertida en plantilla: nombre, dominio, correos, asistente y colores salen de `config/brand.ts` + variables `VITE_BRAND_*` | `config/brand.ts`, header/footer, páginas legales | — | Sí; poner los `VITE_BRAND_*` de Manojitos en `.env` y en Vercel [marca] |
+| `4777cac` | Plantilla vendible: script `scripts/nueva-tienda.mjs`, `PLANTILLA.md`, skill `nueva-tienda`, íconos/manifest generados desde la marca | `scripts/`, `config/brand-assets.ts`, `vite-brand-files.ts` | — | Sí |
+| `1e7e146` | Migraciones reproducibles (renombradas con fecha completa, sin duplicados) | `supabase/migrations/*` | BD | Sí, revisar que el historial de Manojitos coincida antes de `db push` |
+| `83493b5` | Edge functions desplegables por proyecto; `cron_secret` en Vault para `angela-cron-alerts` | `supabase/functions/*`, `20260924000100_cron_secret.sql` | BD + EF | Sí |
+| `1e7e146` | Endurecimiento de seguridad: funciones `SECURITY DEFINER` sin acceso anónimo, `pg_net` fuera de `public` | `20260924000000_security_hardening.sql` | BD | **Sí, prioridad** |
+| `1f930f3` | El build no falla si faltan variables de marca | `vite.config.ts`, `scripts/vite-brand-files.ts` | — | Sí |
+| `ed7cb33` / `f6e47c4` | **Malware** en `postcss.config.js` (código ofuscado que ejecutaba un script remoto al compilar). Archivo limpio = 81 bytes | `postcss.config.js`, `docs/SEGURIDAD-2026-09-incidente-postcss.md` | — | **Revisar Manojitos YA**: `wc -c postcss.config.js` debe dar 81 y `grep -rE "global\['r'\]=require" .` no debe encontrar nada |
+| `03092e1` | "not a valid JavaScript MIME type" tras cada despliegue: la app recarga una vez cuando falla un chunk viejo; `vercel.json` no reescribe `/assets/*` a `index.html` | `lib/chunkReload.ts`, `main.tsx`, `App.tsx`, `vercel.json` | — | Sí |
+| `3fe76f9` / `5ddcdc6` | Correos con Resend (pedido recibido, aprobado, enviado, entregado, abonos a crédito) y hook de Auth para los correos de registro/recuperación | `supabase/functions/send-email/*`, `send-credit-notifications`, `lib/notify.ts`, `20260925010000_email_secrets_reader.sql` | BD + EF | Sí; plantillas y remitente [marca]; cargar `resend_api_key` y `resend_from_email` en el Vault de Manojitos |
+| `4c39767` | La tasa BCV se lee sin sesión (visitantes veían "0,00 Bs") | `20260924000200_public_exchange_rates_read.sql` | BD | Sí |
+
+### 12.2 Tienda (lo que ve la clienta)
+
+| Commit | Cambio | Archivos clave | BD / EF | Portar |
+|---|---|---|---|---|
+| `4c39767` | Rediseño con DESIGN.md: tarjetas de producto, precios, ficha, login; arreglos críticos (§1) | `ProductCard`, `PriceDisplay`, `ProductDetail`, `StoreFront`, `CustomerAuth` | — | Sí |
+| `2f222cf` | Identidad visual (paleta, logos, modo oscuro, móvil) | `index.css`, `tailwind.config.ts`, `assets/brand/*`, `public/*` | — | Solo la estructura de tokens; colores y logos [marca] |
+| `b7b7b7e` | Catálogo, carrito, favoritos y login: estado en la URL, carrito que no se vacía al recargar, barra inferior móvil | `MobileTabBar`, `CartContext`, `StoreCatalog`, `Cart`, `FavoriteButton` | — | Sí |
+| `5cf436e` | Contenido: frase, beneficios, franja de métodos de pago, menú móvil sin hamburguesa | `StoreFront`, `StoreHeader`, `MobileTabBar`, `PaymentInfoPanel`, `paymentMethodFields.ts` | EF (ai-assistant) | Estructura sí; textos [marca] |
+| `2ff94b0` | Teléfono y cédula con prefijos de Venezuela (0412/0414/…, V/E/J) en todos los formularios | `components/ui/ve-inputs.tsx`, `lib/venezuela.ts` (+ test) | — | Sí |
+| `ce77b7c` | Mis pedidos: progreso real (Recibido → Entregado) y seguimiento por estado | `CustomerOrders.tsx` | — | Sí |
+| `a839bf0` | Títulos visibles en móvil en toda la cuenta (`store-page-title`); Mi crédito más claro | `index.css`, páginas `Customer*` | — | Sí |
+| `5637884` | Mi cuenta: menú en filas agrupadas y resumen tocable | `CustomerDashboard.tsx` | — | Sí |
+| `f4d5c00` | Checkout: encabezado compacto, teléfono de pago legible | `Checkout.tsx`, `PaymentInfoPanel.tsx` | — | Sí |
+| `7cf6d7c` | Política de cambios: 72 horas; maquillaje/skincare abiertos sin cambio | `FAQ.tsx`, `ShippingPolicy.tsx`, ai-assistant | EF | Plazo y rubro [marca]: usar la política de Manojitos |
+| `4eea1e4` | Configuración de la clienta: verifica la contraseña actual, "¿La olvidaste?" envía el enlace, avisos que se guardan de verdad | `CustomerSettings.tsx` | — | Sí |
+| `aed6d32` | Un solo recibo para clienta y panel, PDF de 80 mm con la marca y envío por WhatsApp | `lib/receipt.ts` (+ test), `components/receipts/ReceiptDialog.tsx` | — | Sí; logo del PDF [marca] |
+| `ebc9802` | **Foto de perfil**: no existía el bucket y toda subida fallaba. Se crean `customer-avatars` (público) y `customer-kyc` (privado, enlaces firmados); la foto se comprime en el navegador | `lib/customerFiles.ts`, `hooks/useKycUrl.ts`, `CustomerProfile.tsx`, `CustomerDetailDialog.tsx`, `20260925040000_customer_storage_buckets.sql` | BD | **Sí, prioridad**: comprobar en Manojitos que los buckets existan |
+| `2ae60a3` | Envío nacional **MRW** en el checkout ("Otra ciudad de Venezuela (MRW)", lo cobra MRW); aviso cuando falta el municipio; métodos de pago anunciados = los activos en Configuración (`useStorePaymentLabels`); FAQ propia; Atención ofrece Instagram si no hay WhatsApp; 404 en español | `Checkout.tsx`, `usePaymentMethods.tsx`, `FAQ.tsx`, `Atencion.tsx`, `NotFound.tsx`, `StoreFront.tsx`, `AboutUs.tsx` | — | Lógica sí; municipios, tarifas y textos de la FAQ [marca] (Manojitos usa sus zonas) |
+
+### 12.3 Panel de gestión
+
+| Commit | Cambio | Archivos clave | BD / EF | Portar |
+|---|---|---|---|---|
+| `b410969` | Navegación móvil del panel, diseño responsive y bugs que rompían pantallas (imports faltantes, fechas UTC) | `AdminMobileNav`, `AppLayout`, `adminNav.ts`, `lib/dates.ts`, `lib/stock.ts`, varias páginas | — | **Sí, prioridad** |
+| `d12edc0` | Ventanas flotantes responsive (hoja inferior en móvil), confirmaciones propias en vez de `confirm()`, avisos que respetan preferencias | `ui/dialog.tsx`, `ui/alert-dialog.tsx`, `ui/confirm-dialog.tsx`, `lib/notify.ts` | — | Sí |
+| `4c2e52c` | Importar productos desde Treinta, Excel, CSV y más | `lib/productImport.ts` (+ test), `ImportProducts.tsx` | — | Sí |
+| `22929e6` | Nueva venta como punto de venta (buscador, carrito, cliente, pago) | `NewSaleDialog.tsx` | — | Sí |
+| `7339b4f` | Clientes: tarjetas, filtros con conteo y ficha única | `Customers.tsx`, `CustomerDetailDialog.tsx`, `customerUi.tsx` | — | Sí |
+| `3869d74` / `b4dec77` | Panel guiado, Configuración por pestañas (Pagos primero), Créditos, Reglas, Reportes y Productos más claros | `Dashboard`, `Settings`, `Credits`, `BusinessRules`, `Reports`, `Products` | — | Sí |
+| `08bfac1` | Proveedores: compras por mes, resumen y crear proveedor al vuelo | `Providers.tsx`, `useProviders.tsx` | — | Sí |
+| `b25d6f9` | Créditos: tarjeta de ventas fiadas por cobrar | `Credits.tsx` | — | Sí |
+| `8e55f19` | Asistente con acciones: prepara compras (clienta) y ventas, compras a proveedor, abonos y stock (admin), siempre con confirmación | `supabase/functions/ai-assistant/actions.ts`, `index.ts`, `AngelaChat.tsx` | EF | Sí; nombre y tono del asistente [marca] (Ángela) |
+| `a742820` | Categorías configurables (Configuración → Categorías) con el detalle que pide cada una (ml/g, medidas, tallas, tonos) | `lib/productCategories.ts` (+ test), `CategoriesSettings.tsx`, `CategoryDetailFields.tsx`, `useProductCategories.ts`, `20260925020000_product_categories.sql` | BD | Sí; las categorías iniciales del seed [marca] (Manojitos carga las suyas) |
+| `f1344f9` | Variantes con stock propio (talla, tono, 30 ml/50 ml): `products.stock` = suma de variantes por trigger; checkout, POS, devoluciones y el asistente descuentan la variante | `20260925030000_product_variants.sql`, `useProducts`, `useSales`, `NewSaleDialog`, `ProductDetail`, `Checkout`, `CartContext`, ai-assistant | BD + EF | **Sí, completo** (sin la migración el checkout falla) |
+| `2647bd5` | Enlaces de Google Drive o Dropbox se convierten solos en imagen directa; vista previa en el formulario | `lib/imageUrl.ts` (+ test), `useProducts`, `usePublicProducts`, `Products.tsx` | — | Sí |
+| `0add239` | **Por cobrar por clienta** (una tarjeta con deuda total, fecha y contador de facturas). **Editar precios**: la calculadora ya no pisa el precio, no borra el costo ni suma stock; errores de validación en español (`validateFriendly`) | `Sales.tsx`, `Products.tsx`, `lib/validations.ts`, `useProducts.tsx` | — | **Sí, prioridad** (el bug de precios también está en Manojitos) |
+| `2a37eb2` | **Marcar pagado** pide cómo pagó (mismo formulario del abono, saldo fijo, método obligatorio); los abonos ya no traen Pago Móvil por defecto | `Sales.tsx` | — | Sí |
+| `da1ce30` | **Estructura de costos** (misma fórmula que la planilla de EINA, con pruebas): precio = (costo + envío + empaque + gastos fijos/meta) × (1 + brecha) × (1 + comisiones) / (1 − margen). Reemplaza la calculadora de factor EUR del formulario; "Precios sugeridos" en Productos | `lib/costStructure.ts` (+ test), `hooks/useCostStructure.tsx`, `components/settings/CostStructureSettings.tsx`, `components/products/CostStructurePanel.tsx`, `components/products/SuggestedPricesDialog.tsx`, `Products.tsx`, `Settings.tsx`, `lib/validations.ts`, `20260926010000_product_cost_structure.sql` | BD | Sí. Los parámetros (`business_rules` → `cost_structure`) los carga cada tienda en Configuración → Precios [marca]; si Manojitos prefiere su factor EUR, conservar su calculadora y portar solo la lógica |
+| `82461d6` | Configuración: pestaña "Costos y precios" en segundo lugar y tasa de reposición (Binance) también en la pestaña Tasa | `Settings.tsx`, `components/settings/CostStructureSettings.tsx` | — | Sí |
+| _(este PR)_ | Recibo con el detalle de cada abono (`ReceiptPayment`, `paymentDetail`) y botón de recibo en Por cobrar; selector de orden en Ventas (`?orden=`) y Por cobrar (`?orden_cxc=`) | `lib/receipt.ts` (+ test), `components/receipts/ReceiptDialog.tsx`, `pages/Sales.tsx` | — | Sí |
+
+### 12.4 Datos que NO se portan (propios de EINA)
+
+- Importación de Treinta (productos, clientas, ventas y compras de EINA): `docs/IMPORTACION-TREINTA.md`.
+- Correcciones de datos puntuales hechas por SQL (p. ej. costo y precio de K SECRET SUNCREAM).
+- Datos de pago de `payment_methods.config`, secretos del Vault y el dominio.
+
+> **Regla:** cada cambio nuevo en EINA agrega su fila aquí (commit, qué, archivos, BD/EF, cómo
+> portarlo) además de la fila de §11. Si no está en esta sección, no se ha anotado.

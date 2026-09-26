@@ -5,7 +5,7 @@ import { BRAND, BRAND_NAME } from '@/config/brand';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
-  type ReceiptData, STATUS_LABEL, buildReceiptPdf, paymentLabel, receiptFileName, receiptTotals, receiptWhatsappText,
+  type ReceiptData, STATUS_LABEL, buildReceiptPdf, paymentDetail, paymentLabel, receiptFileName, receiptTotals, receiptWhatsappText,
 } from '@/lib/receipt';
 import { whatsappLink } from '@/components/customers/customerUi';
 import { formatPhone } from '@/lib/venezuela';
@@ -115,13 +115,30 @@ export function ReceiptDialog({ data, onClose }: ReceiptDialogProps) {
                 <dd>Bs {data.totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
               </div>
             )}
-            {balance > 0 && (
-              <>
-                <div className="flex justify-between text-muted-foreground"><dt>Abonado</dt><dd>{money(paid)}</dd></div>
-                <div className="flex justify-between font-semibold text-primary"><dt>Saldo pendiente</dt><dd>{money(balance)}</dd></div>
-              </>
-            )}
           </dl>
+
+          {!!data.payments?.length && (
+            <div className="rounded-xl bg-studio p-3">
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-primary">Abonos</p>
+              <ul className="space-y-1.5 text-xs">
+                {data.payments.map((p, i) => (
+                  <li key={i} className="flex items-start justify-between gap-3">
+                    <span className="text-muted-foreground">{paymentDetail(p)}</span>
+                    <span className="shrink-0 font-medium tabular-nums">{money(p.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {(balance > 0 || !!data.payments?.length) && (
+            <dl className="space-y-1 tabular-nums">
+              <div className="flex justify-between text-muted-foreground"><dt>Abonado</dt><dd>{money(paid)}</dd></div>
+              <div className="flex justify-between font-semibold text-primary">
+                <dt>{balance > 0 ? 'Saldo pendiente' : 'Saldo'}</dt><dd>{balance > 0 ? money(balance) : 'Pagada'}</dd>
+              </div>
+            </dl>
+          )}
 
           <p className="text-center text-xs text-muted-foreground">¡Gracias por tu compra en {BRAND_NAME}! · {BRAND.domain}</p>
         </div>

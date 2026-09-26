@@ -14,6 +14,14 @@ export interface ReceiptItem {
   unitPrice: number;
 }
 
+/** Un abono de una venta por cobrar (el detalle que se ve en el recibo). */
+export interface ReceiptPayment {
+  date: Date;
+  amount: number;
+  method?: string | null;
+  amountBs?: number | null;
+}
+
 export interface ReceiptData {
   /** 'pedido' = compra en la tienda online; 'venta' = venta registrada en el panel */
   kind: 'pedido' | 'venta';
@@ -29,6 +37,8 @@ export interface ReceiptData {
   paid?: number;
   /** Total en bolívares registrado en la operación (si existe). */
   totalBs?: number | null;
+  /** Abonos uno por uno (ventas a crédito/fiado), del más antiguo al más reciente. */
+  payments?: ReceiptPayment[];
   status?: 'pagado' | 'pendiente' | 'por_cobrar';
 }
 
@@ -39,6 +49,11 @@ export const paymentLabel = (method?: string | null) =>
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const shortDate = (d: Date) => d.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+
+/** "25/09/26 · Pago Móvil · Bs 17.000,00" — la línea de detalle de un abono. */
+export const paymentDetail = (p: ReceiptPayment) =>
+  [shortDate(p.date), paymentLabel(p.method), p.amountBs ? bs(p.amountBs) : ''].filter(Boolean).join(' · ');
 
 export function receiptTotals(data: ReceiptData) {
   const subtotal = data.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
@@ -59,7 +74,9 @@ export function buildReceiptPdf(data: ReceiptData): jsPDF {
   const brand = BRAND_COLOR_RGB;
   const ink: [number, number, number] = [37, 32, 36];
   const muted: [number, number, number] = [120, 110, 114];
-  const extraLines = (data.customerName ? 1 : 0) + (data.customerPhone ? 1 : 0) + (data.delivery ? 1 : 0) + (balance > 0 ? 2 : 0) + (data.totalBs ? 1 : 0);
+  const payments = data.payments ?? [];
+  const extraLines = (data.customerName ? 1 : 0) + (data.customerPhone ? 1 : 0) + (data.delivery ? 1 : 0) + (balance > 0 || payments.length ? 2 : 0) + (data.totalBs ? 1 : 0)
+    + (payments.length ? 2 + payments.length * 1.9 : 0);
   const doc = new jsPDF({ unit: 'mm', format: [80, 78 + data.items.length * 8 + extraLines * 4.5] });
   const W = 80;
   let y = 0;
@@ -123,7 +140,24 @@ export function buildReceiptPdf(data: ReceiptData): jsPDF {
   if (data.delivery) { row('Subtotal', money(subtotal)); row('Delivery', money(data.delivery)); }
   row('Total', money(data.total), true);
   if (data.totalBs) row('Total en bolívares', bs(data.totalBs));
-  if (balance > 0) { row('Abonado', money(paid)); row('Saldo pendiente', money(balance), true); }
+  if (payments.length) {
+    y += 1;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...brand);
+    doc.text('Abonos', 5, y);
+    y += 4.5;
+    payments.forEach(p => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...ink);
+      doc.text(paymentDetail(p), 5, y);
+      doc.text(money(p.amount), W - 5, y, { align: 'right' });
+      y += 4.2;
+    });
+    y += 1;
+  }
+  if (balance > 0 || payments.length) { row('Abonado', money(paid)); row(balance > 0 ? 'Saldo pendiente' : 'Saldo', balance > 0 ? money(balance) : 'Pagada', true); }
 
   y += 2;
   doc.setFont('helvetica', 'normal');
@@ -153,7 +187,8 @@ export function receiptWhatsappText(data: ReceiptData): string {
     `*Total: ${money(data.total)}*`,
     data.totalBs ? `Total en bolívares: ${bs(data.totalBs)}` : '',
     data.paymentMethod ? `Pago: ${paymentLabel(data.paymentMethod)}` : '',
-    balance > 0 ? `Abonado: ${money(paid)} · *Saldo pendiente: ${money(balance)}*` : '',
+    ...(data.payments?.length ? ['*Abonos*', ...data.payments.map(p => `• ${paymentDetail(p)} — ${money(p.amount)}`)] : []),
+    balance > 0 || data.payments?.length ? `Abonado: ${money(paid)} · *${balance > 0 ? `Saldo pendiente: ${money(balance)}` : 'Cuenta pagada'}*` : '',
     '',
     `¡Gracias por tu compra! 🩷 ${BRAND.domain}`,
   ];

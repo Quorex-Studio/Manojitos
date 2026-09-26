@@ -41,4 +41,18 @@ describe('receipt', () => {
     expect(doc.getNumberOfPages()).toBe(1);
     expect(doc.output('arraybuffer').byteLength).toBeGreaterThan(1000);
   });
+
+  it('los abonos salen uno por uno en el texto y en el PDF', () => {
+    const payments = [
+      { date: new Date('2026-09-20T15:00:00'), amount: 20, method: 'pago_movil', amountBs: 17000 },
+      { date: new Date('2026-09-24T15:00:00'), amount: 52, method: 'zinli' },
+    ];
+    const text = receiptWhatsappText({ ...base, status: 'pagado', paid: 72, payments });
+    expect(text).toContain('*Abonos*');
+    expect(text).toContain('• 20/09/26 · Pago Móvil · Bs 17.000,00 — $20.00');
+    expect(text).toContain('• 24/09/26 · Zinli — $52.00');
+    expect(text).toContain('*Cuenta pagada*');
+    const doc = buildReceiptPdf({ ...base, paid: 72, payments });
+    expect(doc.getNumberOfPages()).toBe(1);
+  });
 });

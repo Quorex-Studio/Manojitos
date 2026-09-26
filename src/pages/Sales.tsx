@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { ReceiptDialog } from '@/components/receipts/ReceiptDialog';
-import { receiptNumber, type ReceiptData } from '@/lib/receipt';
+import { receiptNumber, type ReceiptData, type ReceiptPayment } from '@/lib/receipt';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -68,7 +68,7 @@ const formatPaymentMethod = (method: string) => {
 };
 
 /** Recibo de una venta del panel (agrupa sus líneas; en fiado muestra abonado y saldo). */
-const saleGroupReceipt = (group: GroupedSale): ReceiptData => {
+const saleGroupReceipt = (group: GroupedSale, payments: ReceiptPayment[] = []): ReceiptData => {
   const first = group.items[0];
   const paid = group.is_credit
     ? group.items.reduce((sum, s) => sum + Number(s.amount_paid || 0), 0)
@@ -85,6 +85,7 @@ const saleGroupReceipt = (group: GroupedSale): ReceiptData => {
     total: group.total_usd,
     paid,
     totalBs,
+    payments: group.is_credit ? payments : [],
     status: group.is_credit && group.total_usd - paid > 0.009 ? 'por_cobrar' : 'pagado',
   };
 };
@@ -156,6 +157,16 @@ export default function Sales() {
   // La pestaña vive en la URL (?tab=) para que los enlaces del panel abran la correcta
   const SALES_TABS = ['ventas', 'cuentas-cobrar', 'pedidos', 'resumen-producto'];
   const tabParam = searchParams.get('tab') || 'ventas';
+  // Orden de las listas en la URL: al volver atrás o compartir el enlace se conserva
+  type SaleSort = 'reciente' | 'antigua' | 'mayor' | 'menor' | 'clienta';
+  type ReceivableSort = 'mayor_deuda' | 'menor_deuda' | 'mas_antigua' | 'reciente' | 'clienta' | 'mas_facturas';
+  const saleSort = (searchParams.get('orden') as SaleSort) || 'reciente';
+  const receivableSort = (searchParams.get('orden_cxc') as ReceivableSort) || 'mayor_deuda';
+  const setSortParam = (key: 'orden' | 'orden_cxc', value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set(key, value);
+    setSearchParams(next, { replace: true });
+  };
   const activeSalesTab = SALES_TABS.includes(tabParam) ? tabParam : 'ventas';
   const setActiveSalesTab = (tab: string) => {
     setSearchParams(prev => {
@@ -213,6 +224,31 @@ export default function Sales() {
 
   const [detailsGroup, setDetailsGroup] = useState<GroupedSale | null>(null);
   const [receiptGroup, setReceiptGroup] = useState<GroupedSale | null>(null);
+  const [receiptPayments, setReceiptPayments] = useState<ReceiptPayment[]>([]);
+
+  // Recibo: en una venta por cobrar se cargan sus abonos para mostrarlos uno por uno
+  const openReceipt = async (group: GroupedSale) => {
+    setReceiptPayments([]);
+    setReceiptGroup(group);
+    if (!group.is_credit) return;
+    const saleIds = group.items.map(s => s.id).filter(Boolean);
+    const filters = [`sale_group_id.eq.${group.id}`];
+    if (saleIds.length) filters.push(`sale_id.in.(${saleIds.join(',')})`);
+    const { data, error } = await supabase
+      .from('sale_payments')
+      .select('amount_usd, amount_bs, payment_method, created_at, status')
+      .or(filters.join(','))
+      .order('created_at', { ascending: true });
+    if (error) return; // el recibo igual muestra el total abonado
+    setReceiptPayments((data || [])
+      .filter(p => (p as { status?: string }).status !== 'void')
+      .map(p => ({ date: new Date(p.created_at ?? Date.now()), amount: Number(p.amount_usd), method: p.payment_method, amountBs: p.amount_bs ? Number(p.amount_bs) : null })));
+  };
+
+  const receivableAsSale = (group: GroupedReceivable): GroupedSale => ({
+    id: group.id, client_name: group.client_name, payment_method: group.payment_method,
+    is_credit: true, created_at: group.created_at, total_usd: group.total_usd, items: group.sales,
+  });
   const [groupPayments, setGroupPayments] = useState<SalePayment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 
@@ -451,11 +487,17 @@ export default function Sales() {
       }
     });
     
-    // Sort groups by created_at descending
-    return Array.from(groupsMap.values()).sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  }, [filteredSales]);
+    const time = (g: GroupedSale) => new Date(g.created_at).getTime();
+    return Array.from(groupsMap.values()).sort((a, b) => {
+      switch (saleSort) {
+        case 'antigua': return time(a) - time(b);
+        case 'mayor': return b.total_usd - a.total_usd || time(b) - time(a);
+        case 'menor': return a.total_usd - b.total_usd || time(b) - time(a);
+        case 'clienta': return (a.client_name || '~').localeCompare(b.client_name || '~', 'es') || time(b) - time(a);
+        default: return time(b) - time(a);
+      }
+    });
+  }, [filteredSales, saleSort]);
 
   const filteredOrders = orders.filter(o => {
     const matchesSearch = 
@@ -853,8 +895,19 @@ export default function Sales() {
     }
     // Facturas de la más antigua a la más reciente (así se cobra); clientas por mayor deuda
     const list = [...map.values()].map(c => ({ ...c, groups: [...c.groups].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) }));
-    return list.sort((a, b) => (receivableTab === 'paid' ? new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime() : b.pending - a.pending));
-  }, [groupedReceivables, receivableTab]);
+    const t = (d: string) => new Date(d).getTime();
+    const oldest = (c: (typeof list)[number]) => t(c.groups[0]?.created_at ?? c.lastDate);
+    return list.sort((a, b) => {
+      switch (receivableSort) {
+        case 'menor_deuda': return (receivableTab === 'paid' ? a.total - b.total : a.pending - b.pending);
+        case 'mas_antigua': return oldest(a) - oldest(b);
+        case 'reciente': return t(b.lastDate) - t(a.lastDate);
+        case 'clienta': return a.name.localeCompare(b.name, 'es');
+        case 'mas_facturas': return b.groups.length - a.groups.length || b.pending - a.pending;
+        default: return receivableTab === 'paid' ? b.total - a.total : b.pending - a.pending;
+      }
+    });
+  }, [groupedReceivables, receivableTab, receivableSort]);
   const openClient = receivableClients.find(c => c.key === openReceivableClient) ?? null;
   // Clientas que deben (para el contador de la pestaña): se agrupa por venta y luego por nombre
   const pendingClientsCount = useMemo(() => {
@@ -957,6 +1010,15 @@ export default function Sales() {
                         {pendingAmountUsd > 0.005 ? (
                           <div className="flex gap-2 w-full mt-2">
                             <Button
+                              variant="outline"
+                              size="icon"
+                              className="shrink-0"
+                              onClick={() => openReceipt(receivableAsSale(group))}
+                              aria-label="Ver recibo con los abonos"
+                            >
+                              <Receipt className="h-4 w-4" />
+                            </Button>
+                            <Button
                               className="flex-1"
                               variant="outline"
                               onClick={() => openAbono(group, false)}
@@ -974,9 +1036,14 @@ export default function Sales() {
                             </Button>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center gap-2 w-full mt-2 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-500 text-sm font-medium">
-                            <TickCircle className="h-4 w-4" />
-                            Cuenta pagada
+                          <div className="flex gap-2 w-full mt-2">
+                            <div className="flex flex-1 items-center justify-center gap-2 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-500 text-sm font-medium">
+                              <TickCircle className="h-4 w-4" />
+                              Cuenta pagada
+                            </div>
+                            <Button variant="outline" className="gap-1.5" onClick={() => openReceipt(receivableAsSale(group))}>
+                              <Receipt className="h-4 w-4" />Recibo
+                            </Button>
                           </div>
                         )}
                       </CardContent>
@@ -1048,6 +1115,18 @@ export default function Sales() {
                     <SelectItem value="financiamiento">Financiamiento</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={saleSort} onValueChange={(v) => setSortParam('orden', v)}>
+                  <SelectTrigger className="w-full sm:w-[190px] input-glass rounded-xl" aria-label="Ordenar ventas">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="reciente">Más recientes</SelectItem>
+                    <SelectItem value="antigua">Más antiguas</SelectItem>
+                    <SelectItem value="mayor">Mayor monto</SelectItem>
+                    <SelectItem value="menor">Menor monto</SelectItem>
+                    <SelectItem value="clienta">Clienta A–Z</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <Button onClick={() => setIsOpen(true)} className="btn-gold rounded-xl gap-2 w-full sm:w-auto">
@@ -1092,7 +1171,7 @@ export default function Sales() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setReceiptGroup(group)}
+                            onClick={() => openReceipt(group)}
                             className="flex-shrink-0 gap-1.5"
                             aria-label="Ver recibo"
                           >
@@ -1202,6 +1281,20 @@ export default function Sales() {
                 </Button>
               </div>
             </div>
+
+            <Select value={receivableSort} onValueChange={(v) => setSortParam('orden_cxc', v)}>
+              <SelectTrigger className="w-full sm:w-[230px] input-glass rounded-xl" aria-label="Ordenar cuentas por cobrar">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mayor_deuda">{receivableTab === 'paid' ? 'Mayor monto' : 'Mayor deuda'}</SelectItem>
+                <SelectItem value="menor_deuda">{receivableTab === 'paid' ? 'Menor monto' : 'Menor deuda'}</SelectItem>
+                <SelectItem value="mas_antigua">Deuda más antigua</SelectItem>
+                <SelectItem value="reciente">Última compra más reciente</SelectItem>
+                <SelectItem value="mas_facturas">Más facturas</SelectItem>
+                <SelectItem value="clienta">Clienta A–Z</SelectItem>
+              </SelectContent>
+            </Select>
 
             {receivableClients.length === 0 ? (
               <div className="text-center py-16">
@@ -1744,7 +1837,7 @@ export default function Sales() {
       </Dialog>
 
       {/* MODAL HISTORIAL DE ABONOS */}
-      <ReceiptDialog data={receiptGroup ? saleGroupReceipt(receiptGroup) : null} onClose={() => setReceiptGroup(null)} />
+      <ReceiptDialog data={receiptGroup ? saleGroupReceipt(receiptGroup, receiptPayments) : null} onClose={() => setReceiptGroup(null)} />
 
       <Dialog open={!!detailsGroup} onOpenChange={(open) => !open && setDetailsGroup(null)}>
         <DialogContent className="sm:max-w-[425px]">
