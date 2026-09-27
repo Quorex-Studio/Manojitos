@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { ReceiptDialog } from '@/components/receipts/ReceiptDialog';
+import { ReceivablesReportDialog } from '@/components/reports/ReceivablesReportDialog';
 import { receiptNumber, type ReceiptData, type ReceiptPayment } from '@/lib/receipt';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
@@ -433,6 +434,8 @@ export default function Sales() {
   const groupedReceivables = useMemo(() => {
     const groups = new Map<string, GroupedReceivable>();
     sales.forEach(sale => {
+      // Una venta anulada no se cobra (el reporte PDF usa la misma regla)
+      if (sale.status === 'cancelled') return;
       const key = sale.sale_group_id || sale.id;
       if (!groups.has(key)) {
         groups.set(key, {
@@ -879,6 +882,8 @@ export default function Sales() {
 
   // Por cobrar agrupado por clienta: suma sus facturas y muestra cuántas son
   const [openReceivableClient, setOpenReceivableClient] = useState<string | null>(null);
+  // Reporte PDF: null = cerrado, '' = todas las clientas, nombre = su estado de cuenta
+  const [reportClient, setReportClient] = useState<string | null>(null);
   const receivableClients = useMemo(() => {
     const norm = (n: string) => n.trim().replace(/\s+/g, ' ').toLowerCase();
     const map = new Map<string, { key: string; name: string; groups: GroupedReceivable[]; total: number; paid: number; pending: number; lastDate: string }>();
@@ -913,6 +918,7 @@ export default function Sales() {
   const pendingClientsCount = useMemo(() => {
     const byGroup = new Map<string, { name: string; pending: number }>();
     for (const sale of sales) {
+      if (sale.status === 'cancelled') continue;
       const key = sale.sale_group_id || sale.id;
       const g = byGroup.get(key) || { name: (sale.client_name || '').trim().replace(/\s+/g, ' ').toLowerCase(), pending: 0 };
       g.pending += Number(sale.total_usd || 0) - Number(sale.amount_paid || 0);
@@ -1261,7 +1267,12 @@ export default function Sales() {
                 <h2 className="text-xl font-bold">Cuentas por Cobrar (Caja)</h2>
                 <p className="text-sm text-muted-foreground">Ventas pendientes de pago (Fiado, 2 Partes, Financiamiento)</p>
               </div>
-              
+
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <Button variant="outline" className="h-11 flex-1 gap-2 rounded-full border-primary/40 text-primary sm:h-10 sm:flex-none" onClick={() => setReportClient('')}>
+                <FileText className="h-4 w-4" />
+                Reporte PDF
+              </Button>
               <div className="flex bg-secondary/50 p-1 rounded-xl">
                 <Button
                   variant={receivableTab === 'pending' ? 'default' : 'ghost'}
@@ -1280,7 +1291,16 @@ export default function Sales() {
                   Pagadas
                 </Button>
               </div>
+              </div>
             </div>
+
+            {/* Reporte PDF (todas) o estado de cuenta (una clienta), estilo factura */}
+            <ReceivablesReportDialog
+              open={reportClient !== null}
+              onOpenChange={o => !o && setReportClient(null)}
+              clientName={reportClient || null}
+              sort={receivableSort === 'mas_antigua' ? 'antiguedad' : receivableSort === 'clienta' ? 'clienta' : 'saldo'}
+            />
 
             <Select value={receivableSort} onValueChange={(v) => setSortParam('orden_cxc', v)}>
               <SelectTrigger className="w-full sm:w-[230px] input-glass rounded-xl" aria-label="Ordenar cuentas por cobrar">
@@ -1356,6 +1376,12 @@ export default function Sales() {
                           ? <> · debe <strong className="text-destructive">${openClient.pending.toFixed(2)}</strong>{openClient.paid > 0 && ` · abonado $${openClient.paid.toFixed(2)}`}</>
                           : <> · total ${openClient.total.toFixed(2)}</>}
                       </p>
+                      {receivableTab === 'pending' && (
+                        <Button variant="outline" size="sm" className="mt-2 w-fit gap-2 rounded-full" onClick={() => setReportClient(openClient.name)}>
+                          <FileText className="h-4 w-4" />
+                          Estado de cuenta PDF
+                        </Button>
+                      )}
                     </DialogHeader>
                     <div className="grid gap-4 sm:grid-cols-2">
                       {openClient.groups.map(group => renderReceivableCard(group))}

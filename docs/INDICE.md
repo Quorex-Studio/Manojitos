@@ -12,6 +12,7 @@
 | [GUIA-PRODUCTCARD.md](./GUIA-PRODUCTCARD.md) | React.memo, animaciones, optimizaciones de rendimiento | 🟡 |
 | [GUIA-STOREFRONT-CATALOG.md](./GUIA-STOREFRONT-CATALOG.md) | Homepage, catálogo, debounce, filtros, CSS animations | 🟡 |
 | [ASISTENTE-VIRTUAL-INA-ANGELA.md](./ASISTENTE-VIRTUAL-INA-ANGELA.md) | Asistente con IA: mejoras hechas en EINA (Ina) y cómo llevarlas a Manojitos (Ángela) | 🔴 Para portar |
+| [REPORTES-PDF.md](./REPORTES-PDF.md) | Reportes PDF estilo factura (Por cobrar, estado de cuenta, ventas), Reportes interactivo y PDF desde Ina/Ángela: diseño, visual y lógica | 🔴 Para portar |
 | [CREDITO-CASHEA.md](./CREDITO-CASHEA.md) | Crédito modalidad Cashea: estado actual, camino A (afiliarse) o B (crédito propio por niveles y cuotas) y preguntas para decidir | 🟡 Por decidir |
 
 ## 🎯 Ruta de Estudio Recomendida

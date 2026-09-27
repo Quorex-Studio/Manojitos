@@ -769,6 +769,60 @@ interface ToolContext {
   isAdmin: boolean;
   authenticatedUserId: string;
   bcvRate: number;
+  /** Documentos que acompañan la respuesta (el chat los arma y descarga en el navegador) */
+  attachments: Attachment[];
+}
+
+/**
+ * Adjunto de la respuesta. El PDF no se genera aquí: el chat lo arma con la sesión de la
+ * administradora y el mismo código del módulo Por cobrar (`src/lib/receivablesReport.ts`),
+ * así el PDF de la asistente y el del botón son idénticos.
+ */
+interface Attachment {
+  id: string;
+  type: 'CXC_REPORT_PDF';
+  title: string;
+  lines: string[];
+  client_name?: string | null;
+  /** Detalle del PDF por clienta (facturas y abonos) o por categoría de producto */
+  group_by?: 'clienta' | 'categoria';
+}
+
+// Pedido explícito de reporte/PDF de cuentas por cobrar (por si el modelo no llama la herramienta)
+const CXC_TOPIC = /(por cobrar|cxc|me deben|nos deben|deudor|deudas?|cobranza|estado de cuenta)/i;
+const REPORT_WORD = /(reporte|informe|pdf|imprim|descarg|estado de cuenta|documento|archivo)/i;
+const wantsCxcReport = (msg: string) => CXC_TOPIC.test(msg) && REPORT_WORD.test(msg);
+
+/** Totales de Por cobrar con la MISMA regla del módulo: toda venta (no anulada) con saldo. */
+async function receivablesSummary(supabase: ReturnType<typeof getSupabaseClient>, clientName?: string) {
+  const owing = (await loadSaleGroups(supabase, { clientName, activeOnly: true })).filter((g) => g.balance_usd > 0.009);
+  // Por clienta con el nombre normalizado (igual que las tarjetas de Por cobrar)
+  const byClient = new Map<string, { client: string; balance: number }>();
+  for (const g of owing) {
+    const key = g.clientName.trim().replace(/\s+/g, ' ').toLowerCase();
+    const c = byClient.get(key) || { client: g.clientName, balance: 0 };
+    c.balance += g.balance_usd;
+    byClient.set(key, c);
+  }
+  const balance = Math.round(owing.reduce((s, g) => s + g.balance_usd, 0) * 100) / 100;
+  const top = [...byClient.values()].sort((a, b) => b.balance - a.balance).slice(0, 5)
+    .map((c) => ({ client: c.client, balance_usd: Math.round(c.balance * 100) / 100 }));
+  return { balance, invoices: owing.length, clients: byClient.size, top };
+}
+
+function pushCxcAttachment(ctx: { attachments: Attachment[] }, summary: { balance: number; invoices: number; clients: number }, clientName?: string | null, groupBy: 'clienta' | 'categoria' = 'clienta') {
+  if (ctx.attachments.some((a) => a.type === 'CXC_REPORT_PDF' && (a.client_name || '') === (clientName || ''))) return;
+  ctx.attachments.push({
+    id: crypto.randomUUID(),
+    type: 'CXC_REPORT_PDF',
+    title: clientName ? `Estado de cuenta · ${clientName}` : 'Reporte de cuentas por cobrar',
+    lines: [
+      `Total por cobrar: $${summary.balance.toFixed(2)}`,
+      `${summary.clients} ${summary.clients === 1 ? 'clienta' : 'clientas'} · ${summary.invoices} ${summary.invoices === 1 ? 'factura' : 'facturas'}`,
+    ],
+    client_name: clientName || null,
+    group_by: groupBy,
+  });
 }
 
 // Declaraciones en el formato real de Gemini v1beta (functionDeclarations).
@@ -784,6 +838,8 @@ const READONLY_TOOL_DECLARATIONS = [
     parameters: { type: 'OBJECT', properties: {} } },
   { name: 'listar_cxc', description: 'SOLO ADMIN. Cuentas por cobrar reales: ventas fiadas con saldo pendiente, agrupadas por venta, más el total por cobrar. Es distinto de los créditos del sistema.',
     parameters: { type: 'OBJECT', properties: {} } },
+  { name: 'generar_reporte_cxc', description: 'SOLO ADMIN. Entrega el REPORTE EN PDF de cuentas por cobrar (estilo factura: resumen, antigüedad de la deuda, detalle por clienta y abonos) o el estado de cuenta en PDF de una clienta si se indica client_name. Úsala siempre que pidan un reporte, informe, PDF, estado de cuenta o algo para imprimir/enviar de las cuentas por cobrar. El PDF aparece como botón debajo de tu mensaje.',
+    parameters: { type: 'OBJECT', properties: { client_name: { type: 'STRING', description: 'Clienta (opcional). Vacío = todas.' }, agrupar: { type: 'STRING', description: '"categoria" si piden el reporte por categoría o tipo de producto; si no, "clienta".' } } } },
   { name: 'consultar_deuda_cliente', description: 'Deuda por ventas fiadas de un cliente (total acordado, abonado y saldo por grupo de venta). El admin puede consultar cualquier cliente; un cliente solo la suya.',
     parameters: { type: 'OBJECT', properties: { client_name: { type: 'STRING' } } } },
   { name: 'consultar_venta', description: 'Detalle de las ventas/grupos de un cliente (productos, cantidades, total acordado, abonado, saldo, modalidad, fecha). Filtra opcionalmente por fecha YYYY-MM-DD. Admin: cualquier cliente; cliente: solo las suyas.',
@@ -798,7 +854,7 @@ const READONLY_TOOL_DECLARATIONS = [
     parameters: { type: 'OBJECT', properties: { client_name: { type: 'STRING' } } } },
 ];
 
-const ADMIN_ONLY_TOOLS = new Set(['listar_cxc', 'resumen_ventas', 'deudores_por_producto']);
+const ADMIN_ONLY_TOOLS = new Set(['listar_cxc', 'generar_reporte_cxc', 'resumen_ventas', 'deudores_por_producto']);
 
 function toolMeta(tool: string, extra: Record<string, unknown> = {}) {
   return { tool, source: 'supabase', ts: new Date().toISOString(), ...extra };
@@ -827,12 +883,13 @@ async function resolveClientName(
 // reales del grupo. total_usd es el total acordado: NUNCA se recalcula.
 async function loadSaleGroups(
   supabase: ReturnType<typeof getSupabaseClient>,
-  opts: { clientName?: string; customerUserId?: string; date?: string; fiadoOnly?: boolean },
+  opts: { clientName?: string; customerUserId?: string; date?: string; fiadoOnly?: boolean; activeOnly?: boolean },
 ) {
   let q = supabase.from('sales')
     .select('id, sale_group_id, client_name, product_name, quantity, total_usd, amount_paid, payment_status, sale_modality, created_at, customer_user_id')
     .limit(1000);
   if (opts.fiadoOnly) q = q.eq('sale_modality', 'fiado');
+  if (opts.activeOnly) q = q.neq('status', 'cancelled');
   if (opts.clientName) q = q.eq('client_name', opts.clientName);
   if (opts.customerUserId) q = q.eq('customer_user_id', opts.customerUserId);
   if (opts.date) q = q.gte('created_at', `${opts.date}T00:00:00`).lte('created_at', `${opts.date}T23:59:59`);
@@ -896,6 +953,27 @@ async function executeReadOnlyTool(name: string, args: Record<string, unknown>, 
         const groups = (await loadSaleGroups(supabase, { fiadoOnly: true })).filter((g) => g.balance_usd > 0.001).sort((a, b) => b.balance_usd - a.balance_usd);
         const total = Math.round(groups.reduce((s, g) => s + g.balance_usd, 0) * 100) / 100;
         return { source_note: 'Cuentas por cobrar por VENTAS FIADAS (no son los créditos del sistema).', accounts: groups.map((g) => ({ client: g.clientName, products: g.products, total_usd: g.total_usd, paid_usd: g.paid_usd, balance_usd: g.balance_usd })), total_por_cobrar_usd: total, count: groups.length, _meta: toolMeta(name) };
+      }
+      case 'generar_reporte_cxc': {
+        let clientName: string | undefined;
+        if (args.client_name) {
+          const r = await resolveClientName(supabase, String(args.client_name));
+          if (r.status === 'none') return { status: 'no_encontrado', message: `No encontré ventas de "${args.client_name}".`, _meta: toolMeta(name) };
+          if (r.status === 'ambiguous') return { status: 'ambiguo', options: r.options, message: 'Hay varias clientas con ese nombre; pide que elija una.', _meta: toolMeta(name) };
+          clientName = r.match;
+        }
+        const summary = await receivablesSummary(supabase, clientName);
+        pushCxcAttachment(ctx, summary, clientName, String(args.agrupar || '').startsWith('categ') ? 'categoria' : 'clienta');
+        return {
+          pdf_adjunto: true,
+          instruccion: 'El PDF ya está adjunto con botones (PDF, Enviar, Imprimir) debajo de tu mensaje. Dilo en una frase y resume el total, cuántas clientas/facturas y quién debe más. No pegues tablas.',
+          cliente: clientName || null,
+          total_por_cobrar_usd: summary.balance,
+          facturas: summary.invoices,
+          clientas: summary.clients,
+          quien_debe_mas: summary.top,
+          _meta: toolMeta(name),
+        };
       }
       case 'consultar_deuda_cliente': {
         let groups;
@@ -1230,6 +1308,7 @@ INSTRUCCIONES CLAVE:
 - NO respondas con el saludo genérico si el usuario hace una pregunta concreta de productos o categorías.
 - Para datos concretos (deudas, cuentas por cobrar, ventas, pagos, stock, precios, créditos, resúmenes), USA las herramientas disponibles y responde SOLO con lo que devuelvan. NUNCA inventes clientes, montos, saldos, IDs ni fechas.
 - "Cuentas por cobrar" o "a quién cobrar" = ventas fiadas (herramientas de CxC/deuda), NO los créditos del sistema; son fuentes distintas.
+- Si piden un REPORTE, INFORME, PDF, ESTADO DE CUENTA o algo para imprimir o enviar de las cuentas por cobrar (de todas o de una clienta), usa generar_reporte_cxc: el PDF sale como botón debajo de tu mensaje. Nunca digas que no puedes generar PDF.
 - Si una herramienta devuelve varias coincidencias (ambiguo), pregunta al usuario cuál antes de continuar. Si devuelve "no_encontrado", dilo con claridad.
 - OPERACIONES: no escribes nada directamente. Con las herramientas preparar_* PREPARAS la operación y la persona la confirma con un botón que aparece debajo de tu mensaje.
   · Clienta que quiere comprar ("quiero esto", "me llevo 2", "agrégame el sérum") → preparar_carrito. Luego dile que toque "Agregar al carrito" y después pague en el carrito.
@@ -1248,6 +1327,7 @@ Respuesta de ${ASSISTANT_NAME}:`;
 
     let generatedText = '';
     const proposals: Proposal[] = [];
+    const attachments: Attachment[] = [];
     const actionCtx = { supabase, isAdmin, bcvRate: 0, proposals };
 
     if (GEMINI_KEY) {
@@ -1259,6 +1339,7 @@ Respuesta de ${ASSISTANT_NAME}:`;
         isAdmin,
         authenticatedUserId: authenticatedUserId as string,
         bcvRate: businessContext.bcvRate,
+        attachments,
       };
       // La clienta solo puede preparar su carrito; la administración, todas las operaciones.
       const actionDeclarations = isAdmin
@@ -1338,6 +1419,19 @@ Respuesta de ${ASSISTANT_NAME}:`;
       console.warn('No GEMINI_API_KEY configured, using fallback responses');
     }
 
+    // Pedido explícito de reporte de Por cobrar: el PDF va aunque el modelo no llame la herramienta
+    if (isAdmin && !attachments.length && wantsCxcReport(lastUserMessage)) {
+      try {
+        const summary = await receivablesSummary(supabase);
+        pushCxcAttachment({ attachments }, summary, null, /categor/i.test(lastUserMessage) ? 'categoria' : 'clienta');
+        if (!generatedText || generatedText.length < 10) {
+          generatedText = `Aquí tienes el reporte de cuentas por cobrar en PDF 👇 Total por cobrar: $${summary.balance.toFixed(2)} (${summary.clients} ${summary.clients === 1 ? 'clienta' : 'clientas'}, ${summary.invoices} ${summary.invoices === 1 ? 'factura' : 'facturas'}).`;
+        }
+      } catch (e) {
+        console.error('CxC report attachment error:', e);
+      }
+    }
+
     // Si no hay respuesta útil, generar respuesta contextual
     if ((!generatedText || generatedText.length < 10) && proposals.length) {
       generatedText = 'Te lo dejé preparado 👇 Revísalo y confirma con el botón.';
@@ -1381,6 +1475,7 @@ Respuesta de ${ASSISTANT_NAME}:`;
         content: generatedText,
         suggestions: proposals.length ? [] : suggestions,
         proposals,
+        attachments,
         analysis: conversationAnalysis,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

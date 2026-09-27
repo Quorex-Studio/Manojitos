@@ -42,6 +42,7 @@ Fecha de corte de esta guía: 25 sep 2026. Commit base de Manojitos del que sali
 | 16 | La tasa BCV del asistente se filtra por `currency = 'USD'` (antes podía tomar la del euro) | **Bug** | ✅ Sí, prioritario |
 | 17 | “Quiero esto” en la ficha de un producto: el chat envía la página y la IA sabe qué producto está en pantalla | Funcional | ✅ Sí |
 | 18 | Variantes: `preparar_carrito`, `preparar_venta` y `preparar_entrada_stock` aceptan `variant` (talla, tono o presentación); si falta, devuelven las opciones para que la IA pregunte | Funcional | ✅ Sí, junto con la tabla `product_variants` |
+| 19 | **Reporte de cuentas por cobrar en PDF**: al pedir “el reporte”, “el PDF” o “el estado de cuenta de María”, la asistente responde con una tarjeta PDF (Imprimir · Enviar · PDF), el mismo que el botón de Por cobrar | Funcional | ✅ Sí (redesplegar `ai-assistant`) |
 
 ---
 
@@ -225,6 +226,35 @@ agregar el bloque `ADMIN_EXECUTABLE` antes del manejo de `action` antiguo, sumar
 `ProposalCard` y `confirmProposal`. Revisar que `PAYMENT_LABELS` tenga los métodos de
 Manojitos. Verificado en EINA: las cuatro escrituras corrieron como admin dentro de una
 transacción que se deshizo al final (stock, pago, abono parcial y compra correctos).
+
+### 2.9 Reportes en PDF como adjunto (`generar_reporte_cxc`)
+
+Pedido de la dueña: que al pedirle el reporte a Ina (o a Ángela) lo entregue **en PDF**.
+
+1. **Herramienta** `generar_reporte_cxc` (solo admin, en `ADMIN_ONLY_TOOLS`), con `client_name`
+   opcional y `agrupar` (`clienta` o `categoria`: "mándame el reporte por categoría"). Resuelve la clienta con `resolveClientName` (si hay varias, la IA pregunta), calcula
+   el resumen con `receivablesSummary` —misma regla que el módulo Por cobrar: toda venta no anulada
+   con saldo, agrupada por venta y por clienta— y empuja un **adjunto** a `ctx.attachments`:
+   `{ id, type: 'CXC_REPORT_PDF', title, lines, client_name }`. Al modelo le devuelve el total,
+   las clientas, las facturas, quién debe más y la instrucción de decir que el PDF está abajo.
+2. **Respaldo por intención**: si la administradora pide un reporte/PDF/estado de cuenta de
+   cuentas por cobrar (`wantsCxcReport`) y el modelo no llamó la herramienta (o no hay IA), el
+   servidor adjunta el PDF general igual y, si no hay texto útil, redacta el total.
+3. **Respuesta**: el JSON trae `attachments` junto a `proposals`.
+4. **Chat** (`AngelaChat.tsx` → `ReportAttachmentCard`): tarjeta con banda de marca, total y
+   conteos, y botones Imprimir · Enviar · PDF. El PDF **se arma en el navegador** con
+   `loadReceivablesReport` (sesión de la administradora; RLS protege los datos) y el mismo
+   `buildReceivablesPdf` del botón: ambos PDF son idénticos. Los datos se precargan al aparecer la
+   tarjeta para que compartir/imprimir corran dentro del clic, y el generador se importa en
+   diferido (la tienda no descarga jsPDF).
+5. El prompt dice: “Si piden un REPORTE, INFORME, PDF, ESTADO DE CUENTA… usa generar_reporte_cxc.
+   Nunca digas que no puedes generar PDF.”
+
+**Para Manojitos:** copiar los cambios de `index.ts` (tipo `Attachment`, `wantsCxcReport`,
+`receivablesSummary`, `pushCxcAttachment`, la herramienta, `activeOnly` en `loadSaleGroups`,
+`attachments` en la respuesta y la línea del prompt), `ReportAttachmentCard` en `AngelaChat.tsx`
+y los archivos de `src/lib` que lista `docs/REPORTES-PDF.md` §7. Redesplegar `ai-assistant`.
+Probar como admin: “mándame el reporte de cuentas por cobrar en PDF” y “estado de cuenta de <clienta>”.
 
 ### 2.8 Bug de la tasa
 

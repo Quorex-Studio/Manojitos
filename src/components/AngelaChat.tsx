@@ -16,11 +16,11 @@ import { BRAND, BRAND_NAME } from '@/config/brand';
  */
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Send, X, Check, ShoppingCart } from "reicon-react";
+import { Send, X, Check, ShoppingCart, FileText, Download, Share, Printer, Loader } from "reicon-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCart } from "@/contexts/CartContext";
 import { ADMIN_NAV_FLAT, isAdminPathActive } from "@/components/layout/adminNav";
 import { OPEN_ANGELA_EVENT } from "@/lib/events";
@@ -46,10 +46,21 @@ interface Proposal {
   choose?: { id: string; name: string }[];
 }
 
+/** Documento que acompaña la respuesta (p. ej. el reporte de Por cobrar en PDF). */
+interface Attachment {
+  id: string;
+  type: "CXC_REPORT_PDF";
+  title: string;
+  lines: string[];
+  client_name?: string | null;
+  group_by?: "clienta" | "categoria";
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   proposals?: Proposal[];
+  attachments?: Attachment[];
 }
 
 interface Suggestion {
@@ -63,6 +74,7 @@ interface AiAssistantResponse {
   content?: string;
   suggestions?: Suggestion[];
   proposals?: Proposal[];
+  attachments?: Attachment[];
   error?: string;
 }
 
@@ -187,7 +199,8 @@ export default function AngelaChat() {
       const proposals = Array.isArray(data.proposals)
         ? data.proposals.map((p) => ({ ...p, state: "pending" as const }))
         : [];
-      setMessages((prev) => [...prev, { role: "assistant", content: data.content as string, proposals }]);
+      const attachments = Array.isArray(data.attachments) ? data.attachments.filter((a) => a.type === "CXC_REPORT_PDF") : [];
+      setMessages((prev) => [...prev, { role: "assistant", content: data.content as string, proposals, attachments }]);
       setSuggestions(Array.isArray(data.suggestions) ? data.suggestions.slice(0, 4) : []);
       // Reacción positiva breve de la mascota.
       setJustAnswered(true);
@@ -373,6 +386,7 @@ export default function AngelaChat() {
                     {m.content}
                   </div>
                 </div>
+                {isAdmin && m.attachments?.map((a) => <ReportAttachmentCard key={a.id} attachment={a} />)}
                 {m.proposals?.map((p) => (
                   <ProposalCard
                     key={p.id}
@@ -493,6 +507,60 @@ function ProposalCard({ proposal: p, onConfirm, onCancel, onGo }: {
       {done && p.type === "CREATE_SALE" && (
         <Button size="sm" variant="outline" className="mt-2 w-full rounded-full" onClick={() => onGo("/sales")}>Ver en Ventas</Button>
       )}
+    </div>
+  );
+}
+
+/**
+ * Reporte en PDF que entrega la asistente. Se arma en el navegador con la sesión de la
+ * administradora y el mismo código del botón "Reporte PDF" de Por cobrar: mismas cifras.
+ */
+function ReportAttachmentCard({ attachment: a }: { attachment: Attachment }) {
+  // Se precarga al aparecer: así "Enviar" e "Imprimir" corren dentro del clic (el navegador
+  // bloquea compartir y abrir ventanas si antes hay que esperar la red)
+  // El generador de PDF se carga solo aquí (import dinámico): la tienda no lo descarga
+  const { data: actions, isLoading, isError, refetch } = useQuery({
+    queryKey: ["receivables-report-chat", a.id],
+    queryFn: async () => {
+      const { loadReceivablesReport, receivablesPdfActions } = await import("@/lib/receivablesData");
+      return receivablesPdfActions(await loadReceivablesReport({ clientName: a.client_name ?? null, groupBy: a.group_by ?? "clienta" }));
+    },
+    staleTime: 30_000,
+  });
+  const state = isLoading ? "working" : isError ? "error" : "idle";
+  const run = (kind: "download" | "share" | "print") => {
+    if (!actions) { void refetch(); return; }
+    void actions[kind]();
+  };
+
+  return (
+    <div className="ml-9 overflow-hidden rounded-2xl border border-border bg-card text-sm shadow-sm">
+      <div className="flex items-center gap-3 bg-primary px-3 py-2.5 text-primary-foreground">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-foreground/15">
+          <FileText className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate font-semibold leading-tight">{a.title}</p>
+          <p className="text-xs opacity-80">PDF estilo factura · listo para imprimir o enviar</p>
+        </div>
+      </div>
+      <div className="space-y-3 p-3">
+        <ul className="space-y-0.5">
+          {a.lines.map((l, i) => <li key={i} className={cn("leading-snug", i === 0 && "font-semibold tabular-nums")}>{l}</li>)}
+        </ul>
+        <div className="grid grid-cols-3 gap-2">
+          <Button size="sm" variant="outline" className="rounded-full" onClick={() => run("print")} disabled={!actions} aria-label="Imprimir reporte">
+            <Printer className="h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-full" onClick={() => run("share")} disabled={!actions} aria-label="Enviar reporte">
+            <Share className="h-4 w-4" />
+          </Button>
+          <Button size="sm" className="rounded-full" onClick={() => run("download")} disabled={state === "working"}>
+            {state === "working" ? <Loader className="h-4 w-4 animate-spin" /> : <><Download className="mr-1 h-4 w-4" />PDF</>}
+          </Button>
+        </div>
+        {state === "error" && <p className="text-xs font-medium text-destructive">No se pudo armar el PDF. Revisa tu conexión y toca PDF para reintentar.</p>}
+      </div>
     </div>
   );
 }
