@@ -1,5 +1,4 @@
 -- Fix process_checkout to prevent price injection by fetching the price from the database.
--- Adds SECURITY DEFINER so auth.users can be read.
 
 CREATE OR REPLACE FUNCTION public.process_checkout(
     items public.order_item_input[],
@@ -11,7 +10,6 @@ CREATE OR REPLACE FUNCTION public.process_checkout(
 )
 RETURNS jsonb
 LANGUAGE plpgsql
-SECURITY DEFINER
 AS $function$
 DECLARE
   v_customer_user_id UUID;
@@ -150,7 +148,6 @@ CREATE OR REPLACE FUNCTION public.process_checkout(
 )
 RETURNS jsonb
 LANGUAGE plpgsql
-SECURITY DEFINER
 AS $function$
 DECLARE
   v_customer_user_id UUID;
