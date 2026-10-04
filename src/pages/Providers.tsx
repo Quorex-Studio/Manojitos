@@ -331,7 +331,7 @@ export default function Providers() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="pu-notes">¿Qué compraste? (opcional)</Label>
-              <Textarea id="pu-notes" value={purchaseForm.notes} onChange={e => setPurchaseForm(f => ({ ...f, notes: e.target.value.slice(0, 200) }))} rows={2} className="resize-none rounded-xl" placeholder="Ej: 12 protectores solares y 6 sérums" />
+              <Textarea id="pu-notes" value={purchaseForm.notes} onChange={e => setPurchaseForm(f => ({ ...f, notes: e.target.value.slice(0, 200) }))} rows={2} className="resize-none rounded-xl" placeholder="Ej: 12 blusas y 6 pantalones" />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setPurchaseOpen(false)}>Cancelar</Button>

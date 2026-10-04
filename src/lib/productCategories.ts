@@ -1,7 +1,7 @@
 /**
  * Categorías de producto configurables (Configuración → Categorías).
  * Cada categoría dice qué detalle pide el producto, así el formulario solo muestra lo que aplica:
- * una base pide su tono, un sérum su contenido en ml, una blusa sus tallas.
+ * un perfume pide su contenido en ml, una blusa sus tallas, un bolso sus medidas.
  */
 export type DetailKind = 'ninguno' | 'contenido' | 'medidas' | 'tallas' | 'tonos';
 

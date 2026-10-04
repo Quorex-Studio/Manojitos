@@ -135,7 +135,7 @@ export function CategoriesSettings() {
               <form className="space-y-4" onSubmit={e => { e.preventDefault(); save(); }}>
                 <div className="space-y-1.5">
                   <Label htmlFor="cat-name">Nombre</Label>
-                  <Input id="cat-name" autoFocus value={draft.name} placeholder="Ej: Skincare"
+                  <Input id="cat-name" autoFocus value={draft.name} placeholder="Ej: Vestidos"
                     onChange={e => setDraft({ ...draft, name: e.target.value.slice(0, 50) })} className="h-11 rounded-xl" />
                   {nameTaken && <p className="text-xs text-destructive">Ya existe una categoría con ese nombre.</p>}
                 </div>
