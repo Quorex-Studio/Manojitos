@@ -32,6 +32,8 @@ import { sanitizeText } from '@/lib/validations';
 import { formatBS } from '@/lib/utils';
 import { PaymentInfoPanel } from '@/components/payments/PaymentInfoPanel';
 import { isCompletePhone } from '@/lib/venezuela';
+import { receiptNumber, type ReceiptData } from '@/lib/receipt';
+import { ReceiptActions, ReceiptView } from '@/components/receipts/ReceiptDialog';
 
 // Métodos de pago base (sin crédito — se agrega dinámicamente)
 const BASE_PAYMENT_METHODS = [
@@ -61,12 +63,15 @@ const NE_MUNICIPIOS = [
   { value: 'Tubores', label: 'Tubores' },
   { value: 'Villalba', label: 'Villalba' },
 ];
+// Fuera de Margarita se despacha por encomienda (MRW, Zoom o Tealca) y el envío lo cobra la agencia en destino
+const MRW = 'Envío nacional MRW';
+const DELIVERY_ZONES = [...NE_MUNICIPIOS, { value: MRW, label: 'Otra ciudad de Venezuela (MRW, Zoom o Tealca)' }];
 const RUTA_CORTA = ['Gómez', 'Díaz'];
 const RUTA_GRATIS = ['Marcano'];
 
 function calcDeliveryFee(subtotal: number, municipio: string, method: 'delivery' | 'pickup'): number {
   if (method === 'pickup') return 0;
-  if (!municipio) return 0;
+  if (!municipio || municipio === MRW) return 0;
   if (subtotal > 30) return 0;
   if (RUTA_GRATIS.includes(municipio)) return 0;
   if (RUTA_CORTA.includes(municipio)) return 2;
@@ -91,6 +96,8 @@ export default function Checkout() {
   const [step, setStep] = useState<'auth' | 'shipping' | 'payment' | 'confirm'>('shipping');
   const [loading, setLoading] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
+  // Recibo de la compra recién hecha (el carrito se vacía, así que se guarda aquí)
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [stockErrors, setStockErrors] = useState<StockValidationError[]>([]);
   const [kycCompleted, setKycCompleted] = useState(false);
 
@@ -198,7 +205,7 @@ export default function Checkout() {
         .single();
       
       if (data && !error) {
-        const validMunicipio = NE_MUNICIPIOS.some(m => m.value === data.city) ? data.city : '';
+        const validMunicipio = DELIVERY_ZONES.some(m => m.value === data.city) ? data.city : '';
         setShippingData(prev => ({
           ...prev,
           fullName: prev.fullName || data.full_name || '',
@@ -266,9 +273,10 @@ export default function Checkout() {
       const { valid, errors } = await validateStock(
         items.map(item => ({
           id: item.id,
-          name: item.size ? `${item.name} (Talla: ${item.size})` : item.name,
+          name: item.size ? `${item.name} (${item.size_label || 'Talla'}: ${item.size})` : item.name,
           quantity: item.quantity,
-          price_usd: item.price_usd
+          price_usd: item.price_usd,
+          variant_id: item.variant_id ?? null,
         }))
       );
 
@@ -325,12 +333,13 @@ export default function Checkout() {
 
       const checkoutItems = items.map(item => ({
         id: item.id,
-        name: item.size ? `${item.name} (Talla: ${item.size})` : item.name,
+        name: item.size ? `${item.name} (${item.size_label || 'Talla'}: ${item.size})` : item.name,
         quantity: item.quantity,
-        price_usd: item.price_usd
+        price_usd: item.price_usd,
+        variant_id: item.variant_id ?? null,
       }));
 
-      const { error, saleIds } = await processCheckout(
+      const { error, saleIds, orderId } = await processCheckout(
         checkoutItems,
         {
           payment_method: sanitizeText(paymentMethod),
@@ -347,6 +356,35 @@ export default function Checkout() {
       if (error) {
         throw error;
       }
+
+      // Mismo recibo que Mis pedidos y Ventas, con los datos de entrega y del pago
+      const entrega = deliveryMethod === 'pickup'
+        ? 'Retiro en tienda'
+        : shippingData.city === MRW ? 'Envío nacional por encomienda' : `Delivery · ${shippingData.city}`;
+      const details: { label: string; value: string }[] = [{ label: 'Entrega', value: entrega }];
+      if (deliveryMethod === 'delivery' && shippingData.address) details.push({ label: 'Dirección', value: shippingData.address });
+      if (paymentMethod === 'pago_movil' && bancoOrigen) details.push({ label: 'Banco de origen', value: bancoOrigen });
+      if (paymentMethod === 'pago_movil' && numeroReferencia) details.push({ label: 'Referencia', value: numeroReferencia });
+      if (paymentMethod === 'credito') {
+        details.push({ label: 'Inicial pagada hoy', value: `$${montoInicialTotal.toFixed(2)}` });
+        details.push({ label: 'Financiado', value: `$${montoFinanciado.toFixed(2)} en 2 cuotas de $${montoCuota.toFixed(2)}` });
+        if (casheaRef) details.push({ label: 'Referencia de la inicial', value: casheaRef });
+      }
+      const receiptId = orderId || saleIds?.[0];
+      setReceipt({
+        kind: 'pedido',
+        number: receiptId ? receiptNumber(receiptId) : 'Pedido nuevo',
+        date: new Date(),
+        customerName: shippingData.fullName,
+        customerPhone: shippingData.phone,
+        paymentMethod,
+        items: checkoutItems.map(i => ({ name: i.name, quantity: i.quantity, unitPrice: i.price_usd })),
+        delivery: deliveryMethod === 'delivery' ? deliveryFee : 0,
+        total: orderTotal,
+        totalBs: rate > 0 ? orderTotal * rate : null,
+        status: 'pendiente',
+        details,
+      });
 
       clearCart();
       setOrderComplete(true);
@@ -416,40 +454,15 @@ export default function Checkout() {
               </div>
             )}
 
-            <div className="glass-card rounded-2xl p-6 mb-6 text-left shadow-sm border border-border/60 bg-gradient-to-br from-background to-secondary/20">
-              <h3 className="font-semibold text-lg text-foreground mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
-                <Package className="h-5 w-5 text-primary" />
-                Resumen del pedido
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="text-muted-foreground">Nombre:</span>
-                  <span className="font-medium text-foreground">{shippingData.fullName}</span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="text-muted-foreground">Teléfono:</span>
-                  <span className="font-medium text-foreground">{shippingData.phone}</span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="text-muted-foreground">Tipo de Entrega:</span>
-                  <span className="font-medium text-foreground">
-                    {deliveryMethod === 'pickup' ? 'Retiro en Tienda' : 'Delivery'}
-                  </span>
-                </div>
-                {deliveryMethod === 'delivery' && (
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span className="text-muted-foreground">Dirección:</span>
-                    <span className="font-medium text-foreground text-right">{shippingData.address}, {shippingData.city}</span>
-                  </div>
-                )}
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="text-muted-foreground">Método de pago:</span>
-                  <span className="font-medium text-foreground">{allMethodsWithCredit.find(m => m.method_key === paymentMethod)?.label}</span>
-                </div>
+            {receipt && (
+              <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-card text-left shadow-sm">
+                <ReceiptView data={receipt} />
+                <ReceiptActions data={receipt} className="border-t border-border p-3" />
               </div>
-            </div>
-
-
+            )}
+            <p className="mb-6 text-sm text-muted-foreground">
+              También te llegó por correo. Cuando confirmemos el pago te enviaremos la factura final.
+            </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/tienda">
@@ -642,12 +655,12 @@ export default function Checkout() {
                                     className="grid gap-4 overflow-hidden"
                                   >
                                     <div>
-                                      <Label htmlFor="modal-address" className="text-sm">Dirección Exacta <span className="text-destructive">*</span></Label>
+                                      <Label htmlFor="modal-address" className="text-sm">{shippingData.city === MRW ? 'Ciudad, estado y agencia de encomienda (o dirección)' : 'Dirección Exacta'} <span className="text-destructive">*</span></Label>
                                       <div className="flex flex-col sm:flex-row gap-2 mt-1">
                                         <div className="relative flex-1">
                                           <Input
                                             id="modal-address"
-                                            placeholder="Calle, número, punto de referencia..."
+                                            placeholder={shippingData.city === MRW ? 'Ej: Valencia, Carabobo. Agencia MRW Av. Bolívar' : 'Calle, número, punto de referencia...'}
                                             value={shippingData.address}
                                             onChange={(e) => setShippingData(prev => ({...prev, address: e.target.value.replace(/[^A-Za-z0-9Á-Úá-úñÑ\s.,#-]/g, '').slice(0, 100)}))}
                                             name="address"
@@ -672,18 +685,22 @@ export default function Checkout() {
                                     </div>
 
                                     <div>
-                                      <Label htmlFor="modal-city" className="text-sm">Municipio <span className="text-destructive">*</span></Label>
+                                      <Label htmlFor="modal-city" className="text-sm">Municipio o destino <span className="text-destructive">*</span></Label>
                                       <Select value={shippingData.city} onValueChange={(val) => setShippingData(prev => ({...prev, city: val}))}>
                                         <SelectTrigger className="mt-1">
                                           <SelectValue placeholder="Selecciona tu municipio" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          {NE_MUNICIPIOS.map(m => (
+                                          {DELIVERY_ZONES.map(m => (
                                             <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                                           ))}
                                         </SelectContent>
                                       </Select>
-                                      {deliveryMethod === 'delivery' && shippingData.city && (
+                                      {deliveryMethod === 'delivery' && shippingData.city === MRW ? (
+                                        <p className="text-xs mt-1.5 text-muted-foreground">
+                                          El envío lo cobra la agencia (MRW, Zoom o Tealca) al recibir, según el destino. Te escribimos con la guía cuando salga.
+                                        </p>
+                                      ) : deliveryMethod === 'delivery' && shippingData.city && (
                                         <p className="text-xs mt-1.5 text-muted-foreground">
                                           Delivery: {deliveryFee === 0 ? <span className="text-primary font-medium">GRATIS</span> : <span className="font-medium">${deliveryFee.toFixed(2)}</span>}
                                         </p>
@@ -708,7 +725,7 @@ export default function Checkout() {
                             </div>
                             
                             <Button 
-                              className="w-full mt-4 h-11 bg-[#FFD814] hover:bg-[#F7CA00] text-black font-medium"
+                              className="w-full mt-4 h-11 rounded-full font-medium"
                               onClick={() => setIsSelectingShipping(false)}
                             >
                               Guardar y continuar
@@ -720,7 +737,14 @@ export default function Checkout() {
                   </div>
                   <div className="text-sm text-muted-foreground pr-10">
                     {deliveryMethod === 'delivery' && shippingData.address ? (
-                      <p className="leading-relaxed">{shippingData.address}{shippingData.city ? `, ${shippingData.city}` : ''}</p>
+                      <>
+                        <p className="leading-relaxed">{shippingData.address}{shippingData.city ? `, ${shippingData.city}` : ''}</p>
+                        {!shippingData.city && (
+                          <button type="button" onClick={() => setIsSelectingShipping(true)} className="mt-2 text-xs font-medium text-destructive underline underline-offset-2">
+                            Falta elegir el municipio o destino. Tócalo aquí
+                          </button>
+                        )}
+                      </>
                     ) : (
                       <p className="leading-relaxed">Retiro en Tienda - {shippingData.phone || 'Sin número'}</p>
                     )}
@@ -1154,7 +1178,7 @@ export default function Checkout() {
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                       <p className="text-sm font-semibold text-foreground line-clamp-2 leading-tight">{item.name}</p>
                       {item.size && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Talla: {item.size === 'Única' ? 'Única' : item.size}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{item.size_label || 'Talla'}: {item.size}</p>
                       )}
                       <p className="text-xs text-muted-foreground mt-1">x{item.quantity} unidades</p>
                     </div>
@@ -1182,6 +1206,8 @@ export default function Checkout() {
                     <span className="text-primary font-medium">Retiro en tienda</span>
                   ) : !shippingData.city ? (
                     <span className="text-muted-foreground/60 text-xs">Selecciona municipio</span>
+                  ) : shippingData.city === MRW ? (
+                    <span className="text-muted-foreground text-xs">Lo cobra la agencia</span>
                   ) : deliveryFee === 0 ? (
                     <span className="text-primary font-medium">GRATIS</span>
                   ) : (
@@ -1291,7 +1317,7 @@ export default function Checkout() {
                           !shippingData.fullName.trim() && 'Nombre completo',
                           !shippingData.phone.trim() && 'Teléfono',
                           deliveryMethod !== 'pickup' && !shippingData.address.trim() && 'Dirección',
-                          deliveryMethod !== 'pickup' && !shippingData.city.trim() && 'Ciudad'
+                          deliveryMethod !== 'pickup' && !shippingData.city.trim() && 'Municipio o destino'
                         ].filter(Boolean).join(', ')}
                       </div>
                     )}

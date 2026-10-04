@@ -3,6 +3,8 @@ const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { getEmailSecret } from "../send-email/config.ts";
+import { createCreditReminderEmail } from "../send-email/templates.ts";
 
 // CORS headers for browser requests
 const corsHeaders = {
@@ -16,9 +18,14 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Resend client for emails
-const resendApiKey = Deno.env.get("RESEND_API_KEY");
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
+// Resend: variable de entorno o Vault (ver send-email/config.ts)
+let resendClient: Resend | null = null;
+async function getResend(): Promise<Resend | null> {
+  if (resendClient) return resendClient;
+  const key = await getEmailSecret("resend_api_key");
+  resendClient = key ? new Resend(key) : null;
+  return resendClient;
+}
 
 // Verify admin authorization
 async function verifyAdminAuth(authHeader: string | null): Promise<{ isAdmin: boolean; error?: string }> {
@@ -219,6 +226,7 @@ async function sendEmailNotification(
   title: string,
   message: string
 ): Promise<{ success: boolean; error?: string }> {
+  const resend = await getResend();
   if (!resend) {
     console.log("Resend not configured, skipping email");
     return { success: false, error: "Email service not configured" };
@@ -229,27 +237,14 @@ async function sendEmailNotification(
     return { success: false, error: "Client has no email" };
   }
 
-  const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || `${BRAND_NAME} <onboarding@resend.dev>`;
+  const fromEmail = (await getEmailSecret("resend_from_email")) || `${BRAND_NAME} <onboarding@resend.dev>`;
 
   try {
     const { error } = await resend.emails.send({
       from: fromEmail,
       to: [credit.client_email],
       subject: title,
-      html: `
-        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #FFB5C5 0%, #D4AF37 100%); color: #ffffff; padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">${BRAND_NAME}</h1>
-          </div>
-          <div style="background: #fff; padding: 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 10px 10px;">
-            <h2 style="color: #333; margin-top: 0;">${title}</h2>
-            <p style="color: #555; line-height: 1.6; font-size: 16px;">${message}</p>
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-              <p style="color: #999; font-size: 12px;">Este es un mensaje automático, por favor no responda a este correo.</p>
-            </div>
-          </div>
-        </div>
-      `,
+      html: createCreditReminderEmail(title, message),
     });
 
     if (error) {

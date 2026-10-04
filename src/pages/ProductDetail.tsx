@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/store/ProductCard';
 import { FavoriteButton } from '@/components/store/FavoriteButton';
+import { RequestProductButton } from '@/components/store/RequestProductButton';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { usePublicProducts } from '@/hooks/usePublicProducts';
@@ -18,10 +19,16 @@ import { useCart, CartItem } from '@/contexts/CartContext';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useBrowsingHistory } from '@/hooks/useBrowsingHistory';
 import { toast } from 'sonner';
-import { formatBS, getAvailableSizes } from '@/lib/utils';
+import { formatBS } from '@/lib/utils';
+import { productVariants, sortedVariants, variantLabel, variantPrice } from '@/lib/productCategories';
+import { useProductCategories } from '@/hooks/useProductCategories';
 
 
 // Página de detalle de producto — Split layout editorial
+/** Cuántas opciones tiene el producto (con variantes: todas, aunque alguna esté agotada) */
+const availableSizesCount = (p: { product_variants?: unknown[]; sizes: string[] | null }) =>
+  p.product_variants?.length ? p.product_variants.length : productVariants(p.sizes).length;
+
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -68,18 +75,26 @@ export default function ProductDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const availableSizes = product ? getAvailableSizes(product.name, product.category || '') : [];
-  const isSizeRequired = availableSizes.length > 0 && availableSizes[0] !== 'Única';
+  // Tallas o tonos cargados en el producto; la categoría dice cómo se llaman
+  const { byName } = useProductCategories();
+  // Variantes con stock propio (tallas, tonos, presentaciones)
+  const variants = product ? sortedVariants(product.product_variants) : [];
+  const availableSizes = variants.length ? variants.map(v => v.label) : product ? productVariants(product.sizes) : [];
+  const optionName = variantLabel(byName(product?.category)?.detail_kind);
+  const isSizeRequired = availableSizes.length > 1;
+  const selectedVariant = variants.find(v => v.label === selectedSize) ?? null;
+  // Precio y stock de lo que se va a comprar: la variante elegida o el producto
+  const unitPrice = product ? variantPrice(product.price_usd, selectedVariant) : 0;
+  const prices = variants.map(v => variantPrice(product?.price_usd ?? 0, v));
+  const minPrice = prices.length ? Math.min(...prices) : unitPrice;
+  const pricesDiffer = prices.length > 1 && Math.max(...prices) !== minPrice;
 
-  // Initialize/reset selected size when product changes
+  // Con una sola opción disponible se elige sola; con varias, la clienta debe escoger
   useEffect(() => {
     if (product) {
-      const sizes = getAvailableSizes(product.name, product.category || '');
-      if (sizes.length === 1 && sizes[0] === 'Única') {
-        setSelectedSize('Única');
-      } else {
-        setSelectedSize('');
-      }
+      const list = sortedVariants(product.product_variants);
+      const labels = list.length ? list.filter(v => v.stock > 0).map(v => v.label) : productVariants(product.sizes);
+      setSelectedSize(labels.length === 1 && availableSizesCount(product) === 1 ? labels[0] : '');
     }
   }, [product]);
 
@@ -89,11 +104,16 @@ export default function ProductDetail() {
     .filter(item => item.id === product.id)
     .reduce((sum, item) => sum + item.quantity, 0) : 0;
     
-  const availableStock = product ? product.stock - totalInCart : 0;
+  // Con variantes, el límite es el stock de la variante elegida menos lo que ya está en el carrito
+  const availableStock = product
+    ? selectedVariant
+      ? selectedVariant.stock - getItemQuantity(product.id, selectedVariant.label)
+      : product.stock - totalInCart
+    : 0;
   const maxQuantity = Math.max(0, availableStock);
 
-  const inCart = product && selectedSize ? isInCart(product.id, selectedSize) : false;
-  const cartQuantity = product && selectedSize ? getItemQuantity(product.id, selectedSize) : 0;
+  const inCart = product && (selectedSize || !isSizeRequired) ? isInCart(product.id, selectedSize || undefined) : false;
+  const cartQuantity = product && (selectedSize || !isSizeRequired) ? getItemQuantity(product.id, selectedSize || undefined) : 0;
 
   const relatedProducts = product 
     ? products
@@ -114,8 +134,8 @@ export default function ProductDetail() {
     if (!product || quantity <= 0 || quantity > maxQuantity) return;
     
     if (isSizeRequired && !selectedSize) {
-      toast.error('Selecciona una talla', {
-        description: 'Por favor, selecciona una talla antes de agregar al carrito.',
+      toast.error(`Elige ${optionName.toLowerCase()}`, {
+        description: `Selecciona ${optionName.toLowerCase()} antes de agregar al carrito.`,
       });
       return;
     }
@@ -125,17 +145,19 @@ export default function ProductDetail() {
     const cartItem: CartItem = {
       id: product.id,
       name: product.name,
-      price_usd: product.price_usd,
+      price_usd: unitPrice,
       quantity: quantity,
       image_url: product.image_url,
-      stock: product.stock,
-      size: selectedSize
+      stock: selectedVariant ? selectedVariant.stock : product.stock,
+      size: selectedSize || undefined,
+      variant_id: selectedVariant?.id,
+      size_label: selectedSize ? optionName : undefined,
     };
 
     addItem(cartItem);
 
     toast.success('¡Agregado al carrito!', {
-      description: `${quantity} x ${product.name} ${selectedSize ? `(Talla: ${selectedSize})` : ''}`,
+      description: `${quantity} x ${product.name}${selectedSize ? ` (${optionName}: ${selectedSize})` : ''}`,
       icon: <Check className="h-4 w-4 text-green-500" />
     });
 
@@ -150,7 +172,7 @@ export default function ProductDetail() {
     return (
       <StoreLayout>
         <div className="container mx-auto px-4 py-8">
-          <div className="grid md:grid-cols-[5.5fr_4.5fr] gap-8 lg:gap-14">
+          <div className="grid grid-cols-1 md:grid-cols-[5.5fr_4.5fr] gap-8 lg:gap-14 [&>*]:min-w-0">
             <div className="aspect-[3/4] rounded-2xl skeleton-shimmer" />
             <div className="space-y-5 py-4">
               <div className="h-3 w-1/3 rounded-full skeleton-shimmer" />
@@ -223,7 +245,7 @@ export default function ProductDetail() {
         </Button>
 
         {/* Product Section — Split layout 55% / 45% */}
-        <div className="grid md:grid-cols-[5.5fr_4.5fr] gap-8 lg:gap-14">
+        <div className="grid grid-cols-1 md:grid-cols-[5.5fr_4.5fr] gap-8 lg:gap-14 [&>*]:min-w-0">
           {/* Image — with zoom on hover */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -292,10 +314,14 @@ export default function ProductDetail() {
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-serif font-medium text-foreground tracking-tight leading-[1.1]">
               {product.name}
             </h1>
+            {product.presentation && (
+              <p className="-mt-3 text-sm text-muted-foreground">{product.presentation}</p>
+            )}
 
             {/* Price */}
+            {pricesDiffer && !selectedVariant && <p className="-mb-5 text-xs uppercase tracking-[0.1em] text-muted-foreground">Desde</p>}
             <PriceDisplay 
-              amountUsd={product.price_usd}
+              amountUsd={pricesDiffer && !selectedVariant ? minPrice : unitPrice}
               className="space-y-1"
               primaryClassName="text-3xl md:text-4xl font-semibold text-foreground tabular-nums tracking-tight"
               secondaryClassName="text-sm text-muted-foreground tabular-nums tracking-wide"
@@ -320,7 +346,7 @@ export default function ProductDetail() {
 
             {totalInCart > 0 && (
               <Badge variant="outline" className="border-gold/20 text-gold/80 bg-gold/5 rounded-full text-xs">
-                Tienes {totalInCart} en tu carrito {selectedSize && selectedSize !== 'Única' ? `(Talla ${selectedSize}: ${cartQuantity})` : ''}
+                Tienes {totalInCart} en tu carrito{availableSizes.length > 1 && selectedSize ? ` (${optionName} ${selectedSize}: ${cartQuantity})` : ''}
               </Badge>
             )}
 
@@ -336,12 +362,12 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* Tallas Selector */}
+            {/* Talla o tono (según la categoría) */}
             {product.stock > 0 && availableSizes.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] text-muted-foreground tracking-[0.1em] uppercase block">
-                    Tallas disponibles
+                    {optionName === 'Tono' ? 'Tonos disponibles' : optionName === 'Talla' ? 'Tallas disponibles' : optionName === 'Presentación' ? 'Presentaciones' : 'Opciones'}
                   </label>
                   {isSizeRequired && !selectedSize && (
                     <span className="text-[11px] text-sale tracking-wide">
@@ -352,17 +378,23 @@ export default function ProductDetail() {
                 <div className="flex flex-wrap gap-2">
                   {availableSizes.map((size) => {
                     const isSelected = selectedSize === size;
+                    const v = variants.find(x => x.label === size);
+                    const soldOut = !!v && v.stock <= 0;
                     return (
                       <button
                         key={size}
-                        onClick={() => setSelectedSize(size)}
-                        className={`px-4 py-2 text-xs font-medium tracking-wide rounded-full border transition-all duration-300 ${
+                        type="button"
+                        aria-pressed={isSelected}
+                        disabled={soldOut}
+                        onClick={() => { setSelectedSize(size); setQuantity(1); }}
+                        className={`px-4 py-2 text-xs font-medium tracking-wide rounded-full border transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:line-through ${
                           isSelected
                             ? 'bg-foreground border-foreground text-background'
                             : 'border-border hover:border-foreground text-foreground bg-card'
                         }`}
                       >
-                        {size === 'Única' ? 'Talla Única' : size}
+                        {size}
+                        {pricesDiffer && v && <span className="ml-1 opacity-70">· ${variantPrice(product.price_usd, v).toFixed(2)}</span>}
                       </button>
                     );
                   })}
@@ -412,7 +444,7 @@ export default function ProductDetail() {
                 <div ref={mainCtaRef} className="flex gap-3">
                 <Button
                   size="lg"
-                  className="flex-1 rounded-full text-base font-semibold h-14"
+                  className="min-w-0 flex-1 rounded-full text-base font-semibold h-14"
                   onClick={handleAddToCart}
                   disabled={isAdding || quantity <= 0}
                 >
@@ -436,7 +468,7 @@ export default function ProductDetail() {
                         className="flex items-center"
                       >
                         <ShoppingBag className="h-5 w-5 mr-2" />
-                        <span className="flex items-center gap-1">Agregar al Carrito — <PriceDisplay amountUsd={product.price_usd * quantity} showSecondary={false} primaryClassName="font-medium" className="inline-flex" /></span>
+                        <span className="flex items-center gap-1"><span className="sm:hidden">Agregar —</span><span className="hidden sm:inline">Agregar al Carrito —</span> <PriceDisplay amountUsd={unitPrice * quantity} showSecondary={false} primaryClassName="font-medium" className="inline-flex" /></span>
                       </motion.span>
                     )}
                   </AnimatePresence>
@@ -446,11 +478,7 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {product.stock === 0 && (
-              <Button size="lg" className="w-full rounded-full h-14" disabled>
-                Producto Agotado
-              </Button>
-            )}
+            {product.stock <= 0 && <RequestProductButton productId={product.id} productName={product.name} />}
 
             <div className="h-px bg-border/10" />
 
@@ -482,7 +510,7 @@ export default function ProductDetail() {
               <div className="mx-auto flex max-w-md items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-foreground">{product.name}</p>
-                  <PriceDisplay amountUsd={product.price_usd} showSecondary={false} primaryClassName="text-sm font-bold tabular-nums text-foreground" />
+                  <PriceDisplay amountUsd={pricesDiffer && !selectedVariant ? minPrice : unitPrice} showSecondary={false} primaryClassName="text-sm font-bold tabular-nums text-foreground" />
                 </div>
                 <Button
                   className="h-11 shrink-0 rounded-full px-5 font-semibold"

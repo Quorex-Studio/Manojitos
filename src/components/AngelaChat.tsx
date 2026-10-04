@@ -16,19 +16,51 @@ import { BRAND, BRAND_NAME } from '@/config/brand';
  */
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Send, X } from "reicon-react";
+import { Send, X, Check, ShoppingCart, FileText, Download, Share, Printer, Loader } from "reicon-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCart } from "@/contexts/CartContext";
 import { ADMIN_NAV_FLAT, isAdminPathActive } from "@/components/layout/adminNav";
 import { OPEN_ANGELA_EVENT } from "@/lib/events";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { productVariants, variantLabel } from "@/lib/productCategories";
+import { useProductCategories } from "@/hooks/useProductCategories";
 import AngelaMascot, { type MascotState } from "@/components/AngelaMascot";
+
+/** Operación que la asistente dejó preparada; solo se ejecuta al confirmar. */
+interface Proposal {
+  id: string;
+  type: "ADD_TO_CART" | "CREATE_SALE" | "CREATE_PURCHASE" | "REGISTER_ABONO" | "ADD_STOCK";
+  title: string;
+  lines: string[];
+  total?: number;
+  confirmLabel: string;
+  clientSide?: boolean;
+  data: Record<string, unknown>;
+  state?: "pending" | "working" | "done" | "cancelled" | "error";
+  result?: string;
+  /** Productos con varias tallas/tonos: la clienta los elige en su ficha */
+  choose?: { id: string; name: string }[];
+}
+
+/** Documento que acompaña la respuesta (p. ej. el reporte de Por cobrar en PDF). */
+interface Attachment {
+  id: string;
+  type: "CXC_REPORT_PDF";
+  title: string;
+  lines: string[];
+  client_name?: string | null;
+  group_by?: "clienta" | "categoria";
+}
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  proposals?: Proposal[];
+  attachments?: Attachment[];
 }
 
 interface Suggestion {
@@ -41,20 +73,37 @@ interface Suggestion {
 interface AiAssistantResponse {
   content?: string;
   suggestions?: Suggestion[];
+  proposals?: Proposal[];
+  attachments?: Attachment[];
   error?: string;
+}
+
+interface ActionResult {
+  success?: boolean;
+  message?: string;
 }
 
 const WELCOME: ChatMessage = {
   role: "assistant",
   content:
-    `🩷 ¡Hola! Soy ${BRAND.assistantName}, tu asistente de ${BRAND_NAME}. ¿En qué te puedo ayudar hoy? Puedo orientarte con productos, precios en USD y Bs, y tu crédito. ✨`,
+    `🩷 ¡Hola! Soy ${BRAND.assistantName}, tu asistente de ${BRAND_NAME}. Te ayudo a encontrar productos, ver precios en USD y Bs, revisar tu crédito y hasta agregar al carrito lo que quieras comprar. ✨`,
+};
+
+const WELCOME_ADMIN: ChatMessage = {
+  role: "assistant",
+  content:
+    `🩷 ¡Hola! Soy ${BRAND.assistantName}. Cuéntame qué pasó y lo registro por ti, por ejemplo:\n• "Vendí 2 bases a María por pago móvil"\n• "Compré $80 en YesStyle"\n• "María abonó $20 por Zelle"\n• "Llegaron 10 protectores solares"\nTambién te digo quién te debe, qué se vende más y qué se está acabando. ✨`,
 };
 
 const ERROR_MESSAGE =
   "🩷 Disculpa, tuve un problema para responder en este momento. Intenta de nuevo en unos segundos. ✨";
 
 export default function AngelaChat() {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
+  const { addItem } = useCart();
+  const { byName } = useProductCategories();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -70,6 +119,11 @@ export default function AngelaChat() {
 
   // Estado de la mascota: pensando mientras responde, reacción positiva al recibir.
   const mascotState: MascotState = sending ? "thinking" : justAnswered ? "happy" : "idle";
+
+  // Saludo según el rol (la administración ve lo que puede registrar)
+  useEffect(() => {
+    setMessages(prev => (prev.length === 1 && (prev[0] === WELCOME || prev[0] === WELCOME_ADMIN)) ? [isAdmin ? WELCOME_ADMIN : WELCOME] : prev);
+  }, [isAdmin]);
 
   // Autoscroll al último mensaje.
   useEffect(() => {
@@ -111,7 +165,8 @@ export default function AngelaChat() {
     if (!trimmed || sending) return;
 
     const userMsg: ChatMessage = { role: "user", content: trimmed };
-    const history = [...messages.filter((m) => m !== WELCOME), userMsg];
+    const history = [...messages.filter((m) => m !== WELCOME && m !== WELCOME_ADMIN), userMsg]
+      .map(({ role, content }) => ({ role, content }));
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
@@ -132,7 +187,7 @@ export default function AngelaChat() {
       const { data, error } = await supabase.functions.invoke<AiAssistantResponse>(
         "ai-assistant",
         {
-          body: { messages: history },
+          body: { messages: history, page: pathname },
           headers: { Authorization: `Bearer ${session.access_token}` },
         },
       );
@@ -141,7 +196,11 @@ export default function AngelaChat() {
         throw error ?? new Error("empty response");
       }
 
-      setMessages((prev) => [...prev, { role: "assistant", content: data.content as string }]);
+      const proposals = Array.isArray(data.proposals)
+        ? data.proposals.map((p) => ({ ...p, state: "pending" as const }))
+        : [];
+      const attachments = Array.isArray(data.attachments) ? data.attachments.filter((a) => a.type === "CXC_REPORT_PDF") : [];
+      setMessages((prev) => [...prev, { role: "assistant", content: data.content as string, proposals, attachments }]);
       setSuggestions(Array.isArray(data.suggestions) ? data.suggestions.slice(0, 4) : []);
       // Reacción positiva breve de la mascota.
       setJustAnswered(true);
@@ -151,6 +210,63 @@ export default function AngelaChat() {
       setMessages((prev) => [...prev, { role: "assistant", content: ERROR_MESSAGE }]);
     } finally {
       setSending(false);
+    }
+  }
+
+  function updateProposal(id: string, patch: Partial<Proposal>) {
+    setMessages((prev) => prev.map((m) => m.proposals?.some((p) => p.id === id)
+      ? { ...m, proposals: m.proposals.map((p) => (p.id === id ? { ...p, ...patch } : p)) }
+      : m));
+  }
+
+  /** Ejecuta una operación preparada. El carrito se llena aquí; lo demás lo hace el servidor. */
+  async function confirmProposal(p: Proposal) {
+    if (p.state === "working" || p.state === "done") return;
+    updateProposal(p.id, { state: "working" });
+
+    if (p.type === "ADD_TO_CART") {
+      const items = (p.data.items as { id: string; name: string; price_usd: number; quantity: number; image_url: string | null; stock: number; variant_id?: string | null; size?: string | null }[]) || [];
+      // Un producto con varias tallas o tonos no se agrega a ciegas: la clienta elige en su ficha
+      const { data: rows } = await supabase.from("products").select("id, sizes, category").in("id", items.map((it) => it.id));
+      const variantsOf = (id: string) => productVariants((rows || []).find((r) => r.id === id)?.sizes);
+      // Ángela ya resolvió la variante (talla, tono o presentación) o el producto tiene una sola
+      const direct = items.filter((it) => it.variant_id || variantsOf(it.id).length <= 1);
+      const choose = items.filter((it) => !it.variant_id && variantsOf(it.id).length > 1).map((it) => ({ id: it.id, name: it.name }));
+      direct.forEach((it) => {
+        const size = it.size || variantsOf(it.id)[0];
+        const { variant_id, size: _s, ...rest } = it;
+        addItem({
+          ...rest,
+          size: size || undefined,
+          variant_id: variant_id || undefined,
+          size_label: size ? variantLabel(byName((rows || []).find((r) => r.id === it.id)?.category)?.detail_kind) : undefined,
+        });
+      });
+      const units = direct.reduce((n, it) => n + it.quantity, 0);
+      const parts = [
+        units > 0 ? `Agregado al carrito (${units} ${units === 1 ? "unidad" : "unidades"}).` : "",
+        choose.length ? `Elige el tono o la talla de ${choose.map((c) => c.name).join(", ")} en su ficha.` : "",
+      ].filter(Boolean);
+      updateProposal(p.id, { state: "done", result: parts.join(" "), choose });
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("sin sesión");
+      const { data, error } = await supabase.functions.invoke<ActionResult>("ai-assistant", {
+        body: { action: { type: p.type, data: p.data } },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error || !data?.success) {
+        updateProposal(p.id, { state: "error", result: data?.message || "No se pudo completar. Inténtalo de nuevo o hazlo desde el panel." });
+        return;
+      }
+      updateProposal(p.id, { state: "done", result: data.message });
+      // Ventas, inventario, compras y cuentas por cobrar se refrescan en el panel
+      void queryClient.invalidateQueries();
+    } catch {
+      updateProposal(p.id, { state: "error", result: "No se pudo completar. Revisa tu conexión e inténtalo de nuevo." });
     }
   }
 
@@ -249,8 +365,8 @@ export default function AngelaChat() {
             {/* Mensajes */}
             <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-3 py-4">
               {messages.map((m, i) => (
+                <div key={i} className="space-y-2">
                 <div
-                  key={i}
                   className={cn(
                     "flex items-end gap-2",
                     m.role === "user" ? "justify-end" : "justify-start",
@@ -269,6 +385,17 @@ export default function AngelaChat() {
                   >
                     {m.content}
                   </div>
+                </div>
+                {isAdmin && m.attachments?.map((a) => <ReportAttachmentCard key={a.id} attachment={a} />)}
+                {m.proposals?.map((p) => (
+                  <ProposalCard
+                    key={p.id}
+                    proposal={p}
+                    onConfirm={() => void confirmProposal(p)}
+                    onCancel={() => updateProposal(p.id, { state: "cancelled" })}
+                    onGo={(to) => { setOpen(false); navigate(to); }}
+                  />
+                ))}
                 </div>
               ))}
 
@@ -324,5 +451,116 @@ export default function AngelaChat() {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+/** Tarjeta de una operación preparada: la persona revisa y confirma (o cancela). */
+function ProposalCard({ proposal: p, onConfirm, onCancel, onGo }: {
+  proposal: Proposal;
+  onConfirm: () => void;
+  onCancel: () => void;
+  onGo: (to: string) => void;
+}) {
+  const done = p.state === "done";
+  return (
+    <div className={cn(
+      "ml-9 rounded-2xl border bg-card p-3 text-sm shadow-sm",
+      done ? "border-success/40" : p.state === "error" ? "border-destructive/40" : "border-border",
+      p.state === "cancelled" && "opacity-60",
+    )}>
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        {p.type === "ADD_TO_CART" ? <ShoppingCart className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+        {p.title}
+      </p>
+      <ul className="mt-2 space-y-0.5">
+        {p.lines.map((l, i) => <li key={i} className="leading-snug">{l}</li>)}
+      </ul>
+      {typeof p.total === "number" && (
+        <p className="mt-2 font-serif text-base font-semibold tabular-nums">Total ${p.total.toFixed(2)}</p>
+      )}
+
+      {(p.state === "pending" || p.state === "working" || !p.state) && (
+        <div className="mt-3 flex gap-2">
+          <Button size="sm" className="flex-1 rounded-full" onClick={onConfirm} disabled={p.state === "working"}>
+            {p.state === "working" ? "Guardando…" : p.confirmLabel}
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-full" onClick={onCancel} disabled={p.state === "working"}>
+            Cancelar
+          </Button>
+        </div>
+      )}
+      {p.state === "cancelled" && <p className="mt-2 text-xs text-muted-foreground">Cancelado. No se guardó nada.</p>}
+      {p.result && (p.state === "done" || p.state === "error") && (
+        <p className={cn("mt-2 text-xs font-medium", done ? "text-success" : "text-destructive")}>{p.result}</p>
+      )}
+      {done && p.choose?.map((c) => (
+        <Button key={c.id} size="sm" variant="outline" className="mt-2 w-full rounded-full" onClick={() => onGo(`/producto/${c.id}`)}>
+          Elegir opción de {c.name}
+        </Button>
+      ))}
+      {done && p.type === "ADD_TO_CART" && (
+        <div className="mt-2 flex gap-2">
+          <Button size="sm" variant="outline" className="flex-1 rounded-full" onClick={() => onGo("/carrito")}>Ver carrito</Button>
+          <Button size="sm" className="flex-1 rounded-full" onClick={() => onGo("/checkout")}>Ir a pagar</Button>
+        </div>
+      )}
+      {done && p.type === "CREATE_SALE" && (
+        <Button size="sm" variant="outline" className="mt-2 w-full rounded-full" onClick={() => onGo("/sales")}>Ver en Ventas</Button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Reporte en PDF que entrega la asistente. Se arma en el navegador con la sesión de la
+ * administradora y el mismo código del botón "Reporte PDF" de Por cobrar: mismas cifras.
+ */
+function ReportAttachmentCard({ attachment: a }: { attachment: Attachment }) {
+  // Se precarga al aparecer: así "Enviar" e "Imprimir" corren dentro del clic (el navegador
+  // bloquea compartir y abrir ventanas si antes hay que esperar la red)
+  // El generador de PDF se carga solo aquí (import dinámico): la tienda no lo descarga
+  const { data: actions, isLoading, isError, refetch } = useQuery({
+    queryKey: ["receivables-report-chat", a.id],
+    queryFn: async () => {
+      const { loadReceivablesReport, receivablesPdfActions } = await import("@/lib/receivablesData");
+      return receivablesPdfActions(await loadReceivablesReport({ clientName: a.client_name ?? null, groupBy: a.group_by ?? "clienta" }));
+    },
+    staleTime: 30_000,
+  });
+  const state = isLoading ? "working" : isError ? "error" : "idle";
+  const run = (kind: "download" | "share" | "print") => {
+    if (!actions) { void refetch(); return; }
+    void actions[kind]();
+  };
+
+  return (
+    <div className="ml-9 overflow-hidden rounded-2xl border border-border bg-card text-sm shadow-sm">
+      <div className="flex items-center gap-3 bg-primary px-3 py-2.5 text-primary-foreground">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-foreground/15">
+          <FileText className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate font-semibold leading-tight">{a.title}</p>
+          <p className="text-xs opacity-80">PDF estilo factura · listo para imprimir o enviar</p>
+        </div>
+      </div>
+      <div className="space-y-3 p-3">
+        <ul className="space-y-0.5">
+          {a.lines.map((l, i) => <li key={i} className={cn("leading-snug", i === 0 && "font-semibold tabular-nums")}>{l}</li>)}
+        </ul>
+        <div className="grid grid-cols-3 gap-2">
+          <Button size="sm" variant="outline" className="rounded-full" onClick={() => run("print")} disabled={!actions} aria-label="Imprimir reporte">
+            <Printer className="h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-full" onClick={() => run("share")} disabled={!actions} aria-label="Enviar reporte">
+            <Share className="h-4 w-4" />
+          </Button>
+          <Button size="sm" className="rounded-full" onClick={() => run("download")} disabled={state === "working"}>
+            {state === "working" ? <Loader className="h-4 w-4 animate-spin" /> : <><Download className="mr-1 h-4 w-4" />PDF</>}
+          </Button>
+        </div>
+        {state === "error" && <p className="text-xs font-medium text-destructive">No se pudo armar el PDF. Revisa tu conexión y toca PDF para reintentar.</p>}
+      </div>
+    </div>
   );
 }

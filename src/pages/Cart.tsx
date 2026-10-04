@@ -114,7 +114,7 @@ export default function Cart() {
                         </Link>
                         {item.size && (
                           <span className="inline-block mt-1 text-[10px] bg-secondary/40 text-muted-foreground/60 border border-border/10 rounded-full px-2.5 py-0.5">
-                            Talla: {item.size === 'Única' ? 'Única' : item.size}
+                            {item.size_label || 'Talla'}: {item.size}
                           </span>
                         )}
                         <PriceDisplay 

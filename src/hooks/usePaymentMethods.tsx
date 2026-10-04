@@ -65,3 +65,18 @@ export function usePaymentMethods(includeDisabled = false) {
 
   return { methods, isLoading, createMethod, updateMethod, deleteMethod };
 }
+
+/** Nombres de los métodos activos para anunciarlos en la tienda (se ajusta solo desde Configuración). */
+export function useStorePaymentLabels(fallback: string[]): string[] {
+  const { data } = useQuery({
+    queryKey: ['payment-methods', false],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('payment_methods').select('*').eq('enabled', true).order('display_order');
+      if (error) throw error;
+      return data as PaymentMethodRow[];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+  if (!data?.length) return fallback;
+  return data.filter(m => m.method_key !== 'credito').map(m => m.label);
+}

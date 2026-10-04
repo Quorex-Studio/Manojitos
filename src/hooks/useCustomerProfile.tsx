@@ -36,6 +36,18 @@ const customerProfileSchema = z.object({
 export type CustomerProfileInput = z.infer<typeof customerProfileSchema>;
 
 // Hook para el perfil del cliente actual
+/** Error legible al guardar el perfil (cédula o teléfono que ya son de otra cuenta). */
+function profileErrorMessage(error: unknown): string {
+  const e = error as { code?: string; message?: string; details?: string } | null;
+  const text = `${e?.message ?? ''} ${e?.details ?? ''}`.toLowerCase();
+  if (e?.code === '23505') {
+    if (text.includes('phone')) return 'Ese número de teléfono ya pertenece a otra cuenta.';
+    if (text.includes('dni')) return 'Esa cédula ya pertenece a otra cuenta.';
+    return 'Esos datos ya pertenecen a otra cuenta.';
+  }
+  return e?.message || 'No se pudo actualizar el perfil. Inténtalo de nuevo.';
+}
+
 export function useCustomerProfile() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -76,6 +88,8 @@ export function useCustomerProfile() {
         zip_code: validated.zip_code,
         notes: validated.notes,
         notification_preferences: validated.notification_preferences as Json,
+        // Con nombre, teléfono, cédula y dirección el perfil queda completo (cuentas creadas en el panel)
+        ...(validated.full_name && validated.phone && validated.dni && validated.address ? { profile_pending: false } : {}),
       };
 
       const { data, error } = await supabase
@@ -98,8 +112,8 @@ export function useCustomerProfile() {
     },
     onError: (error) => {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'No se pudo actualizar el perfil',
+        title: 'No se pudo guardar',
+        description: profileErrorMessage(error),
         variant: 'destructive',
       });
     },

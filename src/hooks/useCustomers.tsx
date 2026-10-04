@@ -14,6 +14,7 @@ export interface CustomerProfile {
   dni: string | null;
   dni_photo_url: string | null;
   face_photo_url: string | null;
+  avatar_url?: string | null;
   verification_photo_url: string | null;
   kyc_status: 'pending' | 'approved' | 'rejected' | 'none';
   created_at: string;
@@ -70,6 +71,10 @@ export function useCustomers() {
       if (variables.status === 'approved' || variables.status === 'rejected') {
         const action = variables.status === 'approved' ? 'kyc_approved' : 'kyc_rejected';
 
+        // Find user email from current state
+        const customers = queryClient.getQueryData(['customers']) as CustomerProfile[] || [];
+        const customer = customers.find(c => c.user_id === variables.userId);
+
         await supabase.from('notifications').insert({
           user_id: variables.userId,
           title: variables.status === 'approved' ? 'Tu identidad fue verificada ✅' : 'Verificación de identidad rechazada',
@@ -80,12 +85,9 @@ export function useCustomers() {
           channel: 'internal',
           is_read: false,
           sent_at: new Date().toISOString(),
-          metadata: { /* empty */ },
+          // Con correo, sale el de KYC (más completo); la cola de correos no lo repite
+          metadata: customer?.email ? { email_sent: true } : {},
         });
-
-        // Find user email from current state
-        const customers = queryClient.getQueryData(['customers']) as CustomerProfile[] || [];
-        const customer = customers.find(c => c.user_id === variables.userId);
         
         if (customer && customer.email) {
           try {

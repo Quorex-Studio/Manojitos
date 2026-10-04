@@ -528,11 +528,12 @@ export default function CustomerAuth() {
                 </div>
 
                 {isLogin && (
-                  <div className="flex justify-end mt-1">
+                  <div className="mt-1 flex items-start justify-between gap-3">
+                    <p className="text-xs text-muted-foreground">¿La tienda te registró en una compra? Toca «¿Olvidaste tu contraseña?» y crea la tuya.</p>
                     <Button
                       type="button"
                       variant="link"
-                      className="text-xs text-accent h-auto p-0"
+                      className="h-auto shrink-0 p-0 text-xs text-accent"
                       onClick={(e) => {
                         e.preventDefault();
                         setIsForgotPassword(true);

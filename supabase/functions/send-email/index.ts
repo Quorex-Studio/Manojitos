@@ -3,6 +3,9 @@ const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
+import { getEmailSecret } from "./config.ts";
+import { processOutbox, sendOwnerWhatsApp } from "./outbox.ts";
 import {
   createWelcomeEmail,
   createCheckoutEmail,
@@ -13,6 +16,7 @@ import {
   createEmailChangeEmail,
   createOrderStatusEmail,
   createNewOrderAdminEmail,
+  createCreditPaymentEmail,
 } from "./templates.ts";
 
 const ORDER_ACTIONS = {
@@ -22,9 +26,15 @@ const ORDER_ACTIONS = {
   order_delivered: "delivered",
 } as const;
 
+// Abonos a crédito reportados por la clienta: solo la administración los aprueba o rechaza.
+const CREDIT_PAYMENT_ACTIONS = {
+  credit_payment_approved: "approved",
+  credit_payment_rejected: "rejected",
+} as const;
+
 /** Correos de administración: ADMIN_NOTIFY_EMAILS (coma) o, si no hay, las cuentas con is_super_admin. */
 async function getAdminEmails(): Promise<string[]> {
-  const configured = (Deno.env.get("ADMIN_NOTIFY_EMAILS") ?? "").split(",").map(e => e.trim()).filter(Boolean);
+  const configured = (await getEmailSecret("admin_notify_emails")).split(",").map(e => e.trim()).filter(Boolean);
   if (configured.length) return configured;
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const { data, error } = await admin.auth.admin.listUsers({ perPage: 200 });
@@ -37,11 +47,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, webhook-id, webhook-signature, webhook-timestamp",
 };
 
-const resendApiKey = Deno.env.get("RESEND_API_KEY");
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
-
-// Allow override from env, or default to Resend's testing domain for onboarding
-const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || `${BRAND_NAME} <onboarding@resend.dev>`;
+// Resend y remitente: variables de entorno o, si faltan, Vault (ver config.ts)
+let resend: Resend | null = null;
+async function getResend(): Promise<Resend | null> {
+  if (resend) return resend;
+  const key = await getEmailSecret("resend_api_key");
+  resend = key ? new Resend(key) : null;
+  return resend;
+}
+async function getFromEmail(): Promise<string> {
+  return (await getEmailSecret("resend_from_email")) || `${BRAND_NAME} <onboarding@resend.dev>`;
+}
 
 const rateLimitMap = new Map<string, number[]>();
 const MAX_REQUESTS_PER_MINUTE = 20; // una compra envía 2 correos; aprobar varios pedidos seguidos no debe perder avisos
@@ -53,14 +69,33 @@ serve(async (req) => {
   }
 
   try {
-    if (!resend) {
+    const mailer = await getResend();
+    if (!mailer) {
       throw new Error("RESEND_API_KEY is not configured.");
     }
 
     const rawBody = await req.text();
     const body = JSON.parse(rawBody);
 
-    const configuredWebhookSecret = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
+    // ===== FLUJO 3: COLA DE CORREOS AUTOMÁTICOS (pg_cron, cada 20 s) =====
+    // Notificaciones y facturas. Se autentica con el secreto del cron (Vault), no con un usuario.
+    if (body?.process_outbox) {
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const provided = req.headers.get("x-cron-secret") ?? "";
+      const { data: ok } = await admin.rpc("verify_cron_secret", { p_secret: provided });
+      if (ok !== true) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const summary = await processOutbox({ admin, mailer, from: await getFromEmail(), getAdminEmails });
+      return new Response(JSON.stringify({ success: true, ...summary }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const isWebhook = body.user && body.email_data;
 
     // Rate Limiting Logic (In-Memory per isolate)
@@ -87,34 +122,37 @@ serve(async (req) => {
     let html = "";
 
     if (isWebhook) {
-      // ===== FLUJO 1: SUPABASE AUTH WEBHOOK (Send Email Hook) =====
+      // ===== FLUJO 1: SUPABASE AUTH (Send Email Hook) =====
+      // Supabase firma el hook con Standard Webhooks (headers webhook-id / -timestamp /
+      // -signature) usando el secreto "v1,whsec_..." que muestra el panel de Auth → Hooks.
+      const configuredWebhookSecret = await getEmailSecret("send_email_hook_secret");
       if (!configuredWebhookSecret) {
-        throw new Error("Webhook secret not configured in environment");
+        throw new Error("Webhook secret not configured");
       }
-
-      // Supabase Auth Hooks NO usan el protocolo standardwebhooks.
-      // Se debe validar mediante un header personalizado (ej. x-webhook-secret) o el Authorization header.
-      const customHeader = req.headers.get("x-webhook-secret");
-      const authHeader = req.headers.get("authorization");
-
-      const isValid = 
-        customHeader === configuredWebhookSecret || 
-        authHeader === `Bearer ${configuredWebhookSecret}`;
-
-      if (!isValid) {
-        throw new Error("Acceso denegado: Firma de webhook inválida. Asegúrate de enviar el header 'x-webhook-secret' en Supabase Auth Hooks.");
+      try {
+        const wh = new Webhook(configuredWebhookSecret.replace(/^v1,whsec_/, ""));
+        wh.verify(rawBody, {
+          "webhook-id": req.headers.get("webhook-id") ?? "",
+          "webhook-timestamp": req.headers.get("webhook-timestamp") ?? "",
+          "webhook-signature": req.headers.get("webhook-signature") ?? "",
+        });
+      } catch (_e) {
+        return new Response(JSON.stringify({ error: { http_code: 401, message: "Invalid webhook signature" } }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const { user, email_data } = body;
       const { email_action_type, token_hash, redirect_to, site_url } = email_data;
       email = user.email;
-      
-      // Construir el enlace de verificación nativo de Supabase usando concatenacion segura
-      const verifyUrl = site_url + "/auth/v1/verify" + 
-                        "?token=" + token_hash + 
-                        "&type=" + email_action_type + 
-                        "&redirect_to=" + encodeURIComponent(redirect_to || site_url);
-      const link = verifyUrl;
+
+      // El enlace de verificación lo atiende el servidor de Auth de Supabase (no la tienda),
+      // y después redirige a la página indicada.
+      const link = Deno.env.get("SUPABASE_URL") + "/auth/v1/verify" +
+                   "?token=" + token_hash +
+                   "&type=" + email_action_type +
+                   "&redirect_to=" + encodeURIComponent(redirect_to || site_url);
 
       switch (email_action_type) {
         case "recovery":
@@ -163,6 +201,20 @@ serve(async (req) => {
       const { action, data } = body;
       email = body.email;
       const isAdmin = user.app_metadata?.is_super_admin === true;
+
+      // Prueba de los avisos por WhatsApp (Configuración → Avisos a la dueña)
+      if (action === "owner_whatsapp_test") {
+        if (!isAdmin) throw new Error("Solo la administración puede probar los avisos");
+        const phone = String(data?.whatsapp_phone ?? "");
+        const apikey = String(data?.callmebot_apikey ?? "");
+        if (!phone || !apikey) throw new Error("Falta el número o la clave de CallMeBot");
+        const failed = await sendOwnerWhatsApp({ enabled: true, whatsapp_phone: phone, callmebot_apikey: apikey },
+          `*${BRAND_NAME}*\nAsí te llegarán los avisos de cada venta y pedido nuevo.`);
+        return new Response(JSON.stringify(failed ? { success: false, error: failed } : { success: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       if (action === "new_order_admin") {
         // Cualquier cliente autenticado puede avisar de SU pedido, pero el destinatario lo
@@ -215,6 +267,14 @@ serve(async (req) => {
           delivered: `Pedido entregado - ${BRAND_NAME}`,
         }[status];
         html = createOrderStatusEmail(status, data);
+      } else if (action in CREDIT_PAYMENT_ACTIONS) {
+        if (!isAdmin) throw new Error("Only admins can send credit payment emails.");
+        if (!email) throw new Error("Missing recipient email");
+        const status = CREDIT_PAYMENT_ACTIONS[action as keyof typeof CREDIT_PAYMENT_ACTIONS];
+        subject = status === "approved"
+          ? `Recibimos tu abono - ${BRAND_NAME}`
+          : `No pudimos confirmar tu abono - ${BRAND_NAME}`;
+        html = createCreditPaymentEmail(status, data);
       } else {
       // Solo se puede escribir al propio correo, salvo la administración.
       if (!isAdmin && email !== user.email) {
@@ -247,8 +307,8 @@ serve(async (req) => {
     // ===== ENVIAR EL CORREO MEDIANTE RESEND =====
     const to = recipients.length ? recipients : [email];
     if (!to[0]) throw new Error("Missing recipient email");
-    const { error: resendError } = await resend.emails.send({
-      from: fromEmail,
+    const { error: resendError } = await mailer.emails.send({
+      from: await getFromEmail(),
       to,
       subject: subject,
       html: html,

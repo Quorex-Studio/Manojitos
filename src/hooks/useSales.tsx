@@ -7,7 +7,6 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { notifyAdminNewOrder } from '@/lib/notify';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { saleSchema, validateInput } from '@/lib/validations';
@@ -78,6 +77,8 @@ export function useSales() {
           // dejando ventas con sale_group_id NULL que no podían recibir abonos).
           // Si no viene, la BD asigna un grupo por defecto.
           sale_group_id: validated.sale_group_id ?? undefined,
+          variant_id: validated.variant_id ?? null,
+          variant_label: validated.variant_label ?? null,
           amount_paid: validated.amount_paid,
           payment_status: validated.payment_status,
           notes: validated.notes,
@@ -152,6 +153,8 @@ export function useSales() {
     name: string;
     quantity: number;
     price_usd: number;
+    /** Talla, tono o presentación elegida (si el producto las tiene) */
+    variant_id?: string | null;
   }
 
   interface CheckoutData {
@@ -178,11 +181,10 @@ export function useSales() {
     const errors: StockValidationError[] = [];
 
     for (const item of items) {
-      const { data: product, error } = await supabase
-        .from('products')
-        .select('stock')
-        .eq('id', item.id)
-        .single();
+      // Con variante se valida el stock de esa talla/tono/presentación, no el total
+      const { data: product, error } = item.variant_id
+        ? await supabase.from('product_variants').select('stock').eq('id', item.variant_id).single()
+        : await supabase.from('products').select('stock').eq('id', item.id).single();
 
       if (error || !product) {
         errors.push({
@@ -288,9 +290,9 @@ export function useSales() {
             }
           }
         }).catch(fnError => console.error('Error enviando recibo de compra:', fnError));
-        if (orderId) notifyAdminNewOrder(orderId);
+        // El aviso a la administración sale solo: trigger en orders → notificación → correo (email_outbox)
 
-        return { error: null, saleIds: data.sale_ids };
+        return { error: null, saleIds: data.sale_ids as string[], orderId: orderId as string | undefined };
       } else {
         throw new Error('La transacción no se pudo completar');
       }

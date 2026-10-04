@@ -2,7 +2,7 @@ import { BRAND, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle, Receipt } from 'reicon-react';
+import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle, Receipt, ArrowRight2 } from 'reicon-react';
 import { getNextTwoCutoffDates, getNextThreeCutoffDates, formatCutoffDate } from '@/lib/cutoffDates';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -16,9 +16,10 @@ import { ReturnSaleDialog } from '@/components/sales/ReturnSaleDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { ReceiptDialog } from '@/components/receipts/ReceiptDialog';
-import { receiptNumber, type ReceiptData } from '@/lib/receipt';
+import { ReceivablesReportDialog } from '@/components/reports/ReceivablesReportDialog';
+import { receiptNumber, type ReceiptData, type ReceiptPayment } from '@/lib/receipt';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -68,7 +69,7 @@ const formatPaymentMethod = (method: string) => {
 };
 
 /** Recibo de una venta del panel (agrupa sus líneas; en fiado muestra abonado y saldo). */
-const saleGroupReceipt = (group: GroupedSale): ReceiptData => {
+const saleGroupReceipt = (group: GroupedSale, payments: ReceiptPayment[] = []): ReceiptData => {
   const first = group.items[0];
   const paid = group.is_credit
     ? group.items.reduce((sum, s) => sum + Number(s.amount_paid || 0), 0)
@@ -85,6 +86,7 @@ const saleGroupReceipt = (group: GroupedSale): ReceiptData => {
     total: group.total_usd,
     paid,
     totalBs,
+    payments: group.is_credit ? payments : [],
     status: group.is_credit && group.total_usd - paid > 0.009 ? 'por_cobrar' : 'pagado',
   };
 };
@@ -156,6 +158,16 @@ export default function Sales() {
   // La pestaña vive en la URL (?tab=) para que los enlaces del panel abran la correcta
   const SALES_TABS = ['ventas', 'cuentas-cobrar', 'pedidos', 'resumen-producto'];
   const tabParam = searchParams.get('tab') || 'ventas';
+  // Orden de las listas en la URL: al volver atrás o compartir el enlace se conserva
+  type SaleSort = 'reciente' | 'antigua' | 'mayor' | 'menor' | 'clienta';
+  type ReceivableSort = 'mayor_deuda' | 'menor_deuda' | 'mas_antigua' | 'reciente' | 'clienta' | 'mas_facturas';
+  const saleSort = (searchParams.get('orden') as SaleSort) || 'reciente';
+  const receivableSort = (searchParams.get('orden_cxc') as ReceivableSort) || 'mayor_deuda';
+  const setSortParam = (key: 'orden' | 'orden_cxc', value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set(key, value);
+    setSearchParams(next, { replace: true });
+  };
   const activeSalesTab = SALES_TABS.includes(tabParam) ? tabParam : 'ventas';
   const setActiveSalesTab = (tab: string) => {
     setSearchParams(prev => {
@@ -190,7 +202,9 @@ export default function Sales() {
   const [abonoExchangeRate, setAbonoExchangeRate] = useState<string>('');
   const [abonoUsdtRate, setAbonoUsdtRate] = useState<string>('');
   const [abonoUsdtBought, setAbonoUsdtBought] = useState<string>('');
-  const [abonoPaymentMethod, setAbonoPaymentMethod] = useState<string>('pago_movil');
+  const [abonoPaymentMethod, setAbonoPaymentMethod] = useState<string>('');
+  // true = "Marcar pagado": salda todo el saldo, pero igual pide cómo pagó
+  const [abonoSettle, setAbonoSettle] = useState(false);
   const [abonoNotes, setAbonoNotes] = useState<string>('');
 
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -211,6 +225,31 @@ export default function Sales() {
 
   const [detailsGroup, setDetailsGroup] = useState<GroupedSale | null>(null);
   const [receiptGroup, setReceiptGroup] = useState<GroupedSale | null>(null);
+  const [receiptPayments, setReceiptPayments] = useState<ReceiptPayment[]>([]);
+
+  // Recibo: en una venta por cobrar se cargan sus abonos para mostrarlos uno por uno
+  const openReceipt = async (group: GroupedSale) => {
+    setReceiptPayments([]);
+    setReceiptGroup(group);
+    if (!group.is_credit) return;
+    const saleIds = group.items.map(s => s.id).filter(Boolean);
+    const filters = [`sale_group_id.eq.${group.id}`];
+    if (saleIds.length) filters.push(`sale_id.in.(${saleIds.join(',')})`);
+    const { data, error } = await supabase
+      .from('sale_payments')
+      .select('amount_usd, amount_bs, payment_method, created_at, status')
+      .or(filters.join(','))
+      .order('created_at', { ascending: true });
+    if (error) return; // el recibo igual muestra el total abonado
+    setReceiptPayments((data || [])
+      .filter(p => (p as { status?: string }).status !== 'void')
+      .map(p => ({ date: new Date(p.created_at ?? Date.now()), amount: Number(p.amount_usd), method: p.payment_method, amountBs: p.amount_bs ? Number(p.amount_bs) : null })));
+  };
+
+  const receivableAsSale = (group: GroupedReceivable): GroupedSale => ({
+    id: group.id, client_name: group.client_name, payment_method: group.payment_method,
+    is_credit: true, created_at: group.created_at, total_usd: group.total_usd, items: group.sales,
+  });
   const [groupPayments, setGroupPayments] = useState<SalePayment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 
@@ -310,8 +349,16 @@ export default function Sales() {
     setAbonoExchangeRate('');
     setAbonoUsdtRate('');
     setAbonoUsdtBought('');
-    setAbonoPaymentMethod('pago_movil');
+    setAbonoPaymentMethod('');
+    setAbonoSettle(false);
     setAbonoNotes('');
+  };
+
+  const openAbono = (group: GroupedReceivable, settle: boolean) => {
+    setAbonoGroup(group);
+    setAbonoSettle(settle);
+    setAbonoAmount(settle ? Math.max(0, group.total_usd - group.amount_paid).toFixed(2) : '');
+    setAbonoPaymentMethod('');
   };
 
   const handleSubmitAbono = async () => {
@@ -319,6 +366,10 @@ export default function Sales() {
     const amount = Number(abonoAmount);
     if (isNaN(amount) || amount <= 0) {
       toast.error('Ingrese un monto en USD válido');
+      return;
+    }
+    if (!abonoPaymentMethod) {
+      toast.error('Indica cómo pagó la clienta');
       return;
     }
     
@@ -334,7 +385,7 @@ export default function Sales() {
         paymentMethod: abonoPaymentMethod,
         notes: abonoNotes
       });
-      toast.success('Abono registrado correctamente');
+      toast.success(abonoSettle ? 'Cuenta marcada como pagada' : 'Abono registrado correctamente');
       resetAbonoForm();
     } catch (error) {
       console.error('Error al registrar abono:', error);
@@ -383,6 +434,8 @@ export default function Sales() {
   const groupedReceivables = useMemo(() => {
     const groups = new Map<string, GroupedReceivable>();
     sales.forEach(sale => {
+      // Una venta anulada no se cobra (el reporte PDF usa la misma regla)
+      if (sale.status === 'cancelled') return;
       const key = sale.sale_group_id || sale.id;
       if (!groups.has(key)) {
         groups.set(key, {
@@ -437,11 +490,17 @@ export default function Sales() {
       }
     });
     
-    // Sort groups by created_at descending
-    return Array.from(groupsMap.values()).sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  }, [filteredSales]);
+    const time = (g: GroupedSale) => new Date(g.created_at).getTime();
+    return Array.from(groupsMap.values()).sort((a, b) => {
+      switch (saleSort) {
+        case 'antigua': return time(a) - time(b);
+        case 'mayor': return b.total_usd - a.total_usd || time(b) - time(a);
+        case 'menor': return a.total_usd - b.total_usd || time(b) - time(a);
+        case 'clienta': return (a.client_name || '~').localeCompare(b.client_name || '~', 'es') || time(b) - time(a);
+        default: return time(b) - time(a);
+      }
+    });
+  }, [filteredSales, saleSort]);
 
   const filteredOrders = orders.filter(o => {
     const matchesSearch = 
@@ -815,10 +874,187 @@ export default function Sales() {
 
       setActiveSalesTab('cuentas-cobrar');
       setReceivableTab('pending');
-      setAbonoGroup(grouped);
+      openAbono(grouped, false);
     } else {
       toast.error('No se pudo cargar la cuenta. Puede que ya esté pagada o no exista.');
     }
+  };
+
+  // Por cobrar agrupado por clienta: suma sus facturas y muestra cuántas son
+  const [openReceivableClient, setOpenReceivableClient] = useState<string | null>(null);
+  // Reporte PDF: null = cerrado, '' = todas las clientas, nombre = su estado de cuenta
+  const [reportClient, setReportClient] = useState<string | null>(null);
+  const receivableClients = useMemo(() => {
+    const norm = (n: string) => n.trim().replace(/\s+/g, ' ').toLowerCase();
+    const map = new Map<string, { key: string; name: string; groups: GroupedReceivable[]; total: number; paid: number; pending: number; lastDate: string }>();
+    for (const g of groupedReceivables) {
+      const name = (g.client_name || '').trim() || 'Cliente sin nombre';
+      const key = norm(name);
+      const c = map.get(key) || { key, name, groups: [], total: 0, paid: 0, pending: 0, lastDate: g.created_at };
+      c.groups.push(g);
+      c.total += g.total_usd;
+      c.paid += g.amount_paid;
+      c.pending += Math.max(0, g.total_usd - g.amount_paid);
+      if (new Date(g.created_at) > new Date(c.lastDate)) c.lastDate = g.created_at;
+      map.set(key, c);
+    }
+    // Facturas de la más antigua a la más reciente (así se cobra); clientas por mayor deuda
+    const list = [...map.values()].map(c => ({ ...c, groups: [...c.groups].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) }));
+    const t = (d: string) => new Date(d).getTime();
+    const oldest = (c: (typeof list)[number]) => t(c.groups[0]?.created_at ?? c.lastDate);
+    return list.sort((a, b) => {
+      switch (receivableSort) {
+        case 'menor_deuda': return (receivableTab === 'paid' ? a.total - b.total : a.pending - b.pending);
+        case 'mas_antigua': return oldest(a) - oldest(b);
+        case 'reciente': return t(b.lastDate) - t(a.lastDate);
+        case 'clienta': return a.name.localeCompare(b.name, 'es');
+        case 'mas_facturas': return b.groups.length - a.groups.length || b.pending - a.pending;
+        default: return receivableTab === 'paid' ? b.total - a.total : b.pending - a.pending;
+      }
+    });
+  }, [groupedReceivables, receivableTab, receivableSort]);
+  const openClient = receivableClients.find(c => c.key === openReceivableClient) ?? null;
+  // Clientas que deben (para el contador de la pestaña): se agrupa por venta y luego por nombre
+  const pendingClientsCount = useMemo(() => {
+    const byGroup = new Map<string, { name: string; pending: number }>();
+    for (const sale of sales) {
+      if (sale.status === 'cancelled') continue;
+      const key = sale.sale_group_id || sale.id;
+      const g = byGroup.get(key) || { name: (sale.client_name || '').trim().replace(/\s+/g, ' ').toLowerCase(), pending: 0 };
+      g.pending += Number(sale.total_usd || 0) - Number(sale.amount_paid || 0);
+      byGroup.set(key, g);
+    }
+    return new Set([...byGroup.values()].filter(g => g.pending > 0.009).map(g => g.name)).size;
+  }, [sales]);
+
+  // Tarjeta de una factura (venta) por cobrar o pagada
+  const renderReceivableCard = (group: GroupedReceivable) => {
+                    const pendingAmountUsd = group.total_usd - group.amount_paid;
+                    const isPartial = group.amount_paid > 0 && group.amount_paid < group.total_usd;
+                    const isBsPayment = ['pago_movil', 'efectivo_bs', 'transferencia', 'credito'].includes(group.payment_method);
+                    const remainingBs = group.total_bs ? (group.total_bs * (pendingAmountUsd / group.total_usd)) : 0;
+                  
+                  return (
+                    <Card key={group.id} className="glass-card overflow-hidden">
+                      <div className={`h-1.5 w-full ${group.sale_modality === 'fiado' ? 'bg-purple-500' : group.sale_modality === 'dos_partes' ? 'bg-blue-500' : 'bg-amber-500'}`} />
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold flex items-center gap-1.5">
+                                <User className="h-4 w-4 text-primary" />
+                                {group.client_name || 'Cliente sin nombre'}
+                              </p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-primary hover:bg-primary/20 bg-primary/10 rounded-full"
+                                onClick={() => {
+                                  setDetailsGroup(group);
+                                  loadGroupPayments(group);
+                                }}
+                              >
+                                <InfoCircle className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <Badge variant="outline" className="mt-1 capitalize">
+                              {group.sale_modality?.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">Deuda Total</p>
+                            {isBsPayment && group.total_bs > 0 ? (
+                              <>
+                                <p className="font-bold text-lg text-destructive">{formatBS(remainingBs)}</p>
+                                <p className="text-xs text-muted-foreground">${pendingAmountUsd.toFixed(2)}</p>
+                              </>
+                            ) : (
+                              <p className="font-bold text-lg text-destructive">${pendingAmountUsd.toFixed(2)}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          {group.sales.map((sale: Sale) => (
+                            <div key={sale.id} className="bg-secondary/50 rounded-lg p-2 text-sm flex justify-between items-center group/sale">
+                              <span className="text-muted-foreground truncate flex-1" title={sale.product_name}>
+                                {sale.product_name} x{sale.quantity}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium ml-2">${Number(sale.total_usd).toFixed(2)}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 py-0 text-xs text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+                                  onClick={() => {
+                                    setEditingSale(sale);
+                                    setEditSaleForm({
+                                      amount_paid: sale.amount_paid ? String(sale.amount_paid) : '0',
+                                      total_usd: sale.total_usd ? String(sale.total_usd) : '0',
+                                      total_bs: sale.total_bs ? String(sale.total_bs) : '0',
+                                    });
+                                  }}
+                                >
+                                  Editar
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/10 pt-2">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {new Date(group.created_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                          <span>Pagado: ${Number(group.amount_paid).toFixed(2)}</span>
+                        </div>
+
+                        {/* Solo permitir abonar / marcar pagado si aún hay saldo.
+                            Una cuenta saldada (pendingAmountUsd <= 0) no debe poder
+                            recibir más abonos ni volver a marcarse como pagada. */}
+                        {pendingAmountUsd > 0.005 ? (
+                          <div className="flex gap-2 w-full mt-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="shrink-0"
+                              onClick={() => openReceipt(receivableAsSale(group))}
+                              aria-label="Ver recibo con los abonos"
+                            >
+                              <Receipt className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              className="flex-1"
+                              variant="outline"
+                              onClick={() => openAbono(group, false)}
+                            >
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              Reportar Abono
+                            </Button>
+                            <Button
+                              className="flex-1"
+                              variant={isPartial ? "default" : "secondary"}
+                              onClick={() => openAbono(group, true)}
+                            >
+                              <TickCircle className="h-4 w-4 mr-2" />
+                              Marcar Pagado
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2 w-full mt-2">
+                            <div className="flex flex-1 items-center justify-center gap-2 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-500 text-sm font-medium">
+                              <TickCircle className="h-4 w-4" />
+                              Cuenta pagada
+                            </div>
+                            <Button variant="outline" className="gap-1.5" onClick={() => openReceipt(receivableAsSale(group))}>
+                              <Receipt className="h-4 w-4" />Recibo
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
   };
 
   // --- RENDER ---
@@ -839,9 +1075,9 @@ export default function Sales() {
             <TabsTrigger value="cuentas-cobrar">
               <ClipboardList className="h-4 w-4 hidden sm:inline" />
               Por cobrar
-              {sales.filter(s => s.payment_status !== 'paid').length > 0 && (
-                <Badge variant="destructive" className="px-1.5 py-0.5 text-[10px] rounded-full">
-                  {sales.filter(s => s.payment_status !== 'paid').length}
+              {pendingClientsCount > 0 && (
+                <Badge variant="destructive" className="px-1.5 py-0.5 text-[10px] rounded-full" aria-label={`${pendingClientsCount} clientas con deuda`}>
+                  {pendingClientsCount}
                 </Badge>
               )}
             </TabsTrigger>
@@ -883,6 +1119,18 @@ export default function Sales() {
                     <SelectItem value="fiado">Fiado Quincena</SelectItem>
                     <SelectItem value="dos_partes">En 2 Partes</SelectItem>
                     <SelectItem value="financiamiento">Financiamiento</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={saleSort} onValueChange={(v) => setSortParam('orden', v)}>
+                  <SelectTrigger className="w-full sm:w-[190px] input-glass rounded-xl" aria-label="Ordenar ventas">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="reciente">Más recientes</SelectItem>
+                    <SelectItem value="antigua">Más antiguas</SelectItem>
+                    <SelectItem value="mayor">Mayor monto</SelectItem>
+                    <SelectItem value="menor">Menor monto</SelectItem>
+                    <SelectItem value="clienta">Clienta A–Z</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -929,7 +1177,7 @@ export default function Sales() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setReceiptGroup(group)}
+                            onClick={() => openReceipt(group)}
                             className="flex-shrink-0 gap-1.5"
                             aria-label="Ver recibo"
                           >
@@ -1019,7 +1267,12 @@ export default function Sales() {
                 <h2 className="text-xl font-bold">Cuentas por Cobrar (Caja)</h2>
                 <p className="text-sm text-muted-foreground">Ventas pendientes de pago (Fiado, 2 Partes, Financiamiento)</p>
               </div>
-              
+
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <Button variant="outline" className="h-11 flex-1 gap-2 rounded-full border-primary/40 text-primary sm:h-10 sm:flex-none" onClick={() => setReportClient('')}>
+                <FileText className="h-4 w-4" />
+                Reporte PDF
+              </Button>
               <div className="flex bg-secondary/50 p-1 rounded-xl">
                 <Button
                   variant={receivableTab === 'pending' ? 'default' : 'ghost'}
@@ -1038,143 +1291,105 @@ export default function Sales() {
                   Pagadas
                 </Button>
               </div>
+              </div>
             </div>
 
-            {groupedReceivables.length === 0 ? (
+            {/* Reporte PDF (todas) o estado de cuenta (una clienta), estilo factura */}
+            <ReceivablesReportDialog
+              open={reportClient !== null}
+              onOpenChange={o => !o && setReportClient(null)}
+              clientName={reportClient || null}
+              sort={receivableSort === 'mas_antigua' ? 'antiguedad' : receivableSort === 'clienta' ? 'clienta' : 'saldo'}
+            />
+
+            <Select value={receivableSort} onValueChange={(v) => setSortParam('orden_cxc', v)}>
+              <SelectTrigger className="w-full sm:w-[230px] input-glass rounded-xl" aria-label="Ordenar cuentas por cobrar">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mayor_deuda">{receivableTab === 'paid' ? 'Mayor monto' : 'Mayor deuda'}</SelectItem>
+                <SelectItem value="menor_deuda">{receivableTab === 'paid' ? 'Menor monto' : 'Menor deuda'}</SelectItem>
+                <SelectItem value="mas_antigua">Deuda más antigua</SelectItem>
+                <SelectItem value="reciente">Última compra más reciente</SelectItem>
+                <SelectItem value="mas_facturas">Más facturas</SelectItem>
+                <SelectItem value="clienta">Clienta A–Z</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {receivableClients.length === 0 ? (
               <div className="text-center py-16">
                 <TickCircle className="h-16 w-16 text-green-500/50 mx-auto mb-4" />
-                <p className="text-muted-foreground font-medium text-lg">Todo está al día</p>
-                <p className="text-muted-foreground text-sm">No hay ventas con saldo pendiente</p>
+                <p className="text-muted-foreground font-medium text-lg">{receivableTab === 'paid' ? 'Aún no hay cuentas pagadas' : 'Todo está al día'}</p>
+                <p className="text-muted-foreground text-sm">{receivableTab === 'paid' ? 'Aquí aparecerán las ventas fiadas ya saldadas' : 'No hay ventas con saldo pendiente'}</p>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {groupedReceivables.map(group => {
-                    const pendingAmountUsd = group.total_usd - group.amount_paid;
-                    const isPartial = group.amount_paid > 0 && group.amount_paid < group.total_usd;
-                    const isBsPayment = ['pago_movil', 'efectivo_bs', 'transferencia', 'credito'].includes(group.payment_method);
-                    const remainingBs = group.total_bs ? (group.total_bs * (pendingAmountUsd / group.total_usd)) : 0;
-                  
-                  return (
-                    <Card key={group.id} className="glass-card overflow-hidden">
-                      <div className={`h-1.5 w-full ${group.sale_modality === 'fiado' ? 'bg-purple-500' : group.sale_modality === 'dos_partes' ? 'bg-blue-500' : 'bg-amber-500'}`} />
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold flex items-center gap-1.5">
-                                <User className="h-4 w-4 text-primary" />
-                                {group.client_name || 'Cliente sin nombre'}
-                              </p>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 text-primary hover:bg-primary/20 bg-primary/10 rounded-full"
-                                onClick={() => {
-                                  setDetailsGroup(group);
-                                  loadGroupPayments(group);
-                                }}
-                              >
-                                <InfoCircle className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <Badge variant="outline" className="mt-1 capitalize">
-                              {group.sale_modality?.replace('_', ' ')}
-                            </Badge>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm text-muted-foreground">Deuda Total</p>
-                            {isBsPayment && group.total_bs > 0 ? (
-                              <>
-                                <p className="font-bold text-lg text-destructive">{formatBS(remainingBs)}</p>
-                                <p className="text-xs text-muted-foreground">${pendingAmountUsd.toFixed(2)}</p>
-                              </>
-                            ) : (
-                              <p className="font-bold text-lg text-destructive">${pendingAmountUsd.toFixed(2)}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          {group.sales.map((sale: Sale) => (
-                            <div key={sale.id} className="bg-secondary/50 rounded-lg p-2 text-sm flex justify-between items-center group/sale">
-                              <span className="text-muted-foreground truncate flex-1" title={sale.product_name}>
-                                {sale.product_name} x{sale.quantity}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium ml-2">${Number(sale.total_usd).toFixed(2)}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-2 py-0 text-xs text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
-                                  onClick={() => {
-                                    setEditingSale(sale);
-                                    setEditSaleForm({
-                                      amount_paid: sale.amount_paid ? String(sale.amount_paid) : '0',
-                                      total_usd: sale.total_usd ? String(sale.total_usd) : '0',
-                                      total_bs: sale.total_bs ? String(sale.total_bs) : '0',
-                                    });
-                                  }}
-                                >
-                                  Editar
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/10 pt-2">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3.5 w-3.5" />
-                            {new Date(group.created_at).toLocaleDateString()}
-                          </span>
-                          <span>Pagado: ${Number(group.amount_paid).toFixed(2)}</span>
-                        </div>
-
-                        {/* Solo permitir abonar / marcar pagado si aún hay saldo.
-                            Una cuenta saldada (pendingAmountUsd <= 0) no debe poder
-                            recibir más abonos ni volver a marcarse como pagada. */}
-                        {pendingAmountUsd > 0.005 ? (
-                          <div className="flex gap-2 w-full mt-2">
-                            <Button
-                              className="flex-1"
-                              variant="outline"
-                              onClick={() => {
-                                setAbonoGroup(group);
-                                setAbonoAmount('');
-                              }}
-                            >
-                              <DollarSign className="h-4 w-4 mr-2" />
-                              Reportar Abono
-                            </Button>
-                            <Button
-                              className="flex-1"
-                              variant={isPartial ? "default" : "secondary"}
-                              onClick={async () => {
-                                if (await confirmDialog({ title: '¿Saldar la deuda completa?', description: `Se registrará un pago de $${pendingAmountUsd.toFixed(2)} y la cuenta quedará pagada.`, confirmText: 'Saldar deuda' })) {
-                                  await registerSalePayment({
-                                    saleGroupId: group.id,
-                                    amountUsd: pendingAmountUsd,
-                                    paymentMethod: group.payment_method || 'pago_movil'
-                                  });
-                                }
-                              }}
-                            >
-                              <TickCircle className="h-4 w-4 mr-2" />
-                              Marcar Pagado
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center gap-2 w-full mt-2 py-2 rounded-lg bg-green-500/10 text-green-600 dark:text-green-500 text-sm font-medium">
-                            <TickCircle className="h-4 w-4" />
-                            Cuenta pagada
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                  })}
-              </div>
+              <>
+                {receivableTab === 'pending' && (
+                  <p className="text-sm text-muted-foreground">
+                    {receivableClients.length === 1 ? '1 clienta debe' : `${receivableClients.length} clientas deben`} en total{' '}
+                    <strong className="text-foreground">${receivableClients.reduce((s, c) => s + c.pending, 0).toFixed(2)}</strong>
+                  </p>
+                )}
+                {/* Una tarjeta por clienta: deuda total y cuántas facturas la forman */}
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {receivableClients.map(client => (
+                    <button
+                      key={client.key}
+                      type="button"
+                      onClick={() => setOpenReceivableClient(client.key)}
+                      className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-semibold">{client.name}</p>
+                        <p className={`text-xl font-bold tabular-nums ${receivableTab === 'paid' ? 'text-foreground' : 'text-destructive'}`}>
+                          ${(receivableTab === 'paid' ? client.total : client.pending).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(client.lastDate).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {client.paid > 0 && receivableTab === 'pending' && ` · abonado $${client.paid.toFixed(2)}`}
+                        </p>
+                      </div>
+                      <span
+                        className="grid h-9 min-w-9 shrink-0 place-items-center rounded-full bg-success/15 px-2 text-sm font-bold text-success"
+                        aria-label={`${client.groups.length} ${client.groups.length === 1 ? 'factura' : 'facturas'}`}
+                        title={`${client.groups.length} ${client.groups.length === 1 ? 'factura' : 'facturas'}`}
+                      >
+                        {client.groups.length}
+                      </span>
+                      <ArrowRight2 className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
+
+            {/* Facturas de la clienta elegida */}
+            <Dialog open={!!openClient} onOpenChange={o => !o && setOpenReceivableClient(null)}>
+              <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+                {openClient && (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>{openClient.name}</DialogTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {openClient.groups.length} {openClient.groups.length === 1 ? 'factura' : 'facturas'}
+                        {receivableTab === 'pending'
+                          ? <> · debe <strong className="text-destructive">${openClient.pending.toFixed(2)}</strong>{openClient.paid > 0 && ` · abonado $${openClient.paid.toFixed(2)}`}</>
+                          : <> · total ${openClient.total.toFixed(2)}</>}
+                      </p>
+                      {receivableTab === 'pending' && (
+                        <Button variant="outline" size="sm" className="mt-2 w-fit gap-2 rounded-full" onClick={() => setReportClient(openClient.name)}>
+                          <FileText className="h-4 w-4" />
+                          Estado de cuenta PDF
+                        </Button>
+                      )}
+                    </DialogHeader>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {openClient.groups.map(group => renderReceivableCard(group))}
+                    </div>
+                  </>
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* TAB: PEDIDOS DE CLIENTES */}
@@ -1491,15 +1706,20 @@ export default function Sales() {
       }}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Reportar Abono</DialogTitle>
+            <DialogTitle>{abonoSettle ? 'Marcar como pagada' : 'Reportar Abono'}</DialogTitle>
+            {abonoSettle && abonoGroup && (
+              <DialogDescription>
+                Se registra el pago de ${(abonoGroup.total_usd - abonoGroup.amount_paid).toFixed(2)} de {abonoGroup.client_name} y la cuenta queda saldada. Indica cómo pagó.
+              </DialogDescription>
+            )}
           </DialogHeader>
           <div className="space-y-4 py-4">
             
             <div className="space-y-2">
-              <Label>Método de Pago del Abono</Label>
+              <Label>¿Cómo pagó? *</Label>
               <Select value={abonoPaymentMethod} onValueChange={setAbonoPaymentMethod}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccione el método de pago" />
+                <SelectTrigger aria-invalid={!abonoPaymentMethod}>
+                  <SelectValue placeholder="Elige el método de pago" />
                 </SelectTrigger>
                 <SelectContent>
                   {activePaymentMethods.map(m => (
@@ -1520,6 +1740,7 @@ export default function Sales() {
                   placeholder="0.00"
                   className="pl-9 font-bold text-primary"
                   value={abonoAmount}
+                  readOnly={abonoSettle}
                   onChange={(e) => setAbonoAmount(e.target.value)}
                 />
               </div>
@@ -1595,10 +1816,10 @@ export default function Sales() {
             </Button>
             <Button 
               onClick={handleSubmitAbono}
-              disabled={!abonoAmount || Number(abonoAmount) <= 0 || isSubmitting}
+              disabled={!abonoAmount || Number(abonoAmount) <= 0 || !abonoPaymentMethod || isSubmitting}
               className="btn-gold"
             >
-              Confirmar Abono
+              {abonoSettle ? 'Marcar pagada' : 'Confirmar Abono'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1642,7 +1863,7 @@ export default function Sales() {
       </Dialog>
 
       {/* MODAL HISTORIAL DE ABONOS */}
-      <ReceiptDialog data={receiptGroup ? saleGroupReceipt(receiptGroup) : null} onClose={() => setReceiptGroup(null)} />
+      <ReceiptDialog data={receiptGroup ? saleGroupReceipt(receiptGroup, receiptPayments) : null} onClose={() => setReceiptGroup(null)} />
 
       <Dialog open={!!detailsGroup} onOpenChange={(open) => !open && setDetailsGroup(null)}>
         <DialogContent className="sm:max-w-[425px]">
@@ -1710,7 +1931,7 @@ export default function Sales() {
                     )}
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="outline" className="text-[10px] capitalize">
-                        {payment.payment_method.replace('_', ' ')}
+                        {formatPaymentMethod(payment.payment_method)}
                       </Badge>
                       {payment.notes && <span className="text-xs text-muted-foreground truncate">{payment.notes}</span>}
                     </div>

@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type OrderEmailAction = 'order_confirmed' | 'order_rejected' | 'order_shipped' | 'order_delivered';
+export type OrderEmailAction =
+  | 'order_confirmed' | 'order_rejected' | 'order_shipped' | 'order_delivered'
+  | 'credit_payment_approved' | 'credit_payment_rejected';
 
 interface NotifyCustomerInput {
   userId?: string | null;
@@ -35,6 +37,9 @@ export async function notifyCustomer({ userId, email, title, message, type = 'su
     prefs = { email: stored?.email ?? true, internal: stored?.internal ?? true };
   }
 
+  // Si este aviso lleva su propio correo (con más detalle), la cola de correos no repite la notificación
+  const sendsOwnEmail = !!(email && emailAction && prefs.email);
+
   if (userId && prefs.internal) {
     tasks.push(
       Promise.resolve(
@@ -46,13 +51,13 @@ export async function notifyCustomer({ userId, email, title, message, type = 'su
           channel: 'internal',
           is_read: false,
           sent_at: new Date().toISOString(),
-          metadata: orderId ? { order_id: orderId } : {},
+          metadata: { ...(orderId ? { order_id: orderId } : {}), ...(sendsOwnEmail ? { email_sent: true } : {}) },
         })
       )
     );
     tasks.push(
       supabase.functions.invoke('send-push', {
-        body: { userId, title, message, url: '/cliente/pedidos' },
+        body: { userId, title, message, url: emailAction?.startsWith('credit_') ? '/cliente/credito' : '/cliente/pedidos' },
       })
     );
   }
@@ -69,7 +74,11 @@ export async function notifyCustomer({ userId, email, title, message, type = 'su
   results.forEach(r => r.status === 'rejected' && console.error('Aviso no enviado:', r.reason));
 }
 
-/** Avisa a la administración por correo de un pedido nuevo (el servidor elige los destinatarios). */
+/**
+ * Avisa a la administración por correo de un pedido nuevo (el servidor elige los destinatarios).
+ * Ya no se usa en el checkout: el aviso interno del pedido (trigger en orders) sale por correo
+ * automáticamente desde la cola email_outbox, con el detalle del pedido.
+ */
 export function notifyAdminNewOrder(orderId: string) {
   return supabase.functions
     .invoke('send-email', { body: { action: 'new_order_admin', data: { order_id: orderId } } })

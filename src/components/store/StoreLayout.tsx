@@ -5,6 +5,7 @@ import { StoreHeader } from './StoreHeader';
 import { StoreFooter } from './StoreFooter';
 import { OverdueCreditBanner } from './OverdueCreditBanner';
 import { MobileTabBar } from './MobileTabBar';
+import { ProfileCompletionGate } from './ProfileCompletionGate';
 
 interface StoreLayoutProps {
   children: ReactNode;
@@ -17,6 +18,7 @@ export function StoreLayout({ children }: StoreLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col bg-background overflow-x-clip w-full relative pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0" style={{ isolation: "isolate" }}>
       {/* Header fijo */}
+      <ProfileCompletionGate />
       <StoreHeader />
       
       <OverdueCreditBanner />

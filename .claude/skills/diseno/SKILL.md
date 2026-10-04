@@ -61,6 +61,7 @@ Reglas que más valor dan (el porqué está en DESIGN.md):
 - **Una acción primaria por vista**, pill, sin glow/shimmer/gradientes en texto.
 - **Datos siempre visibles**: nombre, precio, detalle del KPI; el hover solo agrega extras.
 - Respeta `prefers-reduced-motion` (`useReducedMotion()`).
+- Reportes, PDF, Excel o "que la asistente mande el reporte": usa la skill `reportes-pdf` (familia de PDF en `src/lib/pdfBrand.ts`).
 
 ## 4. Verificar y registrar
 

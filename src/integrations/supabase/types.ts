@@ -482,6 +482,7 @@ export type Database = {
           notification_preferences: Json | null
           phone: string | null
           phone_verified: boolean | null
+          profile_pending: boolean
           state: string | null
           updated_at: string
           user_id: string
@@ -505,6 +506,7 @@ export type Database = {
           notification_preferences?: Json | null
           phone?: string | null
           phone_verified?: boolean | null
+          profile_pending?: boolean
           state?: string | null
           updated_at?: string
           user_id: string
@@ -528,6 +530,7 @@ export type Database = {
           notification_preferences?: Json | null
           phone?: string | null
           phone_verified?: boolean | null
+          profile_pending?: boolean
           state?: string | null
           updated_at?: string
           user_id?: string
@@ -953,6 +956,77 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          detail_kind: string
+          id: string
+          name: string
+          options: string[]
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detail_kind?: string
+          id?: string
+          name: string
+          options?: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detail_kind?: string
+          id?: string
+          name?: string
+          options?: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_variants: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          price_usd: number | null
+          product_id: string
+          sort_order: number
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          price_usd?: number | null
+          product_id: string
+          sort_order?: number
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          price_usd?: number | null
+          product_id?: string
+          sort_order?: number
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -966,6 +1040,7 @@ export type Database = {
           price_bs_usd: number | null
           price_retail_eur: number | null
           price_usd: number
+          presentation: string | null
           price_wholesale_eur: number | null
           sizes: string[] | null
           sold_count: number
@@ -985,6 +1060,7 @@ export type Database = {
           price_bs_usd?: number | null
           price_retail_eur?: number | null
           price_usd?: number
+          presentation?: string | null
           price_wholesale_eur?: number | null
           sizes?: string[] | null
           sold_count?: number
@@ -1004,6 +1080,7 @@ export type Database = {
           price_bs_usd?: number | null
           price_retail_eur?: number | null
           price_usd?: number
+          presentation?: string | null
           price_wholesale_eur?: number | null
           sizes?: string[] | null
           sold_count?: number
@@ -1305,6 +1382,8 @@ export type Database = {
           total_usd: number
           unit_price_usd: number
           user_id: string
+          variant_id: string | null
+          variant_label: string | null
         }
         Insert: {
           amount_paid?: number
@@ -1332,6 +1411,8 @@ export type Database = {
           total_usd: number
           unit_price_usd: number
           user_id: string
+          variant_id?: string | null
+          variant_label?: string | null
         }
         Update: {
           amount_paid?: number
@@ -1359,6 +1440,8 @@ export type Database = {
           total_usd?: number
           unit_price_usd?: number
           user_id?: string
+          variant_id?: string | null
+          variant_label?: string | null
         }
         Relationships: [
           {

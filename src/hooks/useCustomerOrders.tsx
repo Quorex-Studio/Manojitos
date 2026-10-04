@@ -54,36 +54,55 @@ export function useCustomerOrders() {
         items: (order.items as unknown) as OrderItem[],
       })) as Order[];
 
-      // Map sales records to Order shape for unified display
-      const fromSales: Order[] = (salesData || []).map(sale => ({
-        id: sale.id,
-        user_id: sale.user_id,
-        customer_user_id: null,
-        customer_name: sale.client_name ?? 'Cliente',
-        customer_phone: sale.client_phone ?? null,
-        customer_email: null,
-        items: [{
-          product_id: sale.product_id ?? '',
-          product_name: sale.product_name,
-          quantity: sale.quantity,
-          unit_price: sale.unit_price_usd,
-          total: sale.total_usd,
-        }] as OrderItem[],
-        subtotal: sale.total_usd,
-        discount: 0,
-        total_usd: sale.total_usd,
-        total_bs: sale.total_bs ?? null,
-        status: (sale.status as Order['status']) ?? 'pending',
-        payment_method: sale.payment_method ?? null,
-        payment_status: sale.is_credit ? 'pending' : 'paid',
-        shipping_address: null,
-        shipping_city: null,
-        shipping_state: null,
-        tracking_number: null,
-        notes: sale.notes ?? null,
-        created_at: sale.created_at,
-        updated_at: sale.created_at,
-      }));
+      // Ventas del panel: una por sale_group_id (antes salía un "pedido" por cada producto)
+      const saleGroups = new Map<string, NonNullable<typeof salesData>>();
+      (salesData || []).forEach(sale => {
+        const key = sale.sale_group_id || sale.id;
+        saleGroups.set(key, [...(saleGroups.get(key) || []), sale]);
+      });
+      const fromSales: Order[] = [...saleGroups.entries()].map(([groupId, lines]) => {
+        const first = lines[0];
+        const total = lines.reduce((sum, l) => sum + Number(l.total_usd || 0), 0);
+        const isCredit = lines.some(l => l.is_credit);
+        const paid = isCredit ? lines.reduce((sum, l) => sum + Number(l.amount_paid || 0), 0) : total;
+        return {
+          id: groupId,
+          user_id: first.user_id,
+          customer_user_id: first.customer_user_id ?? null,
+          customer_name: first.client_name ?? 'Cliente',
+          customer_phone: first.client_phone ?? null,
+          customer_email: null,
+          items: lines.map(l => ({
+            product_id: l.product_id ?? '',
+            product_name: l.variant_label ? `${l.product_name} · ${l.variant_label}` : l.product_name,
+            quantity: l.quantity,
+            unit_price: l.unit_price_usd,
+            total: l.total_usd,
+          })) as OrderItem[],
+          subtotal: total,
+          discount: 0,
+          total_usd: total,
+          total_bs: lines.every(l => l.total_bs) ? lines.reduce((sum, l) => sum + Number(l.total_bs), 0) : null,
+          // Venta en persona: ya se entregó
+          status: 'delivered',
+          payment_method: isCredit ? null : first.payment_method ?? null,
+          banco_origen: null,
+          numero_referencia: null,
+          payment_status: total - paid > 0.009 ? 'pending' : 'paid',
+          shipping_address: null,
+          shipping_city: null,
+          shipping_state: null,
+          tracking_number: null,
+          notes: first.notes ?? null,
+          created_at: first.created_at,
+          updated_at: first.created_at,
+          source: 'sale',
+          sale_group_id: groupId,
+          sale_ids: lines.map(l => l.id),
+          is_credit: isCredit,
+          amount_paid: paid,
+        };
+      });
 
       // Merge and sort by date, deduplicate by id
       const all = [...fromOrders, ...fromSales];

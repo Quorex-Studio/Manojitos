@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/collapsible';
 import { useNotifications, useCreditReminderHistory } from '@/hooks/useNotifications';
 import { cn } from '@/lib/utils';
+import { NotificationDetailDialog, type DetailNotification } from './NotificationDetailDialog';
 
 // Configuración de iconos por canal
 const CHANNEL_ICONS = {
@@ -49,6 +50,8 @@ export function NotificationCenter({ creditId, compact }: NotificationCenterProp
     markAllAsRead,
     processAutomaticNotifications,
   } = useNotifications();
+
+  const [selected, setSelected] = useState<DetailNotification | null>(null);
 
   // Filtrar notificaciones si hay creditId
   const filteredNotifications = creditId
@@ -161,7 +164,7 @@ export function NotificationCenter({ creditId, compact }: NotificationCenterProp
                         ? "bg-muted/30 border-transparent" 
                         : "bg-primary/5 border-primary/20 shadow-sm"
                     )}
-                    onClick={() => !notif.is_read && markAsRead.mutate(notif.id)}
+                    onClick={() => { if (!notif.is_read) markAsRead.mutate(notif.id); setSelected(notif as unknown as DetailNotification); }}
                   >
                     <div className="flex items-start gap-3">
                       {/* Indicador de tipo */}
@@ -202,6 +205,7 @@ export function NotificationCenter({ creditId, compact }: NotificationCenterProp
           </ScrollArea>
         )}
       </CardContent>
+      <NotificationDetailDialog notification={selected} audience="admin" onClose={() => setSelected(null)} />
     </Card>
   );
 }

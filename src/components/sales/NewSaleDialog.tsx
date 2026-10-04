@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Search, Plus, Minus, Trash2, Loader, User, Check, Package, CloseSquare, ShoppingCart } from 'reicon-react';
+import { createCustomerAccount, isValidEmail } from '@/lib/customerAccounts';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -19,11 +20,14 @@ import { formatBS, cn } from '@/lib/utils';
 import { PAYMENT_METHOD_LABELS } from '@/lib/paymentMethodFields';
 import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { toast } from 'sonner';
+import { sortedVariants, variantLabel, variantPrice } from '@/lib/productCategories';
+import { useProductCategories } from '@/hooks/useProductCategories';
 
 type SaleModality = 'contado' | 'dos_partes' | 'financiamiento' | 'fiado';
 type ClientMode = 'walkin' | 'search' | 'new';
 type ClientMatch = { name: string; dni: string; phone: string; email: string; address: string };
-interface CartLine { productId: string; qty: number }
+/** Una línea por producto y variante (talla, tono o presentación) */
+interface CartLine { key: string; productId: string; variantId?: string; qty: number }
 
 const EMPTY_CLIENT = { dni: '', name: '', phone: '', email: '', address: '' };
 const BS_METHODS = ['efectivo_bs', 'pago_movil', 'transferencia'];
@@ -74,6 +78,9 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const [notes, setNotes] = useState('');
   const [showNotes, setShowNotes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Producto con varias tallas/tonos/presentaciones: se elige cuál antes de agregarlo
+  const [pickFor, setPickFor] = useState<string | null>(null);
+  const { byName } = useProductCategories();
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const reset = () => {
@@ -106,23 +113,37 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     return list.slice(0, q ? 12 : 8);
   }, [products, productQuery]);
 
-  const qtyInCart = (productId: string) => cart.find(l => l.productId === productId)?.qty ?? 0;
+  const qtyInCart = (productId: string) => cart.filter(l => l.productId === productId).reduce((n, l) => n + l.qty, 0);
+  const variantOf = (productId: string, variantId?: string) =>
+    variantId ? productById.get(productId)?.product_variants?.find(v => v.id === variantId) ?? null : null;
+  const lineStock = (productId: string, variantId?: string) =>
+    variantId ? variantOf(productId, variantId)?.stock ?? 0 : productById.get(productId)?.stock ?? 0;
 
-  const addProduct = (productId: string) => {
+  const addLine = (productId: string, variantId?: string) => {
     const product = productById.get(productId);
     if (!product) return;
-    const current = qtyInCart(productId);
-    if (current >= product.stock) {
-      toast.error('No hay más unidades', { description: `${product.name}: ${product.stock} en stock.` });
+    const key = `${productId}:${variantId ?? ''}`;
+    const current = cart.find(l => l.key === key)?.qty ?? 0;
+    const stock = lineStock(productId, variantId);
+    if (current >= stock) {
+      const v = variantOf(productId, variantId);
+      toast.error('No hay más unidades', { description: `${product.name}${v ? ` (${v.label})` : ''}: ${stock} en stock.` });
       return;
     }
-    setCart(prev => current ? prev.map(l => l.productId === productId ? { ...l, qty: l.qty + 1 } : l) : [...prev, { productId, qty: 1 }]);
+    setCart(prev => current ? prev.map(l => l.key === key ? { ...l, qty: l.qty + 1 } : l) : [...prev, { key, productId, variantId, qty: 1 }]);
   };
 
-  const setQty = (productId: string, qty: number) => {
-    const stock = productById.get(productId)?.stock ?? 0;
-    const next = Math.max(0, Math.min(qty, stock));
-    setCart(prev => next === 0 ? prev.filter(l => l.productId !== productId) : prev.map(l => l.productId === productId ? { ...l, qty: next } : l));
+  const addProduct = (productId: string) => {
+    const variants = sortedVariants(productById.get(productId)?.product_variants);
+    if (variants.length > 1) { setPickFor(productId); return; }
+    addLine(productId, variants[0]?.id);
+  };
+
+  const setQty = (key: string, qty: number) => {
+    const line = cart.find(l => l.key === key);
+    if (!line) return;
+    const next = Math.max(0, Math.min(qty, lineStock(line.productId, line.variantId)));
+    setCart(prev => next === 0 ? prev.filter(l => l.key !== key) : prev.map(l => l.key === key ? { ...l, qty: next } : l));
   };
 
   // ── Montos ──
@@ -130,9 +151,13 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const surchargePct = modality === 'financiamiento' ? (pricingConfig?.credit_surcharge_pct || 10) : 0;
   const lines = cart.map(l => {
     const p = productById.get(l.productId)!;
-    const base = isBsPayment && p.price_bs_usd != null && Number(p.price_bs_usd) > 0 ? Number(p.price_bs_usd) : Number(p.price_usd);
+    const variant = p ? variantOf(l.productId, l.variantId) : null;
+    // Una variante con precio propio manda; si no, el precio del producto (o su precio en Bs)
+    const base = variant && variant.price_usd != null
+      ? variantPrice(p.price_usd, variant)
+      : isBsPayment && p?.price_bs_usd != null && Number(p.price_bs_usd) > 0 ? Number(p.price_bs_usd) : Number(p?.price_usd);
     const unit = base * (1 + surchargePct / 100);
-    return { ...l, product: p, unit, subtotal: unit * l.qty };
+    return { ...l, product: p, variant, stock: lineStock(l.productId, l.variantId), unit, subtotal: unit * l.qty };
   }).filter(l => l.product);
   const total = lines.reduce((s, l) => s + l.subtotal, 0);
   const totalBs = convertToBS(total);
@@ -217,6 +242,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     if (modality !== 'contado' && !hasClient) return 'Las ventas a crédito necesitan un cliente';
     if (clientMode !== 'walkin' && !hasClient) return clientMode === 'search' ? 'Elige un cliente de la lista' : 'Escribe el nombre del cliente';
     if (clientMode === 'new' && !isValidVePhone(phoneNormalized)) return 'Completa el teléfono (7 dígitos después del prefijo)';
+    if (clientMode === 'new' && !isValidEmail(client.email)) return 'Escribe el correo del cliente (se le crea su cuenta)';
     if (modality !== 'fiado' && !method) return 'Elige el método de pago';
     if (isCash && payToday > 0 && receivedNum <= 0) return 'Indica cuánto recibiste';
     if (cashShort) return 'El monto recibido no alcanza';
@@ -243,6 +269,27 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
       finalNotes = `[FIADO QUINCENA - 100% al ${formatCutoffDate(cut1)}] ${finalNotes}`.trim();
     }
 
+    // Cliente nuevo: primero su cuenta (correo, sin contraseña), para que la venta quede a su nombre
+    let customerUserId: string | null = null;
+    let accountCreated = false;
+    if (clientMode === 'new') {
+      try {
+        const account = await createCustomerAccount({
+          email: client.email.trim().toLowerCase(),
+          full_name: sanitizeText(client.name.trim()),
+          phone: phoneNormalized || null,
+          dni: client.dni.trim() || null,
+          address: client.address.trim() ? sanitizeText(client.address.trim()) : null,
+        });
+        customerUserId = account.userId;
+        accountCreated = !account.existing;
+      } catch (err) {
+        toast.error('No se pudo crear la cuenta del cliente', { description: err instanceof Error ? err.message : String(err) });
+        setSubmitting(false);
+        return;
+      }
+    }
+
     const isCredit = modality !== 'contado';
     const saleGroupId = crypto.randomUUID();
     const withClient = clientMode !== 'walkin';
@@ -256,7 +303,11 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
         modality === 'financiamiento' ? itemTotal / 3 : 0;
       const { data, error } = await addSale({
         product_id: line.productId,
-        product_name: line.product.name,
+        product_name: line.variant
+          ? `${line.product.name} (${variantLabel(byName(line.product.category)?.detail_kind)}: ${line.variant.label})`
+          : line.product.name,
+        variant_id: line.variant?.id ?? null,
+        variant_label: line.variant?.label ?? null,
         quantity: line.qty,
         unit_price_usd: line.unit,
         total_usd: itemTotal,
@@ -265,6 +316,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
         client_name: withClient && client.name ? sanitizeText(client.name) : null,
         client_dni: withClient && client.dni ? sanitizeText(client.dni) : null,
         client_email: withClient && client.email ? sanitizeText(client.email) : null,
+        ...(customerUserId ? { customer_user_id: customerUserId } : {}),
         client_phone: withClient && phoneNormalized ? phoneNormalized : null,
         client_address: withClient && client.address ? sanitizeText(client.address) : null,
         is_credit: isCredit,
@@ -279,31 +331,14 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
       if (data?.id) await confirmSale(data.id);
     }
 
-    // Cliente nuevo: guardar su perfil para encontrarlo la próxima vez
-    if (!failed && clientMode === 'new' && client.name.trim()) {
-      try {
-        const profile = {
-          full_name: sanitizeText(client.name.trim()),
-          dni: client.dni.trim() || null,
-          phone: phoneNormalized || null,
-          email: client.email.trim() || null,
-          address: client.address.trim() || null,
-        };
-        const lookup = profile.dni ? { col: 'dni', val: profile.dni } : profile.phone ? { col: 'phone', val: profile.phone } : null;
-        const { data: existing } = lookup
-          ? await supabase.from('customer_profiles').select('id').eq(lookup.col, lookup.val).maybeSingle()
-          : { data: null };
-        if (existing) await supabase.from('customer_profiles').update(profile).eq('id', existing.id);
-        else await supabase.from('customer_profiles').insert({ ...profile, user_id: crypto.randomUUID() });
-        queryClient.invalidateQueries({ queryKey: ['customers'] });
-      } catch (err) {
-        console.warn('No se pudo guardar el perfil del cliente:', err);
-      }
-    }
+    if (!failed && clientMode === 'new') queryClient.invalidateQueries({ queryKey: ['customers'] });
 
     setSubmitting(false);
     if (!failed) {
-      toast.success('Venta registrada', { description: `$${total.toFixed(2)}${hasClient ? ` · ${client.name}` : ''}` });
+      toast.success('Venta registrada', {
+        description: `$${total.toFixed(2)}${hasClient ? ` · ${client.name}` : ''}${accountCreated ? `. Se creó su cuenta con ${client.email.trim()}: para entrar, toca «Olvidé mi contraseña» en la tienda.` : ''}`,
+        duration: accountCreated ? 9000 : undefined,
+      });
       onCreated?.();
       close(false);
     }
@@ -400,7 +435,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                   <AnimatePresence initial={false}>
                     {lines.map(l => (
                       <motion.li
-                        key={l.productId}
+                        key={l.key}
                         layout={!reduceMotion}
                         initial={reduceMotion ? false : { opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
@@ -409,14 +444,15 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                       >
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{l.product.name}</p>
+                          {l.variant && <p className="truncate text-xs font-medium text-primary">{l.variant.label}</p>}
                           <p className="text-xs text-muted-foreground">{money(l.unit)} c/u</p>
                         </div>
                         <div className="flex items-center rounded-full border border-border">
-                          <button type="button" onClick={() => setQty(l.productId, l.qty - 1)} aria-label="Quitar uno" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted">
+                          <button type="button" onClick={() => setQty(l.key, l.qty - 1)} aria-label="Quitar uno" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted">
                             {l.qty === 1 ? <Trash2 className="h-4 w-4 text-destructive" /> : <Minus className="h-4 w-4" />}
                           </button>
                           <span className="w-7 text-center text-sm font-semibold tabular-nums">{l.qty}</span>
-                          <button type="button" onClick={() => setQty(l.productId, l.qty + 1)} disabled={l.qty >= l.product.stock} aria-label="Agregar uno" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40">
+                          <button type="button" onClick={() => setQty(l.key, l.qty + 1)} disabled={l.qty >= l.stock} aria-label="Agregar uno" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40">
                             <Plus className="h-4 w-4" />
                           </button>
                         </div>
@@ -503,7 +539,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                     <DocumentIdInput id="ns-dni" value={client.dni} onChange={dni => setClient(c => ({ ...c, dni }))} inputClassName="h-11 rounded-xl" />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="ns-phone">Teléfono</Label>
+                    <Label htmlFor="ns-phone">Teléfono *</Label>
                     <PhoneInput
                       id="ns-phone"
                       value={client.phone}
@@ -512,13 +548,16 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="ns-email">Correo</Label>
-                    <Input id="ns-email" type="email" value={client.email} onChange={e => setClient(c => ({ ...c, email: e.target.value.slice(0, 100) }))} placeholder="opcional" className="h-11 rounded-xl" />
+                    <Label htmlFor="ns-email">Correo *</Label>
+                    <Input id="ns-email" type="email" inputMode="email" autoComplete="off" value={client.email} onChange={e => setClient(c => ({ ...c, email: e.target.value.replace(/\s/g, '').slice(0, 100) }))} placeholder="nombre@correo.com" className={cn('h-11 rounded-xl', client.email && !isValidEmail(client.email) && 'border-sale')} />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="ns-address">Dirección</Label>
                     <Input id="ns-address" value={client.address} onChange={e => setClient(c => ({ ...c, address: e.target.value.slice(0, 150) }))} placeholder="opcional" className="h-11 rounded-xl" />
                   </div>
+                  <p className="text-xs text-muted-foreground sm:col-span-2">
+                    Con el correo se le crea su cuenta y le llega la factura. Para entrar, toca «Olvidé mi contraseña» en la tienda, crea su contraseña y completa su perfil.
+                  </p>
                 </div>
               )}
             </div>
@@ -632,6 +671,42 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
           </div>
         </div>
       </DialogContent>
+
+      {/* Elegir talla, tono o presentación */}
+      <Dialog open={!!pickFor} onOpenChange={o => !o && setPickFor(null)}>
+        <DialogContent className="sm:max-w-sm">
+          {pickFor && (() => {
+            const p = productById.get(pickFor)!;
+            const name = variantLabel(byName(p.category)?.detail_kind);
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{p.name}</DialogTitle>
+                  <DialogDescription>Elige {name.toLowerCase()}.</DialogDescription>
+                </DialogHeader>
+                <ul className="grid gap-2">
+                  {sortedVariants(p.product_variants).map(v => {
+                    const inCart = cart.find(l => l.key === `${p.id}:${v.id}`)?.qty ?? 0;
+                    const left = v.stock - inCart;
+                    return (
+                      <li key={v.id}>
+                        <button type="button" disabled={left <= 0}
+                          onClick={() => { addLine(p.id, v.id); setPickFor(null); }}
+                          className="flex h-12 w-full items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 text-left hover:border-primary/50 disabled:cursor-not-allowed disabled:opacity-40">
+                          <span className="font-medium">{v.label}</span>
+                          <span className="text-sm tabular-nums text-muted-foreground">
+                            ${variantPrice(p.price_usd, v).toFixed(2)} · {left > 0 ? `${left} uds` : 'Agotado'}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

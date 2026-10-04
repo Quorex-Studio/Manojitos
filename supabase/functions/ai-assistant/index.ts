@@ -10,6 +10,7 @@ const CONTACT_LINE = BRAND_WHATSAPP
   : "la sección de **Atención al Cliente** de la web";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { ACTION_TOOL_DECLARATIONS, ADMIN_EXECUTABLE, executeConfirmedAction, isActionTool, prepareAction, type Proposal } from './actions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -217,6 +218,7 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
   const { data: rateData } = await supabase
     .from('exchange_rates')
     .select('rate')
+    .eq('currency', 'USD') // la tabla también guarda la tasa del euro
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -767,6 +769,60 @@ interface ToolContext {
   isAdmin: boolean;
   authenticatedUserId: string;
   bcvRate: number;
+  /** Documentos que acompañan la respuesta (el chat los arma y descarga en el navegador) */
+  attachments: Attachment[];
+}
+
+/**
+ * Adjunto de la respuesta. El PDF no se genera aquí: el chat lo arma con la sesión de la
+ * administradora y el mismo código del módulo Por cobrar (`src/lib/receivablesReport.ts`),
+ * así el PDF de la asistente y el del botón son idénticos.
+ */
+interface Attachment {
+  id: string;
+  type: 'CXC_REPORT_PDF';
+  title: string;
+  lines: string[];
+  client_name?: string | null;
+  /** Detalle del PDF por clienta (facturas y abonos) o por categoría de producto */
+  group_by?: 'clienta' | 'categoria';
+}
+
+// Pedido explícito de reporte/PDF de cuentas por cobrar (por si el modelo no llama la herramienta)
+const CXC_TOPIC = /(por cobrar|cxc|me deben|nos deben|deudor|deudas?|cobranza|estado de cuenta)/i;
+const REPORT_WORD = /(reporte|informe|pdf|imprim|descarg|estado de cuenta|documento|archivo)/i;
+const wantsCxcReport = (msg: string) => CXC_TOPIC.test(msg) && REPORT_WORD.test(msg);
+
+/** Totales de Por cobrar con la MISMA regla del módulo: toda venta (no anulada) con saldo. */
+async function receivablesSummary(supabase: ReturnType<typeof getSupabaseClient>, clientName?: string) {
+  const owing = (await loadSaleGroups(supabase, { clientName, activeOnly: true })).filter((g) => g.balance_usd > 0.009);
+  // Por clienta con el nombre normalizado (igual que las tarjetas de Por cobrar)
+  const byClient = new Map<string, { client: string; balance: number }>();
+  for (const g of owing) {
+    const key = g.clientName.trim().replace(/\s+/g, ' ').toLowerCase();
+    const c = byClient.get(key) || { client: g.clientName, balance: 0 };
+    c.balance += g.balance_usd;
+    byClient.set(key, c);
+  }
+  const balance = Math.round(owing.reduce((s, g) => s + g.balance_usd, 0) * 100) / 100;
+  const top = [...byClient.values()].sort((a, b) => b.balance - a.balance).slice(0, 5)
+    .map((c) => ({ client: c.client, balance_usd: Math.round(c.balance * 100) / 100 }));
+  return { balance, invoices: owing.length, clients: byClient.size, top };
+}
+
+function pushCxcAttachment(ctx: { attachments: Attachment[] }, summary: { balance: number; invoices: number; clients: number }, clientName?: string | null, groupBy: 'clienta' | 'categoria' = 'clienta') {
+  if (ctx.attachments.some((a) => a.type === 'CXC_REPORT_PDF' && (a.client_name || '') === (clientName || ''))) return;
+  ctx.attachments.push({
+    id: crypto.randomUUID(),
+    type: 'CXC_REPORT_PDF',
+    title: clientName ? `Estado de cuenta · ${clientName}` : 'Reporte de cuentas por cobrar',
+    lines: [
+      `Total por cobrar: $${summary.balance.toFixed(2)}`,
+      `${summary.clients} ${summary.clients === 1 ? 'clienta' : 'clientas'} · ${summary.invoices} ${summary.invoices === 1 ? 'factura' : 'facturas'}`,
+    ],
+    client_name: clientName || null,
+    group_by: groupBy,
+  });
 }
 
 // Declaraciones en el formato real de Gemini v1beta (functionDeclarations).
@@ -782,6 +838,8 @@ const READONLY_TOOL_DECLARATIONS = [
     parameters: { type: 'OBJECT', properties: {} } },
   { name: 'listar_cxc', description: 'SOLO ADMIN. Cuentas por cobrar reales: ventas fiadas con saldo pendiente, agrupadas por venta, más el total por cobrar. Es distinto de los créditos del sistema.',
     parameters: { type: 'OBJECT', properties: {} } },
+  { name: 'generar_reporte_cxc', description: 'SOLO ADMIN. Entrega el REPORTE EN PDF de cuentas por cobrar (estilo factura: resumen, antigüedad de la deuda, detalle por clienta y abonos) o el estado de cuenta en PDF de una clienta si se indica client_name. Úsala siempre que pidan un reporte, informe, PDF, estado de cuenta o algo para imprimir/enviar de las cuentas por cobrar. El PDF aparece como botón debajo de tu mensaje.',
+    parameters: { type: 'OBJECT', properties: { client_name: { type: 'STRING', description: 'Clienta (opcional). Vacío = todas.' }, agrupar: { type: 'STRING', description: '"categoria" si piden el reporte por categoría o tipo de producto; si no, "clienta".' } } } },
   { name: 'consultar_deuda_cliente', description: 'Deuda por ventas fiadas de un cliente (total acordado, abonado y saldo por grupo de venta). El admin puede consultar cualquier cliente; un cliente solo la suya.',
     parameters: { type: 'OBJECT', properties: { client_name: { type: 'STRING' } } } },
   { name: 'consultar_venta', description: 'Detalle de las ventas/grupos de un cliente (productos, cantidades, total acordado, abonado, saldo, modalidad, fecha). Filtra opcionalmente por fecha YYYY-MM-DD. Admin: cualquier cliente; cliente: solo las suyas.',
@@ -796,7 +854,7 @@ const READONLY_TOOL_DECLARATIONS = [
     parameters: { type: 'OBJECT', properties: { client_name: { type: 'STRING' } } } },
 ];
 
-const ADMIN_ONLY_TOOLS = new Set(['listar_cxc', 'resumen_ventas', 'deudores_por_producto']);
+const ADMIN_ONLY_TOOLS = new Set(['listar_cxc', 'generar_reporte_cxc', 'resumen_ventas', 'deudores_por_producto']);
 
 function toolMeta(tool: string, extra: Record<string, unknown> = {}) {
   return { tool, source: 'supabase', ts: new Date().toISOString(), ...extra };
@@ -825,12 +883,13 @@ async function resolveClientName(
 // reales del grupo. total_usd es el total acordado: NUNCA se recalcula.
 async function loadSaleGroups(
   supabase: ReturnType<typeof getSupabaseClient>,
-  opts: { clientName?: string; customerUserId?: string; date?: string; fiadoOnly?: boolean },
+  opts: { clientName?: string; customerUserId?: string; date?: string; fiadoOnly?: boolean; activeOnly?: boolean },
 ) {
   let q = supabase.from('sales')
     .select('id, sale_group_id, client_name, product_name, quantity, total_usd, amount_paid, payment_status, sale_modality, created_at, customer_user_id')
     .limit(1000);
   if (opts.fiadoOnly) q = q.eq('sale_modality', 'fiado');
+  if (opts.activeOnly) q = q.neq('status', 'cancelled');
   if (opts.clientName) q = q.eq('client_name', opts.clientName);
   if (opts.customerUserId) q = q.eq('customer_user_id', opts.customerUserId);
   if (opts.date) q = q.gte('created_at', `${opts.date}T00:00:00`).lte('created_at', `${opts.date}T23:59:59`);
@@ -894,6 +953,27 @@ async function executeReadOnlyTool(name: string, args: Record<string, unknown>, 
         const groups = (await loadSaleGroups(supabase, { fiadoOnly: true })).filter((g) => g.balance_usd > 0.001).sort((a, b) => b.balance_usd - a.balance_usd);
         const total = Math.round(groups.reduce((s, g) => s + g.balance_usd, 0) * 100) / 100;
         return { source_note: 'Cuentas por cobrar por VENTAS FIADAS (no son los créditos del sistema).', accounts: groups.map((g) => ({ client: g.clientName, products: g.products, total_usd: g.total_usd, paid_usd: g.paid_usd, balance_usd: g.balance_usd })), total_por_cobrar_usd: total, count: groups.length, _meta: toolMeta(name) };
+      }
+      case 'generar_reporte_cxc': {
+        let clientName: string | undefined;
+        if (args.client_name) {
+          const r = await resolveClientName(supabase, String(args.client_name));
+          if (r.status === 'none') return { status: 'no_encontrado', message: `No encontré ventas de "${args.client_name}".`, _meta: toolMeta(name) };
+          if (r.status === 'ambiguous') return { status: 'ambiguo', options: r.options, message: 'Hay varias clientas con ese nombre; pide que elija una.', _meta: toolMeta(name) };
+          clientName = r.match;
+        }
+        const summary = await receivablesSummary(supabase, clientName);
+        pushCxcAttachment(ctx, summary, clientName, String(args.agrupar || '').startsWith('categ') ? 'categoria' : 'clienta');
+        return {
+          pdf_adjunto: true,
+          instruccion: 'El PDF ya está adjunto con botones (PDF, Enviar, Imprimir) debajo de tu mensaje. Dilo en una frase y resume el total, cuántas clientas/facturas y quién debe más. No pegues tablas.',
+          cliente: clientName || null,
+          total_por_cobrar_usd: summary.balance,
+          facturas: summary.invoices,
+          clientas: summary.clients,
+          quien_debe_mas: summary.top,
+          _meta: toolMeta(name),
+        };
       }
       case 'consultar_deuda_cliente': {
         let groups;
@@ -996,7 +1076,7 @@ serve(async (req: Request) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     const body = await req.json();
-    const { messages, context, action, customerId: requestCustomerId } = body;
+    const { messages, context, action, page, customerId: requestCustomerId } = body;
 
     // ================== AUTHENTICATION CHECK ==================
     const authHeader = req.headers.get('Authorization');
@@ -1054,6 +1134,25 @@ serve(async (req: Request) => {
     // ================== ACTION AUTHORIZATION (A-02, A-03) ==================
     // Administrative actions must be executed only by a verified admin. This is
     // enforced server-side and never trusts the frontend, body, or Gemini.
+    // Operaciones preparadas por la asistente y CONFIRMADAS por la persona (botón).
+    // Se vuelve a exigir admin y se escribe con el token de la persona (RLS + is_admin()).
+    if (action && ADMIN_EXECUTABLE.includes(action.type)) {
+      if (!isAdminVerified) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'Solo la administración puede confirmar esta operación.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const userDb = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader! } } });
+      const { data: rateRow } = await getSupabaseClient().from('exchange_rates').select('rate').eq('currency', 'USD').order('created_at', { ascending: false }).limit(1);
+      const result = await executeConfirmedAction(action.type, action.data || {}, {
+        userDb,
+        userId: authenticatedUserId as string,
+        bcvRate: Number(rateRow?.[0]?.rate) || 0,
+      });
+      return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     if (action) {
       const ADMIN_ACTIONS = ['REGISTER_SALE', 'SEND_REMINDER', 'GET_CREDIT_INFO', 'CHECK_STOCK'];
       if (ADMIN_ACTIONS.includes(action.type) && !isAdminVerified) {
@@ -1174,6 +1273,15 @@ Simplifica tus respuestas y ofrece ayuda clara. Si persiste, ofrece atención hu
       contextPrompt += `\nCONTEXTO ADICIONAL: ${context}`;
     }
 
+    // Página que está viendo la persona: "quiero comprar esto" se refiere a este producto
+    const productMatch = typeof page === 'string' ? page.match(/^\/producto\/([0-9a-f-]{36})/i) : null;
+    if (productMatch) {
+      const { data: viewed } = await supabase.from('products').select('name, price_usd, stock').eq('id', productMatch[1]).maybeSingle();
+      if (viewed) {
+        contextPrompt += `\nPRODUCTO EN PANTALLA: ${viewed.name} — $${viewed.price_usd} (${viewed.stock} disponibles). Si dice "esto", "este" o "lo quiero", se refiere a este producto.`;
+      }
+    }
+
     // Memoria de sesión: turnos recientes para resolver referencias como "ella"
     // o "esa venta". NO otorga permisos: cada herramienta revalida rol/entidad.
     const recentTurns = (messages || [])
@@ -1200,8 +1308,16 @@ INSTRUCCIONES CLAVE:
 - NO respondas con el saludo genérico si el usuario hace una pregunta concreta de productos o categorías.
 - Para datos concretos (deudas, cuentas por cobrar, ventas, pagos, stock, precios, créditos, resúmenes), USA las herramientas disponibles y responde SOLO con lo que devuelvan. NUNCA inventes clientes, montos, saldos, IDs ni fechas.
 - "Cuentas por cobrar" o "a quién cobrar" = ventas fiadas (herramientas de CxC/deuda), NO los créditos del sistema; son fuentes distintas.
+- Si piden un REPORTE, INFORME, PDF, ESTADO DE CUENTA o algo para imprimir o enviar de las cuentas por cobrar (de todas o de una clienta), usa generar_reporte_cxc: el PDF sale como botón debajo de tu mensaje. Nunca digas que no puedes generar PDF.
 - Si una herramienta devuelve varias coincidencias (ambiguo), pregunta al usuario cuál antes de continuar. Si devuelve "no_encontrado", dilo con claridad.
-- Las herramientas son de SOLO LECTURA: no puedes registrar, modificar, anular ni devolver nada en esta versión; si te lo piden, explica que aún no está disponible.
+- OPERACIONES: no escribes nada directamente. Con las herramientas preparar_* PREPARAS la operación y la persona la confirma con un botón que aparece debajo de tu mensaje.
+  · Clienta que quiere comprar ("quiero esto", "me llevo 2", "agrégame la blusa") → preparar_carrito. Luego dile que toque "Agregar al carrito" y después pague en el carrito.
+${isAdmin ? `  · Administración: "vendí…" → preparar_venta (pregunta el método de pago si falta; "fiado"/"me lo paga después" = modalidad fiado). "compré…/le pagué al proveedor…" → preparar_compra. "X abonó/pagó $…" → preparar_abono. "llegaron N unidades de…" → preparar_entrada_stock.
+  · Si la persona pide varias cosas, prepara cada una.` : '  · Registrar ventas, compras o abonos es solo para la administración.'}
+  · Productos con tallas, tonos o presentaciones (30 ml, 50 ml): indica cuál en "variant". Si la herramienta devuelve "options", muéstraselas y pregunta cuál quiere.
+  · Si la herramienta responde "ambiguo", "no_encontrado", "sin_stock" o "falta_dato", pregunta lo necesario en una frase y NO digas que quedó listo.
+  · Si responde "propuesta_lista", resume en una línea lo que preparaste y pide que lo confirme con el botón. NUNCA digas "ya lo registré" o "listo, quedó hecho": todavía no está hecho.
+- Anular, editar o devolver ventas todavía se hace desde el panel: si te lo piden, indica la sección.
 - Para contacto con la tienda remite a ${BRAND_WHATSAPP ? `el WhatsApp ${BRAND_WHATSAPP}` : 'la sección de Atención al Cliente de la web'}. Horario: ${STORE_HOURS}.
 
 Respuesta de ${ASSISTANT_NAME}:`;
@@ -1210,6 +1326,9 @@ Respuesta de ${ASSISTANT_NAME}:`;
     console.log('Calling Gemini Flash for Angela response...');
 
     let generatedText = '';
+    const proposals: Proposal[] = [];
+    const attachments: Attachment[] = [];
+    const actionCtx = { supabase, isAdmin, bcvRate: 0, proposals };
 
     if (GEMINI_KEY) {
       const modelsToTry = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'];
@@ -1220,8 +1339,14 @@ Respuesta de ${ASSISTANT_NAME}:`;
         isAdmin,
         authenticatedUserId: authenticatedUserId as string,
         bcvRate: businessContext.bcvRate,
+        attachments,
       };
-      const geminiTools = [{ functionDeclarations: READONLY_TOOL_DECLARATIONS }];
+      // La clienta solo puede preparar su carrito; la administración, todas las operaciones.
+      const actionDeclarations = isAdmin
+        ? ACTION_TOOL_DECLARATIONS
+        : ACTION_TOOL_DECLARATIONS.filter(d => d.name === 'preparar_carrito');
+      const geminiTools = [{ functionDeclarations: [...READONLY_TOOL_DECLARATIONS, ...actionDeclarations] }];
+      actionCtx.bcvRate = businessContext.bcvRate;
 
       for (const model of modelsToTry) {
         try {
@@ -1262,7 +1387,9 @@ Respuesta de ${ASSISTANT_NAME}:`;
               contents.push({ role: 'model', parts });
               const responseParts: any[] = [];
               for (const call of fnCalls) {
-                const result = await executeReadOnlyTool(call.name, call.args || {}, toolCtx);
+                const result = isActionTool(call.name)
+                  ? await prepareAction(call.name, call.args || {}, actionCtx)
+                  : await executeReadOnlyTool(call.name, call.args || {}, toolCtx);
                 console.log(`Tool executed: ${call.name}`);
                 responseParts.push({ functionResponse: { name: call.name, response: result } });
               }
@@ -1292,7 +1419,23 @@ Respuesta de ${ASSISTANT_NAME}:`;
       console.warn('No GEMINI_API_KEY configured, using fallback responses');
     }
 
+    // Pedido explícito de reporte de Por cobrar: el PDF va aunque el modelo no llame la herramienta
+    if (isAdmin && !attachments.length && wantsCxcReport(lastUserMessage)) {
+      try {
+        const summary = await receivablesSummary(supabase);
+        pushCxcAttachment({ attachments }, summary, null, /categor/i.test(lastUserMessage) ? 'categoria' : 'clienta');
+        if (!generatedText || generatedText.length < 10) {
+          generatedText = `Aquí tienes el reporte de cuentas por cobrar en PDF 👇 Total por cobrar: $${summary.balance.toFixed(2)} (${summary.clients} ${summary.clients === 1 ? 'clienta' : 'clientas'}, ${summary.invoices} ${summary.invoices === 1 ? 'factura' : 'facturas'}).`;
+        }
+      } catch (e) {
+        console.error('CxC report attachment error:', e);
+      }
+    }
+
     // Si no hay respuesta útil, generar respuesta contextual
+    if ((!generatedText || generatedText.length < 10) && proposals.length) {
+      generatedText = 'Te lo dejé preparado 👇 Revísalo y confirma con el botón.';
+    }
     if (!generatedText || generatedText.length < 10) {
       generatedText = generateFallbackResponse(lastUserMessage, businessContext, isAdmin, conversationAnalysis);
     }
@@ -1330,7 +1473,9 @@ Respuesta de ${ASSISTANT_NAME}:`;
     return new Response(
       JSON.stringify({
         content: generatedText,
-        suggestions: suggestions,
+        suggestions: proposals.length ? [] : suggestions,
+        proposals,
+        attachments,
         analysis: conversationAnalysis,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

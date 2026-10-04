@@ -36,7 +36,17 @@ const money = (value: unknown) => {
   return Number.isFinite(n) ? `$${n.toFixed(2)}` : "";
 };
 const shortId = (id?: string) => (id ? `#${String(id).slice(0, 8).toUpperCase()}` : "");
-const methodLabel = (m?: string) => esc((m || "").replace(/_/g, " "));
+const METHOD_LABELS: Record<string, string> = {
+  pago_movil: "Pago Móvil",
+  transferencia: "Transferencia Bs",
+  zelle: "Zelle",
+  binance: "Binance",
+  zinli: "Zinli",
+  wally: "Wally",
+  efectivo_usd: "Efectivo (USD)",
+  credito: "Crédito",
+};
+const methodLabel = (m?: string) => esc(METHOD_LABELS[m || ""] ?? (m || "").replace(/_/g, " "));
 
 const button = (href: string, label: string) => `
   <table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px auto 8px;">
@@ -206,3 +216,102 @@ export const createKycRejectedEmail = (data: EmailData) => layout({
     ${button(`${SITE_URL}/cliente/perfil`, "Volver a enviar documentos")}
   `,
 });
+
+/** Abono a crédito reportado por la clienta: aprobado o rechazado por la administración. */
+export const createCreditPaymentEmail = (status: "approved" | "rejected", data: EmailData) => {
+  const approved = status === "approved";
+  return layout({
+    preheader: approved ? `Aplicamos tu abono de ${money(data.total_usd)}` : "Revisa tu abono reportado",
+    title: approved ? "¡Recibimos tu abono!" : "No pudimos confirmar tu abono",
+    body: `
+      <p>${data.client_name ? `Hola ${esc(data.client_name)}. ` : ""}${approved
+        ? "Verificamos tu pago y ya lo aplicamos a tu crédito. ¡Gracias por estar al día!"
+        : `Revisamos el pago que reportaste pero no pudimos confirmarlo.${data.reason ? ` Motivo: <strong>${esc(data.reason)}</strong>.` : ""} Verifica la referencia o escríbenos para ayudarte.`}</p>
+      ${box(`
+        ${data.total_usd !== undefined ? `<div><strong>Monto:</strong> ${money(data.total_usd)}</div>` : ""}
+        ${data.reference ? `<div><strong>Referencia:</strong> ${esc(data.reference)}</div>` : ""}
+        ${approved && data.balance_usd !== undefined ? `<div><strong>Saldo pendiente:</strong> ${money(data.balance_usd)}</div>` : ""}
+      `)}
+      ${button(`${SITE_URL}/cliente/credito`, "Ver mi crédito")}
+    `,
+  });
+};
+
+/** Recordatorios de cuotas y vencimientos del crédito (send-credit-notifications). */
+export const createCreditReminderEmail = (title: string, message: string) => layout({
+  preheader: title,
+  title,
+  body: `
+    <p>${esc(message)}</p>
+    ${button(`${SITE_URL}/cliente/credito`, "Ver mi crédito")}
+  `,
+});
+
+// ── Notificaciones y facturas automáticas (cola email_outbox) ────────────────
+/** Cualquier notificación de la campana, también por correo. */
+export const createNotificationEmail = (opts: { title: string; message: string; link: string; linkLabel: string }) => layout({
+  preheader: opts.message.slice(0, 120),
+  title: opts.title,
+  body: `
+    <p style="white-space:pre-line;">${esc(opts.message)}</p>
+    ${button(`${SITE_URL}${opts.link}`, opts.linkLabel)}
+  `,
+});
+
+export interface ReceiptEmailData {
+  number: string;
+  date: string;
+  client_name?: string | null;
+  payment_method?: string | null;
+  items: { name: string; quantity: number; price_usd: number }[];
+  total_usd: number;
+  total_bs?: number | null;
+  credit: boolean;
+  paid: number;
+  payments: { date: string; method?: string | null; amount_usd: number; amount_bs?: number | null }[];
+  /** Si viene, el correo destaca ese abono ("Recibimos tu abono de $X") */
+  new_payment_usd?: number;
+}
+
+const bsText = (n: number) => `Bs ${n.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Factura de una venta (en tienda o por pedido aprobado), con el detalle de abonos si es a crédito. */
+export const createSaleReceiptEmail = (d: ReceiptEmailData) => {
+  const balance = Math.max(0, Math.round((d.total_usd - d.paid) * 100) / 100);
+  const title = d.new_payment_usd !== undefined ? "Recibimos tu abono" : "Tu factura";
+  const intro = d.new_payment_usd !== undefined
+    ? `Registramos tu abono de <strong>${money(d.new_payment_usd)}</strong>. Aquí está tu factura actualizada.`
+    : `Gracias por tu compra en ${esc(BRAND_NAME)}. Esta es tu factura.`;
+  const row = (label: string, value: string, strong = false) =>
+    `<tr><td style="padding:3px 0;${strong ? "font-weight:bold;font-size:16px;" : ""}">${label}</td><td style="padding:3px 0;text-align:right;${strong ? "font-weight:bold;font-size:16px;" : ""}">${value}</td></tr>`;
+  return layout({
+    preheader: `${title} ${d.number} · ${money(d.total_usd)}`,
+    title,
+    body: `
+      <p>${d.client_name ? `Hola ${esc(d.client_name)}. ` : ""}${intro}</p>
+      ${box(`
+        <div style="display:flex;justify-content:space-between;"><strong>Factura ${esc(d.number)}</strong></div>
+        <div style="color:#8a7f83;font-size:13px;">${esc(d.date)}${!d.credit && d.payment_method ? ` · ${methodLabel(d.payment_method ?? undefined)}` : ""}</div>
+        ${itemsTable(d.items)}
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;margin-top:10px;">
+          ${row("Total", money(d.total_usd), true)}
+          ${d.total_bs ? row("Total en bolívares", bsText(d.total_bs)) : ""}
+        </table>
+        ${d.credit && d.payments.length ? `
+          <div style="margin-top:14px;font-weight:bold;color:${BRAND_COLOR};font-size:12px;letter-spacing:1px;text-transform:uppercase;">Abonos</div>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;margin-top:4px;">
+            ${d.payments.map(p => `<tr>
+              <td style="padding:4px 0;border-bottom:1px solid #eadfd3;color:#5c5357;">${esc(p.date)}${p.method ? ` · ${methodLabel(p.method ?? undefined)}` : ""}${p.amount_bs ? ` · ${bsText(p.amount_bs)}` : ""}</td>
+              <td style="padding:4px 0;border-bottom:1px solid #eadfd3;text-align:right;white-space:nowrap;">${money(p.amount_usd)}</td>
+            </tr>`).join("")}
+          </table>` : ""}
+        ${d.credit ? `
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;margin-top:10px;">
+            ${row("Abonado", money(d.paid))}
+            ${row(balance > 0 ? "Saldo pendiente" : "Saldo", balance > 0 ? money(balance) : "Pagada", true)}
+          </table>` : ""}
+      `)}
+      ${button(`${SITE_URL}/cliente/pedidos`, "Ver mis compras")}
+    `,
+  });
+};

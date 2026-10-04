@@ -10,9 +10,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
-import { productSchema, validateInput } from '@/lib/validations';
+import { productSchema, validateFriendly } from '@/lib/validations';
 import type { Product } from '@/types';
+import { withDirectImage } from '@/lib/imageUrl';
 export type { Product };
+
+export interface VariantDraft { id?: string; label: string; stock: number; price_usd: number | null }
 
 export function useProducts() {
   const { user } = useAuth();
@@ -23,12 +26,12 @@ export function useProducts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, product_variants(id, label, stock, price_usd, sort_order)')
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(1000); // el catálogo completo (antes 200 escondía productos)
 
       if (error) throw error;
-      return data as Product[];
+      return (data as Product[]).map(withDirectImage);
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 2, // 2 minutos
@@ -40,7 +43,7 @@ export function useProducts() {
       if (!user) throw new Error('No autenticado');
       if (!product) throw new Error('Datos de producto requeridos');
 
-      const validated = validateInput(productSchema, product);
+      const validated = validateFriendly(productSchema, product);
 
       const { data, error } = await supabase
         .from('products')
@@ -56,6 +59,7 @@ export function useProducts() {
           category: validated.category,
           image_url: validated.image_url,
           sizes: validated.sizes ?? null,
+          presentation: validated.presentation ?? null,
           user_id: user.id
         }])
         .select()
@@ -78,7 +82,7 @@ export function useProducts() {
       if (!id) throw new Error('ID de producto requerido');
       if (!updates || typeof updates !== 'object') throw new Error('Datos de actualización requeridos');
 
-      const validated = productSchema.partial().parse(updates);
+      const validated = validateFriendly(productSchema.partial(), updates);
 
       const { data, error } = await supabase
         .from('products')
@@ -117,6 +121,31 @@ export function useProducts() {
     },
   });
 
+  /**
+   * Guarda las tallas/tonos/presentaciones de un producto tal como quedaron en el formulario:
+   * borra las que se quitaron, actualiza las existentes y crea las nuevas. El stock y las
+   * etiquetas del producto los recalcula la base (trigger).
+   */
+  const saveVariants = async (productId: string, rows: VariantDraft[]) => {
+    const { data: current, error: readErr } = await supabase.from('product_variants').select('id').eq('product_id', productId);
+    if (readErr) throw readErr;
+    const keep = new Set(rows.filter(r => r.id).map(r => r.id));
+    const removed = (current || []).map(v => v.id).filter(id => !keep.has(id));
+    if (removed.length) {
+      const { error } = await supabase.from('product_variants').delete().in('id', removed);
+      if (error) throw error;
+    }
+    for (const [i, r] of rows.entries()) {
+      const row = { label: r.label.trim(), stock: Math.max(0, Math.floor(r.stock)), price_usd: r.price_usd, sort_order: i + 1 };
+      const { error } = r.id
+        ? await supabase.from('product_variants').update(row).eq('id', r.id)
+        : await supabase.from('product_variants').insert({ ...row, product_id: productId });
+      if (error) throw error;
+    }
+    queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+    queryClient.invalidateQueries({ queryKey: ['public-products'] });
+  };
+
   // Las mutaciones ya invalidan el caché automáticamente.
   // No se necesita suscripción realtime.
 
@@ -126,6 +155,7 @@ export function useProducts() {
     addProduct: addProduct.mutateAsync,
     updateProduct: updateProduct.mutateAsync,
     deleteProduct: deleteProduct.mutateAsync,
+    saveVariants,
     refetch,
   };
 }

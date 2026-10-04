@@ -175,7 +175,8 @@ function CustomerCard({ customer: c, onOpen }: { customer: CustomerProfile; onOp
       {/* Toda la tarjeta abre la ficha; WhatsApp queda como acción aparte */}
       <button type="button" onClick={onOpen} className="absolute inset-0 rounded-2xl" aria-label={`Ver ficha de ${c.full_name}`} />
       <Avatar className="h-12 w-12 shrink-0 border border-border">
-        <AvatarImage src={c.face_photo_url || ''} alt="" className="object-cover" />
+        {/* En la lista se usa la foto de perfil (pública); la cédula y el rostro son privados */}
+        <AvatarImage src={c.avatar_url || (c.face_photo_url?.startsWith('http') ? c.face_photo_url : '') || ''} alt="" className="object-cover" />
         <AvatarFallback className="bg-primary/10 font-serif text-primary">{initials(c.full_name)}</AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1 space-y-1">

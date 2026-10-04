@@ -17,6 +17,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { NotificationDetailDialog, type DetailNotification } from './NotificationDetailDialog';
 
 export function NotificationBell({ onOpenChange }: { onOpenChange?: (open: boolean) => void } = { /* empty */ }) {
   const navigate = useNavigate();
@@ -28,19 +29,14 @@ export function NotificationBell({ onOpenChange }: { onOpenChange?: (open: boole
   };
   const { permission, requestPermission } = usePushNotifications();
 
-  const goToNotification = (notif: { metadata: Record<string, unknown>; credit_id: string | null }) => {
-    setOpen(false);
-    if (notif.metadata?.order_id) {
-      navigate('/sales?tab=pedidos');
-    } else if (notif.credit_id) {
-      navigate('/credits');
-    }
-  };
+  // Al tocar una notificación se abre completa, con un botón a la pantalla donde se atiende
+  const [selected, setSelected] = useState<DetailNotification | null>(null);
 
   // Mostrar solo las últimas 5 notificaciones
   const recentNotifications = notifications.slice(0, 5);
 
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
@@ -120,7 +116,8 @@ export function NotificationBell({ onOpenChange }: { onOpenChange?: (open: boole
                   )}
                   onClick={() => {
                     if (!notif.is_read) markAsRead.mutate(notif.id);
-                    goToNotification(notif);
+                    setOpen(false);
+                    setSelected(notif);
                   }}
                 >
                   <div className="flex items-start gap-2.5">
@@ -161,7 +158,7 @@ export function NotificationBell({ onOpenChange }: { onOpenChange?: (open: boole
             className="w-full justify-between text-sm"
             onClick={() => {
               setOpen(false);
-              navigate('/cliente/notificaciones');
+              navigate('/notificaciones');
             }}
           >
             Ver todas las notificaciones
@@ -170,5 +167,7 @@ export function NotificationBell({ onOpenChange }: { onOpenChange?: (open: boole
         </div>
       </PopoverContent>
     </Popover>
+    <NotificationDetailDialog notification={selected} audience="admin" onClose={() => setSelected(null)} />
+    </>
   );
 }

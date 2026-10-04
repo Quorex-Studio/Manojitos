@@ -30,7 +30,7 @@ serve(async (req) => {
     )
 
     const { data: { user: adminUser }, error: verifyError } = await supabaseClient.auth.getUser(token)
-    
+
     if (verifyError || !adminUser) {
       return new Response(JSON.stringify({ error: 'Token inválido', details: verifyError }), {
         status: 401,
@@ -48,7 +48,7 @@ serve(async (req) => {
 
     // Cliente con Service Role Key para realizar acciones de administración
     const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    
+
     if (!serviceRoleKey) {
         return new Response(JSON.stringify({ error: 'Service Role Key no configurada' }), {
             status: 500,
@@ -67,8 +67,44 @@ serve(async (req) => {
       }
     )
 
-    const { action, userId, newPassword } = await req.json()
-    
+    const body = await req.json()
+    const { action, userId, newPassword } = body
+
+    // Clienta nueva desde Nueva venta o Ángela: cuenta con su correo y SIN contraseña. Ella la crea
+    // con "Olvidé mi contraseña" y, al entrar, completa su perfil (profile_pending).
+    if (action === 'create_customer') {
+      const json = (payload: unknown, status = 200) =>
+        new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const email = String(body.email ?? '').trim().toLowerCase()
+      const fullName = String(body.full_name ?? '').trim().slice(0, 120)
+      const phone = String(body.phone ?? '').trim().slice(0, 30) || null
+      const dni = String(body.dni ?? '').trim().slice(0, 20) || null
+      const address = String(body.address ?? '').trim().slice(0, 300) || null
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ error: 'Escribe un correo válido' }, 400)
+      if (!fullName) return json({ error: 'Falta el nombre de la clienta' }, 400)
+
+      // Si ya tiene cuenta con ese correo, se usa esa (no se toca su perfil)
+      const { data: existingId, error: findError } = await adminClient.rpc('admin_find_user_by_email', { p_email: email })
+      if (findError) return json({ error: findError.message }, 500)
+      if (existingId) return json({ success: true, user_id: existingId, existing: true })
+
+      // Teléfono o cédula de OTRA cuenta: no se crea (sería un duplicado)
+      const { data: taken, error: takenError } = await adminClient.rpc('check_unique_customer_data', { p_phone: phone, p_dni: dni, p_email: email })
+      if (takenError) return json({ error: takenError.message }, 500)
+      if (taken?.phone_taken) return json({ error: 'Ese teléfono ya pertenece a otra cuenta. Búscala como clienta existente.' }, 409)
+      if (taken?.dni_taken) return json({ error: 'Esa cédula ya pertenece a otra cuenta. Búscala como clienta existente.' }, 409)
+
+      const created = await adminClient.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        user_metadata: { full_name: fullName, phone, dni, address },
+        app_metadata: { created_by_admin: true },
+      })
+      if (created.error || !created.data.user) return json({ error: created.error?.message ?? 'No se pudo crear la cuenta' }, 500)
+      return json({ success: true, user_id: created.data.user.id, existing: false })
+    }
+
+
     if (!userId) {
       return new Response(JSON.stringify({ error: 'ID de usuario es requerido' }), {
         status: 400,
@@ -133,7 +169,7 @@ serve(async (req) => {
     )
 
   } catch (error: unknown) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
