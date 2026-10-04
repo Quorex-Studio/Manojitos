@@ -1,3 +1,4 @@
+import { storageKey } from '@/config/brand';
 /**
  * useSavedCart — Hook to persist multiple carts in LocalStorage.
  * Capacity: Up to 5 most recent carts.
@@ -9,7 +10,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem } from '@/contexts/CartContext';
 
-const SAVED_CART_KEY = 'manojitos_saved_cart';
+const SAVED_CART_KEY = storageKey('saved_cart');
 
 const getSavedCartKey = (userId: string | null) =>
   userId ? `${SAVED_CART_KEY}_${userId}` : `${SAVED_CART_KEY}_guest`;

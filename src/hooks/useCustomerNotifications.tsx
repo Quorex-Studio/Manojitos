@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 /**
  * useCustomerNotifications — Hook to manage customer notifications.
  * Tables: `notifications`
@@ -142,7 +143,7 @@ export function useCustomerNotifications() {
             });
             // Browser push notification
             await showNotification(
-              `🩷 Manojitos: ${notif.title}`,
+              `🩷 ${BRAND_NAME}: ${notif.title}`,
               notif.message,
               { tag: notif.id, url: '/cliente/notificaciones' }
             );

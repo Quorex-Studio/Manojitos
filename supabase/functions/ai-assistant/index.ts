@@ -1,3 +1,13 @@
+// Marca configurable por secreto de Supabase (supabase secrets set BRAND_NAME=...)
+const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
+const ASSISTANT_NAME = Deno.env.get("ASSISTANT_NAME") ?? "Ángela";
+// Contacto y horario de la tienda (secretos BRAND_WHATSAPP / STORE_HOURS). Sin WhatsApp,
+// la asistente remite a la sección de Atención al Cliente.
+const BRAND_WHATSAPP = Deno.env.get("BRAND_WHATSAPP") ?? "";
+const STORE_HOURS = Deno.env.get("STORE_HOURS") ?? "Lunes a Viernes: 8:00 AM - 6:00 PM · Sábados: 9:00 AM - 1:00 PM";
+const CONTACT_LINE = BRAND_WHATSAPP
+  ? `nuestro WhatsApp **${BRAND_WHATSAPP}**`
+  : "la sección de **Atención al Cliente** de la web";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
@@ -630,7 +640,7 @@ async function handleSendReminder(data: { creditId?: string; clientName?: string
 
   const credit = credits[0];
 
-  const message = `Hola ${credit.client_name}, te recordamos que tienes un saldo pendiente de $${credit.current_balance}. Fecha de vencimiento: ${credit.next_due_date || 'Por definir'}. ¡Gracias por tu preferencia! - Manojitos 🩷`;
+  const message = `Hola ${credit.client_name}, te recordamos que tienes un saldo pendiente de $${credit.current_balance}. Fecha de vencimiento: ${credit.next_due_date || 'Por definir'}. ¡Gracias por tu preferencia! - ${BRAND_NAME} 🩷`;
 
   const { error: reminderError } = await supabase
     .from('credit_reminders')
@@ -1064,7 +1074,6 @@ serve(async (req: Request) => {
       );
     }
 
-    const HF_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
     const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY');
 
     const supabase = getSupabaseClient();
@@ -1085,7 +1094,7 @@ serve(async (req: Request) => {
     console.log('Generated suggestions:', suggestions.length);
 
     // ================== CONSTRUIR PROMPT CONTEXTUALIZADO ==================
-    let contextPrompt = `Eres Ángela, asistente inteligente de Manojitos (tienda en Venezuela).
+    let contextPrompt = `Eres ${ASSISTANT_NAME}, asistente inteligente de ${BRAND_NAME} (tienda en Venezuela).
 Personalidad: cercana, clara, profesional, confiable. Usa español venezolano.
 Tono: amable, seguro, sin exagerar emojis (máximo 2-3 por respuesta).
 
@@ -1169,7 +1178,7 @@ Simplifica tus respuestas y ofrece ayuda clara. Si persiste, ofrece atención hu
     // o "esa venta". NO otorga permisos: cada herramienta revalida rol/entidad.
     const recentTurns = (messages || [])
       .slice(-7, -1)
-      .map((m: any) => `${m.role === 'user' ? 'Usuario' : 'Ángela'}: ${String(m.content || '').slice(0, 300)}`)
+      .map((m: any) => `${m.role === 'user' ? 'Usuario' : ASSISTANT_NAME}: ${String(m.content || '').slice(0, 300)}`)
       .join('\n');
     if (recentTurns) {
       contextPrompt += `
@@ -1193,8 +1202,9 @@ INSTRUCCIONES CLAVE:
 - "Cuentas por cobrar" o "a quién cobrar" = ventas fiadas (herramientas de CxC/deuda), NO los créditos del sistema; son fuentes distintas.
 - Si una herramienta devuelve varias coincidencias (ambiguo), pregunta al usuario cuál antes de continuar. Si devuelve "no_encontrado", dilo con claridad.
 - Las herramientas son de SOLO LECTURA: no puedes registrar, modificar, anular ni devolver nada en esta versión; si te lo piden, explica que aún no está disponible.
+- Para contacto con la tienda remite a ${BRAND_WHATSAPP ? `el WhatsApp ${BRAND_WHATSAPP}` : 'la sección de Atención al Cliente de la web'}. Horario: ${STORE_HOURS}.
 
-Respuesta de Ángela:`;
+Respuesta de ${ASSISTANT_NAME}:`;
 
 
     console.log('Calling Gemini Flash for Angela response...');
@@ -1289,20 +1299,16 @@ Respuesta de Ángela:`;
 
     // Limpiar respuesta de posibles artefactos
     generatedText = generatedText
-      .replace(/^Respuesta de Ángela:\s*/i, '')
+      .replace(new RegExp(`^Respuesta de ${ASSISTANT_NAME}:\\s*`, "i"), '')
       .replace(/\[INST\].*?\[\/INST\]/gs, '')
       .trim();
 
     // Guardar en memoria persistente si hay customerId (background task para no bloquear respuesta)
     if (customerId && authenticatedUserId) {
       const viewedProducts = extractProductsFromResponse(generatedText);
-      // Use authenticated admin or get first admin for memory storage
-      let memoryAdminId: string = isAdmin ? authenticatedUserId : '';
-
-      if (!memoryAdminId) {
-        const { data: adminData } = await supabase.from('profiles').select('user_id').limit(1);
-        memoryAdminId = adminData?.[0]?.user_id || customerId;
-      }
+      // Dueño del registro de memoria: el admin autenticado o el propio cliente
+      // (nunca un perfil arbitrario).
+      const memoryAdminId: string = isAdmin ? authenticatedUserId : customerId;
 
       // Only proceed if we have a valid memoryAdminId
       if (memoryAdminId) {
@@ -1361,7 +1367,7 @@ function generateFallbackResponse(
   // ── RESPUESTAS CORTESÍA / ESTADO / CASUALES ──
   if (msg.includes('todo bien') || msg.includes('cómo estás') || msg.includes('como estas') ||
       msg.includes('como te va') || msg.includes('cómo te va') || msg.includes('qué tal') || msg.includes('que tal')) {
-    return `🩷 ¡Todo excelente por aquí! 😊 ¿En qué te puedo ayudar hoy con nuestro catálogo de Manojitos? ✨`;
+    return `🩷 ¡Todo excelente por aquí! 😊 ¿En qué te puedo ayudar hoy con nuestro catálogo de ${BRAND_NAME}? ✨`;
   }
 
   if (msg.includes('gracias') || msg.includes('agradecido') || msg.includes('agradecida')) {
@@ -1378,13 +1384,13 @@ function generateFallbackResponse(
   if (msg.includes('tienda') || msg.includes('ubicacion') || msg.includes('ubicación') ||
       msg.includes('direccion') || msg.includes('dirección') || msg.includes('donde estan') ||
       msg.includes('dónde están') || msg.includes('local') || msg.includes('donde queda') || msg.includes('dónde queda')) {
-    return `🩷 Manojitos es principalmente una tienda virtual con atención y envíos a toda Venezuela. Realizamos entregas personales seguras y envíos por las agencias nacionales.\n\n📞 Si deseas coordinar una entrega o tienes alguna pregunta específica, puedes contactarnos al WhatsApp **+58 426-3863042**. ✨`;
+    return `🩷 ${BRAND_NAME} es principalmente una tienda virtual con atención y envíos a toda Venezuela. Realizamos entregas personales seguras y envíos por las agencias nacionales.\n\n📞 Si deseas coordinar una entrega o tienes alguna pregunta específica, puedes contactarnos por ${CONTACT_LINE}. ✨`;
   }
 
   // ── ENVÍOS / DELIVERY ──
   if (msg.includes('delivery') || msg.includes('envio') || msg.includes('envío') ||
       msg.includes('envi') || msg.includes('entreg') || msg.includes('recibir')) {
-    return `🩷 ¡Hacemos envíos a nivel nacional a toda Venezuela! 📦 También realizamos entregas personales bajo coordinación previa.\n\nPara detalles de costo y zonas de entrega, escríbenos directamente a nuestro WhatsApp **+58 426-3863042** y con gusto te ayudamos. ✨`;
+    return `🩷 ¡Hacemos envíos a nivel nacional a toda Venezuela! 📦 También realizamos entregas personales bajo coordinación previa.\n\nPara detalles de costo y zonas de entrega, escríbenos por ${CONTACT_LINE} y con gusto te ayudamos. ✨`;
   }
 
   // ── MÉTODOS DE PAGO ──
@@ -1396,12 +1402,12 @@ function generateFallbackResponse(
   // ── HORARIOS ──
   if (msg.includes('horario') || msg.includes('abierto') || msg.includes('cerrado') ||
       msg.includes('hora') || msg.includes('dia') || msg.includes('trabaja')) {
-    return `🩷 **Nuestro horario de atención:**\n\n• Lunes a Viernes: 8:00 AM - 6:00 PM\n• Sábados: 9:00 AM - 1:00 PM\n\n¡Puedes ver y pedir productos en la web las 24 horas! ✨`;
+    return `🩷 **Nuestro horario de atención:**\n\n${STORE_HOURS}\n\n¡Puedes ver y pedir productos en la web las 24 horas! ✨`;
   }
 
   // ── COLORES / TALLAS ──
   if (msg.includes('color') || msg.includes('colores') || msg.includes('talla') || msg.includes('tallas') || msg.includes('medida')) {
-    return `🩷 Puedes consultar las tallas y colores disponibles para cada producto seleccionándolo en el catálogo aquí en la web. Si tienes alguna duda con las medidas de una prenda, escríbenos al WhatsApp **+58 426-3863042**. ✨`;
+    return `🩷 Puedes consultar las tallas y colores disponibles para cada producto seleccionándolo en el catálogo aquí en la web. Si tienes alguna duda con las medidas de una prenda, escríbenos por ${CONTACT_LINE}. ✨`;
   }
 
   // ── SALUDO ──
@@ -1415,9 +1421,9 @@ function generateFallbackResponse(
       return `🩷 ¡Hola de nuevo! 👋 La última vez pediste **${last}**. ¿Lo repites o buscas algo diferente?\n\nPuedo ayudarte con 🛒 productos, 💰 precios o 💳 tu crédito. ✨`;
     }
     if (isAdmin) {
-      return `🩷 ¡Hola! Soy **Ángela**.\n\n📊 **Resumen rápido:**\n• Ventas 7 días: $${context.recentSales.toFixed(2)}\n• Stock bajo: ${context.lowStockProducts.length} productos\n• Créditos pendientes: ${context.pendingCredits.length}\n\n¿Qué necesitas? ✨`;
+      return `🩷 ¡Hola! Soy **${ASSISTANT_NAME}**.\n\n📊 **Resumen rápido:**\n• Ventas 7 días: $${context.recentSales.toFixed(2)}\n• Stock bajo: ${context.lowStockProducts.length} productos\n• Créditos pendientes: ${context.pendingCredits.length}\n\n¿Qué necesitas? ✨`;
     }
-    return `🩷 ¡Hola! Soy **Ángela**, tu asistente de Manojitos. 👋\n\nPuedo ayudarte con:\n• 🛒 Productos y recomendaciones\n• 💰 Precios y cálculos\n• 💳 Tu crédito\n\n¿En qué te puedo ayudar? ✨`;
+    return `🩷 ¡Hola! Soy **${ASSISTANT_NAME}**, tu asistente de ${BRAND_NAME}. 👋\n\nPuedo ayudarte con:\n• 🛒 Productos y recomendaciones\n• 💰 Precios y cálculos\n• 💳 Tu crédito\n\n¿En qué te puedo ayudar? ✨`;
   }
 
   // ── TASA BCV ──
@@ -1467,7 +1473,7 @@ function generateFallbackResponse(
   // ── CRÉDITO ──
   if (msg.includes('crédito') || msg.includes('credito') || msg.includes('saldo') || msg.includes('deuda') || msg.includes('fiado') || msg.includes('debo')) {
     if (context.customerHistory) {
-      return `🩷 **Tu crédito en Manojitos:**\n\n• Estado: ${context.customerHistory.creditStatus}\n• Límite: $${context.customerHistory.creditLimit}\n• Compras totales: ${context.customerHistory.totalPurchases}\n\n¿Necesitas más detalles? ✨`;
+      return `🩷 **Tu crédito en ${BRAND_NAME}:**\n\n• Estado: ${context.customerHistory.creditStatus}\n• Límite: $${context.customerHistory.creditLimit}\n• Compras totales: ${context.customerHistory.totalPurchases}\n\n¿Necesitas más detalles? ✨`;
     }
     if (isAdmin) return `🩷 ¿De qué cliente necesitas información de crédito? ✨`;
     return `🩷 Puedo mostrarte tu información de crédito. ¿Quieres ver tu saldo o límite disponible? ✨`;

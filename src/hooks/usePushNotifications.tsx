@@ -1,3 +1,4 @@
+import { BRAND } from '@/config/brand';
 /**
  * usePushNotifications — Hook to register and manage browser Web Push notifications.
  * Registers the service worker, requests permission, subscribes to PushManager,
@@ -150,7 +151,7 @@ export function usePushNotifications() {
       body,
       icon: options?.icon || '/favicon.ico',
       badge: '/favicon.ico',
-      tag: options?.tag || 'manojitos',
+      tag: options?.tag || BRAND.storageKey,
       data: { url: options?.url || '/' },
     };
 

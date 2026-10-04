@@ -1,3 +1,4 @@
+import { BRAND, BRAND_INSTAGRAM_URL, BRAND_NAME } from '@/config/brand';
 // Página Sobre Nosotros y Contacto
 import { motion } from 'framer-motion';
 import { Location, Star, Phone, Mailbox, Clock, Heart, Sparkles, Instagram, Global } from 'reicon-react';
@@ -45,7 +46,7 @@ export default function AboutUs() {
               </div>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  Manojitos nació de un sueño familiar: compartir la belleza y la alegría 
+                  {BRAND_NAME} nació de un sueño familiar: compartir la belleza y la alegría 
                   que los detalles especiales pueden traer a la vida cotidiana. Lo que comenzó 
                   como un pequeño emprendimiento desde casa, hoy se ha convertido en una 
                   tienda que sirve a clientes en toda Venezuela.
@@ -100,7 +101,7 @@ export default function AboutUs() {
                   <div>
                     <h3 className="font-semibold mb-1">Teléfono / WhatsApp</h3>
                     <p className="text-muted-foreground text-sm">
-                      +58 426-3863042<br />
+                      {BRAND.whatsapp && <>{BRAND.whatsapp}<br /></>}
                       Escríbenos para atención personalizada
                     </p>
                   </div>
@@ -117,7 +118,7 @@ export default function AboutUs() {
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
                     <p className="text-muted-foreground text-sm">
-                      contacto@manojitos.com<br />
+                      {BRAND.contactEmail}<br />
                       Respondemos en 24 horas
                     </p>
                   </div>
@@ -134,8 +135,7 @@ export default function AboutUs() {
                   <div>
                     <h3 className="font-semibold mb-1">Horario de Atención</h3>
                     <p className="text-muted-foreground text-sm">
-                      Lunes a Viernes: 8:00 AM - 6:00 PM<br />
-                      Sábados: 9:00 AM - 1:00 PM
+                      {BRAND.hours}
                     </p>
                   </div>
                 </div>
@@ -154,7 +154,7 @@ export default function AboutUs() {
           <h2 className="text-2xl font-serif font-semibold mb-6">Síguenos en Redes Sociales</h2>
           <div className="flex justify-center gap-4">
             <Button variant="outline" size="lg" className="gap-2" asChild>
-              <a href="https://www.instagram.com/manojitos.shop/" target="_blank" rel="noopener noreferrer">
+              <a href={BRAND_INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">
                 <Instagram className="h-5 w-5" />
                 Instagram
               </a>
@@ -165,7 +165,7 @@ export default function AboutUs() {
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            @MANOJITOS.SHOP
+            {'@' + BRAND.instagram.toUpperCase()}
           </p>
         </motion.section>
       </div>

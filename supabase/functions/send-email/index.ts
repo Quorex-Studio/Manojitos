@@ -1,3 +1,5 @@
+// Marca configurable por secreto de Supabase (supabase secrets set BRAND_NAME=...)
+const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -21,7 +23,7 @@ const resendApiKey = Deno.env.get("RESEND_API_KEY");
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 // Allow override from env, or default to Resend's testing domain for onboarding
-const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "Manojitos <onboarding@resend.dev>";
+const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || `${BRAND_NAME} <onboarding@resend.dev>`;
 
 const rateLimitMap = new Map<string, number[]>();
 const MAX_REQUESTS_PER_MINUTE = 5;
@@ -98,20 +100,20 @@ serve(async (req) => {
 
       switch (email_action_type) {
         case "recovery":
-          subject = "Restablecer tu contraseña - Manojitos";
+          subject = `Restablecer tu contraseña - ${BRAND_NAME}`;
           html = createRecoveryEmail(link);
           break;
         case "magiclink":
-          subject = "Tu enlace de inicio de sesión - Manojitos";
+          subject = `Tu enlace de inicio de sesión - ${BRAND_NAME}`;
           html = createMagicLinkEmail(link);
           break;
         case "email_change":
-          subject = "Confirma tu nuevo correo - Manojitos";
+          subject = `Confirma tu nuevo correo - ${BRAND_NAME}`;
           html = createEmailChangeEmail(link);
           break;
         case "signup":
           // Si el usuario deja "Confirm email" activado, Supabase mandará "signup".
-          subject = "Confirma tu correo y ¡Bienvenido a Manojitos!";
+          subject = `Confirma tu correo y ¡Bienvenido a ${BRAND_NAME}!`;
           html = createWelcomeEmail(link);
           break;
         default:
@@ -152,19 +154,19 @@ serve(async (req) => {
 
       switch (action) {
         case "welcome":
-          subject = "¡Bienvenido a Manojitos!";
+          subject = `¡Bienvenido a ${BRAND_NAME}!`;
           html = createWelcomeEmail();
           break;
         case "checkout":
-          subject = "Recibo de Compra - Manojitos";
+          subject = `Recibo de Compra - ${BRAND_NAME}`;
           html = createCheckoutEmail(data);
           break;
         case "kyc_approved":
-          subject = "Línea de Crédito Aprobada - Manojitos";
+          subject = `Línea de Crédito Aprobada - ${BRAND_NAME}`;
           html = createKycApprovedEmail(data);
           break;
         case "kyc_rejected":
-          subject = "Revisión de Documentos - Manojitos";
+          subject = `Revisión de Documentos - ${BRAND_NAME}`;
           html = createKycRejectedEmail(data);
           break;
         default:

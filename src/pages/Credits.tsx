@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -57,10 +58,10 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 
 // Mensajes de recordatorio predefinidos
 const REMINDER_TEMPLATES = {
-  '3_DAYS_BEFORE': `Estimado/a {cliente}, le recordamos que su próxima cuota vence el {fecha}. El monto pendiente es de ${'{monto}'}. Agradecemos su puntualidad. - Manojitos`,
-  'DUE_DATE': `Estimado/a {cliente}, hoy es la fecha de vencimiento de su pago. El monto pendiente es de ${'{monto}'}. Por favor, realice su pago lo antes posible. - Manojitos`,
-  '1_DAY_AFTER': `Estimado/a {cliente}, su pago venció ayer. El monto pendiente es de ${'{monto}'}. Le invitamos a ponerse al día para evitar inconvenientes. - Manojitos`,
-  '3_DAYS_AFTER': `Estimado/a {cliente}, su pago tiene 3 días de atraso. El monto pendiente es de ${'{monto}'}. Por favor, comuníquese con nosotros para regularizar su situación. Este es un aviso final antes de suspender el crédito. - Manojitos`,
+  '3_DAYS_BEFORE': `Estimado/a {cliente}, le recordamos que su próxima cuota vence el {fecha}. El monto pendiente es de ${'{monto}'}. Agradecemos su puntualidad. - ${BRAND_NAME}`,
+  'DUE_DATE': `Estimado/a {cliente}, hoy es la fecha de vencimiento de su pago. El monto pendiente es de ${'{monto}'}. Por favor, realice su pago lo antes posible. - ${BRAND_NAME}`,
+  '1_DAY_AFTER': `Estimado/a {cliente}, su pago venció ayer. El monto pendiente es de ${'{monto}'}. Le invitamos a ponerse al día para evitar inconvenientes. - ${BRAND_NAME}`,
+  '3_DAYS_AFTER': `Estimado/a {cliente}, su pago tiene 3 días de atraso. El monto pendiente es de ${'{monto}'}. Por favor, comuníquese con nosotros para regularizar su situación. Este es un aviso final antes de suspender el crédito. - ${BRAND_NAME}`,
 };
 
 export default function Credits() {

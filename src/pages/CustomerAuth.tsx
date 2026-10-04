@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -11,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { supabase } from '@/integrations/supabase/client';
-import logoImage from '@/assets/logo.jpeg';
+import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
 
 // Página de autenticación para clientes (separada del admin)
 export default function CustomerAuth() {
@@ -325,7 +326,7 @@ export default function CustomerAuth() {
             {/* Header */}
             <div className="text-center mb-8">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden border border-border/50 shadow-sm bg-white">
-                <img src={logoImage} alt="Manojitos" className="w-full h-full object-cover" />
+                <img src={logoImage} alt={BRAND_NAME} className="w-full h-full object-cover" />
               </div>
               <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground">
                 {isForgotPassword ? 'Recuperar Clave' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}

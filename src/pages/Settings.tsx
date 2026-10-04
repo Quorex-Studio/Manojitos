@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Loader, Settings as SettingsIcon, Refresh, DollarSign, Moon, Sun, Euro, Calculator } from 'reicon-react';
@@ -310,7 +311,7 @@ export default function Settings() {
               </div>
               <div className="flex justify-between p-3 rounded-lg bg-secondary/80">
                 <span className="text-muted-foreground">Nombre</span>
-                <span className="font-medium text-gradient-gold">Manojitos</span>
+                <span className="font-medium text-gradient-gold">{BRAND_NAME}</span>
               </div>
             </CardContent>
           </Card>

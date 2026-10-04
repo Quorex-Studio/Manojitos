@@ -1,5 +1,5 @@
-/* Manojitos Service Worker — Push Notifications */
-const CACHE_NAME = 'manojitos-v1';
+/* Service Worker genérico (el título real llega en cada push desde send-push) — Push Notifications */
+const CACHE_NAME = 'store-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -15,15 +15,15 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (e) {
-    data = { title: 'Manojitos', body: event.data ? event.data.text() : 'Nueva notificación' };
+    data = { title: 'Notificación', body: event.data ? event.data.text() : 'Nueva notificación' };
   }
 
-  const title = data.title || 'Manojitos 🩷';
+  const title = data.title || 'Notificación 🩷';
   const options = {
     body: data.body || data.message || 'Tienes una nueva notificación',
     icon: '/favicon.ico',
     badge: '/favicon.ico',
-    tag: data.tag || 'manojitos-notif',
+    tag: data.tag || 'store-notif',
     renotify: true,
     requireInteraction: false,
     data: {

@@ -1,7 +1,9 @@
+// Marca configurable por secreto de Supabase (supabase secrets set BRAND_NAME=...)
+const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
 export const createWelcomeEmail = (link?: string) => `
 <div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #c4607a 0%, #a04961 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">¡Bienvenido a Manojitos!</h1>
+    <h1 style="color: white; margin: 0; font-size: 28px; font-family: 'Playfair Display', serif;">¡Bienvenido a ${BRAND_NAME}!</h1>
   </div>
   <div style="background: #fff; padding: 40px 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(196, 96, 122, 0.08);">
     <h2 style="color: #c4607a; margin-top: 0; font-family: 'Playfair Display', serif;">Nos alegra tenerte aquí</h2>
@@ -51,7 +53,7 @@ export const createCheckoutEmail = (data: EmailData) => `
     <p style="color: #555; line-height: 1.6; font-size: 16px;">Si tienes alguna pregunta sobre tu pedido, no dudes en contactarnos.</p>
     
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">Manojitos</p>
+      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
     </div>
   </div>
 </div>
@@ -67,12 +69,12 @@ export const createKycApprovedEmail = (data: EmailData) => `
     <p style="color: #555; line-height: 1.6; font-size: 16px;">Tus documentos de identidad han sido verificados con éxito.</p>
     
     <div style="background: #fef0f3; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px dashed #c4607a; text-align: center;">
-      <h3 style="margin-top: 0; color: #c4607a; font-family: 'Playfair Display', serif;">Ya puedes usar "Crédito Manojitos"</h3>
+      <h3 style="margin-top: 0; color: #c4607a; font-family: 'Playfair Display', serif;">Ya puedes usar "Crédito ${BRAND_NAME}"</h3>
       <p style="margin-bottom: 0; color: #555;">Disfruta de comprar ahora y pagar después.</p>
     </div>
     
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">Manojitos</p>
+      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
     </div>
   </div>
 </div>
@@ -93,7 +95,7 @@ export const createKycRejectedEmail = (data: EmailData) => `
     </p>
     
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">Manojitos</p>
+      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
     </div>
   </div>
 </div>
@@ -106,7 +108,7 @@ export const createRecoveryEmail = (link: string) => `
   </div>
   <div style="background: #fff; padding: 40px 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(196, 96, 122, 0.08);">
     <p style="color: #555; line-height: 1.6; font-size: 16px;">
-      Hemos recibido una solicitud para restablecer tu contraseña en <strong>Manojitos</strong>.
+      Hemos recibido una solicitud para restablecer tu contraseña en <strong>${BRAND_NAME}</strong>.
     </p>
     <div style="text-align: center; margin: 35px 0;">
       <a href="${link}" style="background-color: #c4607a; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
@@ -117,7 +119,7 @@ export const createRecoveryEmail = (link: string) => `
       Si no solicitaste este cambio, puedes ignorar este correo de forma segura. El enlace expirará pronto.
     </p>
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">Manojitos</p>
+      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
     </div>
   </div>
 </div>
@@ -130,7 +132,7 @@ export const createMagicLinkEmail = (link: string) => `
   </div>
   <div style="background: #fff; padding: 40px 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(196, 96, 122, 0.08);">
     <p style="color: #555; line-height: 1.6; font-size: 16px;">
-      Haz clic en el botón de abajo para iniciar sesión de forma segura en <strong>Manojitos</strong>. No necesitas contraseña.
+      Haz clic en el botón de abajo para iniciar sesión de forma segura en <strong>${BRAND_NAME}</strong>. No necesitas contraseña.
     </p>
     <div style="text-align: center; margin: 35px 0;">
       <a href="${link}" style="background-color: #c4607a; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
@@ -141,7 +143,7 @@ export const createMagicLinkEmail = (link: string) => `
       Este enlace es de un solo uso y expirará pronto.
     </p>
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">Manojitos</p>
+      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
     </div>
   </div>
 </div>
@@ -154,7 +156,7 @@ export const createEmailChangeEmail = (link: string) => `
   </div>
   <div style="background: #fff; padding: 40px 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; box-shadow: 0 4px 20px rgba(196, 96, 122, 0.08);">
     <p style="color: #555; line-height: 1.6; font-size: 16px;">
-      Se ha solicitado cambiar el correo asociado a tu cuenta en <strong>Manojitos</strong> a esta nueva dirección.
+      Se ha solicitado cambiar el correo asociado a tu cuenta en <strong>${BRAND_NAME}</strong> a esta nueva dirección.
     </p>
     <div style="text-align: center; margin: 35px 0;">
       <a href="${link}" style="background-color: #c4607a; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
@@ -165,7 +167,7 @@ export const createEmailChangeEmail = (link: string) => `
       Si no solicitaste este cambio, ignora este correo. Tu cuenta seguirá segura con tu dirección anterior.
     </p>
     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-      <p style="color: #888; font-size: 13px;">Manojitos</p>
+      <p style="color: #888; font-size: 13px;">${BRAND_NAME}</p>
     </div>
   </div>
 </div>

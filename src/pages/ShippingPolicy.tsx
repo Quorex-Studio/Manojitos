@@ -1,3 +1,4 @@
+import { BRAND, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { motion } from 'framer-motion';
 import { Truck, InfoCircle } from 'reicon-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,22 +7,22 @@ import { StoreLayout } from '@/components/store/StoreLayout';
 export default function ShippingPolicy() {
   const sections = [
     {
-      title: "1.- Plataforma Manojitos Envíos",
-      content: `Manojitos Envíos es un servicio que ofrece a los usuarios la opción de recibir los productos adquiridos a través de su marketplace (compras online) a la dirección de domicilio o a la agencia de la empresa de envíos más cercana a su domicilio. Los envíos a domicilio y los retiros en agencia se realizarán únicamente en aquellas direcciones previstas dentro de las áreas de cobertura establecidas por las empresas de envíos. El área de cobertura y las zonas de entrega de este sistema de envíos puede estar sujeta a cambios sin previo aviso.`
+      title: `1.- Plataforma ${BRAND_NAME} Envíos`,
+      content: `${BRAND_NAME} Envíos es un servicio que ofrece a los usuarios la opción de recibir los productos adquiridos a través de su marketplace (compras online) a la dirección de domicilio o a la agencia de la empresa de envíos más cercana a su domicilio. Los envíos a domicilio y los retiros en agencia se realizarán únicamente en aquellas direcciones previstas dentro de las áreas de cobertura establecidas por las empresas de envíos. El área de cobertura y las zonas de entrega de este sistema de envíos puede estar sujeta a cambios sin previo aviso.`
     },
     {
       title: "2.- Carrito de Compras",
-      content: `Los usuarios podrán hacer uso del servicio Manojitos Envíos para realizar compras a domicilio o con retiros en agencias, para lo cual, deberán indicarlo en su orden de compra online respectiva.
+      content: `Los usuarios podrán hacer uso del servicio ${BRAND_NAME} Envíos para realizar compras a domicilio o con retiros en agencias, para lo cual, deberán indicarlo en su orden de compra online respectiva.
 El carrito de compras permite a los usuarios seleccionar productos. Los productos agregados al carrito no representan una reserva ni garantizan su disponibilidad hasta que se complete el proceso de compra (pago de la inicial en cuotas o pago total de contado).
 Los usuarios pueden revisar, modificar o eliminar los productos antes de proceder al pago. La disponibilidad puede cambiar durante el proceso de compra.
-Los productos no se consideran comprados hasta que se haya completado el pago respectivo y recibido la confirmación de Manojitos.`
+Los productos no se consideran comprados hasta que se haya completado el pago respectivo y recibido la confirmación de ${BRAND_NAME}.`
     },
     {
       title: "3.- Políticas de Envío",
-      content: `Manojitos Envíos busca facilitar el seguimiento y la entrega eficiente de los productos a nivel nacional por intermedio de empresas especializadas.
+      content: `${BRAND_NAME} Envíos busca facilitar el seguimiento y la entrega eficiente de los productos a nivel nacional por intermedio de empresas especializadas.
 Existen limitaciones (tamaño, volumen, peso, áreas de cobertura, productos prohibidos) impuestas por terceros autorizados.
 **Envíos Última Milla:** Para zonas céntricas y locales, el proceso de entrega se realizará mediante un servicio de última milla, siempre y cuando la distancia no sea mayor a 15 Km.
-**Envíos Nacionales:** Los comercios afiliados llevarán la mercancía a un proveedor autorizado para despachar al domicilio o agencia. Manojitos no será responsable por retrasos o problemas en la entrega causados por factores externos o de fuerza mayor.`
+**Envíos Nacionales:** Los comercios afiliados llevarán la mercancía a un proveedor autorizado para despachar al domicilio o agencia. ${BRAND_NAME} no será responsable por retrasos o problemas en la entrega causados por factores externos o de fuerza mayor.`
     },
     {
       title: "4.- Recepción del Envío",
@@ -33,7 +34,7 @@ Las personas que podrán recibir el envío son:
     },
     {
       title: "5.- Costo de Envío",
-      content: `La aplicación indicará los productos que contarán con envío gratuito y aquellos que deberán ser pagados con cobro en destino. Manojitos no interviene ni fija los costos de envío de los productos; estos son determinados por las agencias de envíos.`
+      content: `La aplicación indicará los productos que contarán con envío gratuito y aquellos que deberán ser pagados con cobro en destino. ${BRAND_NAME} no interviene ni fija los costos de envío de los productos; estos son determinados por las agencias de envíos.`
     },
     {
       title: "6.- Procedimiento en Caso de No Entrega y Abandono",
@@ -41,7 +42,7 @@ Las personas que podrán recibir el envío son:
     },
     {
       title: "7.- Reclamos por Pérdida, Extravío o Daños",
-      content: `El usuario podrá reportar inconvenientes a atencion@manojitos.com o al número de soporte en un plazo no mayor a 24 horas tras la recepción del paquete, indicando número de guía, factura, copia de cédula y evidencia fotográfica. Manojitos notificará a la agencia de envíos en un plazo máximo de 24 horas y habrá un plazo de 7 días hábiles para el análisis y resolución.`
+      content: `El usuario podrá reportar inconvenientes a ${BRAND.contactEmail} o al número de soporte en un plazo no mayor a 24 horas tras la recepción del paquete, indicando número de guía, factura, copia de cédula y evidencia fotográfica. ${BRAND_NAME} notificará a la agencia de envíos en un plazo máximo de 24 horas y habrá un plazo de 7 días hábiles para el análisis y resolución.`
     },
     {
       title: "8.- Devoluciones y Reembolsos",
@@ -56,7 +57,7 @@ Las personas que podrán recibir el envío son:
     },
     {
       title: "10.- Responsabilidades Generales",
-      content: `Manojitos proveerá la plataforma segura, pero no es el transportista final. Las empresas de envío son las responsables directas del traslado, seguridad de la carga y puntualidad, acatando las leyes de la República Bolivariana de Venezuela.`
+      content: `${BRAND_NAME} proveerá la plataforma segura, pero no es el transportista final. Las empresas de envío son las responsables directas del traslado, seguridad de la carga y puntualidad, acatando las leyes de la República Bolivariana de Venezuela.`
     }
   ];
 
@@ -77,7 +78,7 @@ Las personas que podrán recibir el envío son:
             Términos y Condiciones
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Conoce los términos y condiciones del uso de Manojitos Envíos.
+            Conoce los términos y condiciones del uso de {BRAND_NAME} Envíos.
           </p>
         </motion.div>
 
@@ -94,10 +95,10 @@ Las personas que podrán recibir el envío son:
                   <InfoCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="mb-2">
-                      Los presentes términos y condiciones de Manojitos constituyen el contrato entre el USUARIO y la plataforma, que rige el uso de la logística y del sistema de envíos (MANOJITOS ENVÍOS) para las compras efectuadas en el Marketplace de la aplicación (compras online).
+                      Los presentes términos y condiciones de {BRAND_NAME} constituyen el contrato entre el USUARIO y la plataforma, que rige el uso de la logística y del sistema de envíos ({BRAND_NAME_UPPER} ENVÍOS) para las compras efectuadas en el Marketplace de la aplicación (compras online).
                     </p>
                     <p>
-                      Manojitos prestará el servicio a través de empresas de envío debidamente autorizadas en la República Bolivariana de Venezuela, por lo que serán éstas las responsables de la adecuada entrega de los productos. En caso de no estar de acuerdo con los presentes términos, por favor no haga uso de Manojitos Envíos.
+                      {BRAND_NAME} prestará el servicio a través de empresas de envío debidamente autorizadas en la República Bolivariana de Venezuela, por lo que serán éstas las responsables de la adecuada entrega de los productos. En caso de no estar de acuerdo con los presentes términos, por favor no haga uso de {BRAND_NAME} Envíos.
                     </p>
                   </div>
                 </div>

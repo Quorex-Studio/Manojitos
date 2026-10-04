@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,7 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
 import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import logoImage from '@/assets/logo.jpeg';
+import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
 import { toast } from 'sonner';
 
 // Header de la tienda — Editorial luxury frosted glass
@@ -116,7 +117,7 @@ export function StoreHeader() {
             >
               <img 
                 src={logoImage} 
-                alt="Manojitos" 
+                alt={BRAND_NAME} 
                 className={`rounded-full object-cover flex-shrink-0 transition-all duration-500 ring-1 ring-gold/20 ${
                   isScrolled ? 'h-7 w-7 md:h-9 md:w-9' : 'h-8 w-8 md:h-11 md:w-11'
                 }`}
@@ -124,7 +125,7 @@ export function StoreHeader() {
               <span className={`font-serif font-bold text-gradient-gold transition-all duration-500 ${
                 isScrolled ? 'text-lg md:text-2xl' : 'text-xl md:text-3xl'
               }`}>
-                Manojitos
+                {BRAND_NAME}
               </span>
             </motion.div>
           </Link>

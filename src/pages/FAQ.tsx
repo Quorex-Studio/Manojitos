@@ -1,3 +1,4 @@
+import { BRAND, BRAND_NAME } from '@/config/brand';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Category, HelpCircle, CreditCard, ShieldCheck, UserCheck, ShoppingBag, ArrowLeft } from 'reicon-react';
@@ -25,22 +26,22 @@ export default function FAQ() {
       questions: [
         {
           q: "Posibles inconvenientes al pagar o reportar un pago por el app",
-          a: `El proceso de pagar y reportar el pago por la app de Manojitos es muy sencillo y la mayoría de inconvenientes que ocurren al pagar se pueden evitar conociendo el proceso.
+          a: `El proceso de pagar y reportar el pago por la app de ${BRAND_NAME} es muy sencillo y la mayoría de inconvenientes que ocurren al pagar se pueden evitar conociendo el proceso.
           
 **Al hacer el pago (Desde tu banco):**
 • **Datos incorrectos de beneficiario (RIF):** Al copiar el RIF desde la app y pegarlo en tu banco, puede pasar que el número se pague incompleto. Revisar que se haya copiado correctamente soluciona esto.
-• **Banco receptor no disponible:** Manojitos trabaja con cuentas específicas, a veces pueden ocurrir incidencias del lado del banco receptor que duran unos minutos.
+• **Banco receptor no disponible:** ${BRAND_NAME} trabaja con cuentas específicas, a veces pueden ocurrir incidencias del lado del banco receptor que duran unos minutos.
 • **Transacción fallida:** Usualmente tiene que ver con tu banco emisor. Recomendamos utilizar otro banco o método de pago. Para casos urgentes, escribe a soporte.
 
-**Al reportar el pago (En Manojitos):**
+**Al reportar el pago (En ${BRAND_NAME}):**
 • **Nro. Referencia:** La incidencia más común es reportar un número diferente al del comprobante de pago. Para pagos del Banco de Venezuela, la referencia suele ser el número de operación.
-• **Pago de tercero:** Otro error común son pagos realizados por terceros. Lo más conveniente es que el titular de Manojitos sea el titular de la cuenta bancaria.
+• **Pago de tercero:** Otro error común son pagos realizados por terceros. Lo más conveniente es que el titular de ${BRAND_NAME} sea el titular de la cuenta bancaria.
 • **Fecha, Banco emisor o Monto:** A veces se coloca la fecha actual en vez de la fecha real del pago.
 • **Pago a banco equivocado o persona natural:** Requiere confirmación manual. Si pagaste a una persona natural por error, tendrás que comunicarte directamente con esa persona.`
         },
         {
           q: "Métodos de Pago",
-          a: "Los métodos de pago con los que cuenta Manojitos son: Pago móvil, transferencia bancaria (Bs), depósito en Bs o USD.\n\nEstos métodos aplican para el pago de todas las cuotas y para el pago inicial de compras hechas online. Para el pago inicial de compras en tienda, puedes pagar con cualquier método que la tienda tenga disponible."
+          a: `Los métodos de pago con los que cuenta ${BRAND_NAME} son: Pago móvil, transferencia bancaria (Bs), depósito en Bs o USD.\n\nEstos métodos aplican para el pago de todas las cuotas y para el pago inicial de compras hechas online. Para el pago inicial de compras en tienda, puedes pagar con cualquier método que la tienda tenga disponible.`
         },
         {
           q: "¿Cómo reportar el comprobante de pago por la app?",
@@ -52,7 +53,7 @@ export default function FAQ() {
         },
         {
           q: "¿Puedo elegir el número de cuotas?",
-          a: "En Manojitos tenemos una modalidad principal que consiste en una inicial y posteriormente un plan de cuotas (generalmente 2 cuotas quincenales, o según lo defina el comercio). No es posible elegir el número de cuotas a discreción, ya que dependen del plan asociado al producto."
+          a: `En ${BRAND_NAME} tenemos una modalidad principal que consiste en una inicial y posteriormente un plan de cuotas (generalmente 2 cuotas quincenales, o según lo defina el comercio). No es posible elegir el número de cuotas a discreción, ya que dependen del plan asociado al producto.`
         },
         {
           q: "¿Cuándo vence mi próxima cuota?",
@@ -70,8 +71,8 @@ export default function FAQ() {
       icon: <UserCheck className="h-8 w-8 text-primary" />,
       questions: [
         {
-          q: "¿Qué es Manojitos y cómo funciona?",
-          a: "Manojitos es una plataforma que te permite comprar productos a cuotas sin intereses ocultos, pagando una inicial y financiando el resto del monto. Solo necesitas registrarte, verificar tu identidad y obtener tu línea de compra."
+          q: `¿Qué es ${BRAND_NAME} y cómo funciona?`,
+          a: `${BRAND_NAME} es una plataforma que te permite comprar productos a cuotas sin intereses ocultos, pagando una inicial y financiando el resto del monto. Solo necesitas registrarte, verificar tu identidad y obtener tu línea de compra.`
         },
         {
           q: "Creación de cuenta y verificación de identidad",
@@ -105,7 +106,7 @@ export default function FAQ() {
       questions: [
         {
           q: "Protección de Datos y Ciberseguridad",
-          a: "En Manojitos protegemos tu información bajo estrictos estándares de ciberseguridad. Nunca compartiremos tus datos financieros con terceros sin tu consentimiento. Te recomendamos no compartir tus credenciales de acceso con nadie."
+          a: `En ${BRAND_NAME} protegemos tu información bajo estrictos estándares de ciberseguridad. Nunca compartiremos tus datos financieros con terceros sin tu consentimiento. Te recomendamos no compartir tus credenciales de acceso con nadie.`
         }
       ]
     }
@@ -238,7 +239,7 @@ export default function FAQ() {
         {/* Footer de Soporte */}
         <div className="mt-16 text-center p-8 bg-primary/5 rounded-3xl border border-primary/20">
           <p className="text-muted-foreground mb-4 font-medium">¿Aún tienes dudas o necesitas ayuda personalizada?</p>
-          <a href="mailto:soporte@manojitos.com" className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5 h-12 px-8 py-2">
+          <a href={`mailto:${BRAND.supportEmail}`} className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5 h-12 px-8 py-2">
             Contactar a Soporte
           </a>
         </div>

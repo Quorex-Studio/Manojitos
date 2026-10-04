@@ -37,21 +37,32 @@ serve(async (req) => {
     // ================== AUTHENTICATION BOUNDARY (A-04) ==================
     // This function performs privileged (service_role) work and must only run
     // when invoked by the trusted scheduler. Require a shared secret provided in
-    // the 'x-cron-secret' header, compared server-side against the CRON_SECRET
-    // environment secret. Reject before any business logic or the service-role
-    // client is created. Origin/Referer/User-Agent/body/query are never trusted.
-    const cronSecret = Deno.env.get('CRON_SECRET');
+    // the 'x-cron-secret' header. It is compared against the CRON_SECRET env
+    // secret when set; otherwise against the 'cron_secret' stored in Vault
+    // (verified server-side by verify_cron_secret, service_role only), which is
+    // the same value pg_cron sends. Origin/Referer/User-Agent/body are never trusted.
     const providedSecret = req.headers.get('x-cron-secret') ?? '';
-    if (!cronSecret || !timingSafeEqual(providedSecret, cronSecret)) {
+    const cronSecret = Deno.env.get('CRON_SECRET');
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    let authorized = false;
+    if (providedSecret) {
+      if (cronSecret) {
+        authorized = timingSafeEqual(providedSecret, cronSecret);
+      } else {
+        const { data } = await supabase.rpc('verify_cron_secret', { p_secret: providedSecret });
+        authorized = data === true;
+      }
+    }
+    if (!authorized) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     console.log('🔔 Angela Cron Alerts started...');
 
@@ -250,9 +261,12 @@ serve(async (req) => {
     }
 
     // ================== INSERTAR ALERTAS ==================
-    const { data: adminUsers } = await supabase
-      .from('profiles')
-      .select('user_id');
+    // Las alertas contienen datos sensibles (deudas, clientes): solo van al admin real,
+    // nunca a un perfil cualquiera.
+    const { data: usersPage } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+    const adminUsers = (usersPage?.users ?? [])
+      .filter((u) => u.app_metadata?.is_super_admin === true)
+      .map((u) => ({ user_id: u.id }));
 
     let insertedCount = 0;
 

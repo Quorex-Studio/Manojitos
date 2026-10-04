@@ -1,5 +1,7 @@
+// Marca configurable: BRAND_NAME=... node update_templates.js
+const BRAND_NAME = process.env.BRAND_NAME || "Manojitos";
 /**
- * Supabase Email Templates Configuration Script for Manojitos
+ * Supabase Email Templates Configuration Script for la tienda
  * 
  * Instructions:
  * 1. Get your Supabase Access Token from: https://supabase.com/dashboard/account/tokens
@@ -12,16 +14,17 @@
  *    node supabase/emails/update_templates.js
  */
 
-const PROJECT_REF = "utfoempgdbhhikpvbvir";
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+if (!PROJECT_REF) throw new Error("Define SUPABASE_PROJECT_REF (ref del proyecto de Supabase)");
 
-// Base HTML layout for Manojitos brand
+// Base HTML layout for la tienda brand
 const createTemplate = (title, body) => `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manojitos - ${title}</title>
+  <title>${BRAND_NAME} - ${title}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Quicksand:wght@300;400;500;600;700&display=swap');
     body {
@@ -119,7 +122,7 @@ const createTemplate = (title, body) => `
   <div class="wrapper">
     <div class="container">
       <div class="header">
-        <h1>Manojitos</h1>
+        <h1>${BRAND_NAME}</h1>
       </div>
       <div class="content">
         ${body}
@@ -136,11 +139,11 @@ const createTemplate = (title, body) => `
 
 const templates = {
   // Confirm Signup
-  mailer_subjects_confirmation: "Bienvenido a Manojitos - Confirma tu correo",
+  mailer_subjects_confirmation: `Bienvenido a ${BRAND_NAME} - Confirma tu correo`,
   mailer_templates_confirmation_content: createTemplate(
     "Confirma tu correo",
     `<h2>¡Hola! Nos alegra tenerte aquí</h2>
-    <p>Estás a un solo paso de unirte a la familia Manojitos. Por favor, confirma tu dirección de correo electrónico haciendo clic en el siguiente botón:</p>
+    <p>Estás a un solo paso de unirte a la familia ${BRAND_NAME}. Por favor, confirma tu dirección de correo electrónico haciendo clic en el siguiente botón:</p>
     <a href="{{ .ConfirmationURL }}" class="button">Confirmar mi correo</a>
     <p>O si prefieres, usa este código de verificación:</p>
     <div class="token-box">{{ .Token }}</div>
@@ -148,7 +151,7 @@ const templates = {
   ),
 
   // Magic Link / Sign-in
-  mailer_subjects_magic_link: "Tu enlace de acceso a Manojitos",
+  mailer_subjects_magic_link: `Tu enlace de acceso a ${BRAND_NAME}`,
   mailer_templates_magic_link_content: createTemplate(
     "Acceso a tu cuenta",
     `<h2>Enlace de Acceso Seguro</h2>
@@ -160,7 +163,7 @@ const templates = {
   ),
 
   // Reset Password
-  mailer_subjects_recovery: "Restablece tu contraseña de Manojitos",
+  mailer_subjects_recovery: `Restablece tu contraseña de ${BRAND_NAME}`,
   mailer_templates_recovery_content: createTemplate(
     "Restablecer Contraseña",
     `<h2>Recuperación de cuenta</h2>
@@ -172,17 +175,17 @@ const templates = {
   ),
 
   // Invite User
-  mailer_subjects_invite: "¡Te han invitado a Manojitos!",
+  mailer_subjects_invite: `¡Te han invitado a ${BRAND_NAME}!`,
   mailer_templates_invite_content: createTemplate(
     "Invitación Especial",
     `<h2>¡Tienes una invitación!</h2>
-    <p>Has sido invitado a formar parte de Manojitos. Haz clic en el botón de abajo para aceptar la invitación y configurar tu cuenta:</p>
+    <p>Has sido invitado a formar parte de ${BRAND_NAME}. Haz clic en el botón de abajo para aceptar la invitación y configurar tu cuenta:</p>
     <a href="{{ .ConfirmationURL }}" class="button">Aceptar Invitación</a>
     <p class="ignore-text">Si no esperabas esta invitación, puedes ignorarla sin problemas.</p>`
   ),
 
   // Change Email
-  mailer_subjects_email_change: "Confirma tu nuevo correo electrónico - Manojitos",
+  mailer_subjects_email_change: `Confirma tu nuevo correo electrónico - ${BRAND_NAME}`,
   mailer_templates_email_change_content: createTemplate(
     "Cambio de Correo",
     `<h2>Verificación de nuevo correo</h2>

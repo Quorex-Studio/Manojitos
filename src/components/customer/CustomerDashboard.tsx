@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import React, { useState, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -139,7 +140,7 @@ export function CustomerDashboard() {
               : 'Bienvenido'}
           </h2>
           <p className="text-sm text-muted-foreground/75 dark:text-muted-foreground/40 max-w-[250px] tracking-wide mt-1">
-            Gestiona tu cuenta y revisa tus compras en Manojitos.
+            Gestiona tu cuenta y revisa tus compras en {BRAND_NAME}.
           </p>
         </div>
         <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
@@ -260,9 +261,9 @@ export function CustomerDashboard() {
             <div className="border border-primary/20 rounded-xl p-4 bg-primary/5 relative">
               <Badge className="absolute -top-3 -right-2 bg-primary/20 text-primary hover:bg-primary/30 border-none shadow-none">Predeterminada</Badge>
               <h3 className="font-medium text-base mb-1">{profile?.full_name || 'Tu Nombre'}</h3>
-              <p className="text-sm text-muted-foreground mb-1">Edo nueva esparta, municipio gomez, la vecindad</p>
-              <p className="text-sm text-muted-foreground mb-3">La Vecindad, Nueva Esparta, 6314, Venezuela</p>
-              <p className="text-sm text-muted-foreground mb-4">Número de teléfono: {profile?.phone || '04123574858'}</p>
+              <p className="text-sm text-muted-foreground mb-1">{profile?.address || 'Aún no has guardado una dirección'}</p>
+              <p className="text-sm text-muted-foreground mb-3">{[profile?.city, profile?.state].filter(Boolean).join(', ') || '—'}</p>
+              <p className="text-sm text-muted-foreground mb-4">Número de teléfono: {profile?.phone || '—'}</p>
               <div className="flex gap-4 border-t border-primary/10 pt-3">
                 <button className="text-sm text-primary font-medium hover:underline focus:outline-none">Editar</button>
                 <button className="text-sm text-muted-foreground hover:text-destructive focus:outline-none transition-colors">Eliminar</button>

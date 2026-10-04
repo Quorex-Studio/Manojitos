@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '@/config/brand';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,7 +10,7 @@ import { Loader, Refresh, Mailbox, Lock, User, Phone, ArrowRight, Sparkles, Loca
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import logoImage from '@/assets/logo.jpeg';
+import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
 
 export default function Auth() {
   // --- STATE ---
@@ -203,10 +204,10 @@ export default function Auth() {
               transition={{ type: "spring", damping: 15 }}
               className="inline-block mb-4 overflow-hidden rounded-2xl shadow-xl shadow-black/10 bg-transparent"
             >
-              <img src={logoImage} alt="Manojitos Logo" className="w-auto h-28 md:h-36 object-contain" />
+              <img src={logoImage} alt={`${BRAND_NAME} Logo`} className="w-auto h-28 md:h-36 object-contain" />
             </motion.div>
             <h1 className="font-serif text-5xl font-bold text-gradient-gold tracking-tight mb-2">
-              Manojitos
+              {BRAND_NAME}
             </h1>
             <AnimatePresence mode="wait">
               <motion.p

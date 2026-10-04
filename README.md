@@ -1,4 +1,4 @@
-# 🌸 Manojitos — Plataforma E-commerce + ERP/CRM con IA
+# 🌸 EINA — Plataforma E-commerce + ERP/CRM con IA
 
 <div align="center">
 
@@ -14,9 +14,23 @@
 
 -----
 
+## 🧩 Usar como plantilla (otra tienda)
+
+Esta plataforma es una **plantilla**: la marca, el dominio, los correos, la asistente IA, el SEO, el manifest y la analítica salen del `.env`.
+
+```bash
+npm install
+npm run nueva-tienda   # asistente que genera el .env
+npm run dev
+```
+
+Guía completa (logos, Supabase, Vercel y checklist de entrega): **[PLANTILLA.md](PLANTILLA.md)**.
+
+-----
+
 ## 🚀 ¿Qué es esto?
 
-Manojitos es una **Single Page Application (SPA) completa** que fusiona tres sistemas en uno:
+EINA es una **Single Page Application (SPA) completa** que fusiona tres sistemas en uno:
 
 - 🛒 **E-commerce B2C** — Tienda online con experiencia de compra premium
 - 👤 **Portal de Clientes** — Panel personal con historial, crédito y métodos de pago

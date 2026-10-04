@@ -30,3 +30,6 @@ temp_interactive_push.bat
 scratch/
 supabase/.temp/
 vite.config.ts.timestamp-*
+
+# Variables de cada tienda (usa .env.example como base)
+.env

@@ -1,3 +1,4 @@
+import { BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle } from 'reicon-react';
@@ -662,7 +663,7 @@ export default function Sales() {
       finalNotes = `[EN 2 PARTES - 50% contado, 50% al ${formatCutoffDate(cuota1Date)}] ${finalNotes || ''}`.trim();
     } else if (saleModality === 'financiamiento') {
       const [c1, c2] = getNextTwoCutoffDates();
-      finalNotes = `[FINANCIAMIENTO MANOJITOS +${creditSurcharge}% - Inicial 33%, Cuota 1: ${formatCutoffDate(c1)}, Cuota 2: ${formatCutoffDate(c2)}] ${finalNotes || ''}`.trim();
+      finalNotes = `[FINANCIAMIENTO ${BRAND_NAME_UPPER} +${creditSurcharge}% - Inicial 33%, Cuota 1: ${formatCutoffDate(c1)}, Cuota 2: ${formatCutoffDate(c2)}] ${finalNotes || ''}`.trim();
     } else if (saleModality === 'fiado') {
       const [dueDate] = getNextTwoCutoffDates();
       finalNotes = `[FIADO QUINCENA - 100% al ${formatCutoffDate(dueDate)}] ${finalNotes || ''}`.trim();
@@ -1150,7 +1151,7 @@ export default function Sales() {
           title: newStatus === 'shipped' ? 'Tu pedido fue enviado' : 'Tu pedido fue entregado',
           message: newStatus === 'shipped'
             ? 'Tu pedido está en camino. Te avisaremos cuando llegue.'
-            : '¡Tu pedido ha sido entregado! Gracias por tu compra en Manojitos.',
+            : `¡Tu pedido ha sido entregado! Gracias por tu compra en ${BRAND_NAME}.`,
           type: 'success',
           channel: 'internal',
           is_read: false,
@@ -1616,7 +1617,7 @@ export default function Sales() {
                         const [c1, c2] = getNextTwoCutoffDates();
                         return (
                           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm space-y-1">
-                            <p className="font-semibold text-amber-600 dark:text-amber-400">Resumen: Financiamiento Manojitos (+{surcharge}%)</p>
+                            <p className="font-semibold text-amber-600 dark:text-amber-400">Resumen: Financiamiento {BRAND_NAME} (+{surcharge}%)</p>
                             <p>Precio total con recargo: <strong>${totalWithSurcharge.toFixed(2)}</strong></p>
                             <p>Inicial hoy (33%): <strong>${initial.toFixed(2)}</strong></p>
                             <p>Cuota 1 ({formatCutoffDate(c1)}): <strong>${installment.toFixed(2)}</strong></p>
