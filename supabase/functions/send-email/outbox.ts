@@ -5,7 +5,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1
 import type { Resend } from "https://esm.sh/resend@2.0.0";
 import { createNewOrderAdminEmail, createNotificationEmail, createSaleReceiptEmail, type ReceiptEmailData } from "./templates.ts";
 
-const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "EINA";
+const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
 
 interface OutboxRow {
   id: string;
