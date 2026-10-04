@@ -19,8 +19,8 @@ export default {
         '13': '3.25rem',
       },
       fontFamily: {
-        sans: ['"Source Sans 3"', '"Source Sans Pro"', 'system-ui', 'sans-serif'],
-        serif: ['Constantia', '"Crimson Pro"', 'Georgia', 'serif'],
+        sans: ['Quicksand', 'sans-serif'],
+        serif: ['Playfair Display', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -161,7 +161,7 @@ export default {
       boxShadow: {
         glass: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
         "glass-hover": "0 12px 40px 0 rgba(31, 38, 135, 0.12)",
-        gold: "0 4px 16px -4px rgba(120, 41, 60, 0.25)",
+        gold: "0 4px 20px 0 rgba(201, 149, 42, 0.3)",
         rose: "0 4px 20px 0 rgba(196, 96, 122, 0.3)",
         "glow-rosa": "0 0 30px rgba(196, 96, 122, 0.3), 0 0 60px rgba(196, 96, 122, 0.1)",
         "glow-gold": "0 0 30px rgba(201, 149, 42, 0.3), 0 0 60px rgba(201, 149, 42, 0.1)",

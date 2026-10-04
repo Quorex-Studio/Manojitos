@@ -24,10 +24,10 @@ export const BRAND = {
   hours: env.VITE_BRAND_HOURS || 'Lunes a Viernes: 8:00 AM - 6:00 PM · Sábados: 9:00 AM - 1:00 PM',
   /** Ubicación mostrada en el footer */
   /** Color principal de marca (hex): recibos, PDF y barra del navegador */
-  color: env.VITE_BRAND_THEME_COLOR || '#78293c',
-  /** Rubro corto para recibos y encabezados, p. ej. "Maquillaje & Belleza" */
-  category: env.VITE_BRAND_CATEGORY || 'Maquillaje & Belleza',
-  location: env.VITE_BRAND_LOCATION || 'Isla de Margarita, Venezuela',
+  color: env.VITE_BRAND_THEME_COLOR || '#d69729',
+  /** Rubro corto para recibos y encabezados, p. ej. "Boutique · Ropa y accesorios" */
+  category: env.VITE_BRAND_CATEGORY || 'Boutique · Ropa, accesorios y lencería',
+  location: env.VITE_BRAND_LOCATION || 'Venezuela',
   /** Nombre de la asistente virtual (chat con IA) */
   assistantName: env.VITE_ASSISTANT_NAME || 'Ángela',
   /** Prefijo para claves de localStorage (evita mezclar datos entre tiendas) */

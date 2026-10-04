@@ -1,14 +1,24 @@
-// Imágenes de marca. Para otra tienda, reemplaza los archivos de src/assets/brand/
-// (mismos nombres) o cambia aquí las rutas. El resto de la app los toma de este módulo.
-// Variantes: *-wine para fondos claros, *-cream para fondos oscuros (guía de marca EINA).
-export { default as BRAND_LOGO_LIGHT } from '@/assets/brand/logo-wine.png';
-export { default as BRAND_LOGO_DARK } from '@/assets/brand/logo-cream.png';
-export { default as BRAND_LOGO_SHOP_LIGHT } from '@/assets/brand/logo-shop-wine.png';
-export { default as BRAND_LOGO_SHOP_DARK } from '@/assets/brand/logo-shop-cream.png';
-export { default as BRAND_ISOTIPO_LIGHT } from '@/assets/brand/isotipo-wine.png';
-export { default as BRAND_ISOTIPO_DARK } from '@/assets/brand/isotipo-cream.png';
-export { default as BRAND_STAR } from '@/assets/brand/star-nude.png';
-export { default as BRAND_STAR_WINE } from '@/assets/brand/star-wine.png';
-// Compatibilidad: logo por defecto y avatar de la asistente
-export { default as BRAND_LOGO } from '@/assets/brand/logo-wine.png';
-export { default as BRAND_MASCOT } from '@/assets/brand/isotipo-cream.png';
+// Imágenes de marca. Para otra tienda, reemplaza estos archivos (misma ruta y nombre)
+// o cambia aquí la ruta del import. El resto de la app los toma de este módulo.
+import logo from '@/assets/logo.jpeg';
+import mascot from '@/assets/stitch-rosa-mascot.png';
+
+/**
+ * false = el logo es un símbolo (redondo) y el nombre se escribe al lado en texto (Manojitos).
+ * true  = los PNG ya traen el nombre dibujado (logotipo completo), como en EINA.
+ */
+export const BRAND_LOGO_IS_WORDMARK = false;
+
+// Variantes por tema: Manojitos usa el mismo logo en claro y en oscuro.
+export const BRAND_LOGO_LIGHT = logo;
+export const BRAND_LOGO_DARK = logo;
+export const BRAND_LOGO_SHOP_LIGHT = logo;
+export const BRAND_LOGO_SHOP_DARK = logo;
+export const BRAND_ISOTIPO_LIGHT = logo;
+export const BRAND_ISOTIPO_DARK = logo;
+/** Motivo gráfico de la marca (decoración). Manojitos no tiene: null = no se dibuja. */
+export const BRAND_STAR: string | null = null;
+export const BRAND_STAR_WINE: string | null = null;
+// Logo por defecto y avatar de la asistente (Ángela, mascota rosa)
+export const BRAND_LOGO = logo;
+export const BRAND_MASCOT = mascot;

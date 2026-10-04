@@ -1,9 +1,14 @@
 /**
- * AngelaMascot — Avatar animado de la asistente virtual.
+ * AngelaMascot — Representación visual animada de Ángela (mascota rosa de la tienda).
  *
- * Usa el isotipo oficial de la marca (crema) sobre un círculo del color principal
- * (vino), igual que el perfil de Instagram de EINA. La guía de marca prohíbe recolorear
- * el logo o aplicarle degradados, así que solo se anima la posición/escala.
+ * Reutiliza el asset existente del repositorio (src/assets/stitch-rosa-mascot.png)
+ * — una criatura rosa de orejas y ojos grandes — y le da un acabado tipo 3D con
+ * un "pod" de luz suave, sombra de contacto y animaciones fluidas con
+ * framer-motion (ya presente en el proyecto; sin dependencias nuevas ni motor 3D).
+ *
+ * El sprite es un JPEG con fondo blanco: se integra con `mix-blend-mode: multiply`
+ * sobre el fondo claro del pod, de modo que el blanco desaparece y solo se ve la
+ * criatura, sin necesidad de procesar la imagen.
  *
  * Puramente presentacional: no conoce el backend ni ninguna secret.
  */
@@ -23,15 +28,19 @@ interface AngelaMascotProps {
   className?: string;
 }
 
-// Movimiento del isotipo por estado: flotación suave en reposo, pulso al pensar
-// y un pequeño salto de alegría.
+// Movimiento continuo del sprite por estado. El "squash" de scaleY en idle es un
+// guiño de vida sutil (la imagen es un raster con ojos fijos, así que animamos el
+// sprite completo en lugar de párpados individuales).
 const spriteVariants: Variants = {
   idle: {
-    y: [0, -2, 0],
-    transition: { duration: 4, ease: "easeInOut", repeat: Infinity },
+    y: [0, -5, 0],
+    rotate: [0, -2.5, 0, 2.5, 0],
+    scaleY: [1, 1, 0.95, 1, 1],
+    transition: { duration: 4.5, ease: "easeInOut", repeat: Infinity },
   },
   thinking: {
-    scale: [1, 0.92, 1],
+    y: [0, -3, 0],
+    rotate: [0, -1.5, 1.5, 0],
     transition: { duration: 0.9, ease: "easeInOut", repeat: Infinity },
   },
   happy: {
@@ -60,13 +69,20 @@ export default function AngelaMascot({
       animate={{ scale: 1, opacity: 1 }}
       transition={{ type: "spring", stiffness: 260, damping: 20 }}
     >
-      {/* Círculo de marca (vino) */}
+      {/* Pod de luz suave: fondo claro que da el acabado 3D y hace de lienzo para
+          el blend multiply. Rosa muy tenue -> blanco en el centro. */}
       <span
         aria-hidden
-        className="absolute inset-0 rounded-full bg-primary shadow-[0_6px_16px_-6px_hsl(var(--primary)/0.6)] ring-2 ring-background"
+        className="absolute inset-0 rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 38%, #ffffff 0%, #fff1f5 58%, #ffe1ea 100%)",
+          boxShadow:
+            "inset 0 2px 6px rgba(255,255,255,0.9), 0 6px 16px -4px rgba(196,96,122,0.45)",
+        }}
       />
 
-      {/* Isotipo de la marca */}
+      {/* Sprite de Ángela */}
       <motion.img
         src={mascotUrl}
         alt={BRAND.assistantName}
@@ -74,7 +90,13 @@ export default function AngelaMascot({
         width={size}
         height={size}
         className="relative select-none"
-        style={{ width: "46%", height: "58%", objectFit: "contain" }}
+        style={{
+          width: "88%",
+          height: "88%",
+          objectFit: "contain",
+          mixBlendMode: "multiply",
+          filter: "drop-shadow(0 3px 4px rgba(120,40,70,0.28))",
+        }}
         variants={reduce ? undefined : spriteVariants}
         animate={reduce ? undefined : state}
       />

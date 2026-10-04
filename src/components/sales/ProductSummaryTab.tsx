@@ -62,10 +62,11 @@ export function ProductSummaryTab({ onViewDebtorAccount }: ProductSummaryTabProp
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="Maquillaje">Maquillaje</SelectItem>
-              <SelectItem value="Skincare">Skincare</SelectItem>
-              <SelectItem value="Accesorios">Accesorios</SelectItem>
-              <SelectItem value="Bolsos">Bolsos</SelectItem>
+              <SelectItem value="Ropa">Ropa</SelectItem>
+              <SelectItem value="Calzado">Calzado</SelectItem>
+              <SelectItem value="Perfumeria">Perfumería</SelectItem>
+              <SelectItem value="Electrónica">Electrónica</SelectItem>
+              <SelectItem value="Hogar">Hogar</SelectItem>
               <SelectItem value="Otros">Otros</SelectItem>
             </SelectContent>
           </Select>

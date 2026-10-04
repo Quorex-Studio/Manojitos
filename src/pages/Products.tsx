@@ -744,7 +744,7 @@ export default function Products() {
                     list="categories-list"
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50) })}
-                    placeholder="Ej: Maquillaje, Skincare..."
+                    placeholder="Ej: Accesorios, Ropa..."
                     className="input-glass rounded-xl"
                   />
                   <datalist id="categories-list">
