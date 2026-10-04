@@ -11,6 +11,7 @@ const CONTACT_LINE = BRAND_WHATSAPP
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { ACTION_TOOL_DECLARATIONS, ADMIN_EXECUTABLE, executeConfirmedAction, isActionTool, prepareAction, type Proposal } from './actions.ts';
+import { CART_EXAMPLE, CATEGORY_EXAMPLES, EXTRA_PERCENTAGE, RECOMMENDATION_EXAMPLE, STORE_PROFILE } from './store-profile.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -187,7 +188,8 @@ function extractProductsFromResponse(response: string): string[] {
 interface BusinessContext {
   bcvRate: number;
   extraPercentage: number;
-  topProducts: { name: string; price_usd: number; stock: number; category: string; sold_count: number }[];
+  topProducts: { name: string; price_usd: number; stock: number; category: string; sold_count: number; sizes?: string[] | null; presentation?: string | null }[];
+  paymentLabels: string[];
   categories: string[];
   lowStockProducts: { name: string; stock: number }[];
   bestSellers: { name: string; sold_count: number }[];
@@ -227,13 +229,21 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
   // Obtener productos top (disponibles)
   const { data: products } = await supabase
     .from('products')
-    .select('name, price_usd, stock, category, sold_count')
+    .select('name, price_usd, stock, category, sold_count, sizes, presentation')
     .gt('stock', 0)
     .order('sold_count', { ascending: false })
-    .limit(15);
+    .limit(30);
 
   // Categorías únicas
-  const categories = [...new Set((products || []).map((p: any) => p.category).filter(Boolean))] as string[];
+  // Categorías configuradas en el panel (si la tabla no existe, las de los productos)
+  const { data: catRows } = await supabase.from('product_categories').select('name').order('sort_order');
+  const categories = (catRows?.length
+    ? catRows.map((c: any) => c.name)
+    : [...new Set((products || []).map((p: any) => p.category).filter(Boolean))]) as string[];
+
+  // Métodos de pago activos (Configuración → Pagos)
+  const { data: payRows } = await supabase.from('payment_methods').select('label, method_key, enabled').eq('enabled', true);
+  const paymentLabels = ((payRows || []) as any[]).filter((m) => m.method_key !== 'credito').map((m) => m.label).filter(Boolean) as string[];
 
   // Productos con stock bajo
   const { data: lowStock } = await supabase
@@ -384,7 +394,8 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
 
   return {
     bcvRate,
-    extraPercentage: 10.7, // Configurable en futuro
+    extraPercentage: EXTRA_PERCENTAGE,
+    paymentLabels,
     topProducts: products || [],
     categories,
     lowStockProducts: lowStock || [],
@@ -828,8 +839,16 @@ function pushCxcAttachment(ctx: { attachments: Attachment[] }, summary: { balanc
 // Declaraciones en el formato real de Gemini v1beta (functionDeclarations).
 // Los tipos van en mayúsculas (subconjunto OpenAPI) como exige la API.
 const READONLY_TOOL_DECLARATIONS = [
-  { name: 'buscar_producto', description: 'Busca productos del catálogo por nombre y/o categoría. Devuelve nombre, precio USD, stock y categoría.',
-    parameters: { type: 'OBJECT', properties: { query: { type: 'STRING', description: 'texto a buscar en el nombre' }, category: { type: 'STRING', description: 'categoría (opcional)' } } } },
+  { name: 'buscar_producto', description: 'Busca productos del catálogo por nombre, categoría o descripción. Devuelve nombre, precio USD y Bs, stock, tallas/opciones con su stock y enlace.',
+    parameters: { type: 'OBJECT', properties: { query: { type: 'STRING', description: 'texto a buscar (nombre, tipo de prenda o producto, color…)' }, category: { type: 'STRING', description: 'categoría (opcional)' } } } },
+  { name: 'detalle_producto', description: 'Ficha completa de un producto: descripción, precio USD y Bs, stock total y de cada talla/tono/presentación, categoría y enlace. Úsala cuando pregunten por un producto concreto.',
+    parameters: { type: 'OBJECT', properties: { product: { type: 'STRING' } }, required: ['product'] } },
+  { name: 'recomendar_productos', description: 'Productos DISPONIBLES para recomendar según categoría, ocasión o estilo, presupuesto máximo en USD y talla. Ordenados por los más vendidos. Úsala cuando pidan recomendaciones, ideas, regalos o "qué me queda/qué me sirve".',
+    parameters: { type: 'OBJECT', properties: { categoria: { type: 'STRING' }, ocasion: { type: 'STRING', description: 'ocasión, estilo o uso: playa, fiesta, trabajo, regalo, piel grasa…' }, presupuesto_max: { type: 'NUMBER' }, talla: { type: 'STRING' } } } },
+  { name: 'analisis_ventas', description: 'SOLO ADMIN. Análisis de ventas de un período: total, tickets, ticket promedio, unidades, contado vs. fiado, cobrado, comparación con el período anterior, por método de pago, productos y clientas top y mejor día. Por defecto los últimos 30 días.',
+    parameters: { type: 'OBJECT', properties: { dias: { type: 'NUMBER', description: 'últimos N días (por defecto 30)' }, desde: { type: 'STRING', description: 'YYYY-MM-DD (opcional)' }, hasta: { type: 'STRING', description: 'YYYY-MM-DD (opcional)' } } } },
+  { name: 'resumen_negocio', description: 'SOLO ADMIN. Panorama del negocio hoy: ventas de hoy, 7 días y del mes, por cobrar y quién debe más, agotados y stock bajo, pedidos online por aprobar y productos que piden las clientas. Úsala para "cómo vamos", "resumen", "qué hago hoy" o consejos del negocio.',
+    parameters: { type: 'OBJECT', properties: {} } },
   { name: 'consultar_precio', description: 'Precio de un producto en USD y su equivalente en Bs a la tasa BCV actual.',
     parameters: { type: 'OBJECT', properties: { product: { type: 'STRING' } }, required: ['product'] } },
   { name: 'consultar_stock', description: 'Existencias (stock) de un producto, o el listado de productos con bajo stock si low_stock_only=true.',
@@ -854,7 +873,101 @@ const READONLY_TOOL_DECLARATIONS = [
     parameters: { type: 'OBJECT', properties: { client_name: { type: 'STRING' } } } },
 ];
 
-const ADMIN_ONLY_TOOLS = new Set(['listar_cxc', 'generar_reporte_cxc', 'resumen_ventas', 'deudores_por_producto']);
+const ADMIN_ONLY_TOOLS = new Set(['listar_cxc', 'generar_reporte_cxc', 'resumen_ventas', 'deudores_por_producto', 'analisis_ventas', 'resumen_negocio']);
+
+// ---- Datos de producto y ventas para las herramientas ----
+const PRODUCT_COLS = 'id, name, description, price_usd, stock, category, presentation, sizes, sold_count, product_variants(label, stock, price_usd, sort_order)';
+const round2 = (n: number) => Math.round(n * 100) / 100;
+const cleanTerm = (v: unknown) => String(v ?? '').replace(/[%,()*]/g, ' ').replace(/\s+/g, ' ').trim();
+const normText = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+/** Producto listo para que el modelo lo cuente: precios en USD y Bs, opciones con su stock y enlace. */
+function productInfo(p: any, rate: number, full = false) {
+  const variants = [...(p.product_variants || [])].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const price = Number(p.price_usd);
+  const opciones = variants.length
+    ? variants.map((v: any) => ({ opcion: v.label, stock: v.stock, ...(v.price_usd != null ? { price_usd: Number(v.price_usd) } : {}) }))
+    : Array.isArray(p.sizes) && p.sizes.length ? p.sizes.map((x: string) => ({ opcion: x })) : undefined;
+  return {
+    name: p.name,
+    category: p.category ?? null,
+    price_usd: price,
+    price_bs: rate ? round2(price * rate) : null,
+    stock: p.stock,
+    disponible: Number(p.stock) > 0,
+    ...(p.presentation ? { presentacion: p.presentation } : {}),
+    ...(opciones ? { opciones } : {}),
+    ...(full && p.description ? { descripcion: String(p.description).slice(0, 500) } : {}),
+    ...(p.sold_count ? { vendidos: p.sold_count } : {}),
+    ...(p.id ? { url: `/producto/${p.id}` } : {}),
+  };
+}
+
+/** Fecha (YYYY-MM-DD) en Venezuela (UTC-4) de un instante. */
+const veDate = (d: Date | string) => new Date(new Date(d).getTime() - 4 * 3600 * 1000).toISOString().slice(0, 10);
+const veStart = (day: string) => `${day}T04:00:00.000Z`;
+const addDays = (day: string, n: number) => { const d = new Date(`${day}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+
+const METHOD_NAMES: Record<string, string> = {
+  pago_movil: 'Pago Móvil', transferencia: 'Transferencia', zelle: 'Zelle', binance: 'Binance', zinli: 'Zinli',
+  wally: 'Wally', efectivo_usd: 'Efectivo USD', efectivo_bs: 'Efectivo Bs', efectivo: 'Efectivo', punto: 'Punto de venta', credito: 'Crédito',
+};
+
+/** Ventas (no anuladas) de [desde, hasta] en días de Venezuela, con sus totales ya calculados. */
+async function salesStats(supabase: ReturnType<typeof getSupabaseClient>, desde: string, hasta: string) {
+  const rows: any[] = [];
+  for (let from = 0; from < 10000; from += 1000) {
+    const { data, error } = await supabase.from('sales')
+      .select('id, sale_group_id, client_name, product_name, quantity, total_usd, amount_paid, payment_method, sale_modality, created_at')
+      .neq('status', 'cancelled')
+      .gte('created_at', veStart(desde)).lt('created_at', veStart(addDays(hasta, 1)))
+      .range(from, from + 999);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  const groups = new Set<string>();
+  const byMethod = new Map<string, number>();
+  const byProduct = new Map<string, { units: number; total: number }>();
+  const byClient = new Map<string, number>();
+  const byDay = new Map<string, number>();
+  let total = 0, units = 0, fiado = 0, paid = 0;
+  for (const r of rows) {
+    const t = Number(r.total_usd) || 0;
+    total += t;
+    units += Number(r.quantity) || 0;
+    paid += Math.min(Number(r.amount_paid) || 0, t);
+    if (r.sale_modality === 'fiado') fiado += t;
+    groups.add(r.sale_group_id || r.id);
+    const m = METHOD_NAMES[String(r.payment_method || '').toLowerCase()] ?? (r.payment_method || 'Sin método');
+    byMethod.set(m, (byMethod.get(m) || 0) + t);
+    const p = byProduct.get(r.product_name) || { units: 0, total: 0 };
+    p.units += Number(r.quantity) || 0; p.total += t;
+    byProduct.set(r.product_name, p);
+    if (r.client_name) byClient.set(r.client_name, (byClient.get(r.client_name) || 0) + t);
+    const d = veDate(r.created_at);
+    byDay.set(d, (byDay.get(d) || 0) + t);
+  }
+  const top = <T,>(m: Map<string, T>, val: (v: T) => number, n: number) =>
+    [...m.entries()].sort((a, b) => val(b[1]) - val(a[1])).slice(0, n);
+  const best = top(byDay, (v) => v, 1)[0];
+  return {
+    desde, hasta,
+    total_usd: round2(total),
+    tickets: groups.size,
+    ticket_promedio_usd: groups.size ? round2(total / groups.size) : 0,
+    unidades: units,
+    contado_usd: round2(total - fiado),
+    fiado_usd: round2(fiado),
+    cobrado_usd: round2(paid),
+    por_metodo: top(byMethod, (v) => v, 8).map(([metodo, v]) => ({ metodo, total_usd: round2(v), pct: total ? Math.round((v / total) * 100) : 0 })),
+    productos_top: top(byProduct, (v) => v.total, 8).map(([nombre, v]) => ({ nombre, unidades: v.units, total_usd: round2(v.total) })),
+    clientas_top: top(byClient, (v) => v, 5).map(([clienta, v]) => ({ clienta, total_usd: round2(v) })),
+    mejor_dia: best ? { fecha: best[0], total_usd: round2(best[1]) } : null,
+  };
+}
+
+const pctChange = (now: number, before: number) => (before > 0 ? Math.round(((now - before) / before) * 100) : null);
 
 function toolMeta(tool: string, extra: Record<string, unknown> = {}) {
   return { tool, source: 'supabase', ts: new Date().toISOString(), ...extra };
@@ -932,11 +1045,101 @@ async function executeReadOnlyTool(name: string, args: Record<string, unknown>, 
         return { categories: cats, _meta: toolMeta(name) };
       }
       case 'buscar_producto': {
-        let q = supabase.from('products').select('name, price_usd, price_bs_usd, stock, category').limit(15);
-        if (args.query) q = q.ilike('name', `%${String(args.query)}%`);
-        if (args.category) q = q.eq('category', String(args.category));
-        const { data } = await q;
-        return { products: (data || []).map((p: any) => ({ name: p.name, price_usd: Number(p.price_usd), price_bs: ctx.bcvRate ? Math.round(Number(p.price_usd) * ctx.bcvRate * 100) / 100 : null, stock: p.stock, category: p.category })), bcvRate: ctx.bcvRate, _meta: toolMeta(name) };
+        const term = cleanTerm(args.query);
+        const run = async (t: string, byWords = false) => {
+          let q = supabase.from('products').select(PRODUCT_COLS).order('sold_count', { ascending: false }).limit(12);
+          if (t && !byWords) q = q.or(`name.ilike.%${t}%,category.ilike.%${t}%,description.ilike.%${t}%`);
+          if (t && byWords) for (const w of t.split(' ').filter((x) => x.length > 2)) q = q.ilike('name', `%${w}%`);
+          if (args.category) q = q.ilike('category', `%${cleanTerm(args.category)}%`);
+          const { data } = await q;
+          return (data || []) as any[];
+        };
+        let rows = await run(term);
+        if (!rows.length && term.includes(' ')) rows = await run(term, true);
+        if (!rows.length) return { status: 'no_encontrado', message: `No hay productos que coincidan con "${term}".`, sugerencia: 'Ofrece categorías o productos parecidos con recomendar_productos.', _meta: toolMeta(name) };
+        return { products: rows.map((p) => productInfo(p, ctx.bcvRate)), bcvRate: ctx.bcvRate, _meta: toolMeta(name) };
+      }
+      case 'detalle_producto': {
+        const term = cleanTerm(args.product);
+        if (!term) return { status: 'falta_dato', message: 'Pregunta qué producto.', _meta: toolMeta(name) };
+        let { data } = await supabase.from('products').select(PRODUCT_COLS).ilike('name', `%${term}%`).order('sold_count', { ascending: false }).limit(4);
+        if (!data?.length && term.includes(' ')) {
+          let q = supabase.from('products').select(PRODUCT_COLS);
+          for (const w of term.split(' ').filter((x) => x.length > 2)) q = q.ilike('name', `%${w}%`);
+          ({ data } = await q.limit(4));
+        }
+        if (!data?.length) return { status: 'no_encontrado', message: `No encontré "${term}" en el catálogo.`, _meta: toolMeta(name) };
+        return { products: (data as any[]).map((p) => productInfo(p, ctx.bcvRate, true)), bcvRate: ctx.bcvRate, _meta: toolMeta(name) };
+      }
+      case 'recomendar_productos': {
+        let q = supabase.from('products').select(PRODUCT_COLS).gt('stock', 0).order('sold_count', { ascending: false }).limit(80);
+        if (args.categoria) q = q.ilike('category', `%${cleanTerm(args.categoria)}%`);
+        if (Number(args.presupuesto_max) > 0) q = q.lte('price_usd', Number(args.presupuesto_max));
+        let rows = ((await q).data || []) as any[];
+        const talla = normText(cleanTerm(args.talla));
+        if (talla) {
+          rows = rows.filter((p) => {
+            const variants = (p.product_variants || []) as any[];
+            if (variants.length) return variants.some((v) => normText(String(v.label)) === talla && Number(v.stock) > 0);
+            return !Array.isArray(p.sizes) || !p.sizes.length || p.sizes.some((x: string) => normText(x) === talla || normText(x) === 'unica');
+          });
+        }
+        const words = normText(cleanTerm(args.ocasion)).split(' ').filter((w) => w.length > 2);
+        if (words.length) {
+          const score = (p: any) => words.reduce((n, w) => n + (normText(`${p.name} ${p.category ?? ''} ${p.description ?? ''}`).includes(w) ? 1 : 0), 0);
+          const scored = rows.map((p) => ({ p, s: score(p) }));
+          if (scored.some((x) => x.s > 0)) rows = scored.filter((x) => x.s > 0).sort((a, b) => b.s - a.s).map((x) => x.p);
+        }
+        if (!rows.length) return { status: 'sin_resultados', message: 'No hay productos disponibles con esos filtros.', sugerencia: 'Ofrece quitar un filtro (talla, presupuesto o categoría).', _meta: toolMeta(name) };
+        return { recomendados: rows.slice(0, 6).map((p) => productInfo(p, ctx.bcvRate, true)), bcvRate: ctx.bcvRate, nota: 'Explica en una línea por qué cada uno le sirve. No inventes productos fuera de esta lista.', _meta: toolMeta(name) };
+      }
+      case 'analisis_ventas': {
+        const today = veDate(new Date());
+        const hasta = /^\d{4}-\d{2}-\d{2}$/.test(String(args.hasta ?? '')) ? String(args.hasta) : today;
+        const days = Math.max(1, Math.min(366, Number(args.dias) || 30));
+        const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(args.desde ?? '')) ? String(args.desde) : addDays(hasta, -(days - 1));
+        const span = Math.max(1, Math.round((Date.parse(`${hasta}T12:00:00Z`) - Date.parse(`${desde}T12:00:00Z`)) / 86400000) + 1);
+        const now = await salesStats(supabase, desde, hasta);
+        const before = await salesStats(supabase, addDays(desde, -span), addDays(desde, -1));
+        return {
+          periodo: { desde, hasta, dias: span },
+          ...now,
+          periodo_anterior: { desde: before.desde, hasta: before.hasta, total_usd: before.total_usd, tickets: before.tickets, ticket_promedio_usd: before.ticket_promedio_usd },
+          variacion_pct: { total: pctChange(now.total_usd, before.total_usd), tickets: pctChange(now.tickets, before.tickets), ticket_promedio: pctChange(now.ticket_promedio_usd, before.ticket_promedio_usd) },
+          bcvRate: ctx.bcvRate,
+          nota: 'Responde como analista: primero el total y si subió o bajó, luego lo que destaca (productos, métodos, mejor día) y cierra con 2-3 acciones concretas.',
+          _meta: toolMeta(name),
+        };
+      }
+      case 'resumen_negocio': {
+        const today = veDate(new Date());
+        const monthStart = `${today.slice(0, 8)}01`;
+        const [hoy, semana, mes] = await Promise.all([
+          salesStats(supabase, today, today),
+          salesStats(supabase, addDays(today, -6), today),
+          salesStats(supabase, monthStart, today),
+        ]);
+        const cxc = await receivablesSummary(supabase);
+        const { data: low } = await supabase.from('products').select('name, stock').lte('stock', 3).order('stock', { ascending: true }).limit(12);
+        const { data: pendingOrders } = await supabase.from('orders').select('total_usd').eq('status', 'pending').limit(200);
+        const { count: requests } = await supabase.from('product_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+        return {
+          fecha: today,
+          ventas: {
+            hoy: { total_usd: hoy.total_usd, tickets: hoy.tickets },
+            ultimos_7_dias: { total_usd: semana.total_usd, tickets: semana.tickets, ticket_promedio_usd: semana.ticket_promedio_usd, productos_top: semana.productos_top.slice(0, 3) },
+            mes_en_curso: { total_usd: mes.total_usd, tickets: mes.tickets, mejor_dia: mes.mejor_dia },
+          },
+          por_cobrar: { total_usd: cxc.balance, clientas: cxc.clients, facturas: cxc.invoices, quien_debe_mas: cxc.top },
+          inventario: {
+            agotados: ((low || []) as any[]).filter((p) => Number(p.stock) <= 0).map((p) => p.name),
+            stock_bajo: ((low || []) as any[]).filter((p) => Number(p.stock) > 0).map((p) => `${p.name} (${p.stock})`),
+          },
+          pedidos_online_por_aprobar: { cantidad: (pendingOrders || []).length, total_usd: round2(((pendingOrders || []) as any[]).reduce((s2, o) => s2 + (Number(o.total_usd) || 0), 0)) },
+          productos_pedidos_por_clientas: requests ?? 0,
+          nota: 'Organiza en secciones cortas (Ventas, Por cobrar, Inventario, Pendientes) y cierra con las 2-3 cosas más importantes para hacer hoy.',
+          _meta: toolMeta(name),
+        };
       }
       case 'consultar_precio': {
         const { data } = await supabase.from('products').select('name, price_usd, stock, category').ilike('name', `%${String(args.product || '')}%`).limit(5);
@@ -1028,7 +1231,7 @@ async function executeReadOnlyTool(name: string, args: Record<string, unknown>, 
       case 'resumen_ventas': {
         const days = Math.max(1, Math.min(365, Number(args.days) || 7));
         const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-        const { data } = await supabase.from('sales').select('total_usd').gte('created_at', since);
+        const { data } = await supabase.from('sales').select('total_usd').neq('status', 'cancelled').gte('created_at', since);
         const total = ((data || []) as any[]).reduce((s, r) => s + (Number(r.total_usd) || 0), 0);
         return { days, total_usd: Math.round(total * 100) / 100, count: (data || []).length, _meta: toolMeta(name) };
       }
@@ -1192,85 +1395,93 @@ serve(async (req: Request) => {
     const suggestions = generatePredictiveSuggestions(lastUserMessage, businessContext, messages || [], isAdmin);
     console.log('Generated suggestions:', suggestions.length);
 
-    // ================== CONSTRUIR PROMPT CONTEXTUALIZADO ==================
-    let contextPrompt = `Eres ${ASSISTANT_NAME}, asistente inteligente de ${BRAND_NAME} (tienda en Venezuela).
-Personalidad: cercana, clara, profesional, confiable. Usa español venezolano.
-Tono: amable, seguro, sin exagerar emojis (máximo 2-3 por respuesta).
+    // ================== INSTRUCCIONES DEL SISTEMA ==================
+    // El estilo y los datos van como systemInstruction; la conversación real (turnos de la
+    // persona y de la asistente) va como contents, así el modelo entiende el hilo completo.
+    const todayVE = new Date(Date.now() - 4 * 3600 * 1000);
+    const fechaVE = todayVE.toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+    const bs = (usd: number) => businessContext.bcvRate ? ` (Bs ${(usd * businessContext.bcvRate).toLocaleString('es-VE', { maximumFractionDigits: 2 })})` : '';
+    const catalogLines = businessContext.topProducts.slice(0, 30).map(p => {
+      const sizes = Array.isArray(p.sizes) && p.sizes.length ? ` · ${p.sizes.slice(0, 8).join('/')}` : '';
+      return `- ${p.name} — $${Number(p.price_usd).toFixed(2)}${bs(Number(p.price_usd))} · ${p.stock} disp. · ${p.category || 'Sin categoría'}${p.presentation ? ` · ${p.presentation}` : ''}${sizes}`;
+    }).join('\n');
 
-DATOS DEL NEGOCIO HOY:
-- Tasa BCV: ${businessContext.bcvRate} Bs/$
-- Porcentaje adicional: ${businessContext.extraPercentage}%
-- Fórmula precio: Precio_BS = cantidad × precio_USD × tasa_BCV × (1 + ${businessContext.extraPercentage}/100)
+    let systemPrompt = `Eres ${ASSISTANT_NAME}, la asistente de ${BRAND_NAME}, una tienda en Venezuela. Hablas en español venezolano, con calidez y seguridad, como una vendedora experta que conoce cada producto y cada número del negocio. Tratas de "tú".
 
-PRODUCTOS DISPONIBLES (TOP):
-${businessContext.topProducts.slice(0, 8).map(p => `• ${p.name}: $${p.price_usd} (${p.stock} unidades) - ${p.category || 'Sin categoría'}`).join('\n')}
+${STORE_PROFILE}
 
-CATEGORÍAS: ${businessContext.categories.join(', ')}
+CÓMO RESPONDES (muy importante):
+1. Empieza con la respuesta directa en una frase, con el dato concreto (precio, total, sí o no, el producto que le conviene). Sin rodeos: nada de "¡Claro! Con gusto te ayudo" ni de listas de "puedo ayudarte con…".
+2. Después el detalle, bien organizado:
+   - Viñetas ("- ") cuando haya 3 o más elementos; **negritas** para nombres de productos, clientas y montos clave.
+   - Tabla Markdown (| Columna | Columna |) solo para comparar 3 o más filas con 3 o más datos; máximo 8 filas.
+   - Títulos cortos con "### " solo si la respuesta tiene 2 o más secciones.
+   - Precios siempre en USD y en Bs a la tasa del día.
+3. Termina con UN siguiente paso concreto: una pregunta precisa ("¿Qué talla usas?") o una acción ("¿Te lo agrego al carrito?", "¿Te preparo el estado de cuenta de María?").
+4. Largo según la pregunta: saludo o sí/no → 1 o 2 frases; recomendaciones → 3 a 5 productos, cada uno con por qué le sirve; análisis del negocio → cifras, comparación con el período anterior, lo que destaca y 2 o 3 acciones.
+5. Si falta un dato para afinar (talla, ocasión, presupuesto, cuál clienta), muestra lo que ya puedes y haz UNA sola pregunta.
+6. Emojis: máximo uno o dos y solo si aportan; nunca dentro de tablas ni listas de cifras.
+7. Recuerda lo que se habló antes en la conversación ("ese", "el otro", "ella" se refieren a lo último mencionado).
 
-MÁS VENDIDOS: ${businessContext.bestSellers.map(p => p.name).join(', ')}
+DATOS: nunca inventes productos, precios, stock, tallas, clientas, montos ni fechas. Para cualquier dato concreto usa las herramientas y responde solo con lo que devuelvan; si algo no aparece, dilo con claridad y ofrece una alternativa real del catálogo. Cuando una herramienta devuelva "url" de un producto, puedes enlazarlo así: [Ver producto](url).
+
+FORMA DE UNA BUENA RECOMENDACIÓN (solo el formato; los productos salen de las herramientas):
+${RECOMMENDATION_EXAMPLE}
+
+DATOS DEL NEGOCIO (${fechaVE}):
+- Tasa BCV: ${businessContext.bcvRate} Bs/$${businessContext.extraPercentage > 0 ? ` · pagos en Bs con ${businessContext.extraPercentage}% de recargo (Bs = USD × tasa × ${1 + businessContext.extraPercentage / 100})` : ' · precios referenciales, sin recargo (Bs = USD × tasa)'}
+- Métodos de pago activos: ${businessContext.paymentLabels.join(', ') || 'ver Atención al Cliente'}
+- Categorías: ${businessContext.categories.join(', ')}
+- Más vendidos: ${businessContext.bestSellers.map(p => p.name).join(', ')}
+- Catálogo disponible (resumen; para detalles, tallas y stock exacto usa las herramientas):
+${catalogLines || '- (sin productos con stock)'}
 `;
 
-    // Agregar memoria del cliente si existe
     if (businessContext.customerMemory && (businessContext.customerMemory.viewedProducts.length > 0 || businessContext.customerMemory.askedQuestions.length > 0)) {
-      contextPrompt += `
-MEMORIA DEL CLIENTE:
-- Productos que ha visto antes: ${businessContext.customerMemory.viewedProducts.slice(-5).join(', ') || 'Ninguno'}
-- Últimas preguntas: ${businessContext.customerMemory.askedQuestions.slice(-3).join(' | ') || 'Ninguna'}
-- Intereses detectados: ${businessContext.customerMemory.interests?.join(', ') || 'No definidos'}
-- Última interacción: ${businessContext.customerMemory.lastInteraction || 'Primera vez'}
-
-💡 USA esta memoria para personalizar tu respuesta. Referencia cosas que el cliente ha visto o preguntado.
+      systemPrompt += `
+MEMORIA DE ESTA PERSONA (úsala para personalizar, sin repetirla literal):
+- Productos que le interesaron: ${businessContext.customerMemory.viewedProducts.slice(-5).join(', ') || 'ninguno'}
+- Preguntas recientes: ${businessContext.customerMemory.askedQuestions.slice(-3).join(' | ') || 'ninguna'}
+- Intereses: ${businessContext.customerMemory.interests?.join(', ') || 'sin definir'}
 `;
     }
 
-    // Agregar contexto de cliente si existe
     if (businessContext.customerHistory) {
-      contextPrompt += `
-HISTORIAL DEL CLIENTE:
-- Productos anteriores: ${businessContext.customerHistory.lastProducts.join(', ') || 'Ninguno'}
+      systemPrompt += `
+HISTORIAL DE COMPRAS:
+- Productos anteriores: ${businessContext.customerHistory.lastProducts.join(', ') || 'ninguno'}
 - Forma de pago preferida: ${businessContext.customerHistory.preferredPayment}
-- Estado de crédito: ${businessContext.customerHistory.creditStatus}
-- Límite de crédito: $${businessContext.customerHistory.creditLimit}
-- Compras totales: ${businessContext.customerHistory.totalPurchases}
+- Crédito: ${businessContext.customerHistory.creditStatus} · límite $${businessContext.customerHistory.creditLimit}
 `;
     }
 
-    // Agregar contexto de admin si aplica
     if (isAdmin) {
       const receivablesList = businessContext.pendingReceivables
         .slice(0, 25)
-        .map(r => `• ${r.clientName}: ${r.products || 'Sin detalle'} — total $${r.total.toFixed(2)}, abonado $${r.paid.toFixed(2)}, saldo $${r.balance.toFixed(2)}${r.isPartial ? ' (abono parcial)' : ''}`)
+        .map(r => `- ${r.clientName}: ${r.products || 'Sin detalle'} — total $${r.total.toFixed(2)}, abonado $${r.paid.toFixed(2)}, saldo $${r.balance.toFixed(2)}${r.isPartial ? ' (abono parcial)' : ''}`)
         .join('\n');
       const moreReceivables = businessContext.pendingReceivables.length > 25
         ? `\n(+${businessContext.pendingReceivables.length - 25} cuentas más)`
         : '';
-
-      contextPrompt += `
-DATOS ADMIN:
+      systemPrompt += `
+DATOS DE ADMINISTRACIÓN:
 - Ventas últimos 7 días: $${businessContext.recentSales.toFixed(2)}
-- Stock bajo: ${businessContext.lowStockProducts.map(p => `${p.name} (${p.stock})`).join(', ') || 'Ninguno'}
-
-CRÉDITOS PENDIENTES (sistema de créditos):
-${businessContext.pendingCredits.map(c => `• ${c.client_name}: $${c.current_balance}`).join('\n') || '• Ninguno'}
-
-CUENTAS POR COBRAR — VENTAS FIADAS (deuda real por ventas):
-${receivablesList || '• Ninguna'}${moreReceivables}
-TOTAL POR COBRAR — VENTAS FIADAS: $${businessContext.totalReceivable.toFixed(2)}
-
-NOTA: "CRÉDITOS PENDIENTES" y "CUENTAS POR COBRAR — VENTAS FIADAS" son dos fuentes distintas. Para responder a quién hay que cobrar, qué debe cada quien o qué ventas están pendientes, usa las VENTAS FIADAS (cliente, productos, total, abonado y saldo) y no las presentes como créditos.
+- Stock bajo: ${businessContext.lowStockProducts.map(p => `${p.name} (${p.stock})`).join(', ') || 'ninguno'}
+- Créditos del sistema con saldo: ${businessContext.pendingCredits.map(c => `${c.client_name} $${c.current_balance}`).join(', ') || 'ninguno'}
+- Cuentas por cobrar por ventas fiadas (total $${businessContext.totalReceivable.toFixed(2)}):
+${receivablesList || '- Ninguna'}${moreReceivables}
+NOTA: "créditos del sistema" y "cuentas por cobrar por ventas fiadas" son fuentes distintas; para "a quién cobrar" usa las ventas fiadas.
 `;
     }
 
-    // Agregar análisis de conversación
     if (conversationAnalysis.sentiment === 'negative' || conversationAnalysis.sentiment === 'confused') {
-      contextPrompt += `
-⚠️ ALERTA: El cliente parece ${conversationAnalysis.sentiment === 'negative' ? 'frustrado' : 'confundido'}.
-Simplifica tus respuestas y ofrece ayuda clara. Si persiste, ofrece atención humana.
+      systemPrompt += `
+ATENCIÓN: la persona parece ${conversationAnalysis.sentiment === 'negative' ? 'molesta' : 'confundida'}. Reconócelo en una frase, responde simple y paso a paso, y si sigue igual ofrece hablar con una persona por ${CONTACT_LINE}.
 `;
     }
 
     if (context) {
-      contextPrompt += `\nCONTEXTO ADICIONAL: ${context}`;
+      systemPrompt += `\nCONTEXTO ADICIONAL: ${context}\n`;
     }
 
     // Página que está viendo la persona: "quiero comprar esto" se refiere a este producto
@@ -1278,60 +1489,56 @@ Simplifica tus respuestas y ofrece ayuda clara. Si persiste, ofrece atención hu
     if (productMatch) {
       const { data: viewed } = await supabase.from('products').select('name, price_usd, stock').eq('id', productMatch[1]).maybeSingle();
       if (viewed) {
-        contextPrompt += `\nPRODUCTO EN PANTALLA: ${viewed.name} — $${viewed.price_usd} (${viewed.stock} disponibles). Si dice "esto", "este" o "lo quiero", se refiere a este producto.`;
+        systemPrompt += `\nPRODUCTO EN PANTALLA: ${viewed.name} — $${viewed.price_usd} (${viewed.stock} disponibles). "Esto", "este" o "lo quiero" se refieren a este producto.\n`;
       }
+    } else if (typeof page === 'string' && page) {
+      systemPrompt += `\nPÁGINA ACTUAL: ${page}\n`;
     }
 
-    // Memoria de sesión: turnos recientes para resolver referencias como "ella"
-    // o "esa venta". NO otorga permisos: cada herramienta revalida rol/entidad.
-    const recentTurns = (messages || [])
-      .slice(-7, -1)
-      .map((m: any) => `${m.role === 'user' ? 'Usuario' : ASSISTANT_NAME}: ${String(m.content || '').slice(0, 300)}`)
-      .join('\n');
-    if (recentTurns) {
-      contextPrompt += `
-CONVERSACIÓN RECIENTE (para entender referencias como "ella"/"esa venta"; no cambia permisos):
-${recentTurns}
-`;
+    systemPrompt += `
+ROL DE QUIEN ESCRIBE: ${isAdmin ? 'Administración (la dueña de la tienda)' : 'Clienta'}
+
+HERRAMIENTAS Y REGLAS:
+- Productos: para precios, stock, tallas o detalles usa buscar_producto o detalle_producto. Para "qué me recomiendas", regalos, ocasiones o estilos usa recomendar_productos y explica por qué cada uno le sirve. Si preguntan por categorías (${CATEGORY_EXAMPLES}…), muestra los productos de cada una con precio en USD y Bs y disponibilidad.
+${isAdmin ? `- Negocio: para "cómo vamos", "resumen", "qué hago hoy" o consejos usa resumen_negocio; para ventas de un período, comparaciones, qué se vende más o mejores clientas usa analisis_ventas. Responde como analista: el número principal, si subió o bajó y cuánto, lo que destaca y 2 o 3 acciones concretas.
+- "Cuentas por cobrar" o "a quién cobrar" = ventas fiadas (listar_cxc, consultar_deuda_cliente), no los créditos del sistema.
+- Si piden un REPORTE, INFORME, PDF, ESTADO DE CUENTA o algo para imprimir o enviar de las cuentas por cobrar, usa generar_reporte_cxc: el PDF sale como botón debajo de tu mensaje. Nunca digas que no puedes generar PDF.
+` : ''}- Si una herramienta devuelve "ambiguo", pregunta cuál; si devuelve "no_encontrado", dilo con claridad y ofrece algo parecido.
+- OPERACIONES: no escribes nada directamente. Con las herramientas preparar_* PREPARAS la operación y la persona la confirma con un botón debajo de tu mensaje.
+  · Clienta que quiere comprar ("quiero esto", "me llevo 2", "${CART_EXAMPLE}") → preparar_carrito; luego dile que toque "Agregar al carrito" y pague en el carrito.
+${isAdmin ? `  · Administración: "vendí…" → preparar_venta (pregunta el método de pago si falta; "fiado"/"me lo paga después" = fiado). "compré…/le pagué al proveedor…" → preparar_compra. "X abonó/pagó $…" → preparar_abono. "llegaron N unidades de…" → preparar_entrada_stock. Si pide varias cosas, prepara cada una.` : '  · Registrar ventas, compras o abonos es solo para la administración.'}
+  · Productos con tallas, tonos o presentaciones: indica cuál en "variant". Si la herramienta devuelve "options", muéstralas y pregunta cuál.
+  · Si responde "falta_dato", "sin_stock", "ambiguo" o "no_encontrado", pregunta lo necesario en una frase y NO digas que quedó listo.
+  · Si responde "propuesta_lista", resume en una línea lo preparado y pide confirmarlo con el botón. Nunca digas "ya lo registré": todavía no está hecho.
+- Anular, editar o devolver ventas se hace desde el panel: si lo piden, indica la sección.
+- Contacto con la tienda: ${BRAND_WHATSAPP ? `WhatsApp ${BRAND_WHATSAPP}` : 'la sección de Atención al Cliente de la web'}. Horario: ${STORE_HOURS}.`;
+
+    // Conversación real para el modelo: turnos alternados, empezando por la persona
+    const conversation: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
+    for (const m of ((messages || []) as any[]).slice(-16)) {
+      const text = String(m?.content || '').trim().slice(0, 2500);
+      if (!text) continue;
+      const role = m.role === 'user' ? 'user' : 'model';
+      if (!conversation.length && role === 'model') continue;
+      const prev = conversation[conversation.length - 1];
+      if (prev && prev.role === role) prev.parts[0].text += `\n\n${text}`;
+      else conversation.push({ role, parts: [{ text }] });
     }
-
-    contextPrompt += `
-ROL: ${isAdmin ? 'Administrador' : 'Cliente'}
-FECHA: ${new Date().toLocaleDateString('es-VE')}
-
-Pregunta del usuario: ${lastUserMessage}
-
-INSTRUCCIONES CLAVE:
-- Si el usuario pregunta por precios, muestra siempre USD y Bs.
-- Si el usuario pregunta sobre categorías específicas ("Ropa", "Ropa Interior", "Perfume", etc.), lista los productos de CADA categoría mencionada con nombre, precio USD, precio Bs y stock.
-- Si el usuario pide ver productos de una categoría, busca en los PRODUCTOS DISPONIBLES de arriba y filtra por esa categoría.
-- NO respondas con el saludo genérico si el usuario hace una pregunta concreta de productos o categorías.
-- Para datos concretos (deudas, cuentas por cobrar, ventas, pagos, stock, precios, créditos, resúmenes), USA las herramientas disponibles y responde SOLO con lo que devuelvan. NUNCA inventes clientes, montos, saldos, IDs ni fechas.
-- "Cuentas por cobrar" o "a quién cobrar" = ventas fiadas (herramientas de CxC/deuda), NO los créditos del sistema; son fuentes distintas.
-- Si piden un REPORTE, INFORME, PDF, ESTADO DE CUENTA o algo para imprimir o enviar de las cuentas por cobrar (de todas o de una clienta), usa generar_reporte_cxc: el PDF sale como botón debajo de tu mensaje. Nunca digas que no puedes generar PDF.
-- Si una herramienta devuelve varias coincidencias (ambiguo), pregunta al usuario cuál antes de continuar. Si devuelve "no_encontrado", dilo con claridad.
-- OPERACIONES: no escribes nada directamente. Con las herramientas preparar_* PREPARAS la operación y la persona la confirma con un botón que aparece debajo de tu mensaje.
-  · Clienta que quiere comprar ("quiero esto", "me llevo 2", "agrégame la blusa") → preparar_carrito. Luego dile que toque "Agregar al carrito" y después pague en el carrito.
-${isAdmin ? `  · Administración: "vendí…" → preparar_venta (pregunta el método de pago si falta; "fiado"/"me lo paga después" = modalidad fiado). "compré…/le pagué al proveedor…" → preparar_compra. "X abonó/pagó $…" → preparar_abono. "llegaron N unidades de…" → preparar_entrada_stock.
-  · Si la persona pide varias cosas, prepara cada una.` : '  · Registrar ventas, compras o abonos es solo para la administración.'}
-  · Productos con tallas, tonos o presentaciones (30 ml, 50 ml): indica cuál en "variant". Si la herramienta devuelve "options", muéstraselas y pregunta cuál quiere.
-  · Si la herramienta responde "ambiguo", "no_encontrado", "sin_stock" o "falta_dato", pregunta lo necesario en una frase y NO digas que quedó listo.
-  · Si responde "propuesta_lista", resume en una línea lo que preparaste y pide que lo confirme con el botón. NUNCA digas "ya lo registré" o "listo, quedó hecho": todavía no está hecho.
-- Anular, editar o devolver ventas todavía se hace desde el panel: si te lo piden, indica la sección.
-- Para contacto con la tienda remite a ${BRAND_WHATSAPP ? `el WhatsApp ${BRAND_WHATSAPP}` : 'la sección de Atención al Cliente de la web'}. Horario: ${STORE_HOURS}.
-
-Respuesta de ${ASSISTANT_NAME}:`;
-
+    if (!conversation.length || conversation[conversation.length - 1].role !== 'user') {
+      conversation.push({ role: 'user', parts: [{ text: lastUserMessage || 'Hola' }] });
+    }
 
     console.log('Calling Gemini Flash for Angela response...');
 
     let generatedText = '';
+    let engine = 'fallback';
     const proposals: Proposal[] = [];
     const attachments: Attachment[] = [];
     const actionCtx = { supabase, isAdmin, bcvRate: 0, proposals };
 
     if (GEMINI_KEY) {
-      const modelsToTry = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'];
+      // GEMINI_MODEL (secreto) manda; si falla, se prueban los siguientes
+      const modelsToTry = [...new Set([Deno.env.get('GEMINI_MODEL'), 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'].filter(Boolean))] as string[];
       // Contexto de herramientas READ-ONLY: el rol viene del token verificado, no
       // del cliente ni de Gemini. Gemini solo elige qué herramienta pedir.
       const toolCtx: ToolContext = {
@@ -1352,9 +1559,9 @@ Respuesta de ${ASSISTANT_NAME}:`;
         try {
           console.log(`Trying Gemini model: ${model}`);
           // Conversación multi-turno para function calling. Primer turno: prompt.
-          const contents: any[] = [{ role: 'user', parts: [{ text: contextPrompt }] }];
+          const contents: any[] = conversation.map((c) => ({ role: c.role, parts: c.parts.map((p) => ({ ...p })) }));
           let modelFailed = false;
-          const MAX_TOOL_TURNS = 5;
+          const MAX_TOOL_TURNS = 6;
 
           for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
             const geminiResponse = await fetch(
@@ -1363,9 +1570,12 @@ Respuesta de ${ASSISTANT_NAME}:`;
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
                 body: JSON.stringify({
+                  systemInstruction: { parts: [{ text: systemPrompt }] },
                   contents,
                   tools: geminiTools,
-                  generationConfig: { temperature: 0.7, maxOutputTokens: 2048, topP: 0.9 },
+                  // Última vuelta: ya no pide herramientas, redacta con lo que tiene
+                  toolConfig: { functionCallingConfig: { mode: turn === MAX_TOOL_TURNS - 1 ? 'NONE' : 'AUTO' } },
+                  generationConfig: { temperature: 0.55, maxOutputTokens: 4096, topP: 0.9 },
                 }),
               }
             );
@@ -1398,13 +1608,14 @@ Respuesta de ${ASSISTANT_NAME}:`;
             }
 
             // Sin llamada a herramienta: respuesta en texto
-            generatedText = parts.map((p: any) => p.text || '').join('').trim();
+            generatedText = parts.filter((p: any) => !p.thought).map((p: any) => p.text || '').join('').trim();
             break;
           }
 
           if (modelFailed) continue; // probar siguiente modelo
           if (generatedText && generatedText.length >= 2) {
             console.log(`Gemini response received from ${model}, length:`, generatedText.length);
+            engine = `gemini:${model}`;
             break;
           }
           console.warn(`Gemini model ${model} returned empty response`);
@@ -1438,7 +1649,9 @@ Respuesta de ${ASSISTANT_NAME}:`;
     }
     if (!generatedText || generatedText.length < 10) {
       generatedText = generateFallbackResponse(lastUserMessage, businessContext, isAdmin, conversationAnalysis);
+      engine = 'fallback';
     }
+    console.log('Assistant engine:', engine);
 
     // Limpiar respuesta de posibles artefactos
     generatedText = generatedText
@@ -1477,6 +1690,7 @@ Respuesta de ${ASSISTANT_NAME}:`;
         proposals,
         attachments,
         analysis: conversationAnalysis,
+        engine,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
