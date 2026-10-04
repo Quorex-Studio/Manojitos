@@ -1,45 +1,44 @@
 ---
 version: 2
-name: EINA-beauty
+name: Manojitos-boutique
 description: |
-  Tienda de maquillaje, skincare y accesorios importados (Isla de Margarita) con venta a crédito.
-  Sistema "la foto manda" sobre la identidad EINA: vino como único acento de acción, nude para
-  detalles, crema para superficies cálidas y el oscuro de marca como texto y base del modo oscuro.
-  Motivo gráfico: la estrella de cuatro puntas con cola. Referencias: disciplina retail de Nike
-  y calidez redondeada de Airbnb (getdesign.md).
+  Boutique de ropa, accesorios, lencería y perfumes (Venezuela) con venta a crédito y su
+  asistente Ángela. Identidad Manojitos: rosa como acento de acción, dorado del logo para el
+  nombre de marca y detalles, crema cálida para superficies. Tipografía redondeada (Quicksand)
+  con títulos en Playfair Display. Misma estructura de tokens que la plantilla (studio, sale,
+  success, wine, nude, cream) con los valores de Manojitos. Referencias: getdesign.md.
 
 colors:
-  wine: "#78293c"           # primario en claro: CTA, estado activo, marca
-  nude: "#e1ae9d"           # detalles; primario en modo oscuro (texto oscuro encima)
-  cream: "#f4e7d7"          # superficies secundarias, texto sobre vino
-  dark: "#252024"           # texto (claro) · tarjetas (oscuro)
-  canvas: "#fcf8f3"         # fondo de página en claro
-  canvas-dark: "#181517"    # fondo de página en oscuro
-  studio: "#f5ebe0"         # fondo de la foto de producto (oscuro: #2a2629)
-  copper: "#9b5a3f"         # token "gold": avisos y pendientes (AA sobre blanco)
-  sale: "#bf2626"           # SOLO precio en oferta / agotado
-  success: "#1d7249"        # en stock, pedido confirmado
+  primary: "#d36983"        # rosa: CTA, estado activo (oscuro: #d47d93)
+  gold: "#d69729"           # dorado del logo: nombre de marca (.text-gradient-gold) y detalles
+  gold-light: "#d4b277"     # bordes y líneas finas
+  accent: "#c18825"         # avisos y pendientes
+  background: "#fbfaf9"     # fondo de página en claro (oscuro: #120d0e)
+  foreground: "#181013"     # texto
+  secondary: "#f5f0f1"      # superficies secundarias
+  sale: "#c12525"           # SOLO precio en oferta / agotado / dinero en riesgo
+  success: "#22774e"        # en stock, pedido confirmado, pagado
 
 typography:
-  display: { fontFamily: "Constantia, Crimson Pro, Georgia, serif", weight: 500, size: "40–64px", lineHeight: 1.05 }
-  heading: { fontFamily: "Constantia, Crimson Pro, Georgia, serif", weight: 500, size: "24–32px", lineHeight: 1.2 }
-  body:    { fontFamily: "Source Sans 3", weight: 400, size: 15px, lineHeight: 1.55 }
-  label:   { fontFamily: "Source Sans 3", weight: 600, size: 12px, letterSpacing: 0.08em, textTransform: uppercase }
-  price:   { fontFamily: "Source Sans 3", weight: 700, size: 16px, fontVariant: tabular-nums }
+  display: { fontFamily: "Playfair Display, Georgia, serif", weight: 600, size: "36–56px", lineHeight: 1.1 }
+  heading: { fontFamily: "Playfair Display, Georgia, serif", weight: 600, size: "22–30px", lineHeight: 1.2 }
+  body:    { fontFamily: "Quicksand", weight: 500, size: 15px, lineHeight: 1.55 }
+  label:   { fontFamily: "Quicksand", weight: 700, size: 12px, letterSpacing: 0.08em, textTransform: uppercase }
+  price:   { fontFamily: "Quicksand", weight: 700, size: 16px, fontVariant: tabular-nums }
 
 rounded: { card-image: 16px, panel: 20px, pill: 9999px }
 spacing: { base: 8px, card-gap: 16px, section: 64px (desktop) / 40px (móvil), tabbar: 64px }
-elevation: { none: "0", hover: "0 8px 24px -12px rgb(37 32 36 / .18)" }
+elevation: { none: "0", hover: "0 8px 24px -12px rgb(24 16 19 / .18)" }
 ---
 
 ## Principios
 
 1. **La foto es la tarjeta.** El producto va a sangre (`object-cover`, 4:5) sobre `studio`.
    Sin bordes, sin sombras en reposo. El nombre y el precio van **siempre visibles** debajo.
-2. **Un acento, una acción.** El vino `primary` (nude en modo oscuro) es para la acción principal de cada vista
+2. **Un acento, una acción.** El rosa `primary` es para la acción principal de cada vista
    (Agregar, Pagar, Registrarse) y para estados activos. Nunca como fondo decorativo.
-3. **Nude = detalle, no bloque.** Estrella de marca, etiquetas y líneas finas. Bloques de
-   marca (footer, crédito) en vino con texto crema.
+3. **Dorado = marca y detalle, no bloque.** El nombre "Manojitos" en dorado (`.text-gradient-gold`,
+   la única excepción a "sin gradientes en texto"), etiquetas y líneas finas.
 4. **Rojo solo para dinero en riesgo.** Precio en oferta y "Agotado". Nada más.
 5. **Pastillas para acciones.** Todo botón es `pill` (o círculo para íconos). Altura mínima
    44px en móvil (objetivo táctil).
@@ -47,7 +46,7 @@ elevation: { none: "0", hover: "0 8px 24px -12px rgb(37 32 36 / .18)" }
    El movimiento es corto (≤250ms) y respeta `prefers-reduced-motion`.
 7. **Precio doble, jerarquía clara.** USD en `foreground` (price), Bs debajo en `muted`. Si no hay
    tasa, se oculta el Bs (nunca "0,00 Bs").
-8. **Logo intocable.** Siempre `<BrandLogo />` (PNG oficial: vino en claro, crema en oscuro).
+8. **Logo intocable.** Siempre `<BrandLogo />` (logo redondo + nombre en serif dorado).
    Nunca estirar, recolorear ni aplicar degradados.
 9. **Móvil primero.** Barra inferior (Inicio, Tienda, Carrito, Favoritos, Cuenta) en < 768px;
    el header móvil solo lleva logo, búsqueda, moneda y menú. La ficha de producto muestra una
