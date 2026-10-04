@@ -264,12 +264,37 @@ Ahora usa `.eq('currency', 'USD')`, igual que la confirmación de acciones.
 
 ---
 
+### 2.10 Respuestas más inteligentes y organizadas (04-10-2026)
+
+**Problema:** respuestas genéricas y desordenadas. El chat mostraba texto plano (los `**` y las
+viñetas salían como asteriscos) y el modelo recibía todo en un solo bloque, sin el historial real
+de la conversación ni reglas de estilo. Si Gemini fallaba, salían menús de plantilla.
+
+**Cambios** (el motor es el mismo en todas las tiendas; solo cambia `store-profile.ts`):
+
+| Qué | Dónde |
+|---|---|
+| Chat con formato: negritas, listas, títulos, tablas y enlaces internos (sin HTML inyectado) | `src/lib/chatMarkdown.ts` (+ test), `src/components/chat/ChatMarkdown.tsx`, `AngelaChat.tsx` |
+| Reglas de estilo como `systemInstruction`: respuesta directa primero, detalle ordenado, precios USD y Bs, un siguiente paso concreto; nada de "puedo ayudarte con…" | `ai-assistant/index.ts` (INSTRUCCIONES DEL SISTEMA) |
+| Conversación real: turnos alternados clienta/asistente (16 últimos), no un resumen de 300 caracteres | `index.ts` (`conversation`) |
+| Contexto más rico: 30 productos con tallas y presentación, categorías configuradas, métodos de pago activos, fecha en Venezuela | `buildBusinessContext` |
+| Herramientas nuevas: `detalle_producto`, `recomendar_productos` (ocasión, talla, presupuesto), `analisis_ventas` y `resumen_negocio` (admin); `buscar_producto` busca también por categoría y descripción y devuelve tallas y enlace | `executeReadOnlyTool` |
+| Perfil de la tienda separado del motor: qué vende, envíos, crédito, cambios, ejemplos de categorías y de recomendación | `ai-assistant/store-profile.ts` |
+| Modelo configurable (`GEMINI_MODEL`) con respaldo; la última vuelta de herramientas obliga a redactar; el log dice qué motor respondió (`Assistant engine: gemini:<modelo>` o `fallback`) y la respuesta lo trae en `engine` | `index.ts` |
+
+**Para portar a otra tienda:** copiar `index.ts`, `actions.ts`, `chatMarkdown.ts`, `ChatMarkdown.tsx`
+y el cambio de `AngelaChat.tsx`; escribir su propio `store-profile.ts`; desplegar `ai-assistant`.
+
+**Si siguen saliendo respuestas de plantilla:** buscar en los logs de la función
+`Assistant engine: fallback` o `Gemini API error`: significa que falta `GEMINI_API_KEY` o que el
+modelo no existe; fijar uno válido con el secreto `GEMINI_MODEL`.
+
 ## 3. Cambios propios de EINA (no copiar el contenido)
 
 Estos cambios adaptan a Ina a una tienda de belleza. En Manojitos hay que **mantener la
 estructura** y poner el contenido de Manojitos.
 
-### 3.1 Bloque “LO QUE OFRECE LA TIENDA” en el prompt
+### 3.1 Bloque “LO QUE OFRECE LA TIENDA” en el prompt (desde 2.10 vive en `store-profile.ts`)
 
 Se agregó un bloque fijo con los datos del negocio para que la IA no invente políticas.
 Contenido actual de EINA:
