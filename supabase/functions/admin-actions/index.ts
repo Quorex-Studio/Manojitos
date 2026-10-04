@@ -70,7 +70,7 @@ serve(async (req) => {
     const body = await req.json()
     const { action, userId, newPassword } = body
 
-    // Clienta nueva desde Nueva venta o Ina: cuenta con su correo y SIN contraseña. Ella la crea
+    // Clienta nueva desde Nueva venta o Ángela: cuenta con su correo y SIN contraseña. Ella la crea
     // con "Olvidé mi contraseña" y, al entrar, completa su perfil (profile_pending).
     if (action === 'create_customer') {
       const json = (payload: unknown, status = 200) =>
