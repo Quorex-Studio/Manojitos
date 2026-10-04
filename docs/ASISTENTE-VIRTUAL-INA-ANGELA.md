@@ -289,6 +289,22 @@ y el cambio de `AngelaChat.tsx`; escribir su propio `store-profile.ts`; desplega
 `Assistant engine: fallback` o `Gemini API error`: significa que falta `GEMINI_API_KEY` o que el
 modelo no existe; fijar uno válido con el secreto `GEMINI_MODEL`.
 
+### 2.11 Memoria de la asistente (04-10-2026)
+
+**Antes:** al cerrar el chat se perdía la conversación, y la memoria de cada persona
+(`customer_memory`) nunca se guardaba: el upsert usaba `onConflict (customer_user_id, memory_key)`
+y el único índice único era parcial. Además, el filtro que la leía no devolvía nada nunca.
+
+| Qué | Cómo | Dónde |
+|---|---|---|
+| 1. Memoria de comportamiento | Índice único completo; la lectura filtra bien por vencimiento; "productos vistos" solo guarda nombres del catálogo (no montos ni títulos en negrita) | migración `20261004010000_assistant_memory.sql`, `ai-assistant/index.ts` |
+| 2. Conversación guardada | Tabla `assistant_conversations` (una por persona, últimos 40 mensajes con sus adjuntos). La escribe la función; el chat la restaura al cargar, en cualquier dispositivo. Botón **Nueva conversación** en el encabezado | `AngelaChat.tsx`, `index.ts` |
+| 3. Lo que importa | Herramientas `recordar` (dato, preferencia o recordatorio con fecha) y `olvidar` (borra o marca hecho). Lo guardado va en las instrucciones ("LO QUE RECUERDAS…") y los recordatorios de hoy o vencidos se mencionan al saludar. Máximo 40 notas activas | tabla `assistant_memories`, `index.ts` |
+| 4. Control y privacidad | Cada persona ve y borra solo lo suyo (RLS). **Configuración → "Lo que {asistente} recuerda"** en Mi cuenta y en el panel (Preferencias): borrar una nota o **Borrar todo** (notas, conversación y memoria de comportamiento). Nunca se guardan contraseñas, cédulas, tarjetas ni números largos | `components/assistant/AssistantMemoryCard.tsx`, `CustomerSettings.tsx`, `Settings.tsx` |
+
+**Para portar:** aplicar la migración, copiar `AssistantMemoryCard.tsx`, los cambios de
+`AngelaChat.tsx` y de `index.ts`, agregar las dos tablas a `types.ts` y desplegar `ai-assistant`.
+
 ## 3. Cambios propios de EINA (no copiar el contenido)
 
 Estos cambios adaptan a Ina a una tienda de belleza. En Manojitos hay que **mantener la

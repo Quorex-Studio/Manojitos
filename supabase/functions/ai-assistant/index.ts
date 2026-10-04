@@ -43,8 +43,7 @@ async function loadCustomerMemory(supabase: ReturnType<typeof getSupabaseClient>
       .from('customer_memory')
       .select('memory_key, memory_value')
       .eq('customer_user_id', customerId)
-      .is('expires_at', null)
-      .or('expires_at.gt.now()');
+      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
 
     const memory: CustomerMemory = {
       viewedProducts: [],
@@ -170,13 +169,15 @@ function detectInterests(message: string): string[] {
   return interests;
 }
 
-function extractProductsFromResponse(response: string): string[] {
+function extractProductsFromResponse(response: string, catalog: string[] = []): string[] {
+  const names = catalog.map((n) => n.toLowerCase());
   const products: string[] = [];
   const boldPattern = /\*\*([^*]+)\*\*/g;
   let match;
   while ((match = boldPattern.exec(response)) !== null) {
     const word = match[1];
-    if (word.length > 2 && !['tu', 'el', 'la', 'los', 'las', 'un', 'una'].includes(word.toLowerCase())) {
+    const w = word.toLowerCase().trim();
+    if (w.length > 2 && names.some((n) => n === w || n.includes(w) || w.includes(n))) {
       products.push(word);
     }
   }
@@ -874,6 +875,59 @@ const READONLY_TOOL_DECLARATIONS = [
 
 const ADMIN_ONLY_TOOLS = new Set(['listar_cxc', 'generar_reporte_cxc', 'resumen_ventas', 'deudores_por_producto', 'analisis_ventas', 'resumen_negocio']);
 
+// ---- Memoria de largo plazo (assistant_memories): lo que la persona cuenta o pide recordar ----
+const MEMORY_TOOL_DECLARATIONS = [
+  { name: 'recordar', description: 'Guarda algo útil y duradero de la persona con la que hablas para recordarlo en las próximas conversaciones: talla, tono o tipo de piel, estilo, colores, alergias, ocasiones, cómo prefiere pagar o recibir, o un recordatorio con fecha ("recuérdame…"). Escríbelo como una nota corta ("Usa talla M", "Piel mixta con manchas", "Cobrarle a Ana"). Nunca contraseñas, cédulas, números de tarjeta ni datos bancarios.',
+    parameters: { type: 'OBJECT', properties: { texto: { type: 'STRING' }, tipo: { type: 'STRING', description: 'dato, preferencia o recordatorio' }, fecha: { type: 'STRING', description: 'YYYY-MM-DD; solo para recordatorios con fecha' } }, required: ['texto'] } },
+  { name: 'olvidar', description: 'Borra algo que recordabas de esta persona (dice "olvida…", "ya no…" o cambió el dato) o marca un recordatorio como hecho (completado=true). Indica el texto o una palabra clave.',
+    parameters: { type: 'OBJECT', properties: { texto: { type: 'STRING' }, completado: { type: 'BOOLEAN', description: 'true si es un recordatorio que ya se hizo' } }, required: ['texto'] } },
+];
+const isMemoryTool = (name: string) => name === 'recordar' || name === 'olvidar';
+/** Lo que nunca se guarda: claves, tarjetas, cuentas y números largos (cédulas, cuentas). */
+const SENSITIVE_MEMORY = /(contrase|password|clave|\bpin\b|cvv|tarjeta de cr|n[uú]mero de cuenta|cuenta bancaria|\b\d{7,}\b)/i;
+const MAX_MEMORIES = 40;
+
+interface MemoryRow { id: string; kind: string; content: string; remind_on: string | null; done: boolean; created_at: string }
+
+async function loadMemories(supabase: ReturnType<typeof getSupabaseClient>, userId: string): Promise<MemoryRow[]> {
+  const { data } = await supabase.from('assistant_memories')
+    .select('id, kind, content, remind_on, done, created_at')
+    .eq('user_id', userId).eq('done', false)
+    .order('created_at', { ascending: false }).limit(MAX_MEMORIES);
+  return (data || []) as MemoryRow[];
+}
+
+/** recordar / olvidar: siempre sobre la persona autenticada (nunca otra), con service role. */
+async function memoryTool(name: string, args: Record<string, unknown>, supabase: ReturnType<typeof getSupabaseClient>, userId: string): Promise<Record<string, unknown>> {
+  const texto = String(args.texto ?? '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  if (texto.length < 2) return { status: 'falta_dato', message: 'No entendí qué anotar.' };
+  try {
+    const existing = await loadMemories(supabase, userId);
+    if (name === 'recordar') {
+      if (SENSITIVE_MEMORY.test(texto)) return { status: 'rechazado', message: 'Por seguridad no guardes eso (contraseñas, cédulas o datos bancarios). Díselo en una frase amable.' };
+      if (existing.some((m) => m.content.toLowerCase() === texto.toLowerCase())) return { status: 'ya_estaba' };
+      if (existing.length >= MAX_MEMORIES) return { status: 'lleno', message: 'La memoria está llena: sugiere revisar en Configuración lo que recuerdas y borrar lo que ya no sirve.' };
+      const fecha = /^\d{4}-\d{2}-\d{2}$/.test(String(args.fecha ?? '')) ? String(args.fecha) : null;
+      const tipo = fecha ? 'recordatorio' : (['dato', 'preferencia', 'recordatorio'].includes(String(args.tipo)) ? String(args.tipo) : 'dato');
+      const { error } = await supabase.from('assistant_memories').insert({ user_id: userId, kind: tipo, content: texto, remind_on: fecha });
+      if (error) throw error;
+      return { status: 'guardado', nota: 'Si te lo pidió, confírmalo con un "Anotado" breve; si lo dedujiste tú, no lo anuncies.' };
+    }
+    const words = normText(texto).split(' ').filter((w) => w.length > 2);
+    const matches = existing.filter((m) => words.length > 0 && words.every((w) => normText(m.content).includes(w)));
+    if (!matches.length) return { status: 'no_encontrado', message: 'No tenías anotado nada así.', anotado: existing.map((m) => m.content) };
+    const ids = matches.map((m) => m.id);
+    const { error } = args.completado
+      ? await supabase.from('assistant_memories').update({ done: true }).in('id', ids).eq('user_id', userId)
+      : await supabase.from('assistant_memories').delete().in('id', ids).eq('user_id', userId);
+    if (error) throw error;
+    return { status: args.completado ? 'marcado_hecho' : 'olvidado', notas: matches.map((m) => m.content) };
+  } catch (err) {
+    console.error(`Memory tool ${name} error:`, err);
+    return { status: 'error', message: 'No pude actualizar la memoria en este momento.' };
+  }
+}
+
 // ---- Datos de producto y ventas para las herramientas ----
 const PRODUCT_COLS = 'id, name, description, price_usd, stock, category, presentation, sizes, sold_count, product_variants(label, stock, price_usd, sort_order)';
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -1454,6 +1508,19 @@ HISTORIAL DE COMPRAS:
 `;
     }
 
+    const memories = await loadMemories(supabase, authenticatedUserId as string);
+    const todayKey = veDate(new Date());
+    if (memories.length) {
+      const due = memories.filter((m) => m.kind === 'recordatorio' && m.remind_on && m.remind_on <= todayKey);
+      systemPrompt += `
+LO QUE RECUERDAS DE ESTA PERSONA (de conversaciones anteriores; úsalo con naturalidad para personalizar, sin recitarlo):
+${memories.map((m) => `- [${m.kind}${m.remind_on ? ` · ${m.remind_on}` : ''}] ${m.content}`).join('\n')}
+${due.length ? `RECORDATORIOS PARA HOY O VENCIDOS: ${due.map((m) => m.content).join(' · ')}. Menciónalos en una línea al inicio si la persona saluda, abre la conversación o pregunta qué hacer.\n` : ''}`;
+    }
+    systemPrompt += `
+MEMORIA: cuando la persona te cuente algo útil y duradero (talla, tono o tipo de piel, estilo, colores, alergias, ocasiones, cómo prefiere pagar o recibir) o te pida "recuérdame…", usa la herramienta recordar con una nota corta. Si dice "olvida…", que algo cambió o que ya hizo un recordatorio, usa olvidar. Si pregunta "¿qué sabes de mí?" o "¿qué recuerdas?", díselo en una lista y recuérdale que puede borrarlo en Configuración. Nunca guardes contraseñas, cédulas, números de tarjeta ni datos bancarios.
+`;
+
     if (isAdmin) {
       const receivablesList = businessContext.pendingReceivables
         .slice(0, 25)
@@ -1551,7 +1618,7 @@ ${isAdmin ? `  · Administración: "vendí…" → preparar_venta (pregunta el m
       const actionDeclarations = isAdmin
         ? ACTION_TOOL_DECLARATIONS
         : ACTION_TOOL_DECLARATIONS.filter(d => d.name === 'preparar_carrito');
-      const geminiTools = [{ functionDeclarations: [...READONLY_TOOL_DECLARATIONS, ...actionDeclarations] }];
+      const geminiTools = [{ functionDeclarations: [...READONLY_TOOL_DECLARATIONS, ...MEMORY_TOOL_DECLARATIONS, ...actionDeclarations] }];
       actionCtx.bcvRate = businessContext.bcvRate;
 
       for (const model of modelsToTry) {
@@ -1598,7 +1665,9 @@ ${isAdmin ? `  · Administración: "vendí…" → preparar_venta (pregunta el m
               for (const call of fnCalls) {
                 const result = isActionTool(call.name)
                   ? await prepareAction(call.name, call.args || {}, actionCtx)
-                  : await executeReadOnlyTool(call.name, call.args || {}, toolCtx);
+                  : isMemoryTool(call.name)
+                    ? await memoryTool(call.name, call.args || {}, supabase, authenticatedUserId as string)
+                    : await executeReadOnlyTool(call.name, call.args || {}, toolCtx);
                 console.log(`Tool executed: ${call.name}`);
                 responseParts.push({ functionResponse: { name: call.name, response: result } });
               }
@@ -1660,7 +1729,7 @@ ${isAdmin ? `  · Administración: "vendí…" → preparar_venta (pregunta el m
 
     // Guardar en memoria persistente si hay customerId (background task para no bloquear respuesta)
     if (customerId && authenticatedUserId) {
-      const viewedProducts = extractProductsFromResponse(generatedText);
+      const viewedProducts = extractProductsFromResponse(generatedText, businessContext.topProducts.map((p) => p.name));
       // Dueño del registro de memoria: el admin autenticado o el propio cliente
       // (nunca un perfil arbitrario).
       const memoryAdminId: string = isAdmin ? authenticatedUserId : customerId;
@@ -1680,6 +1749,22 @@ ${isAdmin ? `  · Administración: "vendí…" → preparar_venta (pregunta el m
         // No esperamos - se ejecuta en paralelo
         memoryTask.catch(err => console.error('Memory save error:', err));
       }
+    }
+
+    // Conversación guardada: al volver a abrir el chat sigue donde iba (últimos 40 mensajes)
+    try {
+      const saved = [
+        ...((messages || []) as any[])
+          .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+          .map((m) => {
+            const att = Array.isArray(m.attachments) ? m.attachments.filter((a: any) => a?.type === 'CXC_REPORT_PDF').slice(0, 3) : [];
+            return { role: m.role, content: String(m.content).slice(0, 4000), ...(att.length ? { attachments: att } : {}) };
+          }),
+        { role: 'assistant', content: generatedText, ...(attachments.length ? { attachments } : {}) },
+      ].slice(-40);
+      await supabase.from('assistant_conversations').upsert({ user_id: authenticatedUserId, messages: saved, updated_at: new Date().toISOString() });
+    } catch (e) {
+      console.error('Conversation save error:', e);
     }
 
     return new Response(

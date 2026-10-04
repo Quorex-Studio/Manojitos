@@ -16,7 +16,7 @@ import { BRAND, BRAND_NAME } from '@/config/brand';
  */
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Send, X, Check, ShoppingCart, FileText, Download, Share, Printer, Loader } from "reicon-react";
+import { Send, X, Check, ShoppingCart, FileText, Download, Share, Printer, Loader, Refresh } from "reicon-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -93,7 +93,7 @@ const WELCOME: ChatMessage = {
 const WELCOME_ADMIN: ChatMessage = {
   role: "assistant",
   content:
-    `🩷 ¡Hola! Soy ${BRAND.assistantName}. Cuéntame qué pasó y lo registro por ti, por ejemplo:\n• "Vendí 2 bases a María por pago móvil"\n• "Compré $80 en YesStyle"\n• "María abonó $20 por Zelle"\n• "Llegaron 10 protectores solares"\nTambién te digo quién te debe, qué se vende más y qué se está acabando. ✨`,
+    `🩷 ¡Hola! Soy ${BRAND.assistantName}. Cuéntame qué pasó y lo registro por ti, por ejemplo:\n• "Vendí 2 blusas a María por pago móvil"\n• "Compré $80 en Shein"\n• "María abonó $20 por Zelle"\n• "Llegaron 10 jeans talla M"\n• "Recuérdame cobrarle a Ana el viernes"\nTambién te digo quién te debe, qué se vende más y qué se está acabando. ✨`,
 };
 
 const ERROR_MESSAGE =
@@ -117,6 +117,27 @@ export default function AngelaChat() {
   const onAdmin = ADMIN_NAV_FLAT.some(i => isAdminPathActive(pathname, i.path));
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Conversación guardada en el servidor: al volver, el chat sigue donde iba (en cualquier dispositivo)
+  const conversationKey = ["assistant-conversation", user?.id ?? ""];
+  const { data: savedConversation } = useQuery({
+    queryKey: conversationKey,
+    enabled: !!user,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data } = await supabase.from("assistant_conversations").select("messages").eq("user_id", user!.id).maybeSingle();
+      return (Array.isArray(data?.messages) ? data.messages : []) as unknown as ChatMessage[];
+    },
+  });
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current || !savedConversation?.length) return;
+    restored.current = true;
+    const past = savedConversation
+      .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .map((m) => ({ role: m.role, content: m.content, attachments: m.attachments }));
+    setMessages((prev) => (prev.length === 1 ? [prev[0], ...past] : prev));
+  }, [savedConversation]);
 
   // Estado de la mascota: pensando mientras responde, reacción positiva al recibir.
   const mascotState: MascotState = sending ? "thinking" : justAnswered ? "happy" : "idle";
@@ -167,7 +188,8 @@ export default function AngelaChat() {
 
     const userMsg: ChatMessage = { role: "user", content: trimmed };
     const history = [...messages.filter((m) => m !== WELCOME && m !== WELCOME_ADMIN), userMsg]
-      .map(({ role, content }) => ({ role, content }));
+      .slice(-40)
+      .map(({ role, content, attachments }) => ({ role, content, ...(attachments?.length ? { attachments } : {}) }));
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
@@ -202,6 +224,8 @@ export default function AngelaChat() {
         : [];
       const attachments = Array.isArray(data.attachments) ? data.attachments.filter((a) => a.type === "CXC_REPORT_PDF") : [];
       setMessages((prev) => [...prev, { role: "assistant", content: data.content as string, proposals, attachments }]);
+      // Lo que recordó en esta respuesta aparece enseguida en Configuración
+      void queryClient.invalidateQueries({ queryKey: ["assistant-memories", user?.id ?? ""] });
       setSuggestions(Array.isArray(data.suggestions) ? data.suggestions.slice(0, 4) : []);
       // Reacción positiva breve de la mascota.
       setJustAnswered(true);
@@ -212,6 +236,17 @@ export default function AngelaChat() {
     } finally {
       setSending(false);
     }
+  }
+
+  /** Empieza de cero: borra la conversación guardada (lo que recuerda de la persona se queda). */
+  async function resetConversation() {
+    if (sending || !user) return;
+    await supabase.from("assistant_conversations").delete().eq("user_id", user.id);
+    queryClient.setQueryData(conversationKey, []);
+    setMessages([isAdmin ? WELCOME_ADMIN : WELCOME]);
+    setSuggestions([]);
+    setInput("");
+    inputRef.current?.focus();
   }
 
   function updateProposal(id: string, patch: Partial<Proposal>) {
@@ -353,6 +388,19 @@ export default function AngelaChat() {
                   </p>
                 </div>
               </div>
+              <div className="flex items-center gap-1">
+              {messages.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => void resetConversation()}
+                  disabled={sending}
+                  aria-label="Nueva conversación"
+                  title="Nueva conversación"
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-primary-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/50 disabled:opacity-50"
+                >
+                  <Refresh className="h-4 w-4" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -361,6 +409,7 @@ export default function AngelaChat() {
               >
                 <X className="h-5 w-5" />
               </button>
+              </div>
             </div>
 
             {/* Mensajes */}
