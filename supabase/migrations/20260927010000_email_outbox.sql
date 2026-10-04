@@ -18,9 +18,13 @@ create table if not exists public.email_outbox (
 create index if not exists email_outbox_pending_idx on public.email_outbox (due_at) where status = 'pending';
 
 alter table public.email_outbox enable row level security;
-drop policy if exists "Administración ve la cola de correos" on public.email_outbox;
-create policy "Administración ve la cola de correos" on public.email_outbox
-  for select to authenticated using (public.is_admin());
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'email_outbox' and policyname = 'Administración ve la cola de correos') then
+    create policy "Administración ve la cola de correos" on public.email_outbox
+      for select to authenticated using (public.is_admin());
+  end if;
+end $$;
 
 -- Notificaciones: todas salen también por correo (la función decide destinatario y preferencias)
 create or replace function public.enqueue_notification_email()
@@ -31,8 +35,7 @@ begin
   return new;
 end $$;
 
-drop trigger if exists trg_notifications_email on public.notifications;
-create trigger trg_notifications_email after insert on public.notifications
+create or replace trigger trg_notifications_email after insert on public.notifications
   for each row execute function public.enqueue_notification_email();
 
 -- Factura de una venta: cuando se confirma. El POS confirma producto por producto, así que
@@ -54,8 +57,7 @@ begin
   return new;
 end $$;
 
-drop trigger if exists trg_sales_receipt_email on public.sales;
-create trigger trg_sales_receipt_email after insert or update of status on public.sales
+create or replace trigger trg_sales_receipt_email after insert or update of status on public.sales
   for each row execute function public.enqueue_sale_receipt_email();
 
 -- Abono registrado: factura actualizada con el detalle de todos los abonos
@@ -72,8 +74,7 @@ begin
   return new;
 end $$;
 
-drop trigger if exists trg_sale_payments_receipt_email on public.sale_payments;
-create trigger trg_sale_payments_receipt_email after insert on public.sale_payments
+create or replace trigger trg_sale_payments_receipt_email after insert on public.sale_payments
   for each row execute function public.enqueue_payment_receipt_email();
 
 -- La función toma lotes sin pisarse con otra ejecución (skip locked) y rescata envíos colgados
@@ -112,7 +113,8 @@ revoke execute on function public.enqueue_payment_receipt_email() from public, a
 grant execute on function public.claim_email_outbox(int) to service_role;
 grant execute on function public.finish_email_outbox(uuid, text, text) to service_role;
 
--- Cada 20 s, solo si hay algo por enviar
+-- Cada 20 s, solo si hay algo por enviar.
+-- En Manojitos se programó después de desplegar la edge function send-email nueva.
 select cron.unschedule('email-outbox') where exists (select 1 from cron.job where jobname = 'email-outbox');
 select cron.schedule('email-outbox', '20 seconds', $cron$
   select net.http_post(
