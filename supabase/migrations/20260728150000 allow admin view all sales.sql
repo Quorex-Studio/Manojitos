@@ -1,4 +1,4 @@
--- Migración de historial (aplicada originalmente en producción). Agrégala tal cual a supabase/migrations/.
+-- YA APLICADA en producción (utfoempgdbhhikpvbvir). Agrégala tal cual a supabase/migrations/.
 DROP POLICY IF EXISTS "Users can view own sales" ON public.sales;
 CREATE POLICY "Users can view own sales" ON public.sales
   FOR SELECT
