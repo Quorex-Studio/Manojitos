@@ -238,7 +238,7 @@ async function sendEmailNotification(
       subject: title,
       html: `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #FFB5C5 0%, #D4AF37 100%); padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
+          <div style="background: linear-gradient(135deg, #FFB5C5 0%, #D4AF37 100%); color: #ffffff; padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 24px;">${BRAND_NAME}</h1>
           </div>
           <div style="background: #fff; padding: 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 10px 10px;">

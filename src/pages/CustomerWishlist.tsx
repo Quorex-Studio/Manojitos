@@ -68,16 +68,16 @@ export default function CustomerWishlist() {
               </Button>
             </Link>
             <div className="flex-1">
-              <h1 className="page-header">Lista de Deseos</h1>
+              <h1 className="store-page-title">Lista de Deseos</h1>
               <p className="text-muted-foreground">{wishlist.length} productos guardados</p>
             </div>
-            <Heart className="h-8 w-8 text-rose-500" />
+            <Heart className="h-8 w-8 text-primary" />
           </div>
 
           {wishlist.length === 0 ? (
             <Card className="glass-card">
               <CardContent className="py-12 text-center">
-                <HeartOff className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <HeartOff className="h-16 w-16 mx-auto text-muted-foreground/40 mb-4" />
                 <h2 className="text-xl font-semibold mb-2">Tu lista está vacía</h2>
                 <p className="text-muted-foreground mb-6">
                   Guarda productos que te gusten para comprarlos después
@@ -112,7 +112,7 @@ export default function CustomerWishlist() {
                             />
                           ) : (
                             <div className="w-full h-full bg-secondary flex items-center justify-center">
-                              <Heart className="h-8 w-8 text-muted-foreground" />
+                              <Heart className="h-8 w-8 text-muted-foreground/40" />
                             </div>
                           )}
                         </Link>

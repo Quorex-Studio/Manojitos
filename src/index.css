@@ -15,16 +15,13 @@
 
 @layer base {
   :root {
-    /* 
-       Core Design System
-       Palette: Gold (#D4AF37), White, Rose/Pink
-       Usage: 
-       - --primary: Brand Rose (Buttons, Icons)
-       - --accent/--gold: Brand Gold (Success, Premium, Highlights)
-       - --background: Warm neutral for comfort
+    /*
+       Paleta Manojitos: rosa (--primary/--rose) para la acción principal y la marca,
+       dorado (--gold/--accent) para detalles, crema cálida de fondo.
+       Tokens de la plantilla (studio, sale, success, wine, nude, cream) con equivalentes de esta paleta.
     */
     --background: 30 15% 98%;
-    --foreground: 340 20% 8%; /* Más oscuro para mejor contraste */
+    --foreground: 340 20% 8%;
 
     --card: 0 0% 100%;
     --card-foreground: 340 20% 10%;
@@ -32,39 +29,37 @@
     --popover: 0 0% 100%;
     --popover-foreground: 340 20% 10%;
 
-    /* Rosa Principal */
     --primary: 345 55% 62%;
     --primary-foreground: 0 0% 100%;
 
-    /* Fondos sutiles */
     --secondary: 340 18% 95%;
     --secondary-foreground: 340 25% 18%;
 
     --muted: 30 10% 92%;
-    --muted-foreground: 340 15% 35%; /* Incrementado contraste de 45% a 35% */
+    --muted-foreground: 340 15% 35%;
 
-    /* Dorado — accent */
-    --accent: 38 68% 45%; /* Un poco más oscuro para legibilidad sobre blanco */
+    --accent: 38 68% 45%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 68% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 12% 85%; /* Bordes un poco más definidos */
+    --border: 30 12% 85%;
     --input: 30 12% 85%;
     --ring: 345 55% 62%;
 
     --radius: 0.875rem;
-
-
-    /* Custom Color Tokens */
+    --studio: 30 25% 94%;
+    --sale: 0 68% 45%;
+    --success: 151 55% 30%;
+    --nude: 345 55% 80%;
+    --cream: 24 45% 94%;
+    --wine: 345 42% 48%;
     --gold: 38 68% 50%;
     --gold-light: 38 52% 65%;
     --rose: 345 55% 62%;
     --rose-light: 345 55% 93%;
     --rose-dark: 345 42% 48%;
-
-    /* Sidebar */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 340 18% 22%;
     --sidebar-primary: 345 55% 62%;
@@ -73,15 +68,13 @@
     --sidebar-accent-foreground: 340 18% 22%;
     --sidebar-border: 30 12% 89%;
     --sidebar-ring: 345 55% 62%;
-
-    /* Glass */
     --glass-bg: 0 0% 100% / 0.7;
     --glass-border: 0 0% 100% / 0.5;
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
   }
 
   .dark {
-    /* LUXURY DARK — Warm black + rose undertone */
+    /* Modo oscuro Manojitos: base ciruela oscura, texto crema, rosa y dorado luminosos. */
     --background: 340 18% 6%;
     --foreground: 30 12% 94%;
 
@@ -91,7 +84,6 @@
     --popover: 340 16% 9%;
     --popover-foreground: 30 12% 94%;
 
-    /* Rosa luminoso */
     --primary: 345 50% 66%;
     --primary-foreground: 340 25% 7%;
 
@@ -101,7 +93,6 @@
     --muted: 340 14% 13%;
     --muted-foreground: 340 8% 52%;
 
-    /* Dorado brillante */
     --accent: 38 60% 56%;
     --accent-foreground: 38 25% 7%;
 
@@ -112,6 +103,12 @@
     --input: 340 14% 16%;
     --ring: 345 50% 66%;
 
+    --studio: 340 16% 12%;
+    --sale: 0 80% 70%;
+    --success: 151 45% 55%;
+    --nude: 345 50% 66%;
+    --cream: 30 12% 94%;
+    --wine: 345 40% 50%;
     --gold: 38 60% 56%;
     --gold-light: 38 48% 70%;
     --rose: 345 50% 66%;
@@ -150,9 +147,10 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Quicksand', sans-serif;
-    font-weight: 500;
-    letter-spacing: 0.01em;
+    font-family: 'Source Sans 3', 'Source Sans Pro', system-ui, sans-serif;
+    font-weight: 400;
+    font-feature-settings: 'kern', 'liga';
+    -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;
     width: 100%;
   }
@@ -168,7 +166,7 @@
   h4,
   h5,
   h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: Constantia, 'Crimson Pro', Georgia, serif;
     @apply font-semibold;
     letter-spacing: -0.01em;
   }
@@ -206,6 +204,7 @@
     background: linear-gradient(135deg, hsl(var(--gold)) 0%, hsl(var(--gold-light)) 100%);
   }
 
+  /* Marca en texto: degradado dorado de Manojitos. */
   .text-gradient-gold {
     background: linear-gradient(135deg, hsl(38 75% 35%) 0%, hsl(38 75% 48%) 100%);
     -webkit-background-clip: text;
@@ -232,18 +231,18 @@
   /* ========================
      BUTTONS — Premium
      ======================== */
+  /* CTA principal (DESIGN.md): pill rosa sólido, sin glow ni saltos.
+     Se mantiene el nombre .btn-gold por compatibilidad con pantallas existentes. */
   .btn-gold {
-    @apply gradient-gold text-white font-semibold shadow-lg transition-all duration-300 relative overflow-hidden;
-    box-shadow: 0 4px 20px 0 hsl(var(--gold) / 0.35);
+    @apply bg-primary text-primary-foreground font-semibold transition-colors duration-200;
   }
 
   .btn-gold:hover {
-    box-shadow: 0 8px 32px 0 hsl(var(--gold) / 0.45);
-    transform: translateY(-2px) scale(1.02);
+    @apply bg-primary/90;
   }
 
   .btn-gold:active {
-    transform: translateY(0) scale(0.98);
+    @apply bg-primary/80;
   }
 
   /* Shimmer sweep effect on hover */
@@ -251,52 +250,22 @@
     @apply relative overflow-hidden;
   }
 
-  .btn-shimmer::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        hsl(var(--gold) / 0.3) 50%,
-        transparent 100%);
-    transition: left 0.6s ease;
-  }
-
-  .btn-shimmer:hover::after {
-    left: 100%;
-  }
+  /* Sin barrido brillante (DESIGN.md: "sin brillos") */
+  .btn-shimmer::after { content: none; }
 
   /* Rosa shimmer variant */
   .btn-shimmer-rosa {
     @apply relative overflow-hidden;
   }
 
-  .btn-shimmer-rosa::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        hsl(var(--rose) / 0.25) 50%,
-        transparent 100%);
-    transition: left 0.6s ease;
-  }
-
-  .btn-shimmer-rosa:hover::after {
-    left: 100%;
-  }
+  .btn-shimmer-rosa::after { content: none; }
 
   /* ========================
      INPUT
      ======================== */
+  /* Sin backdrop-blur: crea un contexto de apilamiento que tapaba el ícono de búsqueda. */
   .input-glass {
-    @apply bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary focus:ring-primary/20 transition-all duration-300;
+    @apply bg-card border-border focus:border-primary focus:ring-primary/20 transition-colors duration-200;
   }
 
   /* ========================
@@ -310,25 +279,44 @@
     @apply glass-card rounded-2xl p-6 hover-lift;
   }
 
+  /* Pestañas de sección del panel: una sola fila que se desliza en móvil (nunca se apilan). */
+  .admin-tabs.admin-tabs {
+    @apply -mx-4 flex h-auto w-[calc(100%+2rem)] justify-start gap-1 overflow-x-auto rounded-none bg-transparent px-4 pb-1 md:mx-0 md:w-auto md:max-w-full md:rounded-full md:bg-secondary md:p-1;
+    scrollbar-width: none;
+  }
+  .admin-tabs::-webkit-scrollbar { display: none; }
+  .admin-tabs.admin-tabs > [role='tab'] {
+    @apply h-10 shrink-0 gap-2 rounded-full border border-border bg-card px-4 text-sm md:border-transparent md:bg-transparent;
+  }
+  .admin-tabs.admin-tabs > [role='tab'][data-state='active'] {
+    @apply border-primary bg-primary text-primary-foreground shadow-none md:bg-card md:text-foreground md:border-transparent md:shadow-sm;
+  }
+
+  /* Encabezado de página del panel. En móvil el título vive en la barra superior
+     (AdminMobileNav), por eso aquí se oculta y solo queda el subtítulo. */
   .page-header {
-    @apply text-3xl md:text-4xl font-bold text-foreground mb-2;
-    font-family: 'Playfair Display', serif;
+    @apply hidden md:flex items-center gap-3 text-3xl lg:text-4xl font-medium tracking-tight text-foreground;
+    font-family: Constantia, 'Crimson Pro', Georgia, serif;
+  }
+
+  /* Título de páginas de la tienda (cuenta de la clienta): visible también en móvil */
+  .store-page-title {
+    @apply flex items-center gap-2 text-2xl md:text-3xl font-semibold tracking-tight text-foreground;
+    font-family: Constantia, 'Crimson Pro', Georgia, serif;
   }
 
   .page-subtitle {
-    @apply text-muted-foreground text-lg;
-    font-family: 'Quicksand', sans-serif;
+    @apply text-muted-foreground text-sm md:text-base md:mt-1;
+    font-family: 'Source Sans 3', system-ui, sans-serif;
   }
 
   /* ========================
      GLOW TEXT
      ======================== */
-  .text-glow-rosa {
-    text-shadow: 0 0 40px hsl(var(--rose) / 0.4), 0 0 80px hsl(var(--rose) / 0.15);
-  }
-
+  /* DESIGN.md: sin text-shadow decorativo */
+  .text-glow-rosa,
   .text-glow-gold {
-    text-shadow: 0 0 40px hsl(var(--gold) / 0.4), 0 0 80px hsl(var(--gold) / 0.15);
+    text-shadow: none;
   }
 
   /* ========================
@@ -466,7 +454,7 @@
   }
 
   .animate-glow-pulse-gold {
-    animation: glowPulseGold 2s ease-in-out infinite;
+    animation: none;
   }
 
   /* Skeleton shimmer — loading states */
@@ -590,4 +578,30 @@
     animation: orb3 8s linear infinite;
     will-change: transform, opacity;
   }
+}
+/* Accesibilidad (DESIGN.md): si la persona pidió menos movimiento, se desactivan
+   animaciones y transiciones largas en todo el sitio. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Barra inferior móvil: los elementos flotantes (chat) se elevan sobre ella */
+@media (max-width: 767px) {
+  body:has(.mobile-tabbar) {
+    --mobile-tabbar: 4rem;
+  }
+}
+
+/* Ventanas flotantes siempre opacas: el "vidrio" dejaba ver la página detrás y restaba legibilidad */
+[role='dialog'].glass-card,
+[role='alertdialog'].glass-card {
+  background-color: hsl(var(--background));
+  backdrop-filter: none;
 }

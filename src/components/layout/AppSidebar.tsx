@@ -1,158 +1,159 @@
-import { BRAND_NAME } from '@/config/brand';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Layout, Package, ShoppingCart, CreditCard, Truck, FileText, Settings, Logout, Menu, CloseSquare, Store, FileUp, Wallet, Users } from 'reicon-react';
+import { Logout, Store, SidebarLeft } from 'reicon-react';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
-import { useState, useEffect } from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { BrandLogo } from '@/components/brand/BrandLogo';
+import { storageKey } from '@/config/brand';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
+import { ADMIN_NAV, isAdminPathActive } from './adminNav';
 
-const menuItems = [
-  { icon: Layout, label: 'Panel General', path: '/dashboard' },
-  { icon: Package, label: 'Productos', path: '/products' },
-  { icon: ShoppingCart, label: 'Ventas', path: '/sales' },
-  { icon: Wallet, label: 'Créditos', path: '/credits' },
-  { icon: Truck, label: 'Proveedores', path: '/providers' },
-  { icon: Users, label: 'Clientes', path: '/dashboard/clientes' },
-  { icon: FileText, label: 'Reportes', path: '/reports' },
-  { icon: FileUp, label: 'Importar', path: '/import-products' },
-  { icon: Settings, label: 'Configuración', path: '/settings' },
-];
+const COLLAPSE_KEY = storageKey('admin_sidebar_collapsed');
 
+// Barra lateral del panel (tablet y escritorio). En móvil la navegación vive en AdminMobileNav.
+// Se colapsa con un botón (y se recuerda), no con hover: así el contenido no salta de lado.
 export function AppSidebar() {
-  const location = useLocation();
-  const { signOut } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const isMobile = useIsMobile();
-
-  // Close sidebar when route changes on mobile
-  useEffect(() => {
-    if (isMobile) {
-      setIsOpen(false);
+  const { pathname } = useLocation();
+  const { signOut, user } = useAuth();
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      const stored = localStorage.getItem(COLLAPSE_KEY);
+      // Por defecto: colapsada en tablet, expandida en escritorio
+      return stored ? stored === '1' : window.innerWidth < 1280;
+    } catch {
+      return false;
     }
-  }, [location.pathname, isMobile]);
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch { /* sin almacenamiento */ }
+  }, [collapsed]);
+
+  const withTip = (label: string, node: React.ReactNode) =>
+    collapsed ? (
+      <Tooltip>
+        <TooltipTrigger asChild>{node}</TooltipTrigger>
+        <TooltipContent side="right">{label}</TooltipContent>
+      </Tooltip>
+    ) : node;
 
   return (
-    <>
-      {/* Mobile menu button */}
-      {isMobile && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="fixed top-4 left-4 z-50"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {isOpen ? <CloseSquare className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
-      )}
-
-
-      {/* Overlay - mobile only */}
-      {isMobile && isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
+    <TooltipProvider delayDuration={150}>
       <aside
-        onMouseEnter={() => !isMobile && setIsCollapsed(false)}
-        onMouseLeave={() => !isMobile && !notifOpen && setIsCollapsed(true)}
+        aria-label="Menú del panel"
         className={cn(
-          "relative h-full bg-sidebar border-r border-sidebar-border flex-shrink-0 transition-all duration-300",
-          isCollapsed && !isMobile ? "w-[80px]" : "w-[280px]",
-          isMobile && "fixed left-0 top-0 z-50",
-          isMobile && !isOpen && "-translate-x-full",
-          isMobile && isOpen && "translate-x-0",
-          !isMobile && "sticky top-0"
+          'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:flex',
+          collapsed ? 'w-[76px]' : 'w-[248px]'
         )}
       >
+        {/* Marca + colapsar */}
+        <div className={cn('flex h-16 items-center border-b border-sidebar-border', collapsed ? 'justify-center px-2' : 'justify-between px-4')}>
+          <Link to="/dashboard" aria-label="Ir al panel" className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            {collapsed ? <BrandLogo variant="isotipo" className="h-9" /> : <BrandLogo className="h-8" />}
+          </Link>
+          {!collapsed && (
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              aria-label="Contraer menú"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
+              <SidebarLeft className="h-5 w-5" />
+            </button>
+          )}
+        </div>
 
-
-        <div className={cn("flex flex-col h-full", isCollapsed && !isMobile ? "p-3" : "p-6")}>
-          {/* Logo */}
-          <div className={cn("mb-8 flex items-center", isCollapsed && !isMobile ? "justify-center pt-2" : "gap-3 pt-2")}>
-            <img 
-              src={logoImage} 
-              alt={BRAND_NAME} 
-              className="h-11 w-11 rounded-full object-cover ring-1 ring-gold/20 flex-shrink-0"
-            />
-            {(!isCollapsed || isMobile) && (
-              <div className="overflow-hidden">
-                <h1 className="font-serif text-xl font-bold text-gradient-gold tracking-normal whitespace-nowrap">
-                  {BRAND_NAME}
-                </h1>
-                <p className="text-sidebar-foreground/30 text-[10px] font-sans tracking-[0.15em] uppercase whitespace-nowrap">Sistema de Gestión</p>
-              </div>
-            )}
-          </div>
-
-          {/* Ver Tienda */}
-          <div className={cn("flex items-center justify-between mb-6 pb-4 border-b border-sidebar-border", isCollapsed && !isMobile && "justify-center")}>
-            <Link to="/" className="flex items-center gap-2 text-xs text-sidebar-foreground/40 hover:text-gold transition-colors duration-300 tracking-wide" title="Ver tienda">
-              <Store className="h-4 w-4" />
-              {(!isCollapsed || isMobile) && <span>Ver tienda</span>}
-            </Link>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 space-y-1">
-            {menuItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => isMobile && setIsOpen(false)}
+        {/* Navegación */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          {collapsed && (
+            <div className="mb-3 flex justify-center">
+              {withTip('Expandir menú', (
+                <button
+                  type="button"
+                  onClick={() => setCollapsed(false)}
+                  aria-label="Expandir menú"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                 >
-                  <motion.div
-                    whileHover={{ x: isCollapsed && !isMobile ? 0 : 4, scale: isCollapsed && !isMobile ? 1.1 : 1 }}
-                    whileTap={{ scale: 0.98 }}
-                    title={isCollapsed && !isMobile ? item.label : undefined}
-                    className={cn(
-                      "flex items-center rounded-xl transition-all duration-300",
-                      isCollapsed && !isMobile ? "justify-center p-3" : "gap-3 px-4 py-2.5",
-                      isActive 
-                        ? "bg-primary/10 text-primary shadow-sm" 
-                        : "hover:bg-sidebar-accent text-sidebar-foreground/50 hover:text-sidebar-foreground"
-                    )}
-                  >
-                    <item.icon className={cn(isCollapsed && !isMobile ? "h-5 w-5" : "h-4.5 w-4.5", isActive && "text-primary")} />
-                    {(!isCollapsed || isMobile) && <span className="text-sm font-medium tracking-wide whitespace-nowrap">{item.label}</span>}
-                  </motion.div>
-                </Link>
-              );
-            })}
-          </nav>
+                  <SidebarLeft className="h-5 w-5 rotate-180" />
+                </button>
+              ))}
+            </div>
+          )}
+          {ADMIN_NAV.map(section => (
+            <div key={section.title} className="mb-5 last:mb-0">
+              {!collapsed && (
+                <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-sidebar-foreground/50">
+                  {section.title}
+                </p>
+              )}
+              <ul className="space-y-0.5">
+                {section.items.map(item => {
+                  const active = isAdminPathActive(pathname, item.path);
+                  return (
+                    <li key={item.path}>
+                      {withTip(item.label, (
+                        <Link
+                          to={item.path}
+                          aria-current={active ? 'page' : undefined}
+                          className={cn(
+                            'relative flex h-10 items-center rounded-lg text-sm font-medium transition-colors',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                            collapsed ? 'justify-center' : 'gap-3 px-3',
+                            active
+                              ? 'bg-sidebar-accent text-sidebar-primary'
+                              : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                          )}
+                        >
+                          {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-sidebar-primary" />}
+                          <item.icon className="h-5 w-5 shrink-0" />
+                          {!collapsed && <span className="truncate">{item.label}</span>}
+                        </Link>
+                      ))}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
 
-          {/* Actions */}
-          <div className={cn("flex items-center gap-2 mb-4", isCollapsed && !isMobile ? "flex-col" : "")}>
-            <NotificationBell onOpenChange={setNotifOpen} />
+        {/* Pie: tienda, avisos, tema, usuario, salir */}
+        <div className="border-t border-sidebar-border p-3">
+          <div className={cn('mb-2 flex items-center', collapsed ? 'flex-col gap-1' : 'gap-1')}>
+            {withTip('Ver tienda', (
+              <Link
+                to="/"
+                aria-label="Ver tienda"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              >
+                <Store className="h-5 w-5" />
+              </Link>
+            ))}
+            <NotificationBell />
             <ThemeToggle />
           </div>
-
-          {/* Logout */}
-          <Button
-            variant="ghost"
-            onClick={() => signOut()}
-            title={isCollapsed && !isMobile ? "Cerrar Sesión" : undefined}
-            className={cn(
-              "text-sidebar-foreground/40 hover:text-destructive hover:bg-destructive/10 text-sm",
-              isCollapsed && !isMobile ? "w-10 h-10 p-0 mx-auto justify-center" : "w-full justify-start gap-3"
+          <div className={cn('flex items-center rounded-lg', collapsed ? 'justify-center' : 'gap-3 px-2 py-1.5')}>
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-sidebar-foreground">{user?.user_metadata?.full_name || 'Administración'}</p>
+                <p className="truncate text-xs text-sidebar-foreground/60">{user?.email}</p>
+              </div>
             )}
-          >
-            <Logout className="h-5 w-5" />
-            {(!isCollapsed || isMobile) && <span>Cerrar Sesión</span>}
-          </Button>
+            {withTip('Cerrar sesión', (
+              <button
+                type="button"
+                onClick={() => signOut()}
+                aria-label="Cerrar sesión"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground/60 hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Logout className="h-5 w-5" />
+              </button>
+            ))}
+          </div>
         </div>
       </aside>
-    </>
+    </TooltipProvider>
   );
 }

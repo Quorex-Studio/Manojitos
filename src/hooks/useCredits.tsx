@@ -7,6 +7,7 @@
  */
 // Hook actualizado para gestión profesional de créditos
 // Incluye trust score, promesas de pago y restricciones progresivas
+import { localDateISO } from '@/lib/dates';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -464,7 +465,7 @@ export function usePaymentPromises(creditId?: string) {
         .from('payment_promises')
         .update({
           status,
-          actual_payment_date: new Date().toISOString().split('T')[0],
+          actual_payment_date: localDateISO(),
           actual_amount_paid: amountPaid,
         })
         .eq('id', promiseId)

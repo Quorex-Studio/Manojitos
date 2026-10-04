@@ -1,18 +1,14 @@
-import { BRAND_FILE_SLUG, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
+import { BRAND_WHATSAPP_URL } from '@/config/brand';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { TickCircle, Location, Loader, Package, Truck, CheckCircle, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag } from 'reicon-react';
+import { TickCircle, Location, Loader, Package, Truck, Clock, XCircle, ArrowLeft, Refresh, ShoppingBag, Receipt, MessageSquare } from 'reicon-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import jsPDF from 'jspdf';
 
 import { useState } from 'react';
 import { StoreLayout } from '@/components/store/StoreLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { useCustomerOrders } from '@/hooks/useCustomerOrders';
@@ -20,38 +16,57 @@ import { useAuth } from '@/hooks/useAuth';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/contexts/CartContext';
+import { ReceiptDialog } from '@/components/receipts/ReceiptDialog';
+import { receiptNumber, type ReceiptData } from '@/lib/receipt';
 import { Order, OrderItem } from '@/types';
 
 type ExtendedOrderItem = OrderItem & { id?: string; price?: number; price_usd?: number };
 
 const ORDER_STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: 'En revisión', color: 'bg-gold/20 text-gold border-gold/30' },
-  confirmed: { label: 'Aprobado / En proceso', color: 'bg-primary/10 text-primary border-primary/20' },
-  processing: { label: 'En proceso', color: 'bg-primary/10 text-primary border-primary/20' },
-  shipped: { label: 'En camino', color: 'bg-primary/20 text-primary border-primary/30' },
-  delivered: { label: 'Entregado', color: 'bg-primary text-primary-foreground' },
-  cancelled: { label: 'Cancelado', color: 'bg-destructive/10 text-destructive border-destructive/20' },
+  pending: { label: 'En revisión', color: 'bg-amber-500/15 text-amber-700 dark:text-amber-400' },
+  confirmed: { label: 'Confirmado', color: 'bg-primary/10 text-primary' },
+  processing: { label: 'Preparando', color: 'bg-primary/10 text-primary' },
+  shipped: { label: 'En camino', color: 'bg-primary/15 text-primary' },
+  delivered: { label: 'Entregado', color: 'bg-success/15 text-success' },
+  cancelled: { label: 'Cancelado', color: 'bg-destructive/10 text-destructive' },
 };
 
 const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  paid: { label: 'Pagado', color: 'bg-primary text-primary-foreground' },
-  pending: { label: 'Pendiente', color: 'bg-gold/20 text-gold border-gold/30' },
-  failed: { label: 'Fallido', color: 'bg-destructive text-destructive-foreground' },
+  paid: { label: 'Pagado', color: 'text-success' },
+  pending: { label: 'Pago por confirmar', color: 'text-amber-700 dark:text-amber-400' },
+  failed: { label: 'Pago rechazado', color: 'text-destructive' },
 };
 
-const STATUS_ICONS: Record<string, typeof Package> = {
-  pending: Clock,
-  confirmed: TickCircle,
-  processing: Package,
-  shipped: Truck,
-  delivered: TickCircle,
-  cancelled: XCircle,
-};
+// Recorrido del pedido: cada estado marca hasta qué paso llegó
+const ORDER_STEPS = [
+  { label: 'Recibido', hint: 'Recibimos tu pedido y estamos verificando el pago.', icon: Clock },
+  { label: 'Confirmado', hint: 'Pago confirmado. Estamos preparando tu pedido.', icon: Package },
+  { label: 'En camino', hint: 'Tu pedido va en camino (delivery o MRW).', icon: Truck },
+  { label: 'Entregado', hint: '¡Listo! Disfruta tu compra.', icon: Location },
+];
+const STEP_INDEX: Record<string, number> = { pending: 0, confirmed: 1, processing: 1, shipped: 2, delivered: 3 };
+
+const isActiveOrder = (o: Order) => !['delivered', 'cancelled'].includes(o.status);
+
+function OrderProgress({ status }: { status: string }) {
+  const current = STEP_INDEX[status] ?? 0;
+  return (
+    <ol className="grid grid-cols-4 gap-1" aria-label="Progreso del pedido">
+      {ORDER_STEPS.map((step, i) => (
+        <li key={step.label} className="min-w-0">
+          <div className={cn('h-1.5 rounded-full', i <= current ? 'bg-primary' : 'bg-muted')} />
+          <p className={cn('mt-1.5 truncate text-[11px]', i === current ? 'font-semibold text-foreground' : 'text-muted-foreground')}>{step.label}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 export default function CustomerOrders() {
   // --- DERIVED ---
   const { user } = useAuth();
-  const { orders, isLoading, stats } = useCustomerOrders();
+  const { orders, isLoading } = useCustomerOrders();
+  const [filter, setFilter] = useState<'all' | 'active' | 'delivered' | 'cancelled'>('all');
 
   // --- RENDER ---
 
@@ -79,83 +94,78 @@ export default function CustomerOrders() {
     );
   }
 
+  const counts = {
+    all: orders.length,
+    active: orders.filter(isActiveOrder).length,
+    delivered: orders.filter(o => o.status === 'delivered').length,
+    cancelled: orders.filter(o => o.status === 'cancelled').length,
+  };
+  const visible = orders.filter(o =>
+    filter === 'all' ? true : filter === 'active' ? isActiveOrder(o) : o.status === filter
+  );
+  const spent = orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total_usd || 0), 0);
+
   return (
     <StoreLayout>
-      <div className="container py-8 max-w-4xl">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <Link to="/cliente/perfil">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+      <div className="container max-w-3xl py-6 md:py-10">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+          <div className="flex items-center gap-3">
+            <Link to="/cliente/perfil" aria-label="Volver a mi cuenta">
+              <Button variant="ghost" size="icon" className="shrink-0 rounded-full"><ArrowLeft className="h-5 w-5" /></Button>
             </Link>
-            <div>
-              <h1 className="page-header">Mis Pedidos</h1>
-              <p className="text-muted-foreground">Historial y seguimiento de tus compras</p>
+            <div className="min-w-0">
+              <h1 className="font-serif text-2xl font-semibold md:text-3xl">Mis pedidos</h1>
+              <p className="text-sm text-muted-foreground">Sigue tus compras y descarga tus recibos</p>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-primary">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total Pedidos</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-gold">{stats.pending}</p>
-                <p className="text-xs text-muted-foreground">Pendientes</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-primary">{stats.inProgress}</p>
-                <p className="text-xs text-muted-foreground">En Progreso</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-3xl font-bold text-primary">{stats.completed}</p>
-                <p className="text-xs text-muted-foreground">Entregados</p>
-              </CardContent>
-            </Card>
+          {orders.length > 0 && (
+            <section className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card p-4">
+              {([
+                ['Pedidos', String(counts.all)],
+                ['En curso', String(counts.active)],
+                ['Invertido', `$${spent.toFixed(2)}`],
+              ] as [string, string][]).map(([label, value]) => (
+                <div key={label} className="min-w-0 px-2 text-center first:pl-0 last:pr-0">
+                  <p className="truncate font-serif text-xl font-semibold tabular-nums md:text-2xl">{value}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </section>
+          )}
+
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide md:mx-0 md:px-0" role="tablist" aria-label="Filtrar pedidos">
+            {([
+              ['all', 'Todos'],
+              ['active', 'En curso'],
+              ['delivered', 'Entregados'],
+              ['cancelled', 'Cancelados'],
+            ] as [keyof typeof counts, string][]).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={filter === key}
+                onClick={() => setFilter(key)}
+                className={cn(
+                  'flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors',
+                  filter === key ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary/40'
+                )}
+              >
+                {label}
+                <span className={cn('tabular-nums', filter === key ? 'text-primary-foreground/80' : 'text-muted-foreground')}>{counts[key]}</span>
+              </button>
+            ))}
           </div>
 
-          {/* Tabs */}
-          <Tabs defaultValue="all" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="all">Todos</TabsTrigger>
-              <TabsTrigger value="active">Activos</TabsTrigger>
-              <TabsTrigger value="completed">Completados</TabsTrigger>
-              <TabsTrigger value="rejected">Rechazados</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="all">
-              <OrderList orders={orders} />
-            </TabsContent>
-
-            <TabsContent value="active">
-              <OrderList orders={orders.filter(o => !['delivered', 'cancelled'].includes(o.status))} />
-            </TabsContent>
-
-            <TabsContent value="completed">
-              <OrderList orders={orders.filter(o => o.status === 'delivered')} />
-            </TabsContent>
-
-            <TabsContent value="rejected">
-              <OrderList orders={orders.filter(o => o.status === 'cancelled')} />
-            </TabsContent>
-          </Tabs>
+          <OrderList orders={visible} emptyAll={orders.length === 0} />
         </motion.div>
       </div>
     </StoreLayout>
   );
 }
 
-function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['orders'] }) {
+function OrderList({ orders, emptyAll }: { orders: ReturnType<typeof useCustomerOrders>['orders']; emptyAll: boolean }) {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const handleReorder = (order: Order) => {
@@ -179,7 +189,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
     toast.success('Productos agregados al carrito');
     navigate('/carrito');
   };
-  const [trackingOrder, setTrackingOrder] = useState<string | null>(null);
+  const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
 
@@ -195,249 +205,175 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
 
   if (orders.length === 0) {
     return (
-      <Card className="glass-card">
-        <CardContent className="py-12 text-center">
-          <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">No hay pedidos</h3>
-          <p className="text-muted-foreground mb-6">No se encontraron pedidos en esta categoría.</p>
-          <Link to="/tienda">
-            <Button>Explorar Tienda</Button>
-          </Link>
-        </CardContent>
-      </Card>
+      <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary"><ShoppingBag className="h-7 w-7" /></span>
+        <h3 className="mt-4 font-serif text-lg font-semibold">{emptyAll ? 'Aún no tienes pedidos' : 'Nada por aquí'}</h3>
+        <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
+          {emptyAll ? 'Cuando compres, aquí verás el estado de tu pedido y tu recibo.' : 'No hay pedidos en esta categoría.'}
+        </p>
+        {emptyAll && (
+          <Link to="/tienda"><Button className="mt-5 rounded-full">Explorar la tienda</Button></Link>
+        )}
+      </div>
     );
   }
 
-  const exportReceiptToPDF = () => {
-    if (!receiptOrder) return;
-    const goldColor: [number, number, number] = [214, 151, 41];
-    const darkColor: [number, number, number] = [24, 16, 19];
-    const itemCount = receiptOrder.items?.length || 0;
-    const pageHeight = 62 + itemCount * 6;
-    const doc = new jsPDF({ unit: 'mm', format: [80, pageHeight] });
-    let y = 8;
-
-    doc.setFont('courier', 'bold');
-    doc.setFontSize(13);
-    doc.setTextColor(...goldColor);
-    doc.text(BRAND_NAME_UPPER, 40, y, { align: 'center' });
-    y += 5;
-    doc.setFont('courier', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(...darkColor);
-    doc.text('BOUTIQUE & LIFESTYLE', 40, y, { align: 'center' });
-    y += 6;
-    doc.text('Recibo de Compra', 40, y, { align: 'center' });
-    y += 4;
-    doc.text(`Nº: ${receiptOrder.id.split('-')[0].toUpperCase()}`, 40, y, { align: 'center' });
-    y += 4;
-    doc.text(`Fecha: ${format(new Date(receiptOrder.created_at), 'dd/MM/yyyy HH:mm')}`, 40, y, { align: 'center' });
-    y += 4;
-    doc.setDrawColor(...goldColor);
-    doc.line(4, y, 76, y);
-    y += 5;
-
-    (receiptOrder.items as ExtendedOrderItem[])?.forEach((item: ExtendedOrderItem) => {
-      doc.setFontSize(7);
-      doc.text(`${item.quantity}x ${item.product_name}`, 4, y);
-      doc.text(`$${(item.total || 0).toFixed(2)}`, 76, y, { align: 'right' });
-      y += 5;
-    });
-
-    doc.setDrawColor(...goldColor);
-    doc.line(4, y, 76, y);
-    y += 5;
-    doc.setFont('courier', 'bold');
-    doc.text('TOTAL USD', 4, y);
-    doc.text(`$${(receiptOrder.total_usd || 0).toFixed(2)}`, 76, y, { align: 'right' });
-    y += 5;
-    doc.setFont('courier', 'normal');
-    doc.text('TOTAL BS', 4, y);
-    doc.text(`Bs ${(receiptOrder.total_bs || 0).toFixed(2)}`, 76, y, { align: 'right' });
-    y += 7;
-    doc.setFontSize(6);
-    doc.text(`¡Gracias por tu compra en ${BRAND_NAME}!`, 40, y, { align: 'center' });
-
-    doc.save(`recibo_${BRAND_FILE_SLUG}_${receiptOrder.id.split('-')[0]}.pdf`);
+  const toReceipt = (order: Order): ReceiptData => {
+    const items = (order.items || []) as ExtendedOrderItem[];
+    return {
+      kind: 'pedido',
+      number: receiptNumber(order.id),
+      date: new Date(order.created_at),
+      customerName: order.customer_name,
+      paymentMethod: order.payment_method,
+      items: items.map(it => {
+        const shown = getItemDisplay(it);
+        const qty = Number(it.quantity) || 1;
+        return { name: shown.name, quantity: qty, unitPrice: Number(it.unit_price ?? shown.total / qty) || 0 };
+      }),
+      delivery: Number(order.delivery_fee) || 0,
+      total: Number(order.total_usd) || 0,
+      totalBs: Number(order.total_bs) || null,
+      status: order.payment_status === 'paid' ? 'pagado' : 'pendiente',
+    };
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {orders.map(order => {
         const statusConfig = ORDER_STATUS_LABELS[order.status] || ORDER_STATUS_LABELS.pending;
         const paymentConfig = PAYMENT_STATUS_LABELS[order.payment_status] || PAYMENT_STATUS_LABELS.pending;
+        const items = (order.items || []) as ExtendedOrderItem[];
+        const units = items.reduce((n, it) => n + Number(it.quantity || 0), 0);
+        const canReorder = items.some(it => it.product_id && it.id !== 'credit_payment' && it.id !== 'credit_request');
 
         return (
-          <motion.div
+          <motion.article
             key={order.id}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            className="overflow-hidden rounded-2xl border border-border bg-card"
           >
-            <div className="border border-border/60 rounded-xl overflow-hidden bg-card/40">
-              
-              {/* Header - Amazon Style */}
-              <div className="bg-muted/40 px-4 md:px-6 py-3 border-b border-border/60 text-sm flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                <div className="flex flex-wrap gap-x-8 gap-y-2">
-                  <div>
-                    <p className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold mb-0.5">Pedido realizado</p>
-                    <p className="font-medium text-foreground/80">{format(new Date(order.created_at), "d 'de' MMMM 'de' yyyy", { locale: es })}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold mb-0.5">Total</p>
-                    <PriceDisplay amountUsd={order.total_usd || 0} primaryClassName="font-medium text-foreground/80" showSecondary={false} />
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold mb-0.5">Enviar a</p>
-                    <p className="font-medium text-primary hover:underline cursor-pointer">
-                      {order.shipping_address ? 'Cliente' : 'Retiro en Tienda'}
-                    </p>
-                  </div>
+            <div className="space-y-4 p-4 md:p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Pedido #{order.id.slice(0, 8).toUpperCase()}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {format(new Date(order.created_at), "d 'de' MMMM, yyyy", { locale: es })} · {units} {units === 1 ? 'artículo' : 'artículos'}
+                  </p>
                 </div>
-                <div className="flex flex-col md:items-end">
-                  <p className="text-muted-foreground uppercase text-[10px] tracking-wider font-semibold mb-0.5">Pedido n.º {order.id.slice(0, 8)}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-primary text-sm hover:underline cursor-pointer" onClick={() => setDetailsOrder(order)}>Ver detalles del pedido</span>
-                    <span className="text-border/60">|</span>
-                    <span className="text-primary text-sm hover:underline cursor-pointer" onClick={() => setReceiptOrder(order)}>Ver recibo</span>
-                  </div>
-                </div>
+                <span className={cn('shrink-0 rounded-full px-3 py-1 text-xs font-semibold', statusConfig.color)}>{statusConfig.label}</span>
               </div>
 
-              {/* Body */}
-              <div className="p-4 md:p-6">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  {statusConfig.label}
-                  <Badge className={cn(paymentConfig.color, "text-xs font-normal px-2 py-0 h-5")}>
-                    Pago: {paymentConfig.label}
-                  </Badge>
-                </h3>
+              {order.status !== 'cancelled' && <OrderProgress status={order.status} />}
 
-                {/* Motivo de rechazo */}
-                {order.status === 'cancelled' && order.notes?.includes('[MOTIVO_RECHAZO]') && (
-                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm flex gap-2 items-start">
-                    <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                    <div>
-                      <span className="font-semibold block">Motivo del rechazo:</span>
-                      {order.notes.split('[MOTIVO_RECHAZO]')[1].trim()}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Items List */}
-                  <div className="flex-1 space-y-4">
-                    {order.items.slice(0, 3).map((item, idx) => (
-                      <div key={idx} className="flex gap-4 items-start">
-                        <div className="w-20 h-20 bg-muted/30 rounded-lg flex items-center justify-center border border-border/40 shrink-0 overflow-hidden">
-                          {item.image_url ? (
-                            <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover" />
-                          ) : (
-                            <ShoppingBag className="h-8 w-8 text-muted-foreground/30" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium text-primary hover:underline cursor-pointer line-clamp-2 leading-snug">
-                            {getItemDisplay(item).name}
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Cantidad: {item.quantity}
-                          </p>
-                          <PriceDisplay amountUsd={getItemDisplay(item).total} primaryClassName="text-sm font-semibold mt-1" showSecondary={false} />
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {order.items.length > 3 && (
-                      <div className="pt-2">
-                        <span className="text-sm text-primary hover:underline cursor-pointer">
-                          Ver {order.items.length - 3} artículos más
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-col gap-2 md:w-64 shrink-0">
-                    <Button 
-                      variant="default" 
-                      onClick={() => setTrackingOrder(order.id)}
-                      className="w-full bg-[#FFD814] hover:bg-[#F7CA00] text-black border border-[#FCD200] shadow-sm"
-                    >
-                      Rastrear paquete
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => handleReorder(order)}
-                      className="w-full bg-background hover:bg-muted/50"
-                    >
-                      Comprar de nuevo
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => toast.info('El portal de devoluciones está en desarrollo.')}
-                      className="w-full bg-background hover:bg-muted/50"
-                    >
-                      Devolver o reemplazar productos
-                    </Button>
-                  </div>
+              {order.status === 'cancelled' && order.notes?.includes('[MOTIVO_RECHAZO]') && (
+                <div className="flex items-start gap-2 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p><span className="font-semibold">Motivo: </span>{order.notes.split('[MOTIVO_RECHAZO]')[1].trim()}</p>
                 </div>
-              </div>
+              )}
 
+              <ul className="space-y-3">
+                {items.slice(0, 3).map((item, idx) => {
+                  const shown = getItemDisplay(item);
+                  return (
+                    <li key={idx} className="flex items-center gap-3">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/40">
+                        {item.image_url
+                          ? <img src={item.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                          : <ShoppingBag className="h-6 w-6 text-muted-foreground/50" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-sm font-medium leading-snug">{shown.name}</p>
+                        <p className="text-xs text-muted-foreground">Cantidad: {item.quantity}</p>
+                      </div>
+                      <PriceDisplay amountUsd={shown.total} primaryClassName="text-sm font-semibold tabular-nums" showSecondary={false} />
+                    </li>
+                  );
+                })}
+              </ul>
+              {items.length > 3 && (
+                <button type="button" onClick={() => setDetailsOrder(order)} className="text-sm font-medium text-primary hover:underline">
+                  Ver {items.length - 3} {items.length - 3 === 1 ? 'artículo más' : 'artículos más'}
+                </button>
+              )}
             </div>
-          </motion.div>
+
+            <div className="flex flex-col gap-3 border-t border-border bg-muted/30 p-4 md:flex-row md:items-center md:justify-between md:px-5">
+              <div className="flex items-baseline justify-between gap-3 md:block">
+                <PriceDisplay amountUsd={order.total_usd || 0} primaryClassName="font-serif text-xl font-semibold tabular-nums" showSecondary={false} />
+                <p className={cn('text-xs font-medium', paymentConfig.color)}>{paymentConfig.label}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 md:flex">
+                <Button variant="outline" size="sm" className="rounded-full" onClick={() => setTrackingOrder(order)}>
+                  <Truck className="mr-1.5 h-4 w-4" />Seguir
+                </Button>
+                <Button variant="outline" size="sm" className="rounded-full" onClick={() => setReceiptOrder(order)}>
+                  <Receipt className="mr-1.5 h-4 w-4" />Recibo
+                </Button>
+                {canReorder ? (
+                  <Button size="sm" className="rounded-full" onClick={() => handleReorder(order)}>
+                    <Refresh className="mr-1.5 h-4 w-4" />Repetir
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" className="rounded-full" onClick={() => setDetailsOrder(order)}>Detalles</Button>
+                )}
+              </div>
+            </div>
+          </motion.article>
         );
       })}
-      {/* Tracking Modal */}
+
+      {/* Seguimiento: pasos según el estado real del pedido */}
       <Dialog open={!!trackingOrder} onOpenChange={(open) => !open && setTrackingOrder(null)}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[450px] p-0 overflow-hidden rounded-2xl bg-background border border-border/40 shadow-2xl">
-          <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center">
-            <DialogTitle className="text-xl font-medium tracking-tight">Rastreo de Paquete</DialogTitle>
-          </div>
-          <div className="p-6">
-            <p className="text-sm font-medium text-foreground mb-6">
-              Pedido n.º {trackingOrder?.slice(0, 8)}
-            </p>
-            
-            <div className="relative pl-6 border-l-2 border-primary/20 space-y-8 pb-4">
-              <div className="relative">
-                <div className="absolute -left-[35px] bg-primary rounded-full p-1.5 shadow-[0_0_0_4px_hsl(var(--background))]">
-                  <TickCircle className="h-4 w-4 text-primary-foreground" />
-                </div>
-                <h4 className="font-semibold text-sm">Pedido Confirmado</h4>
-                <p className="text-xs text-muted-foreground mt-1">Hemos recibido tu pedido correctamente.</p>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute -left-[35px] bg-primary rounded-full p-1.5 shadow-[0_0_0_4px_hsl(var(--background))]">
-                  <Package className="h-4 w-4 text-primary-foreground" />
-                </div>
-                <h4 className="font-semibold text-sm">En Preparación</h4>
-                <p className="text-xs text-muted-foreground mt-1">Tu pedido está siendo empaquetado en nuestra tienda.</p>
-              </div>
-
-              <div className="relative">
-                <div className="absolute -left-[35px] bg-muted rounded-full p-1.5 shadow-[0_0_0_4px_hsl(var(--background))] border border-border">
-                  <Truck className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <h4 className="font-semibold text-sm text-muted-foreground">En Camino</h4>
-                <p className="text-xs text-muted-foreground mt-1">Pronto será recolectado por el repartidor.</p>
-              </div>
-
-              <div className="relative">
-                <div className="absolute -left-[35px] bg-muted rounded-full p-1.5 shadow-[0_0_0_4px_hsl(var(--background))] border border-border">
-                  <Location className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <h4 className="font-semibold text-sm text-muted-foreground">Entregado</h4>
-                <p className="text-xs text-muted-foreground mt-1">Esperando confirmación de entrega.</p>
-              </div>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl">Seguimiento</DialogTitle>
+            <DialogDescription>Pedido #{trackingOrder?.id.slice(0, 8).toUpperCase()}</DialogDescription>
+          </DialogHeader>
+          {trackingOrder?.status === 'cancelled' ? (
+            <div className="flex items-start gap-3 rounded-xl bg-destructive/10 p-4 text-sm text-destructive">
+              <XCircle className="mt-0.5 h-5 w-5 shrink-0" />
+              <p>Este pedido fue cancelado.{trackingOrder.notes?.includes('[MOTIVO_RECHAZO]') ? ` ${trackingOrder.notes.split('[MOTIVO_RECHAZO]')[1].trim()}` : ''}</p>
             </div>
-            
-            <Button 
-              className="w-full mt-6 bg-[#FFD814] hover:bg-[#F7CA00] text-black font-medium"
-              onClick={() => setTrackingOrder(null)}
-            >
-              Cerrar Detalles
-            </Button>
+          ) : (
+            <ol className="relative mt-2 space-y-6 border-l-2 border-border pl-6">
+              {ORDER_STEPS.map((step, i) => {
+                const current = STEP_INDEX[trackingOrder?.status || 'pending'] ?? 0;
+                const done = i <= current;
+                const Icon = i < current ? TickCircle : step.icon;
+                return (
+                  <li key={step.label} className="relative">
+                    <span className={cn(
+                      'absolute -left-[37px] flex h-7 w-7 items-center justify-center rounded-full ring-4 ring-background',
+                      done ? 'bg-primary text-primary-foreground' : 'border border-border bg-muted text-muted-foreground'
+                    )}>
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <p className={cn('text-sm font-semibold', !done && 'text-muted-foreground')}>
+                      {step.label}{i === current && <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">Ahora</span>}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{step.hint}</p>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {BRAND_WHATSAPP_URL ? (
+              <a
+                href={`${BRAND_WHATSAPP_URL}?text=${encodeURIComponent(`Hola, quiero saber de mi pedido #${trackingOrder?.id.slice(0, 8).toUpperCase()}`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border text-sm font-medium hover:border-primary/40"
+              >
+                <MessageSquare className="h-4 w-4" />Escribir por WhatsApp
+              </a>
+            ) : (
+              <Link to="/atencion" className="inline-flex h-10 items-center justify-center rounded-full border border-border text-sm font-medium hover:border-primary/40">Atención al cliente</Link>
+            )}
+            <Button className="rounded-full" onClick={() => setTrackingOrder(null)}>Listo</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -477,7 +413,7 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
                       {item.image_url ? (
                         <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover" />
                       ) : (
-                        <ShoppingBag className="h-6 w-6 text-muted-foreground/30" />
+                        <ShoppingBag className="h-6 w-6 text-muted-foreground" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -501,65 +437,8 @@ function OrderList({ orders }: { orders: ReturnType<typeof useCustomerOrders>['o
         </DialogContent>
       </Dialog>
 
-      {/* Recibo / Factura Modal */}
-      <Dialog open={!!receiptOrder} onOpenChange={(open) => !open && setReceiptOrder(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[400px] p-0 bg-background border border-gold/30 shadow-2xl">
-          <div className="p-8 bg-white text-black print-exact font-mono" id="receipt-content">
-            <div className="h-1.5 -mx-8 -mt-8 mb-6" style={{ background: 'linear-gradient(90deg, hsl(var(--gold)), hsl(var(--primary)))' }} />
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-serif font-bold" style={{ color: 'hsl(var(--gold))' }}>{BRAND_NAME}</h2>
-              <p className="text-xs uppercase tracking-widest mt-1" style={{ color: '#D36983' }}>Boutique & Lifestyle</p>
-              <div className="mt-4 text-sm">
-                <p>Recibo de Compra</p>
-                <p>Nº: {receiptOrder?.id.split('-')[0].toUpperCase()}</p>
-                <p>Fecha: {receiptOrder ? format(new Date(receiptOrder.created_at), "dd/MM/yyyy HH:mm") : ''}</p>
-              </div>
-            </div>
-            
-            <Separator className="my-4" style={{ backgroundColor: '#D4B277' }} />
-            
-            <div className="space-y-3 mb-6">
-              {(receiptOrder?.items as ExtendedOrderItem[])?.map((item: ExtendedOrderItem, idx: number) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <div className="flex-1">
-                    <p className="line-clamp-2">{item.quantity}x {getItemDisplay(item).name}</p>
-                  </div>
-                  <div className="text-right pl-4">
-                    <p>${getItemDisplay(item).total.toFixed(2)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Separator className="my-4 border-dashed" style={{ backgroundColor: '#D4B277' }} />
-            
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>${(receiptOrder?.subtotal || receiptOrder?.total_usd || 0).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-base mt-2">
-                <span>TOTAL USD</span>
-                <span>${(receiptOrder?.total_usd || 0).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground mt-1">
-                <span>TOTAL BS</span>
-                <span>Bs {(receiptOrder?.total_bs || 0).toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className="mt-8 text-center text-xs">
-              <p>¡Gracias por tu compra en {BRAND_NAME}!</p>
-              <p className="mt-1 opacity-70">Conserva este recibo para reclamos o cambios.</p>
-            </div>
-          </div>
-          <div className="p-4 border-t border-border flex justify-end gap-2 bg-muted/20">
-            <Button variant="outline" onClick={() => setReceiptOrder(null)}>Cerrar</Button>
-            <Button variant="outline" onClick={() => window.print()}>Imprimir</Button>
-            <Button onClick={exportReceiptToPDF}>Descargar PDF</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Recibo: misma vista y PDF que en el panel */}
+      <ReceiptDialog data={receiptOrder ? toReceipt(receiptOrder) : null} onClose={() => setReceiptOrder(null)} />
     </div>
   );
 }

@@ -19,6 +19,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Send, X } from "reicon-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "react-router-dom";
+import { ADMIN_NAV_FLAT, isAdminPathActive } from "@/components/layout/adminNav";
+import { OPEN_ANGELA_EVENT } from "@/lib/events";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AngelaMascot, { type MascotState } from "@/components/AngelaMascot";
@@ -59,6 +62,9 @@ export default function AngelaChat() {
   const [sending, setSending] = useState(false);
   const [justAnswered, setJustAnswered] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const { pathname } = useLocation();
+  // En el panel (móvil) el acceso vive en la barra superior: el botón flotante taparía contenido
+  const onAdmin = ADMIN_NAV_FLAT.some(i => isAdminPathActive(pathname, i.path));
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -80,16 +86,22 @@ export default function AngelaChat() {
     }
   }, [open]);
 
-  // Saludo emergente breve del launcher (una sola vez tras cargar).
   useEffect(() => {
-    if (loading || !user || open) return;
+    const openChat = () => { setShowHint(false); setOpen(true); };
+    window.addEventListener(OPEN_ANGELA_EVENT, openChat);
+    return () => window.removeEventListener(OPEN_ANGELA_EVENT, openChat);
+  }, []);
+
+  // Saludo emergente breve del launcher (una sola vez tras cargar; nunca en el panel).
+  useEffect(() => {
+    if (loading || !user || open || onAdmin) return;
     const show = setTimeout(() => setShowHint(true), 1800);
     const hide = setTimeout(() => setShowHint(false), 7000);
     return () => {
       clearTimeout(show);
       clearTimeout(hide);
     };
-  }, [loading, user, open]);
+  }, [loading, user, open, onAdmin]);
 
   // El backend exige autenticación; sin usuario no montamos nada.
   if (loading || !user) return null;
@@ -154,10 +166,10 @@ export default function AngelaChat() {
         {!open && (
           <motion.div
             key="launcher"
-            className="fixed z-50 flex flex-col items-end gap-2"
+            className={cn("fixed z-40 flex-col items-end gap-2", onAdmin ? "hidden md:flex" : "flex")}
             style={{
               right: "calc(1rem + env(safe-area-inset-right))",
-              bottom: "calc(1rem + env(safe-area-inset-bottom))",
+              bottom: "calc(var(--mobile-tabbar, 0px) + 1rem + env(safe-area-inset-bottom))",
             }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -159,14 +159,13 @@ export default function BusinessRules() {
           className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
         >
           <div>
-            <h1 className="page-header flex items-center gap-3">
-              <Scale className="h-8 w-8 text-primary" />
-              Reglas de Negocio
+            <h1 className="page-header">
+              Reglas de negocio
             </h1>
-            <p className="page-subtitle">Automatiza decisiones de crédito y notificaciones</p>
+            <p className="page-subtitle">Reglas automáticas para aprobar créditos y enviar avisos</p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:flex">
             {rules.length === 0 && (
               <Button 
                 variant="outline"
@@ -178,43 +177,24 @@ export default function BusinessRules() {
                 ) : (
                   <Settings2 className="h-4 w-4 mr-2" />
                 )}
-                Cargar Reglas Base
+                Usar reglas recomendadas
               </Button>
             )}
             <Button onClick={handleCreate} className="btn-gold">
               <Plus className="h-4 w-4 mr-2" />
-              Nueva Regla
+              Nueva regla
             </Button>
           </div>
         </motion.div>
 
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-sm text-muted-foreground">Total reglas</p>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-primary">{stats.active}</div>
-              <p className="text-sm text-muted-foreground">Activas</p>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-muted-foreground">{stats.inactive}</div>
-              <p className="text-sm text-muted-foreground">Inactivas</p>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-primary">{Object.keys(stats.byType).length}</div>
-              <p className="text-sm text-muted-foreground">Tipos en uso</p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Resumen en una línea (solo si ya hay reglas) */}
+        {stats.total > 0 && (
+          <div className="flex flex-wrap gap-2 text-sm">
+            <span className="rounded-full bg-success/10 px-3 py-1.5 font-medium text-success">{stats.active} activas</span>
+            {stats.inactive > 0 && <span className="rounded-full bg-muted px-3 py-1.5 font-medium text-muted-foreground">{stats.inactive} pausadas</span>}
+            <span className="rounded-full border border-border px-3 py-1.5 text-muted-foreground">{stats.total} en total</span>
+          </div>
+        )}
 
         {/* Rules List */}
         {isLoading ? (
@@ -225,13 +205,13 @@ export default function BusinessRules() {
           <Card className="glass-card">
             <CardContent className="py-12 text-center">
               <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Sin reglas configuradas</h3>
-              <p className="text-muted-foreground mb-4">
-                Crea reglas para automatizar decisiones de crédito
+              <h3 className="mb-2 font-serif text-xl">Aún no hay reglas</h3>
+              <p className="mx-auto mb-2 max-w-sm text-muted-foreground">
+                Las reglas deciden solas cosas como cuánto crédito dar, cuándo bloquear a quien se atrasa y cuándo enviar recordatorios de pago.
               </p>
-              <Button onClick={() => initializeDefaultRules.mutate()} variant="outline">
-                Cargar Reglas Predeterminadas
-              </Button>
+              <p className="mx-auto max-w-sm text-sm text-muted-foreground">
+                Empieza con las <strong className="text-foreground">reglas recomendadas</strong> (botón de arriba) y ajústalas después.
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -278,9 +258,9 @@ export default function BusinessRules() {
                               onClick={() => handleToggle(rule.id)}
                             >
                               {rule.is_active ? (
-                                <ToggleRight className="h-5 w-5 text-primary" />
+                                <ToggleOn className="h-5 w-5 text-primary" />
                               ) : (
-                                <ToggleLeft className="h-5 w-5 text-muted-foreground" />
+                                <ToggleOff className="h-5 w-5 text-muted-foreground" />
                               )}
                             </Button>
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(rule)}>

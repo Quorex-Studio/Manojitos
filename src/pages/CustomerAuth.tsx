@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { BRAND_NAME } from '@/config/brand';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
@@ -12,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { supabase } from '@/integrations/supabase/client';
-import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 
 // Página de autenticación para clientes (separada del admin)
 export default function CustomerAuth() {
@@ -21,7 +22,7 @@ export default function CustomerAuth() {
   const [searchParams] = useSearchParams();
   const { user, signIn, signUp, loading: authLoading } = useAuth();
   
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(searchParams.get('modo') !== 'registro');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -38,26 +39,17 @@ export default function CustomerAuth() {
   const [gettingGPSState, setGettingGPSState] = useState(false); // Used elsewhere or redundant now
   const [hasPromptedLocation, setHasPromptedLocation] = useState(false);
 
-  const redirectTo = searchParams.get('redirect') || '/';
+  // Solo rutas internas ("/algo"), nunca dominios externos ("//sitio.com")
+  const rawRedirect = searchParams.get('redirect') || '/';
+  const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') && !rawRedirect.startsWith('/cliente/auth') ? rawRedirect : '/';
 
   // Redirigir si ya está autenticado
   useEffect(() => {
     if (user) {
-      navigate(redirectTo);
+      navigate(redirectTo, { replace: true });
     }
   }, [user, navigate, redirectTo]);
 
-  // Solicitar ubicación automáticamente al entrar a la vista de registro
-  useEffect(() => {
-    if (!isLogin && !hasPromptedLocation && !form.locationCoords && navigator.geolocation) {
-      setHasPromptedLocation(true);
-      // Pequeño delay para no abrumar al instante
-      const timer = setTimeout(() => {
-        handleGetLocationClick();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isLogin, hasPromptedLocation, form.locationCoords, handleGetLocationClick]);
 
   // --- HANDLERS ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,6 +96,18 @@ export default function CustomerAuth() {
       }
     });
   }, [handleGetLocation]);
+
+  // Solicitar ubicación automáticamente al entrar a la vista de registro
+  useEffect(() => {
+    if (!isLogin && !hasPromptedLocation && !form.locationCoords && navigator.geolocation) {
+      setHasPromptedLocation(true);
+      // Pequeño delay para no abrumar al instante
+      const timer = setTimeout(() => {
+        handleGetLocationClick();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLogin, hasPromptedLocation, form.locationCoords, handleGetLocationClick]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,7 +166,7 @@ export default function CustomerAuth() {
             title: '¡Bienvenido!',
             description: 'Has iniciado sesión correctamente'
           });
-          navigate(redirectTo);
+          navigate(redirectTo, { replace: true });
         }
       } else {
         // Registrarse
@@ -181,7 +185,7 @@ export default function CustomerAuth() {
         if (!dniRegex.test(form.dni)) {
           toast({
             title: 'Formato de Cédula Inválido',
-            description: 'Debe usar el formato V-12345678, E-12345678, J-123456789, G-12345678 o P-12345678',
+            description: 'Elige el tipo (V, E, J...) y escribe entre 7 y 9 dígitos.',
             variant: 'destructive'
           });
           setLoading(false);
@@ -197,11 +201,11 @@ export default function CustomerAuth() {
         }
 
         // Validación estricta Teléfono
-        const phoneRegex = /^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/;
+        const phoneRegex = /^\+58(?:412|414|416|422|424|426|2\d{2})\d{7}$/;
         if (!phoneRegex.test(normalizedPhone)) {
           toast({
             title: 'Formato de Teléfono Inválido',
-            description: 'Debe ingresar un número válido (Ej: 04121234567 o +584121234567)',
+            description: 'Elige el prefijo y escribe los 7 dígitos del número.',
             variant: 'destructive'
           });
           setLoading(false);
@@ -325,9 +329,9 @@ export default function CustomerAuth() {
           >
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden border border-border/50 shadow-sm bg-white">
-                <img src={logoImage} alt={BRAND_NAME} className="w-full h-full object-cover" />
-              </div>
+              <Link to="/" aria-label={`${BRAND_NAME} — inicio`} className="mx-auto mb-5 inline-flex justify-center">
+                <BrandLogo className="h-10 md:h-12" />
+              </Link>
               <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground">
                 {isForgotPassword ? 'Recuperar Clave' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
               </h1>
@@ -399,45 +403,25 @@ export default function CustomerAuth() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="phone">Teléfono <span className="text-destructive">*</span></Label>
-                        <div className="relative mt-1">
-                          <Input
-                            id="phone"
-                            name="phone"
-                            type="tel"
-                            placeholder="+584121234567"
-                            value={form.phone}
-                            onChange={handleInputChange}
-                            className="pl-10"
-                            required
-                            pattern="^+58(?:412|414|424|416|426|2\d{2})\d{7}$"
-                            title="Formato: +584121234567"
-                          />
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          Formato: +584121234567
-                        </p>
+                        <PhoneInput
+                          id="phone"
+                          className="mt-1"
+                          value={form.phone}
+                          onChange={phone => setForm(f => ({ ...f, phone }))}
+                          required
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">Elige el prefijo y escribe los 7 dígitos</p>
                       </div>
                       <div>
                         <Label htmlFor="dni">Cédula o RIF <span className="text-destructive">*</span></Label>
-                        <div className="relative mt-1">
-                          <Input
-                            id="dni"
-                            name="dni"
-                            type="text"
-                            placeholder="V-12345678"
-                            value={form.dni}
-                            onChange={handleInputChange}
-                            className="pl-10"
-                            required
-                            pattern="^[VJEGP]-\d{7,9}$"
-                            title="Formato: V-12345678, J-123456789"
-                          />
-                          <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          Formato: V-12345678
-                        </p>
+                        <DocumentIdInput
+                          id="dni"
+                          className="mt-1"
+                          value={form.dni}
+                          onChange={dni => setForm(f => ({ ...f, dni }))}
+                          required
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">V venezolano · E extranjero · J jurídico</p>
                       </div>
                     </div>
 

@@ -1,4 +1,6 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { useState } from 'react';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,10 +21,10 @@ import { useCustomerPaymentMethods, PAYMENT_METHOD_TYPES, PaymentMethodInput, Pa
 import { sanitizeText } from '@/lib/validations';
 
 const paymentMethodFormSchema = z.object({
-  method_type: z.enum(['efectivo_usd', 'efectivo_bs', 'zelle', 'pago_movil', 'transferencia']),
+  method_type: z.enum(['efectivo_usd', 'efectivo_bs', 'zelle', 'pago_movil', 'transferencia', 'binance', 'zinli', 'wally']),
   alias: z.string().max(50).optional().transform(val => val ? sanitizeText(val) : val),
   bank_name: z.string().max(100).optional().transform(val => val ? sanitizeText(val) : val),
-  phone_number: z.string().regex(/^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').optional().or(z.literal('')).transform(val => val ? sanitizeText(val) : val),
+  phone_number: z.string().regex(/^\+58(?:412|414|416|422|424|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').optional().or(z.literal('')).transform(val => val ? sanitizeText(val) : val),
   email: z.string().email().optional().or(z.literal('')),
   last_four: z.string().max(4).optional().transform(val => val ? sanitizeText(val) : val),
 });
@@ -34,10 +36,14 @@ const methodIcons: Record<PaymentMethodType, React.ReactNode> = {
   efectivo_bs: <Wallet className="h-5 w-5 text-primary/70" />,
   zelle: <Mailbox className="h-5 w-5 text-primary" />,
   pago_movil: <Phone className="h-5 w-5 text-gold" />,
-  transferencia: <Building2 className="h-5 w-5 text-cyan-500" />,
+  transferencia: <Building2 className="h-5 w-5 text-primary" />,
+  binance: <Wallet className="h-5 w-5 text-primary" />,
+  zinli: <Wallet className="h-5 w-5 text-primary" />,
+  wally: <Wallet className="h-5 w-5 text-primary" />,
 };
 
 export default function CustomerPaymentMethods() {
+  const confirmDialog = useConfirm();
   // --- STATE ---
   const { user } = useAuth();
   const { methods, isLoading, addMethod, setPreferred, deleteMethod, preferredMethod } = useCustomerPaymentMethods();
@@ -80,8 +86,8 @@ export default function CustomerPaymentMethods() {
     });
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('¿Eliminar este método de pago?')) {
+  const handleDelete = async (id: string) => {
+    if (await confirmDialog({ title: '¿Eliminar este método de pago?', confirmText: 'Eliminar', destructive: true })) {
       deleteMethod.mutate(id);
     }
   };
@@ -113,27 +119,24 @@ export default function CustomerPaymentMethods() {
           animate={{ opacity: 1, y: 0 }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <Link to="/cliente/configuracion">
-                <Button variant="ghost" size="icon">
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <Link to="/cliente/configuracion" aria-label="Volver a configuración">
+                <Button variant="ghost" size="icon" className="shrink-0 rounded-full">
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
-              <div>
-                <h1 className="page-header flex items-center gap-2">
-                  <CreditCard className="h-6 w-6" />
-                  Métodos de Pago
-                </h1>
-                <p className="text-muted-foreground">Gestiona tus métodos de pago preferidos</p>
+              <div className="min-w-0">
+                <h1 className="store-page-title">Métodos de pago</h1>
+                <p className="text-sm text-muted-foreground">Tus datos para pagar más rápido</p>
               </div>
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
+                <Button className="shrink-0 gap-1.5 rounded-full max-sm:h-10 max-sm:w-10 max-sm:px-0" aria-label="Agregar método de pago">
                   <Plus className="h-4 w-4" />
-                  Agregar
+                  <span className="max-sm:sr-only">Agregar</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
@@ -207,18 +210,10 @@ export default function CustomerPaymentMethods() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="phone_number">Teléfono asociado</Label>
-                        <Input
+                        <PhoneInput
                           id="phone_number"
-                          placeholder="+58 412 1234567"
-                          {...form.register('phone_number')}
-                          onChange={(e) => {
-                            let val = e.target.value.replace(/[^\d+]/g, '');
-                            if (val && !val.startsWith('+')) val = '+' + val;
-                            if (val.length > 13) val = val.substring(0, 13);
-                            form.setValue('phone_number', val, { shouldValidate: true });
-                          }}
-                          pattern="^+58(?:412|414|424|416|426|2\d{2})\d{7}$"
-                          title="Debe ser un celular venezolano o teléfono fijo válido con +58"
+                          value={form.watch('phone_number') || ''}
+                          onChange={v => form.setValue('phone_number', v, { shouldValidate: true })}
                         />
                       </div>
                       <div className="space-y-2">

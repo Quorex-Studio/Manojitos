@@ -1,4 +1,4 @@
-import { BRAND, BRAND_NAME, BRAND_WHATSAPP_URL } from '@/config/brand';
+import { BRAND, BRAND_NAME, BRAND_PAYMENT_METHODS, BRAND_WHATSAPP_URL } from '@/config/brand';
 // Página de Atención al Cliente / Soporte
 import { motion } from 'framer-motion';
 import { Phone, Mailbox, Clock, MessageSquare, AlertTriangle, ShieldCheck, HelpCircle } from 'reicon-react';
@@ -15,7 +15,7 @@ export default function Atencion() {
     },
     {
       question: "¿Cuáles son los métodos de pago aceptados?",
-      answer: "Aceptamos Pago Móvil, transferencias bancarias a Bancamiga o Banco de Venezuela, y pagos en efectivo (según la zona). Los detalles exactos para realizar los pagos se muestran al finalizar tu compra o en tu panel de facturación."
+      answer: `Aceptamos ${BRAND_PAYMENT_METHODS.join(', ')}. Los precios son referenciales a tasa BCV del día. Los datos para pagar se muestran al finalizar tu compra.`
     },
     {
       question: "¿Qué pasa si me retraso con el pago de mi crédito?",
@@ -41,8 +41,8 @@ export default function Atencion() {
           className="text-center mb-12"
         >
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center">
-              <MessageSquare className="h-8 w-8 text-pink-500" />
+            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
+              <MessageSquare className="h-8 w-8 text-primary" />
             </div>
           </div>
           <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
@@ -60,10 +60,10 @@ export default function Atencion() {
           transition={{ delay: 0.2 }}
           className="grid md:grid-cols-2 gap-6 mb-12"
         >
-          <Card className="hover:shadow-lg transition-shadow border-pink-100 dark:border-pink-900">
+          <Card className="hover:shadow-lg transition-shadow border-border">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Phone className="h-5 w-5 text-pink-500" />
+                <Phone className="h-5 w-5 text-primary" />
                 Vías Rápidas
               </CardTitle>
             </CardHeader>
@@ -74,7 +74,7 @@ export default function Atencion() {
               <div className="space-y-2">
                 <p className="text-sm font-semibold flex items-center gap-1.5">
                   Teléfono / WhatsApp:
-                  <span className="text-pink-600 dark:text-pink-400 font-mono">{BRAND.whatsapp || 'Próximamente'}</span>
+                  <span className="text-primary font-mono">{BRAND.whatsapp || 'Próximamente'}</span>
                 </p>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3 w-3" /> {BRAND.hours}
@@ -89,10 +89,10 @@ export default function Atencion() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow border-pink-100 dark:border-pink-900">
+          <Card className="hover:shadow-lg transition-shadow border-border">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Mailbox className="h-5 w-5 text-pink-500" />
+                <Mailbox className="h-5 w-5 text-primary" />
                 Correo de Soporte
               </CardTitle>
             </CardHeader>
@@ -103,7 +103,7 @@ export default function Atencion() {
               <div className="space-y-2">
                 <p className="text-sm font-semibold">
                   Email:{' '}
-                  <a href={`mailto:${BRAND.contactEmail}`} className="text-pink-600 hover:underline font-mono">
+                  <a href={`mailto:${BRAND.contactEmail}`} className="text-primary hover:underline font-mono">
                     {BRAND.contactEmail}
                   </a>
                 </p>
@@ -152,7 +152,7 @@ export default function Atencion() {
           className="space-y-6"
         >
           <h2 className="text-2xl font-serif font-semibold text-center mb-6 flex items-center justify-center gap-2">
-            <HelpCircle className="h-6 w-6 text-pink-500" />
+            <HelpCircle className="h-6 w-6 text-primary" />
             Preguntas Frecuentes
           </h2>
           <Card>
@@ -160,7 +160,7 @@ export default function Atencion() {
               <Accordion type="single" collapsible className="w-full">
                 {faqs.map((faq, index) => (
                   <AccordionItem key={index} value={`faq-${index}`}>
-                    <AccordionTrigger className="text-left font-medium hover:text-pink-600 transition-colors">
+                    <AccordionTrigger className="text-left font-medium hover:text-primary transition-colors">
                       {faq.question}
                     </AccordionTrigger>
                     <AccordionContent className="text-muted-foreground text-sm leading-relaxed">
@@ -180,7 +180,7 @@ export default function Atencion() {
           transition={{ delay: 0.5 }}
           className="mt-12 text-center"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-pink-50 dark:bg-pink-950/20 text-pink-700 dark:text-pink-300 rounded-full text-xs font-medium border border-pink-100 dark:border-pink-900">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-secondary/60 text-primary rounded-full text-xs font-medium border border-border">
             <ShieldCheck className="h-4 w-4" />
             Tu seguridad y satisfacción son nuestra prioridad
           </div>

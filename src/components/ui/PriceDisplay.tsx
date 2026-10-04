@@ -9,6 +9,9 @@ interface PriceDisplayProps {
   primaryClassName?: string; // Clase para la moneda principal
   secondaryClassName?: string; // Clase para la moneda secundaria
   showSecondary?: boolean; // Si queremos mostrar las monedas secundarias o no
+  /** Monto en Bs ya registrado (p. ej. lo que se pagó en la compra). Si viene, se usa en vez
+   *  de convertir con la tasa de hoy: un recibo viejo no debe cambiar cuando cambia la tasa. */
+  amountBs?: number | null;
 }
 
 export function PriceDisplay({ 
@@ -16,17 +19,20 @@ export function PriceDisplay({
   className = "flex flex-col", 
   primaryClassName = "text-xl font-bold", 
   secondaryClassName = "text-sm text-muted-foreground",
-  showSecondary = true
+  showSecondary = true,
+  amountBs,
 }: PriceDisplayProps) {
   const { displayCurrency } = useCurrency();
   const { calculateAllCurrencies } = useExchangeRate(displayCurrency === 'EUR' ? 'EUR' : 'USD'); 
 
-  const { USD, VES, EUR } = calculateAllCurrencies(amountUsd);
+  const converted = calculateAllCurrencies(amountUsd);
+  const { USD, EUR } = converted;
+  const VES = amountBs && amountBs > 0 ? Number(amountBs) : converted.VES;
 
   // Funciones de formateo rápido
   const formatUSD = (val: number) => `$${val.toFixed(2)}`;
   const formatVES = (val: number) => `${formatBS(val)}`;
-  const formatEUR = (val: number) => `€${formatBS(val)}`;
+  const formatEUR = (val: number) => `€${val.toFixed(2)}`;
 
   let PrimaryComponent = null;
   let SecondaryComponent = null;
@@ -62,8 +68,7 @@ export function PriceDisplay({
       if (showSecondary) {
         SecondaryComponent = (
           <div className="flex gap-2">
-            <span className={secondaryClassName}>({formatVES(VES)})</span>
-            {EUR > 0 && <span className={secondaryClassName}>({formatEUR(EUR)})</span>}
+            {VES > 0 && <span className={secondaryClassName}>{formatVES(VES)}</span>}
           </div>
         );
       }

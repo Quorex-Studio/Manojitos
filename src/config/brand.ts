@@ -23,6 +23,10 @@ export const BRAND = {
   /** Horario de atención (texto libre) */
   hours: env.VITE_BRAND_HOURS || 'Lunes a Viernes: 8:00 AM - 6:00 PM · Sábados: 9:00 AM - 1:00 PM',
   /** Ubicación mostrada en el footer */
+  /** Color principal de marca (hex): recibos, PDF y barra del navegador */
+  color: env.VITE_BRAND_THEME_COLOR || '#d69729',
+  /** Rubro corto para recibos y encabezados, p. ej. "Boutique · Ropa y accesorios" */
+  category: env.VITE_BRAND_CATEGORY || 'Boutique · Ropa, accesorios y lencería',
   location: env.VITE_BRAND_LOCATION || 'Venezuela',
   /** Nombre de la asistente virtual (chat con IA) */
   assistantName: env.VITE_ASSISTANT_NAME || 'Ángela',
@@ -31,6 +35,9 @@ export const BRAND = {
 } as const;
 
 export const BRAND_NAME = BRAND.name;
+/** Métodos de pago que se anuncian en la tienda (lista separada por comas en VITE_BRAND_PAYMENT_METHODS) */
+export const BRAND_PAYMENT_METHODS: string[] = (env.VITE_BRAND_PAYMENT_METHODS || 'Pago Móvil,Transferencia Bs,Efectivo')
+  .split(',').map((m: string) => m.trim()).filter(Boolean);
 export const BRAND_NAME_UPPER = BRAND.name.toUpperCase();
 export const BRAND_SITE_URL = `https://${BRAND.domain}`;
 export const BRAND_WHATSAPP_URL = BRAND.whatsapp ? `https://wa.me/${BRAND.whatsapp.replace(/\D/g, '')}` : '';
@@ -39,3 +46,10 @@ export const BRAND_FILE_SLUG = BRAND.name.toLowerCase().replace(/[^a-z0-9]+/g, '
 
 /** Construye una clave de localStorage con el prefijo de la marca */
 export const storageKey = (key: string, sep = '_') => `${BRAND.storageKey}${sep}${key}`;
+
+/** Color de marca como [r, g, b] para jsPDF */
+export const BRAND_COLOR_RGB: [number, number, number] = (() => {
+  const hex = BRAND.color.replace('#', '');
+  const n = parseInt(hex.length === 3 ? hex.split('').map((c: string) => c + c).join('') : hex, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+})();

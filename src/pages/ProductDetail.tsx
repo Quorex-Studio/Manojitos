@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { ArrowLeft, ShoppingBag, Minus, Plus, Check, Package, Truck, Shield, Heart, ChevronLeft, ChevronRight } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { StoreLayout } from '@/components/store/StoreLayout';
 import { ProductCard } from '@/components/store/ProductCard';
+import { FavoriteButton } from '@/components/store/FavoriteButton';
 import { AutoProductLabels } from '@/components/products/ProductLabelBadge';
 import { PriceDisplay } from '@/components/ui/PriceDisplay';
 import { usePublicProducts } from '@/hooks/usePublicProducts';
@@ -36,6 +37,9 @@ export default function ProductDetail() {
   const [isAdding, setIsAdding] = useState(false);
   const [imageZoomed, setImageZoomed] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>('');
+  // Barra de compra fija en móvil cuando el botón principal sale de pantalla
+  const mainCtaRef = useRef<HTMLDivElement>(null);
+  const mainCtaVisible = useInView(mainCtaRef, { amount: 0.1 });
 
   // --- DERIVED / EFFECTS ---
   useEffect(() => {
@@ -170,11 +174,11 @@ export default function ProductDetail() {
           <h1 className="text-2xl font-serif font-medium text-foreground mb-2 tracking-tight">
             Producto no encontrado
           </h1>
-          <p className="text-muted-foreground/50 mb-6 text-sm tracking-wide">
+          <p className="text-muted-foreground mb-6 text-sm tracking-wide">
             El producto que buscas no existe o no está disponible
           </p>
           <Link to="/tienda">
-            <Button className="rounded-full btn-gold px-8">
+            <Button className="rounded-full px-8">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver a la tienda
             </Button>
@@ -188,7 +192,7 @@ export default function ProductDetail() {
     <StoreLayout>
       <div className="container mx-auto px-4 py-6 md:py-10">
         {/* Breadcrumb */}
-        <nav className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground/40 mb-6 tracking-wide">
+        <nav className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-6 tracking-wide">
           <Link to="/" className="hover:text-foreground transition-colors">Inicio</Link>
           <span>/</span>
           <Link to="/tienda" className="hover:text-foreground transition-colors">Tienda</Link>
@@ -212,7 +216,7 @@ export default function ProductDetail() {
           variant="ghost"
           size="sm"
           onClick={() => navigate(-1)}
-          className="mb-4 md:hidden text-muted-foreground/50"
+          className="mb-4 md:hidden text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Volver
@@ -228,7 +232,7 @@ export default function ProductDetail() {
             className="relative"
           >
             <div 
-              className="aspect-[3/4] rounded-2xl overflow-hidden bg-secondary cursor-zoom-in group"
+              className="aspect-[4/5] rounded-2xl overflow-hidden bg-studio cursor-zoom-in group"
               onMouseEnter={() => setImageZoomed(true)}
               onMouseLeave={() => setImageZoomed(false)}
             >
@@ -236,7 +240,7 @@ export default function ProductDetail() {
                 <motion.img
                   src={product.image_url}
                   alt={product.name}
-                  className="w-full h-full object-contain p-4"
+                  className="w-full h-full object-cover"
                   animate={{ scale: imageZoomed ? 1.08 : 1 }}
                   transition={{ duration: 0.6, ease: 'easeOut' }}
                 />
@@ -281,7 +285,7 @@ export default function ProductDetail() {
           >
             {/* Category tag */}
             {product.category && (
-              <span className="text-[10px] text-muted-foreground/40 tracking-[0.15em] uppercase">{product.category}</span>
+              <span className="text-[10px] text-muted-foreground tracking-[0.15em] uppercase">{product.category}</span>
             )}
 
             {/* Name */}
@@ -300,10 +304,10 @@ export default function ProductDetail() {
             {/* Stock Status — pulsing dot */}
             <div className="flex items-center gap-2.5">
               <div className={`w-2 h-2 rounded-full ${
-                product.stock > 5 ? 'bg-primary' : product.stock > 0 ? 'bg-gold animate-pulse' : 'bg-destructive'
+                product.stock > 5 ? 'bg-success' : product.stock > 0 ? 'bg-sale' : 'bg-sale'
               }`} />
               <span className={`text-sm ${
-                product.stock > 5 ? 'text-primary/80' : product.stock > 0 ? 'text-gold/80' : 'text-destructive/80'
+                product.stock > 5 ? 'text-success' : 'text-sale'
               }`}>
                 {product.stock > 5 
                   ? `En stock (${product.stock} disponibles)`
@@ -326,7 +330,7 @@ export default function ProductDetail() {
             {product.description && (
               <div>
                 <h3 className="font-serif text-sm text-foreground/80 mb-2 tracking-wide">Descripción</h3>
-                <p className="text-muted-foreground/50 leading-relaxed text-sm tracking-wide">
+                <p className="text-muted-foreground leading-relaxed text-sm tracking-wide">
                   {product.description}
                 </p>
               </div>
@@ -336,11 +340,11 @@ export default function ProductDetail() {
             {product.stock > 0 && availableSizes.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] text-muted-foreground/40 tracking-[0.1em] uppercase block">
+                  <label className="text-[10px] text-muted-foreground tracking-[0.1em] uppercase block">
                     Tallas disponibles
                   </label>
                   {isSizeRequired && !selectedSize && (
-                    <span className="text-[10px] text-gold/80 tracking-wide animate-pulse">
+                    <span className="text-[11px] text-sale tracking-wide">
                       * Selección obligatoria
                     </span>
                   )}
@@ -354,8 +358,8 @@ export default function ProductDetail() {
                         onClick={() => setSelectedSize(size)}
                         className={`px-4 py-2 text-xs font-medium tracking-wide rounded-full border transition-all duration-300 ${
                           isSelected
-                            ? 'bg-gold border-gold text-black shadow-md shadow-gold/25'
-                            : 'border-border/15 hover:border-gold/50 text-foreground/80 hover:text-foreground bg-card/40'
+                            ? 'bg-foreground border-foreground text-background'
+                            : 'border-border hover:border-foreground text-foreground bg-card'
                         }`}
                       >
                         {size === 'Única' ? 'Talla Única' : size}
@@ -373,7 +377,7 @@ export default function ProductDetail() {
               <div className="space-y-4">
                 {/* Quantity Selector — Pill */}
                 <div>
-                  <label className="text-[10px] text-muted-foreground/40 mb-2 block tracking-[0.1em] uppercase">
+                  <label className="text-[10px] text-muted-foreground mb-2 block tracking-[0.1em] uppercase">
                     Cantidad
                   </label>
                   <div className="flex items-center gap-4">
@@ -398,16 +402,17 @@ export default function ProductDetail() {
                         <Plus className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                    <span className="text-xs text-muted-foreground/30 tracking-wide">
+                    <span className="text-xs text-muted-foreground tracking-wide">
                       Máximo: {maxQuantity}
                     </span>
                   </div>
                 </div>
 
-                {/* Add to Cart Button — Full-width gold gradient */}
+                {/* Botón principal (DESIGN.md: pill de marca, una acción por vista) */}
+                <div ref={mainCtaRef} className="flex gap-3">
                 <Button
                   size="lg"
-                  className="w-full btn-gold btn-shimmer rounded-full text-base h-14"
+                  className="flex-1 rounded-full text-base font-semibold h-14"
                   onClick={handleAddToCart}
                   disabled={isAdding || quantity <= 0}
                 >
@@ -436,6 +441,8 @@ export default function ProductDetail() {
                     )}
                   </AnimatePresence>
                 </Button>
+                <FavoriteButton productId={product.id} productName={product.name} variant="outline" />
+                </div>
               </div>
             )}
 
@@ -450,16 +457,50 @@ export default function ProductDetail() {
             {/* Benefits */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-3 p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
-                <Truck className="h-4 w-4 text-gold/70 flex-shrink-0" />
+                <Truck className="h-4 w-4 text-foreground flex-shrink-0" />
                 <span className="text-xs text-foreground/60 tracking-wide">Envío nacional</span>
               </div>
               <div className="flex items-center gap-3 p-3.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/10">
-                <Shield className="h-4 w-4 text-gold/70 flex-shrink-0" />
+                <Shield className="h-4 w-4 text-foreground flex-shrink-0" />
                 <span className="text-xs text-foreground/60 tracking-wide">Compra segura</span>
               </div>
             </div>
           </motion.div>
         </div>
+
+        {/* Barra de compra fija (móvil), sobre la navegación inferior */}
+        <AnimatePresence>
+          {product.stock > 0 && !mainCtaVisible && (
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-x-0 z-30 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-xl md:hidden"
+              style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom))' }}
+            >
+              <div className="mx-auto flex max-w-md items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">{product.name}</p>
+                  <PriceDisplay amountUsd={product.price_usd} showSecondary={false} primaryClassName="text-sm font-bold tabular-nums text-foreground" />
+                </div>
+                <Button
+                  className="h-11 shrink-0 rounded-full px-5 font-semibold"
+                  onClick={() => {
+                    if (isSizeRequired && !selectedSize) {
+                      mainCtaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    handleAddToCart();
+                  }}
+                  disabled={isAdding}
+                >
+                  {isAdding ? <Check className="mr-1.5 h-4 w-4" /> : <ShoppingBag className="mr-1.5 h-4 w-4" />}
+                  {isAdding ? 'Agregado' : 'Agregar'}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (

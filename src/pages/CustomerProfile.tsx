@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,7 +39,7 @@ import { sanitizeText } from '@/lib/validations';
 const profileSchema = z.object({
   dni: z.string().min(4, 'DNI muy corto').max(20).optional().nullable().transform(val => val ? sanitizeText(val) : val),
   full_name: z.string().min(2, 'Nombre muy corto').max(100).optional().transform(val => val ? sanitizeText(val) : val),
-  phone: z.string().regex(/^\+58(?:412|414|424|416|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').transform(sanitizeText),
+  phone: z.string().regex(/^\+58(?:412|414|416|422|424|426|2\d{2})\d{7}$/, 'Formato inválido. Ej: +584121234567').transform(sanitizeText),
   email: z.string().email('Email inválido').optional().nullable(),
   address: z.string().max(200).optional().nullable().transform(val => val ? sanitizeText(val) : val),
   city: z.string().max(100).optional().nullable().transform(val => val ? sanitizeText(val) : val),
@@ -274,7 +275,7 @@ export default function CustomerProfile() {
       <StoreLayout>
         <div className="container py-24 text-center">
           <h1 className="text-3xl font-serif font-medium mb-3 tracking-tight">Acceso requerido</h1>
-          <p className="text-muted-foreground/80 dark:text-muted-foreground/50 mb-6 text-sm tracking-wide">Debes iniciar sesión para ver tu perfil</p>
+          <p className="text-muted-foreground/80 dark:text-muted-foreground mb-6 text-sm tracking-wide">Debes iniciar sesión para ver tu perfil</p>
           <Link to="/cliente/auth">
             <Button className="btn-gold rounded-full px-8">Iniciar Sesión</Button>
           </Link>
@@ -304,7 +305,7 @@ export default function CustomerProfile() {
           {/* Header — editorial hero with gradient */}
           <div className="flex items-center gap-4 mb-10">
             <Link to="/">
-              <Button variant="ghost" size="icon" className="text-muted-foreground/75 dark:text-muted-foreground/40">
+              <Button variant="ghost" size="icon" className="text-muted-foreground/75 dark:text-muted-foreground">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
@@ -343,7 +344,7 @@ export default function CustomerProfile() {
                 <h1 className="text-3xl md:text-4xl font-serif font-medium text-foreground tracking-tight">
                   {profile?.full_name || 'Mi Cuenta'}
                 </h1>
-                <p className="text-muted-foreground/75 dark:text-muted-foreground/40 text-sm tracking-wide">{user.email}</p>
+                <p className="text-muted-foreground/75 dark:text-muted-foreground text-sm tracking-wide">{user.email}</p>
               </div>
             </div>
           </div>
@@ -374,7 +375,7 @@ export default function CustomerProfile() {
                     <User className="h-4.5 w-4.5 text-primary/70" />
                     Información Personal
                   </CardTitle>
-                  <CardDescription className="text-muted-foreground/75 dark:text-muted-foreground/40 text-sm tracking-wide">
+                  <CardDescription className="text-muted-foreground/75 dark:text-muted-foreground text-sm tracking-wide">
                     Actualiza tus datos de contacto y dirección de envío
                   </CardDescription>
                 </CardHeader>
@@ -382,20 +383,12 @@ export default function CustomerProfile() {
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="dni" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">DNI / Cédula</Label>
-                        <Input
+                        <Label htmlFor="dni" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Cédula / RIF</Label>
+                        <DocumentIdInput
                           id="dni"
-                          placeholder="Ej: V-12345678"
-                          className="bg-card/80 border-border/15 focus:border-primary/30 uppercase"
-                          {...form.register('dni')}
-                          onChange={(e) => {
-                            // Permite V/E al inicio, luego solo dígitos
-                            const raw = e.target.value.toUpperCase();
-                            const val = raw.replace(/^([VE]-)?(.*)/,  (_, prefix, rest) =>
-                              (prefix || '') + rest.replace(/[^0-9]/g, '')
-                            ).slice(0, 12);
-                            form.setValue('dni', val, { shouldValidate: true });
-                          }}
+                          value={form.watch('dni') || ''}
+                          onChange={dni => form.setValue('dni', dni, { shouldValidate: true, shouldDirty: true })}
+                          inputClassName="bg-card/80 border-border/15 focus:border-primary/30"
                         />
                         {form.formState.errors.dni && (
                           <p className="text-sm text-destructive">{form.formState.errors.dni.message}</p>
@@ -421,23 +414,12 @@ export default function CustomerProfile() {
 
                       <div className="space-y-2">
                         <Label htmlFor="phone" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Teléfono *</Label>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground/30" />
-                          <Input
-                            id="phone"
-                            placeholder="+58 412 1234567"
-                            className="pl-10 bg-card/80 border-border/15 focus:border-primary/30"
-                            {...form.register('phone')}
-                            onChange={(e) => {
-                              let val = e.target.value.replace(/[^\d+]/g, '');
-                              if (val && !val.startsWith('+')) val = '+' + val;
-                              if (val.length > 13) val = val.substring(0, 13);
-                              form.setValue('phone', val, { shouldValidate: true });
-                            }}
-                            pattern="^+58(?:412|414|424|416|426|2\d{2})\d{7}$"
-                            title="Debe ser un celular venezolano o teléfono fijo válido con +58"
-                          />
-                        </div>
+                        <PhoneInput
+                          id="phone"
+                          value={form.watch('phone') || ''}
+                          onChange={phone => form.setValue('phone', phone, { shouldValidate: true, shouldDirty: true })}
+                          inputClassName="bg-card/80 border-border/15 focus:border-primary/30"
+                        />
                         {form.formState.errors.phone && (
                           <p className="text-sm text-destructive">{form.formState.errors.phone.message}</p>
                         )}
@@ -446,7 +428,7 @@ export default function CustomerProfile() {
                       <div className="space-y-2">
                         <Label htmlFor="email" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Email</Label>
                         <div className="relative">
-                          <Mailbox className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground/30" />
+                          <Mailbox className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground" />
                           <Input
                             id="email"
                             type="email"
@@ -510,7 +492,7 @@ export default function CustomerProfile() {
                     <div className="space-y-2">
                       <Label htmlFor="address" className="text-xs tracking-wide text-muted-foreground/85 dark:text-muted-foreground/60">Dirección completa</Label>
                       <div className="relative">
-                        <Location className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground/30" />
+                        <Location className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60 dark:text-muted-foreground" />
                         <Textarea
                           id="address"
                           placeholder="Calle, número, urbanización, punto de referencia..."
@@ -549,7 +531,7 @@ export default function CustomerProfile() {
                     <ShieldCheck className="h-4.5 w-4.5 text-primary/70" />
                     Verificación de Identidad (KYC)
                   </CardTitle>
-                  <CardDescription className="text-muted-foreground/75 dark:text-muted-foreground/40 text-sm tracking-wide">
+                  <CardDescription className="text-muted-foreground/75 dark:text-muted-foreground text-sm tracking-wide">
                     Sube tus documentos para poder realizar compras en nuestra plataforma. El tamaño máximo por archivo es de 5MB.
                   </CardDescription>
                 </CardHeader>
@@ -705,17 +687,17 @@ export default function CustomerProfile() {
               <Card className="bg-card/80 backdrop-blur-sm border border-border/10 shadow-[0_8px_32px_hsl(var(--rose)/0.06)]">
                 <CardHeader>
                   <CardTitle className="font-serif tracking-tight">Historial de Compras</CardTitle>
-                  <CardDescription className="text-muted-foreground/75 dark:text-muted-foreground/40 text-sm tracking-wide flex items-center gap-1">
+                  <CardDescription className="text-muted-foreground/75 dark:text-muted-foreground text-sm tracking-wide flex items-center gap-1">
                     Total gastado: <PriceDisplay amountUsd={totalSpent} primaryClassName="text-gradient-gold font-semibold inline" showSecondary={false} /> en {totalPurchases} compras
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {purchasesLoading ? (
                     <div className="flex justify-center py-8">
-                      <Loader className="h-6 w-6 animate-spin text-muted-foreground/30" />
+                      <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : purchases.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground/75 dark:text-muted-foreground/40">
+                    <div className="text-center py-12 text-muted-foreground/75 dark:text-muted-foreground">
                       <p className="text-sm tracking-wide">No tienes compras registradas</p>
                       <Link to="/tienda">
                         <Button variant="outline" className="mt-4 rounded-full border-border/20">
@@ -746,18 +728,18 @@ export default function CustomerProfile() {
                               {firstImageUrl ? (
                                 <img src={firstImageUrl} alt={productName} className="w-full h-full object-cover" />
                               ) : (
-                                <ShoppingBag className="w-5 h-5 text-muted-foreground/30" />
+                                <ShoppingBag className="w-5 h-5 text-muted-foreground" />
                               )}
                             </div>
                             <div className="flex-1">
                               <p className="font-medium text-sm line-clamp-1">{productName}</p>
-                              <p className="text-xs text-muted-foreground/40 tracking-wide">
+                              <p className="text-xs text-muted-foreground tracking-wide">
                                 {format(new Date(purchase.created_at), 'PPP', { locale: es })}
                               </p>
                             </div>
                             <div className="text-right">
                               <PriceDisplay amountUsd={Number(purchase.total_usd)} primaryClassName="font-semibold text-sm text-gradient-gold" showSecondary={false} />
-                              <p className="text-[10px] text-muted-foreground/30 tracking-wide">
+                              <p className="text-[10px] text-muted-foreground tracking-wide">
                                 x{quantity}
                               </p>
                             </div>

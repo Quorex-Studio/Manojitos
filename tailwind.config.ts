@@ -14,12 +14,22 @@ export default {
       },
     },
     extend: {
+      spacing: {
+        '4.5': '1.125rem',
+        '13': '3.25rem',
+      },
       fontFamily: {
         sans: ['Quicksand', 'sans-serif'],
         serif: ['Playfair Display', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
+        studio: "hsl(var(--studio))",
+        sale: "hsl(var(--sale))",
+        success: "hsl(var(--success))",
+        wine: "hsl(var(--wine))",
+        nude: "hsl(var(--nude))",
+        cream: "hsl(var(--cream))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",

@@ -1,6 +1,12 @@
-import { useMemo } from 'react';
+import { needsRestock } from '@/lib/stock';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ChartSuccess, DollarSign, ShoppingBag, ArrowUp, InfoCircle, Package, CreditCard } from 'reicon-react';
+import { ChartSuccess, DollarSign, ShoppingBag, ArrowUp, InfoCircle, Package, CreditCard, Plus, DocumentUpload, Store, TickCircle, ArrowRight } from 'reicon-react';
+import { Link } from 'react-router-dom';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { PAYMENT_METHOD_LABELS } from '@/lib/paymentMethodFields';
+import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/ui/stat-card';
 import { DashboardAlertsDropdown } from '@/components/admin/AdminAlertsPanel';
@@ -22,6 +28,8 @@ export default function Dashboard() {
   const { sales } = useSales();
   const { products } = useProducts();
   const { credits } = useCredits();
+  const { methods: paymentMethods } = usePaymentMethods(false);
+  const { user } = useAuth();
   const { displayCurrency } = useCurrency();
   const { rate, convertToBS, calculateAllCurrencies } = useExchangeRate(displayCurrency === 'EUR' ? 'EUR' : 'USD');
 
@@ -49,7 +57,7 @@ export default function Dashboard() {
     const todayTotal = todaySales.reduce((acc, s) => acc + Number(s.total_usd), 0);
     const monthTotal = sales.reduce((acc, s) => acc + Number(s.total_usd), 0);
     const totalCreditBalance = credits.reduce((acc, c) => acc + Number(c.current_balance), 0);
-    const lowStockProducts = products.filter(p => p.stock <= 5);
+    const lowStockProducts = products.filter(needsRestock);
 
     return {
       todaySales: todaySales.length,
@@ -93,6 +101,18 @@ export default function Dashboard() {
       }));
   }, [products]);
 
+  const hasWeekSales = salesChartData.some(d => d.ventas > 0);
+  const hasTopSellers = topProductsData.some(d => d.vendidos > 0);
+  const paymentsReady = paymentMethods.length > 0 && paymentMethods.every(m => Object.values(m.config || {}).every(v => String(v || '').trim()));
+  const setupSteps = [
+    { done: products.length > 0, label: 'Carga tus productos', hint: 'Impórtalos desde Treinta o Excel', to: '/import-products' },
+    { done: paymentsReady, label: 'Completa tus datos de pago', hint: 'Para que las clientas sepan a dónde pagarte', to: '/settings' },
+    { done: sales.length > 0, label: 'Registra tu primera venta', hint: 'Desde Ventas → Nueva venta', to: '/sales?nueva=1' },
+  ];
+  const setupPending = setupSteps.filter(s => !s.done).length;
+  const firstName = (user?.user_metadata?.full_name as string | undefined)?.split(' ')[0];
+  const greeting = (() => { const h = new Date().getHours(); return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'; })();
+
   // Helper para mostrar moneda primaria/secundaria en el Dashboard
   const formatCurrencyPair = (amountUsd: number) => {
     const { USD, VES, EUR } = calculateAllCurrencies(amountUsd);
@@ -118,22 +138,78 @@ export default function Dashboard() {
   // --- RENDER ---
   return (
     <AppLayout>
-      <div className="space-y-8">
+      <div className="space-y-6 md:space-y-8">
         {/* Header — editorial serif with Notification Dropdown */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
-              Panel General
-            </h1>
-            <p className="text-muted-foreground/40 mt-1 text-sm tracking-wide">
-              Resumen de tu negocio
+            <h1 className="page-header">Panel general</h1>
+            <p className="font-serif text-2xl text-foreground md:hidden">{greeting}{firstName ? `, ${firstName}` : ''}</p>
+            <p className="page-subtitle">
+              <span className="hidden md:inline">{greeting}{firstName ? `, ${firstName}` : ''} · </span>
+              {new Date().toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
-          <DashboardAlertsDropdown />
+          <div className="hidden md:block"><DashboardAlertsDropdown /></div>
         </div>
 
+        {/* Accesos rápidos: lo que más se hace en el día */}
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide md:mx-0 md:px-0">
+          {[
+            { to: '/sales?nueva=1', label: 'Nueva venta', icon: Plus, primary: true },
+            { to: '/products', label: 'Productos', icon: Package },
+            { to: '/import-products', label: 'Importar', icon: DocumentUpload },
+            { to: '/', label: 'Ver tienda', icon: Store },
+          ].map(({ to, label, icon: Icon, primary }) => (
+            <Link
+              key={to}
+              to={to}
+              className={cn(
+                'flex h-11 shrink-0 items-center gap-2 rounded-full border px-5 text-sm font-semibold transition-colors',
+                primary ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90' : 'border-border bg-card hover:border-primary/40'
+              )}
+            >
+              <Icon className="h-4 w-4" />{label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Primeros pasos (solo mientras falte algo) */}
+        {setupPending > 0 && (
+          <section className="rounded-2xl border border-primary/20 bg-primary/5 p-4 md:p-5">
+            <div className="mb-3 flex items-baseline justify-between gap-2">
+              <h2 className="font-serif text-lg">Primeros pasos</h2>
+              <span className="text-xs text-muted-foreground">{setupSteps.length - setupPending} de {setupSteps.length} listos</span>
+            </div>
+            <ol className="grid grid-cols-1 gap-2 md:grid-cols-3">
+              {setupSteps.map((step, i) => (
+                <li key={step.label}>
+                  <Link
+                    to={step.to}
+                    className={cn(
+                      'group flex h-full items-center gap-3 rounded-xl border bg-card p-3 transition-colors',
+                      step.done ? 'border-border opacity-70' : 'border-border hover:border-primary/50'
+                    )}
+                  >
+                    <span className={cn(
+                      'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold',
+                      step.done ? 'bg-success/15 text-success' : 'bg-primary text-primary-foreground'
+                    )}>
+                      {step.done ? <TickCircle className="h-4 w-4" /> : i + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={cn('block text-sm font-semibold', step.done && 'line-through')}>{step.label}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{step.hint}</span>
+                    </span>
+                    {!step.done && <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />}
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4 [&>*:last-child:nth-child(odd)]:col-span-2 lg:[&>*:last-child:nth-child(odd)]:col-span-1">
           <StatCard
             title="Ventas Hoy"
             value={formatCurrencyPair(stats.todayTotal).primary}
@@ -170,7 +246,7 @@ export default function Dashboard() {
             icon={<ArrowUp className="h-6 w-6" />}
             variant="default"
             delay={0.05}
-            href="/sales"
+            href="/sales?tab=cuentas-cobrar"
             hoverContent={
               todayPayments.length > 0 ? (
                 <div className="space-y-2">
@@ -252,7 +328,7 @@ export default function Dashboard() {
             subtitle={`de ${stats.totalProducts} productos`}
             icon={<InfoCircle className="h-6 w-6" />}
             delay={0.3}
-            href="/products"
+            href="/products?stock=bajo"
             hoverContent={
               stats.lowStockProductsList.length > 0 ? (
                 <div className="space-y-2">
@@ -288,7 +364,10 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
+                {!hasWeekSales ? (
+                  <EmptyChart icon={<ChartSuccess className="h-6 w-6" />} text="Cuando registres ventas, aquí verás cómo te fue cada día." />
+                ) : (
+                <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={salesChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
                     <XAxis dataKey="name" stroke="hsl(var(--muted-foreground) / 0.4)" fontSize={12} />
@@ -312,6 +391,7 @@ export default function Dashboard() {
                     />
                   </LineChart>
                 </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -328,7 +408,10 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
+                {!hasTopSellers ? (
+                  <EmptyChart icon={<Package className="h-6 w-6" />} text="Aquí aparecerán tus productos estrella cuando empieces a vender." />
+                ) : (
+                <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={topProductsData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
                     <XAxis type="number" stroke="hsl(var(--muted-foreground) / 0.4)" fontSize={12} />
@@ -345,6 +428,7 @@ export default function Dashboard() {
                     <Bar dataKey="vendidos" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -372,7 +456,7 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <p className="font-medium text-sm text-foreground/80">{sale.product_name}</p>
-                        <p className="text-xs text-muted-foreground/40 tracking-wide">
+                        <p className="text-xs text-muted-foreground tracking-wide">
                           {new Date(sale.created_at).toLocaleDateString('es-VE', { 
                             day: '2-digit', month: '2-digit', year: 'numeric',
                             hour: '2-digit', minute: '2-digit'
@@ -382,12 +466,17 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-sm text-gradient-gold">{formatCurrencyPair(Number(sale.total_usd)).primary}</p>
-                      <p className="text-[10px] text-muted-foreground/30 tracking-wide">{sale.payment_method}</p>
+                      <p className="text-[11px] text-muted-foreground">{PAYMENT_METHOD_LABELS[sale.payment_method] || sale.payment_method}</p>
                     </div>
                   </div>
                 ))}
                 {sales.length === 0 && (
-                  <p className="text-center text-muted-foreground/30 py-12 text-sm tracking-wide">No hay ventas registradas</p>
+                  <div className="flex flex-col items-center gap-3 py-10 text-center">
+                    <p className="text-sm text-muted-foreground">Todavía no hay ventas.</p>
+                    <Link to="/sales?nueva=1" className="flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground">
+                      <Plus className="h-4 w-4" />Registrar la primera
+                    </Link>
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -395,5 +484,14 @@ export default function Dashboard() {
         </motion.div>
       </div>
     </AppLayout>
+  );
+}
+
+function EmptyChart({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <div className="flex h-[200px] flex-col items-center justify-center gap-3 rounded-2xl bg-studio px-6 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-card text-muted-foreground">{icon}</span>
+      <p className="max-w-xs text-sm text-muted-foreground">{text}</p>
+    </div>
   );
 }

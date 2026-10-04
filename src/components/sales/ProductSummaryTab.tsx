@@ -95,7 +95,7 @@ export function ProductSummaryTab({ onViewDebtorAccount }: ProductSummaryTabProp
         </div>
       ) : !filteredSummaries?.length ? (
         <div className="text-center p-12 bg-secondary/20 rounded-xl border border-dashed border-border/50">
-          <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+          <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
           <p className="text-lg font-medium text-muted-foreground">No hay ventas en este período</p>
         </div>
       ) : (

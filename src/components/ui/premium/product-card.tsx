@@ -115,10 +115,10 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
 
             {/* Minimal info — category + sold count */}
             <div className="p-3 flex justify-between items-center">
-                <span className="text-[10px] text-muted-foreground/50 tracking-[0.1em] uppercase">
+                <span className="text-[10px] text-muted-foreground tracking-[0.1em] uppercase">
                     {product.category || 'General'}
                 </span>
-                <span className="text-[10px] text-muted-foreground/40 tracking-wide">
+                <span className="text-[10px] text-muted-foreground tracking-wide">
                     {product.sold_count > 0 ? `${product.sold_count} vendidos` : 'Nuevo'}
                 </span>
             </div>

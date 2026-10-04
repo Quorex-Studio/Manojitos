@@ -9,6 +9,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PublicProduct } from '@/types';
 
+export type { PublicProduct };
+
 
 // Hook para obtener productos públicos
 export function usePublicProducts() {

@@ -1,7 +1,8 @@
-import { BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
+import { BRAND, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle } from 'reicon-react';
+import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle, Receipt } from 'reicon-react';
 import { getNextTwoCutoffDates, getNextThreeCutoffDates, formatCutoffDate } from '@/lib/cutoffDates';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -16,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ReceiptDialog } from '@/components/receipts/ReceiptDialog';
+import { receiptNumber, type ReceiptData } from '@/lib/receipt';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,13 +31,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatBS } from '@/lib/utils';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { notifyCustomer } from '@/lib/notify';
 import { ProductSummaryTab } from '@/components/sales/ProductSummaryTab';
+import { NewSaleDialog } from '@/components/sales/NewSaleDialog';
+import { PAYMENT_METHOD_LABELS } from '@/lib/paymentMethodFields';
 import { Sale, Product, CheckoutItem, OrderItem, ProductDebtor, SaleStatus, SalePayment, SaleReturnType } from '@/types';
 
 export interface GroupedReceivable {
+  id: string;
   client_name: string;
+  sale_modality: string;
+  payment_method: string;
   total_usd: number;
-  total_pending: number;
+  amount_paid: number;
+  total_bs: number;
   sales: Sale[];
   created_at: string;
 }
@@ -54,7 +64,29 @@ export interface GroupedSale {
 
 const formatPaymentMethod = (method: string) => {
   if (!method) return '';
-  return method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  return PAYMENT_METHOD_LABELS[method] || method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
+/** Recibo de una venta del panel (agrupa sus líneas; en fiado muestra abonado y saldo). */
+const saleGroupReceipt = (group: GroupedSale): ReceiptData => {
+  const first = group.items[0];
+  const paid = group.is_credit
+    ? group.items.reduce((sum, s) => sum + Number(s.amount_paid || 0), 0)
+    : group.total_usd;
+  const totalBs = group.items.every(s => s.total_bs) ? group.items.reduce((sum, s) => sum + Number(s.total_bs), 0) : null;
+  return {
+    kind: 'venta',
+    number: receiptNumber(group.id),
+    date: new Date(group.created_at),
+    customerName: group.client_name,
+    customerPhone: first?.client_phone,
+    paymentMethod: group.is_credit ? null : group.payment_method,
+    items: group.items.map(s => ({ name: s.product_name, quantity: Number(s.quantity), unitPrice: Number(s.unit_price_usd) })),
+    total: group.total_usd,
+    paid,
+    totalBs,
+    status: group.is_credit && group.total_usd - paid > 0.009 ? 'por_cobrar' : 'pagado',
+  };
 };
 
 const renderOrderNotes = (notes: string) => {
@@ -119,10 +151,29 @@ export default function Sales() {
   const { rate, convertToBS } = useExchangeRate();
   const { methods: activePaymentMethods } = usePaymentMethods(false);
   const { config: pricingConfig } = usePricingConfig();
-  const [searchParams] = useSearchParams();
-  const initialSalesTab = searchParams.get('tab') === 'pedidos' ? 'pedidos' : 'ventas';
-  const [activeSalesTab, setActiveSalesTab] = useState(initialSalesTab);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const confirmDialog = useConfirm();
+  // La pestaña vive en la URL (?tab=) para que los enlaces del panel abran la correcta
+  const SALES_TABS = ['ventas', 'cuentas-cobrar', 'pedidos', 'resumen-producto'];
+  const tabParam = searchParams.get('tab') || 'ventas';
+  const activeSalesTab = SALES_TABS.includes(tabParam) ? tabParam : 'ventas';
+  const setActiveSalesTab = (tab: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'ventas') next.delete('tab'); else next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  };
   const [isOpen, setIsOpen] = useState(false);
+  // Acceso directo desde el panel: /sales?nueva=1 abre la nueva venta
+  useEffect(() => {
+    if (searchParams.get('nueva') === '1') {
+      setIsOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('nueva');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const [rejectOrderId, setRejectOrderId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [search, setSearch] = useState('');
@@ -159,6 +210,7 @@ export default function Sales() {
   });
 
   const [detailsGroup, setDetailsGroup] = useState<GroupedSale | null>(null);
+  const [receiptGroup, setReceiptGroup] = useState<GroupedSale | null>(null);
   const [groupPayments, setGroupPayments] = useState<SalePayment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 
@@ -210,7 +262,7 @@ export default function Sales() {
   };
 
   const handleVoidPayment = async (paymentId: string) => {
-    if (!window.confirm('¿Estás seguro de que deseas anular este abono? El saldo de la cuenta se recalculará automáticamente.')) {
+    if (!(await confirmDialog({ title: '¿Anular este abono?', description: 'El saldo de la cuenta se recalculará automáticamente.', confirmText: 'Anular abono', destructive: true }))) {
       return;
     }
     setIsSubmitting(true);
@@ -291,215 +343,8 @@ export default function Sales() {
     }
   };
 
-  // Carrito multi-producto
-  const [items, setItems] = useState<SaleLineItem[]>([{ id: crypto.randomUUID(), product_id: '', quantity: '1' }]);
-
-  // Datos del pago
-  const [payment, setPayment] = useState({
-    method: '',
-    amount_received: '',
-    is_credit: false,
-  });
-
-  // Modalidad de venta: contado | dos_partes | financiamiento | fiado
-  type SaleModality = 'contado' | 'dos_partes' | 'financiamiento' | 'fiado';
-  const [saleModality, setSaleModality] = useState<SaleModality>('contado');
-
-  // Datos del cliente (DNI primero)
-  const [client, setClient] = useState({
-    dni: '',
-    name: '',
-    phone: '',
-    email: '',
-    address: '',
-    notes: '',
-  });
-  const [clientType, setClientType] = useState<'registered' | 'new'>('registered');
-  const [dniLookupState, setDniLookupState] = useState<'idle' | 'loading' | 'found' | 'notfound'>('idle');
-
-  // Búsqueda de clientes por NOMBRE o cédula en "Ya Registrado".
-  type ClientMatch = { name: string; dni: string; phone: string; email: string; address: string };
-  const [clientQuery, setClientQuery] = useState('');
-  const [clientResults, setClientResults] = useState<ClientMatch[]>([]);
-  const [clientSearchLoading, setClientSearchLoading] = useState(false);
-  const clientSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const queryClient = useQueryClient();
 
-  // --- CART HANDLERS ---
-  const addItem = () => setItems(prev => [...prev, { id: crypto.randomUUID(), product_id: '', quantity: '1' }]);
-  const removeItem = (id: string) => setItems(prev => prev.filter(i => i.id !== id));
-  const updateItem = (id: string, field: 'product_id' | 'quantity', value: string) =>
-    setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i));
-
-  // Auto-buscar cliente por DNI en customer_profiles (búsqueda exacta, con fallback sin prefijo)
-  const handleDniBlur = useCallback(async () => {
-    const dniRaw = client.dni.trim().toUpperCase();
-    if (!dniRaw || dniRaw.length < 4) return;
-    setDniLookupState('loading');
-    try {
-      // Búsqueda exacta primero (el UNIQUE constraint garantiza exactitud)
-      let { data } = await supabase
-        .from('customer_profiles')
-        .select('full_name, phone, email, address')
-        .eq('dni', dniRaw)
-        .maybeSingle();
-
-      // Fallback: si el usuario ingresó sin prefijo (ej. "12345678"), intentar con prefijos comunes
-      if (!data && /^\d+$/.test(dniRaw)) {
-        for (const prefix of ['V-', 'J-', 'E-', 'G-']) {
-          const withPrefix = prefix + dniRaw;
-          const { data: prefixed } = await supabase
-            .from('customer_profiles')
-            .select('full_name, phone, email, address')
-            .eq('dni', withPrefix)
-            .maybeSingle();
-          if (prefixed) { data = prefixed; break; }
-        }
-      }
-
-      if (data) {
-        setClient(prev => ({
-          ...prev,
-          name: data.full_name || prev.name,
-          phone: data.phone || prev.phone,
-          email: data.email || prev.email,
-          address: data.address || prev.address,
-        }));
-        setDniLookupState('found');
-        return;
-      }
-
-      // Fallback: buscar en VENTAS pasadas. Todo cliente al que ya se le
-      // facturó (con nombre y cédula) vive en `sales`, aunque su perfil en
-      // customer_profiles no se haya creado. Así "Ya Registrado" encuentra a
-      // cualquiera al que ya le vendimos. Se prueba la cédula tal cual y, si es
-      // sólo numérica, con los prefijos comunes.
-      const dniCandidates = [dniRaw];
-      if (/^\d+$/.test(dniRaw)) {
-        for (const prefix of ['V-', 'J-', 'E-', 'G-']) dniCandidates.push(prefix + dniRaw);
-      }
-      const { data: saleRows } = await supabase
-        .from('sales')
-        .select('client_name, client_phone, client_email, client_address')
-        .in('client_dni', dniCandidates)
-        .not('client_name', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      const prev = saleRows?.[0];
-      if (prev && prev.client_name) {
-        setClient(c => ({
-          ...c,
-          name: prev.client_name || c.name,
-          phone: prev.client_phone || c.phone,
-          email: prev.client_email || c.email,
-          address: prev.client_address || c.address,
-        }));
-        setDniLookupState('found');
-      } else {
-        setDniLookupState('notfound');
-      }
-    } catch {
-      setDniLookupState('idle');
-    }
-  }, [client.dni]);
-
-
-  // Busca clientes por NOMBRE o cédula. Fuente principal: ventas pasadas
-  // (donde vive todo cliente facturado), más customer_profiles. Sólo lectura.
-  const runClientSearch = useCallback(async (raw: string) => {
-    const q = raw.trim();
-    // Sanitizar: coma/paréntesis/porcentaje rompen la sintaxis del filtro .or() de PostgREST.
-    const safe = q.replace(/[,%()]/g, ' ').replace(/\s+/g, ' ').trim();
-    if (safe.length < 2) { setClientResults([]); setClientSearchLoading(false); return; }
-    setClientSearchLoading(true);
-    try {
-      const [salesRes, profRes] = await Promise.allSettled([
-        supabase.from('sales')
-          .select('client_name, client_dni, client_phone, client_email, client_address, created_at')
-          .not('client_name', 'is', null)
-          .or(`client_name.ilike.%${safe}%,client_dni.ilike.%${safe}%`)
-          .order('created_at', { ascending: false })
-          .limit(50),
-        supabase.from('customer_profiles')
-          .select('full_name, dni, phone, email, address')
-          .or(`full_name.ilike.%${safe}%,dni.ilike.%${safe}%`)
-          .limit(20),
-      ]);
-      const salesData = salesRes.status === 'fulfilled' ? (salesRes.value.data || []) : [];
-      const profData = profRes.status === 'fulfilled' ? (profRes.value.data || []) : [];
-      const map = new Map<string, ClientMatch>();
-      const push = (m: ClientMatch) => {
-        const name = (m.name || '').trim();
-        if (!name) return;
-        const key = ((m.dni || '').trim().toUpperCase()) || name.toLowerCase();
-        if (!map.has(key)) map.set(key, { name, dni: m.dni || '', phone: m.phone || '', email: m.email || '', address: m.address || '' });
-      };
-      type SaleRow = { client_name: string | null; client_dni: string | null; client_phone: string | null; client_email: string | null; client_address: string | null };
-      type ProfRow = { full_name: string | null; dni: string | null; phone: string | null; email: string | null; address: string | null };
-      for (const r of salesData as SaleRow[]) push({ name: r.client_name || '', dni: r.client_dni || '', phone: r.client_phone || '', email: r.client_email || '', address: r.client_address || '' });
-      for (const r of profData as ProfRow[]) push({ name: r.full_name || '', dni: r.dni || '', phone: r.phone || '', email: r.email || '', address: r.address || '' });
-      setClientResults(Array.from(map.values()).slice(0, 8));
-    } catch {
-      setClientResults([]);
-    } finally {
-      setClientSearchLoading(false);
-    }
-  }, []);
-
-  // Debounce de la búsqueda mientras se escribe.
-  useEffect(() => {
-    if (clientType !== 'registered') return;
-    if (clientSearchTimer.current) clearTimeout(clientSearchTimer.current);
-    clientSearchTimer.current = setTimeout(() => runClientSearch(clientQuery), 300);
-    return () => { if (clientSearchTimer.current) clearTimeout(clientSearchTimer.current); };
-  }, [clientQuery, clientType, runClientSearch]);
-
-  const selectClientMatch = (m: ClientMatch) => {
-    setClient(prev => ({
-      ...prev,
-      dni: m.dni || prev.dni,
-      name: m.name,
-      phone: m.phone || '',
-      email: m.email || '',
-      address: m.address || '',
-    }));
-    setDniLookupState('found');
-    setClientResults([]);
-    setClientQuery('');
-  };
-
-  const isBsPayment = ['efectivo_bs', 'pago_movil', 'transferencia'].includes(payment.method);
-  
-  const resolvedItems = items.map(item => {
-    const product = products.find(p => p.id === item.product_id);
-    const qty = Math.max(1, parseInt(item.quantity) || 1);
-    const unitPrice = product ? (isBsPayment && product.price_bs_usd != null && product.price_bs_usd > 0 ? Number(product.price_bs_usd) : Number(product.price_usd)) : 0;
-    const subtotalUSD = unitPrice * qty;
-    const subtotalBS = convertToBS(subtotalUSD);
-    return { ...item, product, qty, unitPrice, subtotalUSD, subtotalBS };
-  });
-
-  const totalUSD = resolvedItems.reduce((sum, i) => sum + i.subtotalUSD, 0);
-  const totalBS = convertToBS(totalUSD);
-
-  const amountReceived = Number(payment.amount_received) || 0;
-  const isEfectivo = payment.method === 'efectivo_usd' || payment.method === 'efectivo_bs';
-
-  let changeUSD = 0;
-  let changeBS = 0;
-  if (isEfectivo && amountReceived > 0) {
-    if (payment.method === 'efectivo_usd') {
-      changeUSD = Math.max(0, amountReceived - totalUSD);
-      changeBS = convertToBS(changeUSD);
-    } else {
-      changeBS = Math.max(0, amountReceived - totalBS);
-      changeUSD = changeBS > 0 && rate > 0 ? changeBS / rate : 0;
-    }
-  }
-  
-  const isFinanced = saleModality === 'dos_partes' || saleModality === 'financiamiento' || saleModality === 'fiado';
-  const isCreditSale = payment.is_credit || isFinanced;
   const { data: orders = [], isLoading: isLoadingOrders, refetch: refetchOrders } = useQuery({
     queryKey: ['admin-orders-list'],
     queryFn: async () => {
@@ -632,185 +477,8 @@ export default function Sales() {
   });
 
   // --- HANDLERS ---
-  const resetForm = () => {
-    setItems([{ id: crypto.randomUUID(), product_id: '', quantity: '1' }]);
-    setPayment({ method: '', amount_received: '', is_credit: false });
-    setClient({ dni: '', name: '', phone: '', email: '', address: '', notes: '' });
-    setDniLookupState('idle');
-    setSaleModality('contado');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const validItems = resolvedItems.filter(i => i.product);
-    if (validItems.length === 0) return;
-    setIsSubmitting(true);
-
-    const { sanitizeText } = await import('@/lib/validations');
-    let finalNotes = client.notes;
-    if (saleModality === 'contado' && !payment.is_credit && isEfectivo && amountReceived > 0) {
-      const currency = payment.method === 'efectivo_usd' ? '$' : 'Bs';
-      const changeText = payment.method === 'efectivo_usd' ? `$${changeUSD.toFixed(2)}` : `Bs ${changeBS.toFixed(2)}`;
-      const exchangeText = rate > 0 ? ` (Tasa: Bs ${rate.toFixed(2)})` : '';
-      const receiptInfo = `[Recibido: ${currency}${amountReceived.toFixed(2)} | Vuelto: ${changeText}${exchangeText}]`;
-      finalNotes = finalNotes ? `${receiptInfo} - ${finalNotes}` : receiptInfo;
-    }
-
-    const creditSurcharge = saleModality === 'financiamiento' ? (pricingConfig?.credit_surcharge_pct || 10) : 0;
-
-    if (saleModality === 'dos_partes') {
-      const [cuota1Date] = getNextTwoCutoffDates();
-      finalNotes = `[EN 2 PARTES - 50% contado, 50% al ${formatCutoffDate(cuota1Date)}] ${finalNotes || ''}`.trim();
-    } else if (saleModality === 'financiamiento') {
-      const [c1, c2] = getNextTwoCutoffDates();
-      finalNotes = `[FINANCIAMIENTO ${BRAND_NAME_UPPER} +${creditSurcharge}% - Inicial 33%, Cuota 1: ${formatCutoffDate(c1)}, Cuota 2: ${formatCutoffDate(c2)}] ${finalNotes || ''}`.trim();
-    } else if (saleModality === 'fiado') {
-      const [dueDate] = getNextTwoCutoffDates();
-      finalNotes = `[FIADO QUINCENA - 100% al ${formatCutoffDate(dueDate)}] ${finalNotes || ''}`.trim();
-    }
-
-    let hasError = false;
-    const saleGroupId = crypto.randomUUID();
-    for (const item of validItems) {
-      const basePrice = (isBsPayment && item.product!.price_bs_usd != null && item.product!.price_bs_usd > 0) 
-        ? Number(item.product!.price_bs_usd) 
-        : Number(item.product!.price_usd);
-      
-      const unitPriceUsd = saleModality === 'financiamiento'
-        ? basePrice * (1 + creditSurcharge / 100)
-        : basePrice;
-      const itemTotalUsd = unitPriceUsd * item.qty;
-      const itemTotalBs = convertToBS(itemTotalUsd);
-
-      let initialAmountPaid = 0;
-      if (saleModality === 'contado') initialAmountPaid = itemTotalUsd;
-      else if (saleModality === 'dos_partes') initialAmountPaid = itemTotalUsd / 2;
-      else if (saleModality === 'financiamiento') initialAmountPaid = itemTotalUsd / 3;
-      else if (saleModality === 'fiado') initialAmountPaid = 0;
-
-      const paymentStatus = initialAmountPaid >= itemTotalUsd ? 'paid' : (initialAmountPaid > 0 ? 'partial' : 'pending');
-
-      const saleData = {
-        product_id: item.product_id,
-        product_name: item.product!.name,
-        quantity: item.qty,
-        unit_price_usd: unitPriceUsd,
-        total_usd: itemTotalUsd,
-        total_bs: itemTotalBs,
-        payment_method: payment.method || 'efectivo_usd',
-        client_name: client.name ? sanitizeText(client.name) : null,
-        client_dni: client.dni ? sanitizeText(client.dni) : null,
-        client_email: client.email ? sanitizeText(client.email) : null,
-        client_phone: client.phone ? sanitizeText(client.phone) : null,
-        client_address: client.address ? sanitizeText(client.address) : null,
-        is_credit: isCreditSale,
-        sale_modality: saleModality,
-        sale_group_id: saleGroupId,
-        amount_paid: initialAmountPaid,
-        payment_status: paymentStatus,
-        status: isCreditSale ? 'confirmed' : 'pending',
-        notes: finalNotes ? sanitizeText(finalNotes) : null,
-      };
-
-      const { data, error } = await addSale(saleData);
-      if (error) { hasError = true; break; }
-
-      if (data?.id) {
-        await confirmSale(data.id);
-      }
-    }
-
-    // Si el cliente es nuevo y la venta se registró sin errores,
-    // crear/actualizar su perfil en customer_profiles para que
-    // pueda encontrarse en búsquedas futuras ("Ya Registrado").
-    if (!hasError && clientType === 'new' && client.name.trim()) {
-      try {
-        const cleanDni = client.dni.trim() || null;
-        const cleanPhone = client.phone.trim() || null;
-        const cleanEmail = client.email.trim() || null;
-        const cleanAddress = client.address.trim() || null;
-        const cleanName = sanitizeText(client.name.trim());
-
-        // Intentar upsert: si ya existe un perfil con ese DNI lo actualiza,
-        // si no existe lo crea. La columna user_id acepta cualquier UUID
-        // (no tiene FK a auth.users) por lo que podemos generar uno.
-        const profileData = {
-          user_id: crypto.randomUUID(),
-          full_name: cleanName,
-          dni: cleanDni,
-          phone: cleanPhone,
-          email: cleanEmail,
-          address: cleanAddress,
-        };
-
-        // Primero intentar por DNI (más confiable)
-        if (cleanDni) {
-          const { data: existing } = await supabase
-            .from('customer_profiles')
-            .select('id, user_id')
-            .eq('dni', cleanDni)
-            .maybeSingle();
-
-          if (existing) {
-            // Actualizar el perfil existente con los datos más recientes
-            await supabase
-              .from('customer_profiles')
-              .update({
-                full_name: cleanName,
-                phone: cleanPhone ?? undefined,
-                email: cleanEmail ?? undefined,
-                address: cleanAddress ?? undefined,
-              })
-              .eq('id', existing.id);
-          } else {
-            // Crear nuevo perfil
-            await supabase.from('customer_profiles').insert(profileData);
-          }
-        } else if (cleanPhone) {
-          // Sin DNI, intentar por teléfono
-          const { data: existing } = await supabase
-            .from('customer_profiles')
-            .select('id, user_id')
-            .eq('phone', cleanPhone)
-            .maybeSingle();
-
-          if (existing) {
-            await supabase
-              .from('customer_profiles')
-              .update({
-                full_name: cleanName,
-                email: cleanEmail ?? undefined,
-                address: cleanAddress ?? undefined,
-              })
-              .eq('id', existing.id);
-          } else {
-            await supabase.from('customer_profiles').insert(profileData);
-          }
-        } else {
-          // Sin DNI ni teléfono, insertar directamente (solo nombre)
-          await supabase.from('customer_profiles').insert(profileData);
-        }
-
-        // Invalidar cache de customer_profiles para que búsquedas futuras
-        // reflejen el nuevo perfil inmediatamente
-        queryClient.invalidateQueries({ queryKey: ['customers'] });
-        queryClient.invalidateQueries({ queryKey: ['admin-customer-profiles'] });
-      } catch (profileErr) {
-        // No interrumpir el flujo de venta por un error en el perfil
-        console.warn('[Sales] No se pudo crear perfil de cliente nuevo:', profileErr);
-      }
-    }
-
-    setIsSubmitting(false);
-    if (!hasError) {
-      setIsOpen(false);
-      resetForm();
-      refetchProducts();
-    }
-  };
-
   const handleDelete = async (id: string) => {
-    if (confirm('¿Eliminar esta venta?')) {
+    if (await confirmDialog({ title: '¿Eliminar esta venta?', description: 'El stock de los productos se devuelve al inventario.', confirmText: 'Eliminar', destructive: true })) {
       await deleteSale(id);
       refetchProducts();
     }
@@ -838,7 +506,7 @@ export default function Sales() {
   };
 
   const handleApproveOrder = async (orderId: string) => {
-    if (!confirm('¿Aprobar este pedido? Esto descontará el stock y registrará la venta.')) return;
+    if (!(await confirmDialog({ title: '¿Aprobar este pedido?', description: 'Se descuenta el stock, se registra la venta y se avisa a la clienta por correo.', confirmText: 'Aprobar pedido' }))) return;
 
     try {
       // 1. Consultar la orden antes de aprobar para conocer sus detalles
@@ -855,26 +523,6 @@ export default function Sales() {
       if (error) throw error;
 
       toast.success('Pedido aprobado y venta registrada correctamente 🩷');
-
-      // 2.1 Notificar al cliente según el tipo de entrega
-      if (approvedOrder.customer_user_id) {
-        const isPickup = approvedOrder.notes?.includes('[RETIRO EN TIENDA]');
-        const notifTitle = isPickup ? 'Tu pedido está listo para retirar' : 'Tu pedido fue aprobado';
-        const notifMessage = isPickup
-          ? 'Pedido aprobado, listo para retirar. Horario de atención: Lunes a Sábado, 9:00am - 6:00pm.'
-          : 'Pedido aprobado, tu delivery está siendo coordinado / en vía.';
-
-        await supabase.from('notifications').insert({
-          user_id: approvedOrder.customer_user_id,
-          title: notifTitle,
-          message: notifMessage,
-          type: 'success',
-          channel: 'internal',
-          is_read: false,
-          sent_at: new Date().toISOString(),
-          metadata: { order_id: orderId },
-        });
-      }
 
       // 3. Si el método es crédito, descontar/cargar a su cuenta de crédito
       if (approvedOrder.payment_method === 'credito') {
@@ -1035,31 +683,19 @@ export default function Sales() {
       queryClient.invalidateQueries({ queryKey: ['customer-credit'] });
       queryClient.invalidateQueries({ queryKey: ['customer-pending-payments'] });
       
-      // 4. Enviar notificación al cliente
-      if (approvedOrder?.customer_user_id) {
-        const isPickup = approvedOrder.notes?.includes('[RETIRO EN TIENDA]');
-        const message = !isPickup 
-           ? 'Pedido aprobado, su delivery está siendo coordinado.' 
-           : 'Pedido aprobado, debe retirarlo en tienda. Nuestro horario laboral es de Lunes a Sábado, 9:00am - 6:00pm.';
-           
-        await supabase.from('notifications').insert({
-           user_id: approvedOrder.customer_user_id,
-           title: 'Pedido Aprobado',
-           message: message,
-           type: 'success',
-           channel: 'internal'
-        });
-
-        // Trigger push notification
-        supabase.functions.invoke('send-push', {
-          body: {
-            userId: approvedOrder.customer_user_id,
-            title: 'Pedido Aprobado',
-            message: message,
-            url: '/orders'
-          }
-        }).catch(console.error);
-      }
+      // 4. Avisar a la clienta (interno + push + correo)
+      const isPickup = approvedOrder.notes?.includes('[RETIRO EN TIENDA]');
+      notifyCustomer({
+        userId: approvedOrder.customer_user_id,
+        email: approvedOrder.customer_email,
+        orderId,
+        title: isPickup ? 'Tu pedido está listo para retirar' : 'Tu pedido fue confirmado',
+        message: isPickup
+          ? `Ya puedes pasar a retirarlo. Horario: ${BRAND.hours}.`
+          : 'Estamos coordinando tu delivery. Te avisaremos cuando salga.',
+        emailAction: 'order_confirmed',
+        emailData: { client_name: approvedOrder.customer_name, total_usd: approvedOrder.total_usd, pickup: !!isPickup },
+      });
     } catch (err) {
       console.error('Error approving order:', err);
       toast.error(err instanceof Error ? err.message : 'Error al aprobar el pedido');
@@ -1095,27 +731,18 @@ export default function Sales() {
 
       toast.success('Pedido rechazado y cancelado ❌');
       
-      // Enviar notificacion interna al cliente
-      if (order?.customer_user_id) {
-        await supabase.from('notifications').insert({
-          user_id: order.customer_user_id,
-          title: 'Pedido Rechazado',
-          message: `Su pedido ha sido rechazado. Motivo: ${rejectReason}`,
-          type: 'error',
-          channel: 'internal'
-        });
+      // Avisar a la clienta (interno + push + correo)
+      notifyCustomer({
+        userId: order?.customer_user_id,
+        email: order?.customer_email,
+        orderId: rejectOrderId,
+        type: 'error',
+        title: 'Tu pedido fue cancelado',
+        message: `Motivo: ${rejectReason}`,
+        emailAction: 'order_rejected',
+        emailData: { client_name: order?.customer_name, total_usd: order?.total_usd, reason: rejectReason },
+      });
 
-        // Trigger push notification
-        supabase.functions.invoke('send-push', {
-          body: {
-            userId: order.customer_user_id,
-            title: 'Pedido Rechazado',
-            message: `Su pedido ha sido rechazado. Motivo: ${rejectReason}`,
-            url: '/orders'
-          }
-        }).catch(console.error);
-      }
-      
       setRejectOrderId(null);
       setRejectReason('');
       refetchOrders();
@@ -1129,12 +756,12 @@ export default function Sales() {
   };
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
-    if (!confirm(`¿Marcar este pedido como ${newStatus === 'shipped' ? 'Enviado' : 'Entregado'}?`)) return;
+    if (!(await confirmDialog({ title: `¿Marcar como ${newStatus === 'shipped' ? 'enviado' : 'entregado'}?`, description: 'La clienta recibirá un aviso y un correo.', confirmText: newStatus === 'shipped' ? 'Marcar enviado' : 'Marcar entregado' }))) return;
 
     try {
       const { data: targetOrder } = await supabase
         .from('orders')
-        .select('customer_user_id')
+        .select('customer_user_id, customer_email, customer_name, total_usd')
         .eq('id', orderId)
         .single();
 
@@ -1145,20 +772,18 @@ export default function Sales() {
 
       if (error) throw error;
 
-      if (targetOrder?.customer_user_id) {
-        await supabase.from('notifications').insert({
-          user_id: targetOrder.customer_user_id,
-          title: newStatus === 'shipped' ? 'Tu pedido fue enviado' : 'Tu pedido fue entregado',
-          message: newStatus === 'shipped'
-            ? 'Tu pedido está en camino. Te avisaremos cuando llegue.'
-            : `¡Tu pedido ha sido entregado! Gracias por tu compra en ${BRAND_NAME}.`,
-          type: 'success',
-          channel: 'internal',
-          is_read: false,
-          sent_at: new Date().toISOString(),
-          metadata: { order_id: orderId },
-        });
-      }
+      const shipped = newStatus === 'shipped';
+      notifyCustomer({
+        userId: targetOrder?.customer_user_id,
+        email: targetOrder?.customer_email,
+        orderId,
+        title: shipped ? 'Tu pedido va en camino' : 'Tu pedido fue entregado',
+        message: shipped
+          ? 'Tu pedido salió hacia tu dirección. Te avisaremos cuando llegue.'
+          : `¡Tu pedido fue entregado! Gracias por comprar en ${BRAND_NAME}.`,
+        emailAction: shipped ? 'order_shipped' : 'order_delivered',
+        emailData: { client_name: targetOrder?.customer_name, total_usd: targetOrder?.total_usd },
+      });
 
       toast.success(`Pedido marcado como ${newStatus === 'shipped' ? 'Enviado 🚚' : 'Entregado ✅'}`);
       
@@ -1173,16 +798,21 @@ export default function Sales() {
   const handleViewDebtorAccount = (debtor: ProductDebtor) => {
     const groupSales = sales.filter(s => s.sale_group_id === debtor.sale_group_id);
     if (groupSales.length > 0) {
-      const totalUsd = groupSales.reduce((sum, s) => sum + s.total_usd, 0);
-      const totalPaid = groupSales.reduce((sum, s) => sum + s.amount_paid, 0);
-      const grouped = {
+      const totalUsd = groupSales.reduce((sum, s) => sum + Number(s.total_usd || 0), 0);
+      const totalPaid = groupSales.reduce((sum, s) => sum + Number(s.amount_paid || 0), 0);
+      // Misma forma que groupedReceivables: el abono necesita el id del grupo (sale_group_id)
+      const grouped: GroupedReceivable = {
+        id: debtor.sale_group_id,
         client_name: debtor.client_name || 'Desconocido',
+        sale_modality: groupSales[0].sale_modality || '',
+        payment_method: groupSales[0].payment_method,
         total_usd: totalUsd,
-        total_pending: totalUsd - totalPaid,
+        amount_paid: totalPaid,
+        total_bs: groupSales.reduce((sum, s) => sum + Number(s.total_bs || 0), 0),
         sales: groupSales,
         created_at: groupSales[0].created_at
       };
-      
+
       setActiveSalesTab('cuentas-cobrar');
       setReceivableTab('pending');
       setAbonoGroup(grouped);
@@ -1196,36 +826,36 @@ export default function Sales() {
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="page-header">Ventas y Pedidos</h1>
+          <h1 className="page-header">Ventas y pedidos</h1>
           <p className="page-subtitle">Gestiona las ventas del local y aprueba los pedidos de los clientes</p>
         </div>
 
         <Tabs value={activeSalesTab} onValueChange={setActiveSalesTab} className="w-full">
-          <TabsList className="grid grid-cols-1 sm:grid-cols-4 w-full max-w-4xl bg-secondary rounded-xl mb-6 h-auto gap-1">
-            <TabsTrigger value="ventas" className="rounded-lg text-xs sm:text-sm">
-              <ShoppingCart className="h-4 w-4 mr-2 hidden sm:inline" />
+          <TabsList className="admin-tabs mb-6">
+            <TabsTrigger value="ventas">
+              <ShoppingCart className="h-4 w-4 hidden sm:inline" />
               Ventas
             </TabsTrigger>
-            <TabsTrigger value="cuentas-cobrar" className="rounded-lg relative text-xs sm:text-sm">
-              <ClipboardList className="h-4 w-4 mr-2 hidden sm:inline" />
-              CxC
+            <TabsTrigger value="cuentas-cobrar">
+              <ClipboardList className="h-4 w-4 hidden sm:inline" />
+              Por cobrar
               {sales.filter(s => s.payment_status !== 'paid').length > 0 && (
-                <Badge variant="destructive" className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full">
+                <Badge variant="destructive" className="px-1.5 py-0.5 text-[10px] rounded-full">
                   {sales.filter(s => s.payment_status !== 'paid').length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="pedidos" className="rounded-lg relative text-xs sm:text-sm">
-              <ClipboardList className="h-4 w-4 mr-2 hidden sm:inline" />
+            <TabsTrigger value="pedidos">
+              <ClipboardList className="h-4 w-4 hidden sm:inline" />
               Pedidos
               {orders.filter(o => o.status === 'pending').length > 0 && (
-                <Badge variant="destructive" className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full">
+                <Badge variant="destructive" className="px-1.5 py-0.5 text-[10px] rounded-full">
                   {orders.filter(o => o.status === 'pending').length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="resumen-producto" className="rounded-lg text-xs sm:text-sm">
-              <Package className="h-4 w-4 mr-2 hidden sm:inline" />
+            <TabsTrigger value="resumen-producto">
+              <Package className="h-4 w-4 hidden sm:inline" />
               Resumen
             </TabsTrigger>
           </TabsList>
@@ -1257,414 +887,11 @@ export default function Sales() {
                 </Select>
               </div>
 
-              <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
-                <DialogTrigger asChild>
-                  <Button className="btn-gold rounded-xl gap-2 w-full sm:w-auto">
-                    <Plus className="h-5 w-5" />
-                    Nueva Venta
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="glass-card border-border/50 w-[95vw] sm:max-w-md mx-auto max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle className="font-serif text-2xl">Nueva Venta</DialogTitle>
-                  </DialogHeader>
-
-                    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                    {/* ── CARRITO DE PRODUCTOS ── */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-base font-semibold">Productos *</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={addItem}
-                          className="gap-1 text-xs"
-                        >
-                          <BoxAdd className="h-3.5 w-3.5" />
-                          Agregar producto
-                        </Button>
-                      </div>
-
-                      <div className="space-y-2">
-                        {items.map((item, idx) => {
-                          const ri = resolvedItems[idx];
-                          return (
-                            <div key={item.id} className="flex items-center gap-2 p-3 rounded-xl bg-secondary/60 border border-border/40">
-                              <div className="flex-1 min-w-0">
-                                <Select value={item.product_id} onValueChange={v => updateItem(item.id, 'product_id', v)}>
-                                  <SelectTrigger className="input-glass rounded-lg text-sm h-9">
-                                    <SelectValue placeholder="Seleccionar producto" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {products.filter(p => p.stock > 0).map(p => (
-                                      <SelectItem key={p.id} value={p.id}>
-                                        {p.name} — ${Number(p.price_usd).toFixed(2)} ({p.stock} uds)
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="w-20 flex-shrink-0">
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  max={ri?.product?.stock || 999}
-                                  value={item.quantity}
-                                  onChange={e => updateItem(item.id, 'quantity', e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
-                                  className="input-glass rounded-lg text-sm h-9 text-center"
-                                  placeholder="Cant."
-                                />
-                              </div>
-                              {ri?.product && (
-                                <span className="text-xs font-bold text-primary text-right flex-shrink-0 min-w-[4rem]">
-                                  {isBsPayment && rate > 0 ? formatBS(ri.subtotalBS) : `$${ri.subtotalUSD.toFixed(2)}`}
-                                </span>
-                              )}
-                              {items.length > 1 && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
-                                  onClick={() => removeItem(item.id)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Total del carrito */}
-                      {totalUSD > 0 && (
-                        <div className="p-4 rounded-xl bg-secondary/80 space-y-2 shadow-inner">
-                          {isBsPayment && rate > 0 ? (
-                            <>
-                              <div className="flex justify-between items-center">
-                                <span className="text-foreground font-semibold">Total a pagar (Bs):</span>
-                                <span className="font-bold text-primary text-2xl">{formatBS(totalBS)}</span>
-                              </div>
-                              <div className="flex justify-between items-center pt-1 border-t border-border/50">
-                                <span className="text-muted-foreground text-sm">Monto protegido USD:</span>
-                                <span className="font-medium text-sm text-gradient-gold">${totalUSD.toFixed(2)}</span>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="flex justify-between items-center">
-                                <span className="text-foreground font-semibold">Total USD:</span>
-                                <span className="font-bold text-gradient-gold text-2xl">${totalUSD.toFixed(2)}</span>
-                              </div>
-                              {rate > 0 && (
-                                <div className="flex justify-between items-center pt-1 border-t border-border/50">
-                                  <span className="text-muted-foreground text-sm">Referencial Bs:</span>
-                                  <span className="font-medium text-sm">{formatBS(totalBS)}</span>
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ── DATOS DEL CLIENTE ── */}
-                    <div className="space-y-3 p-4 rounded-xl border border-primary/20 bg-primary/5">
-                      <h4 className="font-semibold text-primary flex items-center gap-2 mb-2">
-                        <User className="h-4 w-4" />
-                        Datos del Cliente
-                      </h4>
-
-                      <Tabs value={clientType} onValueChange={(v: string) => {
-                        setClientType(v);
-                        setClient({ dni: '', name: '', phone: '', email: '', address: '', notes: '' });
-                        setDniLookupState('idle');
-                        setClientQuery('');
-                        setClientResults([]);
-                      }}>
-                        <TabsList className="grid w-full grid-cols-2 mb-4 bg-background/50">
-                          <TabsTrigger value="registered">Ya Registrado</TabsTrigger>
-                          <TabsTrigger value="new">Cliente Nuevo</TabsTrigger>
-                        </TabsList>
-                        
-                        <TabsContent value="registered" className="space-y-4">
-                          <div className="space-y-1.5">
-                            <Label>Buscar por nombre o cédula</Label>
-                            <div className="relative">
-                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <Input
-                                value={clientQuery}
-                                onChange={e => setClientQuery(e.target.value)}
-                                placeholder="Ej: María, o V-12345678"
-                                className="input-glass rounded-xl pl-9"
-                              />
-                              {clientSearchLoading && (
-                                <Loader className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
-                              )}
-                            </div>
-                            {clientResults.length > 0 && (
-                              <div className="mt-1 max-h-56 overflow-y-auto rounded-xl border border-border/50 divide-y divide-border/10 bg-background/60">
-                                {clientResults.map((m, i) => (
-                                  <button
-                                    key={`${m.dni}-${m.name}-${i}`}
-                                    type="button"
-                                    onClick={() => selectClientMatch(m)}
-                                    className="w-full text-left px-3 py-2 hover:bg-primary/10 transition-colors"
-                                  >
-                                    <p className="font-medium text-sm">{m.name}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {m.dni || 'Sin cédula'}{m.phone ? ` • ${m.phone}` : ''}
-                                    </p>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                            {clientQuery.trim().length >= 2 && !clientSearchLoading && clientResults.length === 0 && (
-                              <p className="text-xs text-muted-foreground mt-1">Sin coincidencias. Prueba la cédula abajo o regístralo como Cliente Nuevo.</p>
-                            )}
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label>Buscar por Cédula / RIF *</Label>
-                            <div className="relative">
-                              <Input
-                                value={client.dni}
-                                onChange={e => {
-                                  setClient(prev => ({ ...prev, dni: e.target.value.replace(/[^0-9VJEG-]/ig, '').toUpperCase().slice(0, 15) }));
-                                  setDniLookupState('idle');
-                                }}
-                                onBlur={handleDniBlur}
-                                placeholder="Ej: V-12345678"
-                                className="input-glass rounded-xl pr-9"
-                              />
-                              {dniLookupState === 'loading' && (
-                                <Loader className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
-                              )}
-                              {dniLookupState === 'found' && (
-                                <Check className="absolute right-3 top-2.5 h-4 w-4 text-primary" />
-                              )}
-                            </div>
-                            {dniLookupState === 'found' && (
-                              <div className="mt-3 p-3 bg-primary/10 rounded-xl border border-primary/20 space-y-1">
-                                <p className="font-bold text-primary">{client.name}</p>
-                                {(client.phone || client.email) && (
-                                  <p className="text-sm text-muted-foreground">
-                                    {client.phone} {client.phone && client.email && '•'} {client.email}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                            {dniLookupState === 'notfound' && (
-                              <p className="text-sm text-destructive font-medium mt-1">Cliente no encontrado. Por favor, regístralo como Cliente Nuevo.</p>
-                            )}
-                          </div>
-                        </TabsContent>
-
-                        <TabsContent value="new" className="space-y-3">
-                          <div className="grid grid-cols-1 gap-3">
-                            <div className="space-y-1.5">
-                              <Label>Cédula / RIF</Label>
-                              <Input
-                                value={client.dni}
-                                onChange={e => setClient(prev => ({ ...prev, dni: e.target.value.replace(/[^0-9VJEG-]/ig, '').toUpperCase().slice(0, 15) }))}
-                                placeholder="Ej: V-12345678"
-                                className="input-glass rounded-xl"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label>Nombre del cliente *</Label>
-                              <Input
-                                value={client.name}
-                                onChange={e => setClient(prev => ({ ...prev, name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').slice(0, 50) }))}
-                                placeholder="Nombre completo"
-                                className="input-glass rounded-xl"
-                                required={clientType === 'new'}
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1.5">
-                                <Label>Teléfono</Label>
-                                <Input
-                                  value={client.phone}
-                                  onChange={e => setClient(prev => ({ ...prev, phone: e.target.value.replace(/[^+0-9()\s]/g, '').slice(0, 20) }))}
-                                  placeholder="+584141234567"
-                                  className="input-glass rounded-xl"
-                                />
-                              </div>
-                              <div className="space-y-1.5">
-                                <Label>Email</Label>
-                                <Input
-                                  type="email"
-                                  value={client.email}
-                                  onChange={e => setClient(prev => ({ ...prev, email: e.target.value.slice(0, 100) }))}
-                                  placeholder="correo@ejemplo.com"
-                                  className="input-glass rounded-xl"
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label>Dirección</Label>
-                              <Textarea
-                                value={client.address}
-                                onChange={e => setClient(prev => ({ ...prev, address: e.target.value.slice(0, 150) }))}
-                                placeholder="Dirección completa del cliente..."
-                                className="input-glass rounded-xl resize-none h-14"
-                              />
-                            </div>
-                          </div>
-                        </TabsContent>
-                      </Tabs>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Método de pago *</Label>
-                        <Select value={payment.method} onValueChange={v => setPayment(prev => ({ ...prev, method: v }))}>
-                          <SelectTrigger className="input-glass rounded-xl">
-                            <SelectValue placeholder="Seleccionar método" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {activePaymentMethods.map(m => (
-                              <SelectItem key={m.method_key} value={m.method_key}>{m.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {isEfectivo && (
-                        <div className="space-y-2 p-4 rounded-xl border border-primary/20 bg-primary/5">
-                          <Label className="text-primary font-semibold">
-                            Monto Recibido ({payment.method === 'efectivo_usd' ? 'USD' : 'Bs'}) *
-                          </Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={payment.amount_received}
-                            onChange={e => setPayment(prev => ({ ...prev, amount_received: e.target.value.replace(/[^0-9.]/g, '').slice(0, 10) }))}
-                            placeholder="0.00"
-                            className="input-glass rounded-xl text-lg font-bold"
-                            required
-                          />
-                          {amountReceived > 0 && (
-                            <div className="mt-3 p-3 rounded-lg bg-background/50 border border-border/50">
-                              <p className="text-sm text-muted-foreground mb-1">Vuelto a entregar:</p>
-                              {payment.method === 'efectivo_bs' && rate > 0 ? (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-2xl font-bold text-primary">{formatBS(changeBS)}</span>
-                                  <span className="text-sm font-medium text-gradient-gold">${changeUSD.toFixed(2)}</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-2xl font-bold text-gradient-gold">${changeUSD.toFixed(2)}</span>
-                                  {rate > 0 && (
-                                    <span className="text-sm font-medium">{formatBS(changeBS)}</span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ── MODALIDAD DE VENTA ── */}
-                    <div className="space-y-3">
-                      <Label className="text-base font-semibold">Modalidad de Venta</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {([
-                          { key: 'contado' as const, label: 'Contado', icon: '🟢', desc: 'Pago completo' },
-                          { key: 'dos_partes' as const, label: 'En 2 Partes', icon: '🔵', desc: '50% ahora + 50% al 15/30' },
-                          { key: 'financiamiento' as const, label: 'Financiamiento', icon: '🟡', desc: `Inicial 33% + 2 cuotas (+${pricingConfig?.credit_surcharge_pct || 10}%)` },
-                          { key: 'fiado' as const, label: 'Fiado Quincena', icon: '🟣', desc: '0% ahora, 100% al 15/30' },
-                        ]).map(mod => (
-                          <button
-                            key={mod.key}
-                            type="button"
-                            onClick={() => {
-                              setSaleModality(mod.key);
-                              if (['fiado', 'dos_partes', 'financiamiento'].includes(mod.key)) {
-                                setPayment(prev => ({ ...prev, method: 'pago_movil' }));
-                              }
-                            }}
-                            className={[
-                              'p-3 rounded-xl border text-left transition-all text-sm',
-                              saleModality === mod.key
-                                ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                                : 'border-border/40 bg-card/50 hover:border-primary/40',
-                            ].join(' ')}
-                          >
-                            <span className="text-lg">{mod.icon}</span>
-                            <p className="font-medium mt-1">{mod.label}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{mod.desc}</p>
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Info de cuotas para modalidades de financiamiento */}
-                      {saleModality === 'dos_partes' && totalUSD > 0 && (
-                        <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm space-y-1">
-                          <p className="font-semibold text-blue-600 dark:text-blue-400">Resumen: En 2 Partes</p>
-                          <p>Pago hoy: <strong>${(totalUSD / 2).toFixed(2)}</strong></p>
-                          <p>Pendiente al {formatCutoffDate(getNextTwoCutoffDates()[0])}: <strong>${(totalUSD / 2).toFixed(2)}</strong></p>
-                        </div>
-                      )}
-                      {saleModality === 'financiamiento' && totalUSD > 0 && (() => {
-                        const surcharge = pricingConfig?.credit_surcharge_pct || 10;
-                        const totalWithSurcharge = totalUSD * (1 + surcharge / 100);
-                        const initial = totalWithSurcharge / 3;
-                        const installment = (totalWithSurcharge - initial) / 2;
-                        const [c1, c2] = getNextTwoCutoffDates();
-                        return (
-                          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm space-y-1">
-                            <p className="font-semibold text-amber-600 dark:text-amber-400">Resumen: Financiamiento {BRAND_NAME} (+{surcharge}%)</p>
-                            <p>Precio total con recargo: <strong>${totalWithSurcharge.toFixed(2)}</strong></p>
-                            <p>Inicial hoy (33%): <strong>${initial.toFixed(2)}</strong></p>
-                            <p>Cuota 1 ({formatCutoffDate(c1)}): <strong>${installment.toFixed(2)}</strong></p>
-                            <p>Cuota 2 ({formatCutoffDate(c2)}): <strong>${installment.toFixed(2)}</strong></p>
-                          </div>
-                        );
-                      })()}
-                      {saleModality === 'fiado' && totalUSD > 0 && (
-                        <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-sm space-y-1">
-                          <p className="font-semibold text-purple-600 dark:text-purple-400">Resumen: Fiado Quincena</p>
-                          <p>Pago hoy: <strong>$0.00</strong></p>
-                          <p>Pendiente total al {formatCutoffDate(getNextTwoCutoffDates()[0])}: <strong>${totalUSD.toFixed(2)}</strong></p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ── NOTAS ── */}
-                    <div className="space-y-2">
-                      <Label>Notas</Label>
-                      <Textarea
-                        value={client.notes}
-                        onChange={e => setClient(prev => ({ ...prev, notes: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s.,()-]/g, '').slice(0, 200) }))}
-                        placeholder="Observaciones..."
-                        className="input-glass rounded-xl resize-none"
-                        rows={2}
-                      />
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full btn-gold rounded-xl"
-                      disabled={
-                        isSubmitting ||
-                        resolvedItems.filter(i => i.product).length === 0 ||
-                        (!isCreditSale && !payment.method) ||
-                        (clientType === 'registered' && !client.name)
-                      }
-                    >
-                      {isSubmitting ? (
-                        <><Loader className="h-4 w-4 mr-2 animate-spin" />Registrando...</>
-                      ) : (
-                        `Registrar Venta${resolvedItems.filter(i => i.product).length > 1 ? ` (${resolvedItems.filter(i => i.product).length} productos)` : ''}`
-                      )}
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <Button onClick={() => setIsOpen(true)} className="btn-gold rounded-xl gap-2 w-full sm:w-auto">
+                <Plus className="h-5 w-5" />
+                Nueva venta
+              </Button>
+              <NewSaleDialog open={isOpen} onOpenChange={setIsOpen} onCreated={() => refetchProducts()} />
             </div>
 
             <div className="space-y-3">
@@ -1699,6 +926,16 @@ export default function Sales() {
                               {group.is_credit ? 'Por Cobrar' : formatPaymentMethod(group.payment_method)}
                             </Badge>
                           </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setReceiptGroup(group)}
+                            className="flex-shrink-0 gap-1.5"
+                            aria-label="Ver recibo"
+                          >
+                            <Receipt className="h-4 w-4" />
+                            <span className="hidden sm:inline">Recibo</span>
+                          </Button>
                           {group.items.some(s => (Number(s.quantity) - Number(s.returned_quantity || 0)) > 0) && (
                             <Button
                               size="sm"
@@ -1750,7 +987,8 @@ export default function Sales() {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => handleDelete(sale.id)}
-                                    className="h-7 w-7 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-full opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                    aria-label={`Eliminar ${sale.product_name} de esta venta`}
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
@@ -1767,7 +1005,7 @@ export default function Sales() {
 
               {groupedSales.length === 0 && (
                 <div className="text-center py-16">
-                  <ShoppingCart className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                  <ShoppingCart className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
                   <p className="text-muted-foreground">No hay ventas registradas</p>
                 </div>
               )}
@@ -1912,7 +1150,7 @@ export default function Sales() {
                               className="flex-1"
                               variant={isPartial ? "default" : "secondary"}
                               onClick={async () => {
-                                if (confirm(`¿Marcar la deuda total de $${pendingAmountUsd.toFixed(2)} como pagada en su totalidad?`)) {
+                                if (await confirmDialog({ title: '¿Saldar la deuda completa?', description: `Se registrará un pago de $${pendingAmountUsd.toFixed(2)} y la cuenta quedará pagada.`, confirmText: 'Saldar deuda' })) {
                                   await registerSalePayment({
                                     saleGroupId: group.id,
                                     amountUsd: pendingAmountUsd,
@@ -1998,7 +1236,7 @@ export default function Sales() {
               </div>
             ) : filteredOrders.length === 0 ? (
               <div className="text-center py-16">
-                <ClipboardList className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <ClipboardList className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
                 <p className="text-muted-foreground">No se encontraron pedidos con el filtro seleccionado</p>
               </div>
             ) : (
@@ -2404,6 +1642,8 @@ export default function Sales() {
       </Dialog>
 
       {/* MODAL HISTORIAL DE ABONOS */}
+      <ReceiptDialog data={receiptGroup ? saleGroupReceipt(receiptGroup) : null} onClose={() => setReceiptGroup(null)} />
+
       <Dialog open={!!detailsGroup} onOpenChange={(open) => !open && setDetailsGroup(null)}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -2528,11 +1768,9 @@ export default function Sales() {
                   <SelectValue placeholder="Seleccionar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pago_movil">Pago Móvil</SelectItem>
-                  <SelectItem value="transferencia">Transferencia Bs</SelectItem>
-                  <SelectItem value="efectivo_usd">Efectivo USD</SelectItem>
-                  <SelectItem value="efectivo_bs">Efectivo Bs</SelectItem>
-                  <SelectItem value="zelle">Zelle</SelectItem>
+                  {Object.entries(PAYMENT_METHOD_LABELS).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

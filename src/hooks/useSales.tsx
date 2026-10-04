@@ -7,6 +7,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { notifyAdminNewOrder } from '@/lib/notify';
 import { useAuth } from './useAuth';
 import { toast } from '@/hooks/use-toast';
 import { saleSchema, validateInput } from '@/lib/validations';
@@ -166,6 +167,7 @@ export function useSales() {
 
   interface CheckoutResponse {
     success: boolean;
+    order_id?: string;
     sale_ids: string[];
     total_usd: number;
     exchange_rate_used: number;
@@ -271,23 +273,22 @@ export function useSales() {
         toast({ title: 'Éxito', description: 'Pedido procesado correctamente' });
         invalidateSales();
 
-        // Send checkout confirmation email
-        try {
-          await supabase.functions.invoke('send-email', {
-            body: { 
-              action: 'checkout', 
-              email: user.email, 
-              data: {
-                client_name: checkoutData.client_name,
-                payment_method: checkoutData.payment_method,
-                total_usd: data.total_usd,
-                notes: checkoutData.notes
-              }
+        // Correos (Resend): recibo a la clienta y aviso a la administración. No bloquean la compra.
+        const orderId = data.order_id || data.sale_ids?.[0];
+        supabase.functions.invoke('send-email', {
+          body: {
+            action: 'checkout',
+            email: user.email,
+            data: {
+              order_id: orderId,
+              client_name: checkoutData.client_name,
+              payment_method: checkoutData.payment_method,
+              total_usd: data.total_usd,
+              items: items.map(i => ({ name: i.name, quantity: i.quantity, price_usd: i.price_usd })),
             }
-          });
-        } catch (fnError) {
-          console.error('Error enviando recibo de compra:', fnError);
-        }
+          }
+        }).catch(fnError => console.error('Error enviando recibo de compra:', fnError));
+        if (orderId) notifyAdminNewOrder(orderId);
 
         return { error: null, saleIds: data.sale_ids };
       } else {

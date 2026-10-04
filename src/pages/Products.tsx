@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { isOutOfStock, needsRestock } from '@/lib/stock';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gallery, Plus, Search, Package, Edit2, Trash2, AlertTriangle, Calculator, DollarSign, TrendUp, ArrowRight } from 'reicon-react';
+import { Gallery, Plus, Search, Package, Edit2, Trash2, Calculator, DollarSign, TrendUp, ArrowRight, DocumentUpload } from 'reicon-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
@@ -13,7 +16,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatBS } from '@/lib/utils';
 
@@ -31,7 +33,19 @@ export default function Products() {
   const eurRate = rates?.EUR?.rate ?? 0;
   const { config: pricingConfig, calculatePrices } = usePricingConfig();
   const [search, setSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Filtros en la URL: el KPI "Stock bajo" del panel enlaza a /products?stock=bajo
+  const categoryFilter = searchParams.get('categoria') || 'all';
+  const stockFilter = (searchParams.get('stock') || 'todos') as 'todos' | 'bajo' | 'agotado';
+  const setParam = (key: string, value: string | null) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set(key, value); else next.delete(key);
+      return next;
+    }, { replace: true });
+  };
   const [sortBy, setSortBy] = useState('name_asc');
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -105,9 +119,13 @@ export default function Products() {
   }, [costCalc.purchaseMerchUsd, costCalc.purchaseShippingUsd, costCalc.purchaseUnits, costCalc.bsSurchargePct, pricingConfig, eurRate, usdRate, calculatePrices, costCalc.addToStock, editingProduct]);
 
   // --- DERIVED ---
+  const normalizedSearch = search.trim().toLowerCase();
   const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.category?.toLowerCase().includes(search.toLowerCase())
+    (!normalizedSearch ||
+      p.name.toLowerCase().includes(normalizedSearch) ||
+      p.category?.toLowerCase().includes(normalizedSearch)) &&
+    (categoryFilter === 'all' || p.category === categoryFilter) &&
+    (stockFilter === 'todos' || (stockFilter === 'agotado' ? isOutOfStock(p) : needsRestock(p)))
   ).sort((a, b) => {
     switch (sortBy) {
       case 'name_asc': return a.name.localeCompare(b.name);
@@ -312,7 +330,7 @@ export default function Products() {
       cost_usd: calculatedPrices.costRounded || calculatedPrices.costPerUnit || 0,
       price_wholesale_eur: Number(form.price_eur) || calculatedPrices.priceWholesaleEur || 0,
       price_retail_eur: Number(form.price_eur) 
-        ? Number(form.price_eur) * (pricingConfig?.retail_multiplier || 1.15) 
+        ? Number(form.price_eur) * (1 + (pricingConfig?.retail_markup_pct ?? 15) / 100) 
         : (calculatedPrices.priceRetailEur || 0),
       stock: Number(form.stock),
       category: form.category ? sanitizeText(form.category) : null,
@@ -333,11 +351,14 @@ export default function Products() {
     handleOpenChange(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('¿Estás segura de eliminar este producto?')) {
-      await deleteProduct(id);
-    }
+  const handleDelete = (product: Product) => setDeleteTarget(product);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await deleteProduct(deleteTarget.id);
+    setDeleteTarget(null);
   };
+  const restockCount = products.filter(needsRestock).length;
+  const outCount = products.filter(isOutOfStock).length;
 
   // --- Price display helpers ---
   const formatEur = (n: number) => `€${n.toFixed(2)}`;
@@ -354,11 +375,12 @@ export default function Products() {
             <p className="page-subtitle">{products.length} productos registrados</p>
           </div>
 
+          <div className="grid grid-cols-[1fr_auto] gap-2 sm:flex">
           <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-              <Button className="btn-gold rounded-xl gap-2">
+              <Button className="h-11 w-full gap-2 rounded-full sm:w-auto">
                 <Plus className="h-5 w-5" />
-                Nuevo Producto
+                Nuevo producto
               </Button>
             </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto glass-card border-border/50 max-w-lg">
@@ -373,7 +395,7 @@ export default function Products() {
                   <Label>Nombre *</Label>
                   <Input
                     value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s]/g, '').slice(0, 100) })}
+                    onChange={(e) => setForm({ ...form, name: e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s&%+.,'/()-]/g, '').slice(0, 100) })}
                     placeholder="Nombre del producto"
                     className="input-glass rounded-xl"
                     required
@@ -808,164 +830,179 @@ export default function Products() {
               </form>
             </DialogContent>
           </Dialog>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar productos..."
-              className="pl-10 input-glass rounded-xl"
-            />
+            <Button asChild variant="outline" className="h-11 gap-2 rounded-full">
+              <Link to="/import-products"><DocumentUpload className="h-5 w-5" />Importar</Link>
+            </Button>
           </div>
-          
-          <Select 
-            value={search} 
-            onValueChange={(val) => setSearch(val === 'all' ? '' : val)}
-          >
-            <SelectTrigger className="w-full sm:w-48 input-glass rounded-xl">
-              <SelectValue placeholder="Filtrar por categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las categorías</SelectItem>
-              {existingCategories.map(cat => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select 
-            value={sortBy} 
-            onValueChange={setSortBy}
-          >
-            <SelectTrigger className="w-full sm:w-48 input-glass rounded-xl">
-              <SelectValue placeholder="Ordenar por..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name_asc">A - Z</SelectItem>
-              <SelectItem value="name_desc">Z - A</SelectItem>
-              <SelectItem value="stock_asc">Menor Stock</SelectItem>
-              <SelectItem value="stock_desc">Mayor Stock</SelectItem>
-              <SelectItem value="price_asc">Menor Precio</SelectItem>
-              <SelectItem value="price_desc">Mayor Precio</SelectItem>
-              <SelectItem value="sales_desc">Más Vendidos</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <AnimatePresence mode="popLayout">
-            {paginatedProducts.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: index * 0.05 }}
-                layout
+        {/* Filtros: búsqueda, estado de stock (chips), categoría y orden */}
+        <div className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nombre o categoría"
+                aria-label="Buscar productos"
+                className="h-11 rounded-full pl-10"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:flex">
+              <Select value={categoryFilter} onValueChange={(val) => setParam('categoria', val === 'all' ? null : val)}>
+                <SelectTrigger aria-label="Categoría" className="h-11 rounded-full sm:w-48">
+                  <SelectValue placeholder="Categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {existingCategories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger aria-label="Ordenar" className="h-11 rounded-full sm:w-48">
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name_asc">Nombre A-Z</SelectItem>
+                  <SelectItem value="name_desc">Nombre Z-A</SelectItem>
+                  <SelectItem value="stock_asc">Menos stock</SelectItem>
+                  <SelectItem value="stock_desc">Más stock</SelectItem>
+                  <SelectItem value="price_asc">Menor precio</SelectItem>
+                  <SelectItem value="price_desc">Mayor precio</SelectItem>
+                  <SelectItem value="sales_desc">Más vendidos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 scrollbar-hide md:mx-0 md:px-0" role="group" aria-label="Filtrar por stock">
+            {([
+              { value: 'todos', label: `Todos (${products.length})` },
+              { value: 'bajo', label: `Por reponer (${restockCount})` },
+              { value: 'agotado', label: `Agotados (${outCount})` },
+            ] as const).map(chip => (
+              <button
+                key={chip.value}
+                type="button"
+                onClick={() => setParam('stock', chip.value === 'todos' ? null : chip.value)}
+                aria-pressed={stockFilter === chip.value}
+                className={`h-9 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors ${
+                  stockFilter === chip.value
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-card text-foreground hover:border-primary/50'
+                }`}
               >
-                <Card className="glass-card border-border/50 overflow-hidden hover-lift group">
-                  {/* Image */}
-                  <div className="aspect-square bg-secondary relative overflow-hidden">
-                    {product.image_url ? (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Gallery className="h-16 w-16 text-muted-foreground/30" />
-                      </div>
-                    )}
-                    {product.stock <= 5 && (
-                      <Badge
-                        variant="destructive"
-                        className="absolute top-2 right-2 gap-1"
-                      >
-                        <AlertTriangle className="h-3 w-3" />
-                        Stock bajo
-                      </Badge>
-                    )}
-                    {/* Actions overlay */}
-                    <div className="absolute inset-0 bg-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        onClick={() => handleEdit(product)}
-                        className="rounded-full"
-                      >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Lista: filas compactas en móvil, tarjetas en escritorio. Acciones siempre visibles (no hover). */}
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-4">
+          {paginatedProducts.map((product) => {
+            const out = isOutOfStock(product);
+            const low = !out && needsRestock(product);
+            const retail = Number(product.price_retail_eur || 0);
+            const wholesale = Number(product.price_wholesale_eur || 0);
+            const cost = Number(product.cost_usd || 0);
+            return (
+              <li
+                key={product.id}
+                className="flex gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-col sm:gap-0 sm:overflow-hidden sm:p-0"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleEdit(product)}
+                  aria-label={`Editar ${product.name}`}
+                  className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-studio sm:aspect-[4/3] sm:h-auto sm:w-full sm:rounded-none"
+                >
+                  {product.image_url ? (
+                    <img src={product.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center">
+                      <Gallery className="h-8 w-8 text-muted-foreground/40" />
+                    </span>
+                  )}
+                  {(out || low) && (
+                    <span className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold sm:left-3 sm:top-3 sm:text-xs ${out ? 'bg-sale text-white' : 'bg-background text-sale'}`}>
+                      {out ? 'Agotado' : 'Por reponer'}
+                    </span>
+                  )}
+                </button>
+
+                <div className="flex min-w-0 flex-1 flex-col sm:p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{product.category || 'Sin categoría'}</p>
+                  <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground sm:text-base">{product.name}</h3>
+                  <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <span className="text-base font-bold tabular-nums text-foreground">${Number(product.price_usd).toFixed(2)}</span>
+                    {usdRate > 0 && <span className="text-xs tabular-nums text-muted-foreground">{formatBS(convertToBS(Number(product.price_usd)))}</span>}
+                  </div>
+                  {(retail > 0 || wholesale > 0) && (
+                    <p className="text-xs text-muted-foreground">
+                      {retail > 0 && <>€{retail.toFixed(2)} detal</>}
+                      {retail > 0 && wholesale > 0 && ' · '}
+                      {wholesale > 0 && <>€{wholesale.toFixed(2)} mayor</>}
+                    </p>
+                  )}
+                  <div className="mt-auto flex items-end justify-between gap-2 pt-2">
+                    <p className="text-xs text-muted-foreground">
+                      <span className={`font-semibold ${out || low ? 'text-sale' : 'text-foreground'}`}>{product.stock} uds</span>
+                      {' · '}{product.sold_count || 0} vendidos
+                      {cost > 0 && <span className="hidden sm:inline"> · costo ${cost.toFixed(2)}</span>}
+                    </p>
+                    <div className="flex shrink-0 gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => handleEdit(product)} aria-label={`Editar ${product.name}`} className="h-9 w-9 rounded-full">
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        onClick={() => handleDelete(product.id)}
-                        className="rounded-full"
-                      >
+                      <Button size="icon" variant="ghost" onClick={() => handleDelete(product)} aria-label={`Eliminar ${product.name}`} className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-
-                  <CardContent className="p-4">
-                    <div className="space-y-2">
-                      {product.category && (
-                        <Badge variant="secondary" className="text-xs">
-                          {product.category}
-                        </Badge>
-                      )}
-                      <h3 className="font-semibold text-foreground line-clamp-1">{product.name}</h3>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-lg font-bold text-gradient-gold">
-                            ${Number(product.price_usd).toFixed(2)}
-                          </p>
-                          {/* Show EUR prices if available */}
-                          {product.price_retail_eur > 0 && (
-                            <p className="text-xs text-primary font-medium">
-                              €{product.price_retail_eur.toFixed(2)} detal
-                            </p>
-                          )}
-                          {product.price_wholesale_eur > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              €{product.price_wholesale_eur.toFixed(2)} mayor
-                            </p>
-                          )}
-                          {usdRate > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              {formatBS(convertToBS(Number(product.price_usd)))}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">{product.stock} uds</p>
-                          <p className="text-xs text-muted-foreground">{product.sold_count} vendidos</p>
-                          {product.cost_usd > 0 && (
-                            <p className="text-xs text-muted-foreground/70">
-                              Costo: ${product.cost_usd.toFixed(2)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
 
         {paginatedProducts.length === 0 && !loading && (
-          <div className="text-center py-16">
-            <Package className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground">No hay productos que mostrar</p>
+          <div className="flex flex-col items-center rounded-3xl border border-dashed border-border py-14 text-center">
+            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-studio">
+              <Package className="h-7 w-7 text-muted-foreground" />
+            </span>
+            <p className="font-serif text-lg text-foreground">
+              {products.length === 0 ? 'Aún no hay productos' : 'Ningún producto coincide'}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {products.length === 0 ? 'Crea el primero o impórtalos desde Excel.' : 'Prueba con otra búsqueda o quita los filtros.'}
+            </p>
+            {products.length > 0 && (search || categoryFilter !== 'all' || stockFilter !== 'todos') && (
+              <Button variant="outline" className="mt-4 rounded-full" onClick={() => { setSearch(''); setSearchParams({}, { replace: true }); }}>
+                Quitar filtros
+              </Button>
+            )}
           </div>
         )}
+
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar este producto?</AlertDialogTitle>
+              <AlertDialogDescription>
+                «{deleteTarget?.name}» dejará de verse en la tienda. Las ventas ya registradas no se modifican.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-full">Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Pagination */}
         <Pagination

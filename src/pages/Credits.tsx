@@ -1,4 +1,6 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { BRAND_NAME } from '@/config/brand';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -46,6 +48,7 @@ import { toast } from 'sonner';
 import { sanitizeText } from '@/lib/validations';
 import { CustomerOfMonthCard } from '@/components/credits/CustomerOfMonthCard';
 import { Order, Credit } from '@/types';
+import { Link } from 'react-router-dom';
 
 // Configuración de estados con colores
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -65,6 +68,7 @@ const REMINDER_TEMPLATES = {
 };
 
 export default function Credits() {
+  const confirmDialog = useConfirm();
   // --- STATE ---
   const { isAdmin } = useAuth();
   const { credits, isLoading, createCredit, updateCredit, toggleBlock, registerPayment, createReminder, stats } = useCredits();
@@ -108,6 +112,22 @@ export default function Credits() {
     }
   });
 
+  // Ventas fiadas (sin crédito formal): lo que falta por cobrar en Ventas
+  const { data: fiado } = useQuery({
+    queryKey: ['credits-fiado-summary'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sales')
+        .select('id, sale_group_id, total_usd, amount_paid')
+        .neq('payment_status', 'paid');
+      if (error) throw error;
+      const rows = data || [];
+      const pending = rows.reduce((s, r) => s + Math.max(0, Number(r.total_usd || 0) - Number(r.amount_paid || 0)), 0);
+      const accounts = new Set(rows.map(r => r.sale_group_id || r.id)).size;
+      return { pending, accounts };
+    },
+  });
+
   const handleApproveRequest = async (requestOrder: Order) => {
     try {
       const { data: profiles } = await supabase
@@ -147,7 +167,7 @@ export default function Credits() {
   };
 
   const handleRejectRequest = async (requestId: string) => {
-    if (!window.confirm('¿Estás seguro de rechazar esta solicitud de crédito?')) return;
+    if (!(await confirmDialog({ title: '¿Rechazar esta solicitud de crédito?', confirmText: 'Rechazar', destructive: true }))) return;
     try {
       await supabase
         .from('orders')
@@ -448,9 +468,9 @@ export default function Credits() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gradient-gold">Gestión de Créditos</h1>
-            <p className="text-muted-foreground mt-1">
-              Control de créditos y notificaciones automáticas
+            <h1 className="page-header">Créditos</h1>
+            <p className="page-subtitle">
+              Límites, cuotas y pagos de tus clientas
             </p>
           </div>
           
@@ -555,15 +575,10 @@ export default function Credits() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="client_phone">Teléfono</Label>
-                    <Input
-                      id="client_phone"
-                      value={newCredit.client_phone}
-                      onChange={e => setNewCredit(prev => ({ ...prev, client_phone: e.target.value }))}
-                      placeholder="+58 412..."
-                    />
+                    <PhoneInput id="client_phone" value={newCredit.client_phone} onChange={client_phone => setNewCredit(prev => ({ ...prev, client_phone }))} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="client_email">Email</Label>
@@ -623,77 +638,97 @@ export default function Credits() {
           </Dialog>
         </div>
 
-        {/* Estadísticas */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-xs text-muted-foreground">Total clientes</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-primary">{stats.byStatus.ACTIVO}</p>
-              <p className="text-xs text-muted-foreground">Activos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-gold">{stats.byStatus.POR_VENCER}</p>
-              <p className="text-xs text-muted-foreground">Por vencer</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-gold">{stats.byStatus.EN_GRACIA}</p>
-              <p className="text-xs text-muted-foreground">En gracia</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold text-destructive">{stats.byStatus.VENCIDO}</p>
-              <p className="text-xs text-muted-foreground">Vencidos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <p className="text-2xl font-bold">${stats.totalBalance.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">Saldo total</p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Resumen: lo que te deben y cuántas clientas hay en cada estado (toca para filtrar) */}
+        <section className="rounded-2xl border border-border bg-card p-4 md:p-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Por cobrar</p>
+              <p className="font-serif text-3xl font-semibold tabular-nums text-primary md:text-4xl">${stats.totalBalance.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">
+                {stats.total} {stats.total === 1 ? 'clienta con crédito' : 'clientas con crédito'} · límite total ${stats.totalCreditLimit.toFixed(2)}
+              </p>
+            </div>
+            {stats.byStatus.VENCIDO > 0 && (
+              <button type="button" onClick={() => setStatusFilter('VENCIDO')} className="rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive">
+                {stats.byStatus.VENCIDO} {stats.byStatus.VENCIDO === 1 ? 'vencido' : 'vencidos'} · ver
+              </button>
+            )}
+          </div>
+          <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide md:mx-0 md:flex-wrap md:px-0" role="tablist" aria-label="Filtrar por estado">
+            {([
+              ['all', 'Todos', stats.total, 'bg-muted-foreground/50'],
+              ['ACTIVO', 'Al día', stats.byStatus.ACTIVO, 'bg-success'],
+              ['POR_VENCER', 'Por vencer', stats.byStatus.POR_VENCER, 'bg-amber-500'],
+              ['EN_GRACIA', 'En gracia', stats.byStatus.EN_GRACIA, 'bg-amber-600'],
+              ['VENCIDO', 'Vencidos', stats.byStatus.VENCIDO, 'bg-destructive'],
+              ['BLOQUEADO', 'Bloqueados', stats.byStatus.BLOQUEADO, 'bg-foreground/60'],
+            ] as [string, string, number, string][]).map(([key, label, count, dot]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={statusFilter === key}
+                onClick={() => setStatusFilter(key)}
+                className={cn(
+                  'flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors',
+                  statusFilter === key ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background hover:border-primary/40'
+                )}
+              >
+                {key !== 'all' && <span className={cn('h-2 w-2 rounded-full', dot)} />}
+                {label}
+                <span className={cn('tabular-nums', statusFilter === key ? 'text-primary-foreground/80' : 'text-muted-foreground')}>{count}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {fiado && fiado.pending > 0.009 && (
+          <Link
+            to="/sales?tab=cuentas-cobrar"
+            className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40 md:p-5"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Receipt className="h-5 w-5" /></span>
+              <div className="min-w-0">
+                <p className="font-medium">Ventas fiadas</p>
+                <p className="text-xs text-muted-foreground">{fiado.accounts} {fiado.accounts === 1 ? 'cuenta pendiente' : 'cuentas pendientes'} en Ventas · toca para cobrar</p>
+              </div>
+            </div>
+            <p className="shrink-0 font-serif text-xl font-semibold tabular-nums text-primary">${fiado.pending.toFixed(2)}</p>
+          </Link>
+        )}
 
         {/* Tabs: Créditos | pagos */}
         <Tabs defaultValue="creditos" className="space-y-4">
-          <TabsList className="flex flex-wrap h-auto w-full max-w-3xl justify-start">
+          <TabsList className="admin-tabs">
             <TabsTrigger value="creditos">
-              <CreditCard className="h-4 w-4 mr-2" />
+              <CreditCard className="h-4 w-4" />
               Créditos
             </TabsTrigger>
             <TabsTrigger value="pagos">
-              <Receipt className="h-4 w-4 mr-2" />
+              <Receipt className="h-4 w-4" />
               Historial de pagos
             </TabsTrigger>
-            <TabsTrigger value="reportados" className="relative">
-              <Clock className="h-4 w-4 mr-2" />
-              pagos Reportados
+            <TabsTrigger value="reportados">
+              <Clock className="h-4 w-4" />
+              Pagos reportados
               {reportedpagos.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white animate-pulse">
+                <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
                   {reportedpagos.length}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="solicitudes" className="relative">
-              <Plus className="h-4 w-4 mr-2" />
+            <TabsTrigger value="solicitudes">
+              <Plus className="h-4 w-4" />
               Solicitudes
               {reportedRequests.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-gold text-[10px] font-bold text-white animate-pulse">
+                <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                   {reportedRequests.length}
                 </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="ranking">
-              <Trophy className="h-4 w-4 mr-2" />
+              <Trophy className="h-4 w-4" />
               Ranking
             </TabsTrigger>
           </TabsList>
@@ -711,20 +746,6 @@ export default function Credits() {
               className="pl-10"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="ACTIVO">Activos</SelectItem>
-              <SelectItem value="POR_VENCER">Por vencer</SelectItem>
-              <SelectItem value="EN_GRACIA">En gracia</SelectItem>
-              <SelectItem value="VENCIDO">Vencidos</SelectItem>
-              <SelectItem value="BLOQUEADO">Bloqueados</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Lista de créditos */}
@@ -1430,7 +1451,7 @@ export default function Credits() {
 function CreditProfileDrawer({ creditId, onClose, credit, kycStatus }: {
   creditId: string | null;
   onClose: () => void;
-  credit: Credit;
+  credit: Credit | undefined;
   kycStatus: string | undefined;
 }) {
   const { data: transactions, isLoading } = useCreditTransactions(creditId || '');

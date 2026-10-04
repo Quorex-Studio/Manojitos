@@ -134,7 +134,7 @@ export function CustomerTimeline({ customerPhone, customerUserId, limit = 20 }: 
     return (
       <Card className="glass-card">
         <CardContent className="p-6 text-center">
-          <Clock className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
+          <Clock className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
           <p className="text-muted-foreground">No hay eventos registrados</p>
         </CardContent>
       </Card>

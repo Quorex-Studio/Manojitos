@@ -1,3 +1,4 @@
+import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
 import { BRAND, BRAND_NAME } from '@/config/brand';
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -29,14 +30,17 @@ import { useCustomerPaymentMethods } from '@/hooks/useCustomerPaymentMethods';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { sanitizeText } from '@/lib/validations';
 import { formatBS } from '@/lib/utils';
+import { PaymentInfoPanel } from '@/components/payments/PaymentInfoPanel';
+import { isCompletePhone } from '@/lib/venezuela';
 
 // Métodos de pago base (sin crédito — se agrega dinámicamente)
 const BASE_PAYMENT_METHODS = [
   { id: 'pago_movil', label: 'Pago Móvil', description: 'Pago instantáneo desde tu banco' },
-  { id: 'zelle', label: 'Zelle', description: 'Transferencia en dólares' },
-  { id: 'transferencia', label: 'Transferencia Bancaria', description: 'Transferencia nacional' },
-  { id: 'efectivo_usd', label: 'Efectivo USD', description: 'Pago en dólares al entregar' },
-  { id: 'efectivo_bs', label: 'Efectivo Bs', description: 'Pago en bolívares al entregar' },
+  { id: 'transferencia', label: 'Transferencia Bs', description: 'Transferencia bancaria en bolívares' },
+  { id: 'zelle', label: 'Zelle', description: 'Pago en dólares por Zelle' },
+  { id: 'binance', label: 'Binance', description: 'Binance Pay o USDT' },
+  { id: 'zinli', label: 'Zinli', description: 'Pago en dólares por Zinli' },
+  { id: 'wally', label: 'Wally', description: 'Pago en dólares por Wally' },
 ];
 
 // Datos de pago de la tienda
@@ -68,97 +72,6 @@ function calcDeliveryFee(subtotal: number, municipio: string, method: 'delivery'
   if (RUTA_CORTA.includes(municipio)) return 2;
   return 4;
 }
-
-// Componente interno: Panel con datos de pago
-const PaymentInfoPanel = memo(function PaymentInfoPanel({ method, config }: { method: string; config?: Record<string, string> }) {
-  const [copied, setCopied] = useState<string | null>(null);
-
-  const copy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(label);
-    setTimeout(() => setCopied(null), 1800);
-  };
-
-  if (method !== 'pago_movil' && method !== 'transferencia') return null;
-
-  return (
-    <motion.div
-      key={method}
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.25 }}
-      className="mt-5 rounded-xl border border-accent/30 bg-accent/5 p-5"
-    >
-      <div className="flex items-center gap-2 mb-4">
-        {method === 'pago_movil' ? (
-          <Mobile className="h-4 w-4 text-accent" />
-        ) : (
-          <Bank className="h-4 w-4 text-accent" />
-        )}
-        <p className="text-sm font-bold text-accent uppercase tracking-wide">
-          {method === 'pago_movil' ? 'Datos para Pago Móvil' : 'Datos para Transferencia'}
-        </p>
-      </div>
-
-      {method === 'pago_movil' ? (
-        <div className="space-y-2.5">
-          {[
-            { label: 'Banco', value: config?.bank || '' },
-            { label: 'Teléfono', value: config?.phone || '' },
-            { label: 'C.I.', value: config?.ci || '' },
-            { label: 'Nombre', value: config?.name || '' },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex items-center justify-between gap-2">
-              <span className="text-xs text-muted-foreground min-w-[60px]">{label}</span>
-              <span className="text-sm font-semibold text-foreground flex-1">{value}</span>
-              <button
-                onClick={() => copy(value, label)}
-                className="text-muted-foreground hover:text-accent transition-colors"
-                title="Copiar"
-              >
-                {copied === label ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-2.5">
-          {[
-            { label: 'Banco', value: config?.bank || '' },
-            { label: 'N° Cuenta', value: config?.accountNumber || '' },
-            { label: 'C.I.', value: config?.ci || '' },
-            { label: 'Nombre', value: config?.name || '' },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex items-center justify-between gap-2">
-              <span className="text-xs text-muted-foreground min-w-[70px]">{label}</span>
-              <span className="text-sm font-semibold text-foreground flex-1 break-all">{value}</span>
-              <button
-                onClick={() => copy(value, label)}
-                className="text-muted-foreground hover:text-accent transition-colors"
-                title="Copiar"
-              >
-                {copied === label ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {PAYMENT_INFO.contacto && <div className="mt-4 pt-4 border-t border-accent/20 flex items-center gap-2">
-        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">Contacto:</span>
-        <span className="text-xs font-semibold text-foreground">{PAYMENT_INFO.contacto}</span>
-        <button
-          onClick={() => copy(PAYMENT_INFO.contacto, 'contacto')}
-          className="ml-auto text-muted-foreground hover:text-accent transition-colors"
-        >
-          {copied === 'contacto' ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-        </button>
-      </div>}
-    </motion.div>
-  );
-});
 
 // Página de checkout
 export default function Checkout() {
@@ -440,9 +353,12 @@ export default function Checkout() {
       setStep('confirm');
 
     } catch (error) {
+      // Los errores del servidor (stock, precios) vienen en español y son útiles para el cliente
+      const detail = error instanceof Error ? error.message : (error as { message?: string })?.message;
+      const friendly = detail && /stock|agotad|disponible|precio|producto/i.test(detail) ? detail : null;
       toast({
-        title: 'Error',
-        description: 'Hubo un problema al procesar tu pedido. Intenta de nuevo.',
+        title: 'No pudimos confirmar tu pedido',
+        description: friendly || 'Revisa tu conexión e intenta de nuevo. Tu carrito sigue guardado.',
         variant: 'destructive'
       });
     } finally {
@@ -503,7 +419,7 @@ export default function Checkout() {
             <div className="glass-card rounded-2xl p-6 mb-6 text-left shadow-sm border border-border/60 bg-gradient-to-br from-background to-secondary/20">
               <h3 className="font-semibold text-lg text-foreground mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
                 <Package className="h-5 w-5 text-primary" />
-                Resumen del Pedido
+                Resumen del pedido
               </h3>
               <div className="space-y-3 text-sm">
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
@@ -527,7 +443,7 @@ export default function Checkout() {
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                  <span className="text-muted-foreground">Método de Pago:</span>
+                  <span className="text-muted-foreground">Método de pago:</span>
                   <span className="font-medium text-foreground">{allMethodsWithCredit.find(m => m.method_key === paymentMethod)?.label}</span>
                 </div>
               </div>
@@ -557,33 +473,30 @@ export default function Checkout() {
     <StoreLayout>
       <div className="container mx-auto px-4 py-8 md:py-12">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
+        <nav className="mb-6 hidden items-center gap-2 text-sm text-muted-foreground md:flex">
           <Link to="/" className="hover:text-foreground transition-colors">Inicio</Link>
           <span>/</span>
           <Link to="/carrito" className="hover:text-foreground transition-colors">Carrito</Link>
           <span>/</span>
-          <span className="text-foreground font-medium">Checkout Seguro</span>
+          <span className="text-foreground font-medium">Pago</span>
         </nav>
 
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-10">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              onClick={() => navigate('/carrito')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground flex items-center gap-3">
-                Finalizar Compra
-                <span className="flex items-center gap-1 text-xs font-sans font-normal bg-secondary text-foreground px-3 py-1 rounded-full border border-border">
-                  <Shield className="h-3 w-3" />
-                  Encriptado SSL
-                </span>
-              </h1>
-            </div>
+        <div className="mb-6 flex items-center gap-3 md:mb-10">
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0 rounded-full"
+            onClick={() => navigate('/carrito')}
+            aria-label="Volver al carrito"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0">
+            <h1 className="font-serif text-2xl font-semibold text-foreground md:text-3xl">Finalizar compra</h1>
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Shield className="h-3.5 w-3.5 shrink-0" />
+              Pago seguro y verificado
+            </p>
           </div>
         </div>
 
@@ -640,7 +553,7 @@ export default function Checkout() {
                   <Truck className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-lg text-foreground">Opciones de Entrega</h2>
+                  <h2 className="font-semibold text-lg text-foreground">Opciones de entrega</h2>
                   <p className="text-sm text-muted-foreground">¿Cómo deseas recibir tu pedido?</p>
                 </div>
               </div>
@@ -662,7 +575,7 @@ export default function Checkout() {
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[550px] max-h-[85vh] overflow-y-auto rounded-2xl p-0">
                         <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center sticky top-0 z-10 backdrop-blur-md">
-                          <DialogTitle className="text-xl font-medium tracking-tight">Opciones de Entrega</DialogTitle>
+                          <DialogTitle className="text-xl font-medium tracking-tight">Opciones de entrega</DialogTitle>
                         </div>
                         <div className="p-6">
                           {/* Selector Retiro / Delivery */}
@@ -717,15 +630,7 @@ export default function Checkout() {
 
                               <div>
                                 <Label htmlFor="modal-phone" className="text-sm">Teléfono <span className="text-destructive">*</span></Label>
-                                <Input
-                                  id="modal-phone"
-                                  type="tel"
-                                  placeholder="0412-123-4567"
-                                  value={shippingData.phone}
-                                  onChange={(e) => setShippingData(prev => ({...prev, phone: e.target.value.replace(/[^0-9+-\s()]/g, '').slice(0, 20)}))}
-                                  name="phone"
-                                  className="mt-1"
-                                />
+                                <PhoneInput id="modal-phone" className="mt-1" value={shippingData.phone} onChange={phone => setShippingData(prev => ({ ...prev, phone }))} />
                               </div>
 
                               <AnimatePresence mode="popLayout">
@@ -835,7 +740,7 @@ export default function Checkout() {
                   <CreditCard className="h-5 w-5 text-accent" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-lg text-foreground">Método de Pago</h2>
+                  <h2 className="font-semibold text-lg text-foreground">Método de pago</h2>
                   <p className="text-sm text-muted-foreground">Selecciona tu forma de pago preferida</p>
                 </div>
               </div>
@@ -843,7 +748,7 @@ export default function Checkout() {
               {!preferredMethod ? (
                 <div className="bg-primary/5 rounded-xl border border-primary/20 p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="font-semibold text-primary">Forma de Pago</span>
+                    <span className="font-semibold text-primary">Forma de pago</span>
                     <div className="h-3.5 w-3.5 rounded-full border-[3px] border-primary bg-background"></div>
                   </div>
                   <div className="ml-7 space-y-1">
@@ -868,7 +773,7 @@ export default function Checkout() {
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto rounded-2xl bg-background border border-border/40 shadow-2xl p-0">
                         <div className="bg-muted/30 px-6 py-4 border-b border-border/40 flex justify-between items-center">
-                          <DialogTitle className="text-xl font-medium tracking-tight">Método de Pago</DialogTitle>
+                          <DialogTitle className="text-xl font-medium tracking-tight">Método de pago</DialogTitle>
                         </div>
                         <div className="p-6">
                           <p className="text-sm text-muted-foreground mb-4">Selecciona tu forma de pago preferida</p>
@@ -990,7 +895,7 @@ export default function Checkout() {
 
               {/* Panel de instrucciones de pago */}
               <AnimatePresence mode="wait">
-                <PaymentInfoPanel method={paymentMethod} config={allPaymentMethods.find(m => m.method_key === paymentMethod)?.config} />
+                <PaymentInfoPanel method={paymentMethod} label={allPaymentMethods.find(m => m.method_key === paymentMethod)?.label} config={allPaymentMethods.find(m => m.method_key === paymentMethod)?.config as Record<string, string> | undefined} />
 
                 {paymentMethod === 'pago_movil' && (
                   <motion.div
@@ -1000,10 +905,10 @@ export default function Checkout() {
                     exit={{ opacity: 0, height: 0 }}
                     className="mt-4 p-5 rounded-xl border border-accent/20 bg-background/50 space-y-4"
                   >
-                    <h4 className="text-sm font-semibold text-foreground">Confirmación de Pago</h4>
+                    <h4 className="text-sm font-semibold text-foreground">Confirmación de pago</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="bancoOrigen" className="text-sm">Banco de Origen <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="bancoOrigen" className="text-sm">Banco de origen <span className="text-destructive">*</span></Label>
                         <select
                           id="bancoOrigen"
                           value={bancoOrigen}
@@ -1032,7 +937,7 @@ export default function Checkout() {
                         </select>
                       </div>
                       <div>
-                        <Label htmlFor="numeroReferencia" className="text-sm">N° de Referencia <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="numeroReferencia" className="text-sm">N° de referencia <span className="text-destructive">*</span></Label>
                         <Input
                           id="numeroReferencia"
                           placeholder="Últimos 6 dígitos"
@@ -1042,14 +947,8 @@ export default function Checkout() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="telefonoEmisor" className="text-sm">Teléfono Emisor <span className="text-destructive">*</span></Label>
-                        <Input
-                          id="telefonoEmisor"
-                          placeholder="Ej: 04141234567"
-                          value={telefonoEmisor}
-                          onChange={(e) => setTelefonoEmisor(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
-                          className="mt-1 bg-white/50 dark:bg-white/5 dark:border-white/10"
-                        />
+                        <Label htmlFor="telefonoEmisor" className="text-sm">Teléfono emisor <span className="text-destructive">*</span></Label>
+                        <PhoneInput id="telefonoEmisor" className="mt-1" value={telefonoEmisor} onChange={setTelefonoEmisor} inputClassName="bg-white/50 dark:bg-white/5 dark:border-white/10" />
                       </div>
                     </div>
                   </motion.div>
@@ -1130,7 +1029,7 @@ export default function Checkout() {
                         
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <Label htmlFor="casheaMethod" className="text-xs">Método de Pago</Label>
+                            <Label htmlFor="casheaMethod" className="text-xs">Método de pago</Label>
                             <select
                               id="casheaMethod"
                               value={casheaMethod}
@@ -1178,14 +1077,8 @@ export default function Checkout() {
                                     </select>
                                   </div>
                                   <div>
-                                    <Label htmlFor="casheaPhone" className="text-xs">Teléfono Emisor</Label>
-                                    <Input
-                                      id="casheaPhone"
-                                      placeholder="Ej: 04141234567"
-                                      value={casheaPhone}
-                                      onChange={(e) => setCasheaPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
-                                      className="mt-1 h-9 text-xs"
-                                    />
+                                    <Label htmlFor="casheaPhone" className="text-xs">Teléfono emisor</Label>
+                                    <PhoneInput id="casheaPhone" className="mt-1" value={casheaPhone} onChange={setCasheaPhone} inputClassName="h-9 text-xs" />
                                   </div>
                                 </>
                               )}
@@ -1242,7 +1135,7 @@ export default function Checkout() {
             <div className="glass-card-gold rounded-2xl p-6 sticky top-24 shadow-2xl shadow-black/5">
               <h2 className="text-xl font-serif font-bold text-foreground mb-6 flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5 text-accent" />
-                Resumen del Pedido
+                Resumen del pedido
               </h2>
 
               {/* Items */}
@@ -1254,7 +1147,7 @@ export default function Checkout() {
                         <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-secondary/80">
-                          <Package className="w-6 h-6 text-muted-foreground/30" />
+                          <Package className="w-6 h-6 text-muted-foreground" />
                         </div>
                       )}
                     </div>
@@ -1299,7 +1192,7 @@ export default function Checkout() {
 
               <div className="mt-6 pt-6 border-t border-dashed border-border">
                 <div className="flex justify-between items-end mb-1">
-                  <span className="text-lg font-bold text-foreground">Total a Pagar</span>
+                  <span className="text-lg font-bold text-foreground">Total a pagar</span>
                   <div className="text-right">
                     <PriceDisplay 
                       amountUsd={orderTotal}
@@ -1318,6 +1211,13 @@ export default function Checkout() {
                   (casheaRef.trim() !== '' && (casheaMethod !== 'pago_movil' || casheaPhone.trim() !== ''));
 
                 const isKycValid = paymentMethod !== 'credito' || kycCompleted;
+                const isPagoMovilValid = paymentMethod !== 'pago_movil' ||
+                  (bancoOrigen.trim() !== '' && /^\d{4,}$/.test(numeroReferencia.trim()) && isCompletePhone(telefonoEmisor));
+                const missingPayment = paymentMethod === 'pago_movil' ? [
+                  !bancoOrigen.trim() && 'Banco de origen',
+                  !/^\d{4,}$/.test(numeroReferencia.trim()) && 'Referencia (mín. 4 dígitos)',
+                  !isCompletePhone(telefonoEmisor) && 'Teléfono emisor',
+                ].filter(Boolean) as string[] : [];
 
                 return (
                   <>
@@ -1347,7 +1247,7 @@ export default function Checkout() {
                     <Button
                       size="lg"
                       className="w-full btn-gold h-14 text-base mt-2 shadow-xl"
-                      disabled={!isShippingValid || !isCasheaValid || !isKycValid || isCreditBlocked || creditLoading || loading || (paymentMethod === 'credito' && !acceptCreditTerms)}
+                      disabled={!isShippingValid || !isPagoMovilValid || !isCasheaValid || !isKycValid || isCreditBlocked || creditLoading || loading || (paymentMethod === 'credito' && !acceptCreditTerms)}
                       onClick={handleSubmitOrder}
                     >
                       {loading ? (
@@ -1357,7 +1257,7 @@ export default function Checkout() {
                         </>
                       ) : (
                         <>
-                          Confirmar Pedido
+                          Confirmar pedido
                           <Check className="h-5 w-5 ml-2" />
                         </>
                       )}
@@ -1375,6 +1275,12 @@ export default function Checkout() {
                             Completar Verificación
                           </Button>
                         </Link>
+                      </div>
+                    )}
+
+                    {isShippingValid && missingPayment.length > 0 && (
+                      <div className="mt-4 p-3 bg-destructive/10 text-destructive text-xs rounded-lg text-center">
+                        Para confirmar el Pago Móvil falta: {missingPayment.join(', ')}
                       </div>
                     )}
 

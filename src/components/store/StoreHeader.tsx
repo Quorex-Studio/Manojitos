@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { Category, ShoppingCart, Search, Menu, CloseSquare, Bell, User, Logout, Settings, Layout } from 'reicon-react';
+import { ShoppingCart, Search, Bell } from 'reicon-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -12,52 +12,20 @@ import { UserMenu } from '@/components/ui/user-menu';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useCustomerNotifications } from '@/hooks/useCustomerNotifications';
-import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { BRAND_LOGO as logoImage } from '@/config/brand-assets';
-import { toast } from 'sonner';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 
 // Header de la tienda — Editorial luxury frosted glass
 export function StoreHeader() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
   const { getItemCount } = useCart();
-  const { user, signOut, isAdmin } = useAuth();
-  const { unreadCount } = useCustomerNotifications();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const itemCount = getItemCount();
-
-  // Obtener nombre del usuario
-  const getUserName = () => {
-    if (user?.user_metadata?.full_name) {
-      return user.user_metadata.full_name;
-    }
-    if (user?.email) {
-      return user.email.split('@')[0];
-    }
-    return 'Usuario';
-  };
-
-  // Obtener iniciales para el avatar
-  const getInitials = () => {
-    const name = getUserName();
-    return name.charAt(0).toUpperCase();
-  };
-
-  // Cerrar sesión
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast.success('Sesión cerrada correctamente');
-      setIsMenuOpen(false);
-      navigate('/');
-    } catch (error) {
-      toast.error('Error al cerrar sesión');
-    }
-  };
 
   // Detectar scroll para cambiar estilo del header
   useEffect(() => {
@@ -70,7 +38,6 @@ export function StoreHeader() {
 
   // Cerrar menú al cambiar de ruta
   useEffect(() => {
-    setIsMenuOpen(false);
     setIsSearchOpen(false);
   }, [location.pathname]);
 
@@ -88,7 +55,7 @@ export function StoreHeader() {
   const navLinks = [
     { to: '/', label: 'Inicio' },
     { to: '/tienda', label: 'Tienda' },
-    { to: '/tienda?category=destacados', label: 'Destacados' },
+    { to: '/tienda?sort=popular', label: 'Más vendidos' },
   ];
 
   return (
@@ -108,25 +75,16 @@ export function StoreHeader() {
           isScrolled ? 'h-14 md:h-16' : 'h-16 md:h-20'
         }`}>
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 min-w-0">
+          <Link to="/" aria-label={`${BRAND_NAME} — inicio`} className="flex items-center gap-2 min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <motion.div
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               className="flex items-center gap-2 min-w-0"
             >
-              <img 
-                src={logoImage} 
-                alt={BRAND_NAME} 
-                className={`rounded-full object-cover flex-shrink-0 transition-all duration-500 ring-1 ring-gold/20 ${
-                  isScrolled ? 'h-7 w-7 md:h-9 md:w-9' : 'h-8 w-8 md:h-11 md:w-11'
-                }`}
+              <BrandLogo
+                className={`transition-all duration-500 ${isScrolled ? 'h-7 md:h-9' : 'h-8 md:h-11'}`}
               />
-              <span className={`font-serif font-bold text-gradient-gold transition-all duration-500 ${
-                isScrolled ? 'text-lg md:text-2xl' : 'text-xl md:text-3xl'
-              }`}>
-                {BRAND_NAME}
-              </span>
             </motion.div>
           </Link>
 
@@ -140,7 +98,7 @@ export function StoreHeader() {
               >
                 {link.label}
                 <motion.span 
-                  className="absolute -bottom-1 left-0 w-full h-px bg-gold origin-left"
+                  className="absolute -bottom-1 left-0 w-full h-px bg-primary origin-left"
                   initial={{ scaleX: 0 }}
                   whileHover={{ scaleX: 1 }}
                   transition={{ duration: 0.3, ease: 'easeOut' }}
@@ -163,7 +121,7 @@ export function StoreHeader() {
                   type="text"
                   placeholder="Buscar..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, ''))}
+                  onChange={(e) => setSearchQuery(e.target.value.slice(0, 60))}
                   className="w-44 lg:w-56 pl-9 pr-4 h-9 bg-card/80 backdrop-blur-sm border-border/30 rounded-full text-sm focus:w-64 focus:border-primary/30 transition-all duration-400"
                 />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
@@ -174,8 +132,10 @@ export function StoreHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden h-9 w-9"
+              className="md:hidden h-11 w-11"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
+              aria-label="Buscar"
+              aria-expanded={isSearchOpen}
             >
               <motion.div
                 animate={{ rotate: isSearchOpen ? 90 : 0 }}
@@ -188,19 +148,16 @@ export function StoreHeader() {
             {/* Currency Toggle */}
             <CurrencyToggle />
 
-            {/* Theme Toggle */}
+            {/* En móvil: tema y avisos aquí; cuenta, carrito y panel viven en la barra inferior */}
             <ThemeToggle />
 
-            {/* Notification Bell — solo para clientes autenticados */}
-            {user && (
-              <CustomerNotificationBell />
-            )}
+            {user && <CustomerNotificationBell />}
 
-            {/* User Menu */}
-            <UserMenu />
+            <div className="hidden md:block">
+              <UserMenu />
+            </div>
 
-            {/* Cart con badge animado premium */}
-            <Link to="/carrito" className="relative">
+            <Link to="/carrito" className="relative hidden md:block" aria-label={`Carrito (${itemCount})`}>
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -223,7 +180,7 @@ export function StoreHeader() {
                       >
                         <Badge 
                           variant="default" 
-                          className="h-4.5 min-w-4.5 p-0 px-1 flex items-center justify-center text-[10px] bg-gold text-white font-bold shadow-gold rounded-full"
+                          className="h-4.5 min-w-4.5 p-0 px-1 flex items-center justify-center text-[10px] bg-primary text-primary-foreground font-bold rounded-full"
                         >
                           {itemCount > 99 ? '99+' : itemCount}
                         </Badge>
@@ -234,20 +191,6 @@ export function StoreHeader() {
               </motion.div>
             </Link>
 
-            {/* Mobile menu toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden h-9 w-9"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              <motion.div
-                animate={{ rotate: isMenuOpen ? 180 : 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                {isMenuOpen ? <CloseSquare className="h-4.5 w-4.5" /> : <Menu className="h-4.5 w-4.5" />}
-              </motion.div>
-            </Button>
           </div>
         </div>
 
@@ -272,7 +215,7 @@ export function StoreHeader() {
                     type="text"
                     placeholder="Buscar productos..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, ''))}
+                    onChange={(e) => setSearchQuery(e.target.value.slice(0, 60))}
                     className="w-full pl-10 pr-4 h-11 bg-card/80 backdrop-blur-sm border-border/30 rounded-full"
                     autoFocus
                   />
@@ -283,167 +226,6 @@ export function StoreHeader() {
           )}
         </AnimatePresence>
 
-        {/* Mobile Menu */}
-        <AnimatePresence>
-          {isMenuOpen && (
-            <motion.nav
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="md:hidden overflow-hidden border-t border-border/10"
-            >
-              <div className="py-4 space-y-1 px-2 max-h-[calc(100vh-5rem)] overflow-y-auto">
-                {navLinks.map((link, index) => (
-                  <motion.div
-                    key={link.to}
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <Link 
-                      to={link.to}
-                      onClick={() => setIsMenuOpen(false)}
-                      className="block py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 active:scale-[0.98] text-sm tracking-wide font-medium"
-                    >
-                      {link.label}
-                    </Link>
-                  </motion.div>
-                ))}
-                <motion.div
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: navLinks.length * 0.05 }}
-                >
-                  <Link 
-                    to="/carrito"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center justify-between py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm tracking-wide font-medium"
-                  >
-                    <span>Mi Carrito</span>
-                    {itemCount > 0 && (
-                      <Badge className="bg-gold text-white text-[10px] rounded-full px-1.5 h-5 flex items-center justify-center font-bold">{itemCount}</Badge>
-                    )}
-                  </Link>
-                </motion.div>
-
-                {user ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: (navLinks.length + 1) * 0.05 }}
-                    className="space-y-1 pt-2"
-                  >
-                    <hr className="my-2 border-border/10 mx-4" />
-                    
-                    {/* User profile info block */}
-                    <div className="px-4 py-3 flex items-center gap-3 bg-muted/20 rounded-2xl mb-2">
-                      <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-base flex-shrink-0">
-                        {getInitials()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-foreground truncate">{getUserName()}</p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                      </div>
-                    </div>
-
-                    {/* User links */}
-                    {isAdmin && (
-                      <Link
-                        to="/dashboard"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center gap-3 py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm font-medium"
-                      >
-                        <Category className="h-4.5 w-4.5 text-muted-foreground/60" />
-                        <span>Panel General</span>
-                      </Link>
-                    )}
-                    
-                    <Link
-                      to="/cliente/perfil"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-3 py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm font-medium"
-                    >
-                      <User className="h-4.5 w-4.5 text-muted-foreground/60" />
-                      <span>Mi Perfil</span>
-                    </Link>
-
-                    <Link
-                      to={isAdmin ? "/settings" : "/cliente/configuracion"}
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-3 py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm font-medium"
-                    >
-                      <Settings className="h-4.5 w-4.5 text-muted-foreground/60" />
-                      <span>Configuración</span>
-                    </Link>
-
-                    <Link
-                      to="/cliente/notificaciones"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center justify-between py-2.5 px-4 text-foreground/80 hover:text-foreground hover:bg-card/80 rounded-xl transition-all duration-300 text-sm font-medium"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Bell className="h-4.5 w-4.5 text-muted-foreground/60" />
-                        <span>Notificaciones</span>
-                      </div>
-                      {unreadCount > 0 && (
-                        <Badge className="bg-destructive text-white text-[10px] rounded-full px-1.5 h-5 min-w-5 flex items-center justify-center font-bold">
-                          {unreadCount}
-                        </Badge>
-                      )}
-                    </Link>
-
-                    <button
-                      onClick={handleSignOut}
-                      className="flex items-center gap-3 py-2.5 px-4 text-destructive hover:bg-destructive/10 rounded-xl transition-all duration-300 text-sm font-medium w-full text-left"
-                    >
-                      <Logout className="h-4.5 w-4.5" />
-                      <span>Cerrar sesión</span>
-                    </button>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: (navLinks.length + 1) * 0.05 }}
-                    className="pt-2"
-                  >
-                    <hr className="my-2 border-border/10 mx-4" />
-                    <div className="px-4 py-2">
-                      <Link
-                        to="/cliente/auth"
-                        state={{ from: location.pathname }}
-                        onClick={() => setIsMenuOpen(false)}
-                        className="w-full block"
-                      >
-                        <Button 
-                          variant="outline" 
-                          className="w-full flex items-center justify-center gap-2 border-primary/30 hover:bg-primary/10 rounded-xl h-10"
-                        >
-                          <User className="h-4 w-4" />
-                          <span>Iniciar sesión</span>
-                        </Button>
-                      </Link>
-                    </div>
-                  </motion.div>
-                )}
-
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: (navLinks.length + 2) * 0.05 }}
-                  className="space-y-1"
-                >
-                  <hr className="my-2 border-border/10 mx-4" />
-                  <div className="px-4 py-2.5 flex items-center justify-between bg-card/40 rounded-xl">
-                    <span className="text-sm text-foreground/80 font-medium">Modo de color</span>
-                    <ThemeToggle />
-                  </div>
-                </motion.div>
-              </div>
-            </motion.nav>
-          )}
-        </AnimatePresence>
       </div>
     </motion.header>
   );

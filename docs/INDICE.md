@@ -11,6 +11,7 @@
 | [GUIA-CHECKOUT.md](./GUIA-CHECKOUT.md) | Flujo de compra, validación de stock, formularios, dual pricing | 🟡 |
 | [GUIA-PRODUCTCARD.md](./GUIA-PRODUCTCARD.md) | React.memo, animaciones, optimizaciones de rendimiento | 🟡 |
 | [GUIA-STOREFRONT-CATALOG.md](./GUIA-STOREFRONT-CATALOG.md) | Homepage, catálogo, debounce, filtros, CSS animations | 🟡 |
+| [ASISTENTE-VIRTUAL-INA-ANGELA.md](./ASISTENTE-VIRTUAL-INA-ANGELA.md) | Asistente con IA: mejoras hechas en EINA (Ina) y cómo llevarlas a Manojitos (Ángela) | 🔴 Para portar |
 
 ## 🎯 Ruta de Estudio Recomendida
 

@@ -140,6 +140,7 @@ export interface Order {
   subtotal: number;
   discount: number;
   total_usd: number;
+  delivery_fee?: number | null;
   total_bs: number | null;
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   payment_method: string | null;
