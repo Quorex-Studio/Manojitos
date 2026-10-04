@@ -22,8 +22,8 @@ import { buildSalesPdf, filterSales } from './salesReport';
 const now = new Date();
 const ago = (d: number) => new Date(now.getTime() - d * 86400000).toISOString();
 const names = ['María Pérez', 'Ana Rodríguez', 'Luisa Gómez', 'Carla Marcano', 'Yelitza Salazar'];
-const prods = ['Base líquida matte', 'Sérum vitamina C 30 ml', 'Labial rosewood', 'Protector solar FPS 50'];
-const cats = ['Maquillaje', 'Skincare', 'Maquillaje', 'Skincare'];
+const prods = ['Vestido largo floral', 'Suéter tejido talla M', 'Jean tiro alto', 'Perfume 50 ml'];
+const cats = ['Ropa', 'Pantalones', 'Ropa', 'Perfumes'];
 const methods = ['pago_movil', 'zelle', 'efectivo_usd', 'binance'];
 const sales: any[] = [];
 for (let i = 0; i < 40; i++) {

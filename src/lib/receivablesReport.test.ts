@@ -5,18 +5,18 @@ const now = new Date(2026, 8, 27, 10, 0);
 const day = (d: number) => new Date(2026, 8, 27 - d, 12, 0).toISOString();
 
 const sale = (p: Partial<ReceivableSaleRow>): ReceivableSaleRow => ({
-  id: crypto.randomUUID(), sale_group_id: null, client_name: 'María Pérez', product_name: 'Base', quantity: 1,
+  id: crypto.randomUUID(), sale_group_id: null, client_name: 'María Pérez', product_name: 'Vestido', quantity: 1,
   total_usd: 20, amount_paid: 0, sale_modality: 'fiado', status: 'confirmed', created_at: day(1), ...p,
 });
 
 const sales: ReceivableSaleRow[] = [
   // Factura de María con 2 líneas (mismo grupo), abonó $10
-  sale({ id: 'l1', sale_group_id: 'g1aaaaaa-1', product_name: 'Base', category: 'Maquillaje', quantity: 2, total_usd: 40, amount_paid: 10, created_at: day(5), client_phone: '04141234567' }),
-  sale({ id: 'l2', sale_group_id: 'g1aaaaaa-1', product_name: 'Sérum', category: 'Skincare', total_usd: 25, amount_paid: 0, created_at: day(5) }),
+  sale({ id: 'l1', sale_group_id: 'g1aaaaaa-1', product_name: 'Vestido', category: 'Ropa', quantity: 2, total_usd: 40, amount_paid: 10, created_at: day(5), client_phone: '04141234567' }),
+  sale({ id: 'l2', sale_group_id: 'g1aaaaaa-1', product_name: 'Suéter', category: 'Pantalones', total_usd: 25, amount_paid: 0, created_at: day(5) }),
   // Segunda factura de María (nombre escrito distinto) de hace 70 días
   sale({ id: 'l3', client_name: ' maría  pérez ', total_usd: 15, created_at: day(70) }),
   // Ana: 20 días
-  sale({ id: 'l4', client_name: 'Ana', category: 'Skincare', total_usd: 30, amount_paid: 5, created_at: day(20) }),
+  sale({ id: 'l4', client_name: 'Ana', category: 'Pantalones', total_usd: 30, amount_paid: 5, created_at: day(20) }),
   // Pagada: no sale
   sale({ id: 'l5', client_name: 'Luisa', total_usd: 12, amount_paid: 12 }),
   // Anulada: no sale
@@ -41,7 +41,7 @@ describe('reporte de cuentas por cobrar', () => {
     expect(maria.phone).toBe('04141234567');
     // de la más antigua a la más reciente
     expect(maria.invoices[0].days).toBe(70);
-    expect(maria.invoices[1].items).toEqual([{ name: 'Base', quantity: 2, total: 40 }, { name: 'Sérum', quantity: 1, total: 25 }]);
+    expect(maria.invoices[1].items).toEqual([{ name: 'Vestido', quantity: 2, total: 40 }, { name: 'Suéter', quantity: 1, total: 25 }]);
   });
 
   it('asigna los abonos a su factura e ignora los anulados', () => {
@@ -85,8 +85,8 @@ describe('reporte de cuentas por cobrar', () => {
 
   it('agrupa la deuda por categoría (sin categoría al final) con % cobrado', () => {
     expect(r.categories.map(c => [c.name, c.units, c.total, c.paid, c.balance, c.collectedPct])).toEqual([
-      ['Skincare', 2, 55, 5, 50, 9.1],
-      ['Maquillaje', 2, 40, 10, 30, 25],
+      ['Pantalones', 2, 55, 5, 50, 9.1],
+      ['Ropa', 2, 40, 10, 30, 25],
       ['Sin categoría', 1, 15, 0, 15, 0],
     ]);
     expect(r.categories[0].rows.map(x => x.name)).toEqual(['Ana', 'María Pérez']); // empate de saldo: A–Z

@@ -10,7 +10,7 @@ import { formatPhone } from '@/lib/venezuela';
  * Reporte de Cuentas por Cobrar (estado de cuenta estilo factura).
  *
  * Un solo armado de datos alimenta el PDF del módulo Por cobrar (Ventas) y el que entrega la
- * asistente (Ina / Ángela), así los dos dicen siempre lo mismo que la pantalla:
+ * asistente (Ángela), así los dos dicen siempre lo mismo que la pantalla:
  * - Una "factura" es una venta del panel: sus líneas se agrupan por `sale_group_id` (o `id`).
  * - Debe si total − abonado > 0,009. Las ventas anuladas (`status = cancelled`) no cuentan.
  * - Las clientas se agrupan por nombre normalizado (igual que las tarjetas de Por cobrar).

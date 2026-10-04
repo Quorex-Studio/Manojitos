@@ -14,7 +14,7 @@ export const receivablesQueryKey = (clientName?: string | null, sort?: string) =
 
 /**
  * Lee de Supabase lo que necesita el reporte de Por cobrar (con la sesión de quien lo pide:
- * RLS decide qué ve) y lo arma. Lo usan el botón del módulo y la tarjeta de Ina/Ángela.
+ * RLS decide qué ve) y lo arma. Lo usan el botón del módulo y la tarjeta de Ángela.
  */
 export async function loadReceivablesReport(opts: Omit<BuildReportOptions, 'rate'> = {}): Promise<ReceivablesReport> {
   // Ventas no anuladas, por páginas (PostgREST corta en 1000 filas)
@@ -37,7 +37,7 @@ export async function loadReceivablesReport(opts: Omit<BuildReportOptions, 'rate
   }
   sales.forEach(s => { s.category = categoryOf.get(s.product_id ?? '') ?? null; });
 
-  // El nombre que llega (de Ina o de una tarjeta) puede ser parcial: si coincide con una sola
+  // El nombre que llega (de Ángela o de una tarjeta) puede ser parcial: si coincide con una sola
   // clienta, o exactamente con una, sale su estado de cuenta; si no, las que coinciden.
   let clientName: string | null = null;
   if (opts.clientName) {
