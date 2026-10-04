@@ -251,8 +251,8 @@ export default function ImportProducts() {
   const downloadTemplate = () => {
     const ws = XLSX.utils.aoa_to_sheet([
       ['Nombre del producto', 'Precio de venta', 'Stock actual', 'Categoría', 'Descripción', 'Precio de costo', 'Código', 'Imagen'],
-      ['Labial líquido rosewood', 12, 10, 'Maquillaje', 'Acabado mate, larga duración', 6, 'LAB-001', ''],
-      ['Sérum vitamina C 30ml', 28, 5, 'Skincare', '', 14, 'SER-002', ''],
+      ['Vestido midi satinado', 25, 10, 'Ropa', 'Tallas S, M y L', 12, 'VES-001', ''],
+      ['Perfume Scandal 80ml', 45, 5, 'Perfumería', '', 25, 'PER-002', ''],
     ]);
     ws['!cols'] = [{ wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 30 }, { wch: 14 }, { wch: 10 }, { wch: 30 }];
     const wb = XLSX.utils.book_new();
