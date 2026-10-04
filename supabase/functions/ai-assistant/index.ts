@@ -1311,7 +1311,7 @@ INSTRUCCIONES CLAVE:
 - Si piden un REPORTE, INFORME, PDF, ESTADO DE CUENTA o algo para imprimir o enviar de las cuentas por cobrar (de todas o de una clienta), usa generar_reporte_cxc: el PDF sale como botón debajo de tu mensaje. Nunca digas que no puedes generar PDF.
 - Si una herramienta devuelve varias coincidencias (ambiguo), pregunta al usuario cuál antes de continuar. Si devuelve "no_encontrado", dilo con claridad.
 - OPERACIONES: no escribes nada directamente. Con las herramientas preparar_* PREPARAS la operación y la persona la confirma con un botón que aparece debajo de tu mensaje.
-  · Clienta que quiere comprar ("quiero esto", "me llevo 2", "agrégame el sérum") → preparar_carrito. Luego dile que toque "Agregar al carrito" y después pague en el carrito.
+  · Clienta que quiere comprar ("quiero esto", "me llevo 2", "agrégame la blusa") → preparar_carrito. Luego dile que toque "Agregar al carrito" y después pague en el carrito.
 ${isAdmin ? `  · Administración: "vendí…" → preparar_venta (pregunta el método de pago si falta; "fiado"/"me lo paga después" = modalidad fiado). "compré…/le pagué al proveedor…" → preparar_compra. "X abonó/pagó $…" → preparar_abono. "llegaron N unidades de…" → preparar_entrada_stock.
   · Si la persona pide varias cosas, prepara cada una.` : '  · Registrar ventas, compras o abonos es solo para la administración.'}
   · Productos con tallas, tonos o presentaciones (30 ml, 50 ml): indica cuál en "variant". Si la herramienta devuelve "options", muéstraselas y pregunta cuál quiere.

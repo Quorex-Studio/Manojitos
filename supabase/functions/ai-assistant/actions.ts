@@ -80,7 +80,7 @@ const ITEMS_SCHEMA = {
 export const ACTION_TOOL_DECLARATIONS = [
   { name: 'preparar_carrito', description: 'Prepara agregar productos al carrito de la clienta (cuando dice "quiero comprar…", "agrégame…", "me llevo…"). No compra: la clienta confirma y luego paga en el checkout.',
     parameters: { type: 'OBJECT', properties: { items: ITEMS_SCHEMA }, required: ['items'] } },
-  { name: 'preparar_venta', description: 'SOLO ADMIN. Prepara registrar una venta hecha en persona ("vendí 2 bases a María por pago móvil"). Varios productos en una sola venta. modalidad: "contado" (pagada completa) o "fiado" (queda por cobrar, con abono_inicial opcional). Si la clienta es nueva, su correo es obligatorio: con él se le crea su cuenta.',
+  { name: 'preparar_venta', description: 'SOLO ADMIN. Prepara registrar una venta hecha en persona ("vendí 2 blusas a María por pago móvil"). Varios productos en una sola venta. modalidad: "contado" (pagada completa) o "fiado" (queda por cobrar, con abono_inicial opcional). Si la clienta es nueva, su correo es obligatorio: con él se le crea su cuenta.',
     parameters: { type: 'OBJECT', properties: {
       items: ITEMS_SCHEMA,
       client_name: { type: 'STRING' },
@@ -90,7 +90,7 @@ export const ACTION_TOOL_DECLARATIONS = [
       modalidad: { type: 'STRING', description: 'contado o fiado' },
       abono_inicial: { type: 'NUMBER', description: 'USD pagados hoy en una venta fiada' },
     }, required: ['items'] } },
-  { name: 'preparar_compra', description: 'SOLO ADMIN. Prepara registrar una compra a un proveedor ("compré $80 en YesStyle de sérums"). Si el proveedor no existe, se crea al confirmar.',
+  { name: 'preparar_compra', description: 'SOLO ADMIN. Prepara registrar una compra a un proveedor ("compré $80 en Shein de vestidos"). Si el proveedor no existe, se crea al confirmar.',
     parameters: { type: 'OBJECT', properties: {
       provider: { type: 'STRING' },
       amount_usd: { type: 'NUMBER' },
@@ -104,7 +104,7 @@ export const ACTION_TOOL_DECLARATIONS = [
       amount_usd: { type: 'NUMBER' },
       payment_method: { type: 'STRING' },
     }, required: ['client_name', 'amount_usd'] } },
-  { name: 'preparar_entrada_stock', description: 'SOLO ADMIN. Prepara sumar unidades al inventario de un producto que ya existe ("llegaron 10 protectores solares").',
+  { name: 'preparar_entrada_stock', description: 'SOLO ADMIN. Prepara sumar unidades al inventario de un producto que ya existe ("llegaron 10 jeans").',
     parameters: { type: 'OBJECT', properties: {
       product: { type: 'STRING' },
       quantity: { type: 'NUMBER' },
@@ -124,7 +124,7 @@ async function resolveProduct(db: Db, term: string): Promise<{ status: 'ok'; pro
   const cols = 'id, name, price_usd, stock, image_url, product_variants(id, label, stock, price_usd, sort_order)';
   let { data } = await db.from('products').select(cols).ilike('name', `%${clean}%`).limit(8);
   if (!data?.length) {
-    // Todas las palabras, en cualquier orden ("base matte" → "Base líquida matte")
+    // Todas las palabras, en cualquier orden ("jean alto" → "Jean tiro alto")
     const words = clean.split(' ').filter(w => w.length > 2);
     if (words.length) {
       let q = db.from('products').select(cols);
