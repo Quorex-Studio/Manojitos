@@ -234,7 +234,6 @@ async function buildBusinessContext(supabase: ReturnType<typeof getSupabaseClien
     .order('sold_count', { ascending: false })
     .limit(30);
 
-  // Categorías únicas
   // Categorías configuradas en el panel (si la tabla no existe, las de los productos)
   const { data: catRows } = await supabase.from('product_categories').select('name').order('sort_order');
   const categories = (catRows?.length
@@ -1558,7 +1557,7 @@ ${isAdmin ? `  · Administración: "vendí…" → preparar_venta (pregunta el m
       for (const model of modelsToTry) {
         try {
           console.log(`Trying Gemini model: ${model}`);
-          // Conversación multi-turno para function calling. Primer turno: prompt.
+          // Conversación multi-turno para function calling: el hilo real + las respuestas de las herramientas.
           const contents: any[] = conversation.map((c) => ({ role: c.role, parts: c.parts.map((p) => ({ ...p })) }));
           let modelFailed = false;
           const MAX_TOOL_TURNS = 6;
