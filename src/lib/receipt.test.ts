@@ -9,7 +9,7 @@ const base: ReceiptData = {
   paymentMethod: 'pago_movil',
   items: [
     { name: 'Base líquida', quantity: 2, unitPrice: 22 },
-    { name: 'Sérum', quantity: 1, unitPrice: 28 },
+    { name: 'Blusa', quantity: 1, unitPrice: 28 },
   ],
   total: 72,
 };
