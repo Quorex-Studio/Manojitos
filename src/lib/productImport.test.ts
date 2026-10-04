@@ -45,10 +45,10 @@ describe('autoMapColumns', () => {
 describe('detectHeaderRow + buildRows', () => {
   const rows = [
     ['Reporte de inventario', '', ''],
-    ['Negocio: EINA', '', ''],
+    ['Negocio: Manojitos', '', ''],
     ['Nombre', 'Precio de venta', 'Cantidad'],
     ['Labial mate', '$ 12,50', '10'],
-    ['Sérum', '28', ''],
+    ['Blusa', '28', ''],
     ['', '', ''],
     ['Total', '', '10'],
   ].filter(r => r.some(c => c));
@@ -62,7 +62,7 @@ describe('detectHeaderRow + buildRows', () => {
     const result = buildRows(rows, header, autoMapColumns(rows[header] as string[]));
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ name: 'Labial mate', price: 12.5, stock: 10, errors: [] });
-    expect(result[1]).toMatchObject({ name: 'Sérum', price: 28, stock: 0 });
+    expect(result[1]).toMatchObject({ name: 'Blusa', price: 28, stock: 0 });
     expect(result.map(r => r.name)).not.toContain('Total');
   });
 
