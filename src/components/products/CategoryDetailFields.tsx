@@ -196,7 +196,7 @@ export function CategoryDetailFields({ category, presentation, variants, product
       )}
       <div className="flex gap-2">
         <Input
-          id="p-tone" placeholder="Ej: 120 Classic Ivory" value={toneDraft}
+          id="p-tone" placeholder="Ej: Azul marino" value={toneDraft}
           onChange={e => setToneDraft(e.target.value.slice(0, 120))}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTones(toneDraft); } }}
           className="h-11 flex-1 rounded-xl"

@@ -216,7 +216,7 @@ export default function AngelaChat() {
       // Un producto con varias tallas o tonos no se agrega a ciegas: la clienta elige en su ficha
       const { data: rows } = await supabase.from("products").select("id, sizes, category").in("id", items.map((it) => it.id));
       const variantsOf = (id: string) => productVariants((rows || []).find((r) => r.id === id)?.sizes);
-      // Ina ya resolvió la variante (talla, tono o presentación) o el producto tiene una sola
+      // Ángela ya resolvió la variante (talla, tono o presentación) o el producto tiene una sola
       const direct = items.filter((it) => it.variant_id || variantsOf(it.id).length <= 1);
       const choose = items.filter((it) => !it.variant_id && variantsOf(it.id).length > 1).map((it) => ({ id: it.id, name: it.name }));
       direct.forEach((it) => {

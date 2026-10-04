@@ -71,7 +71,7 @@ const ITEMS_SCHEMA = {
       product: { type: 'STRING', description: 'nombre del producto como lo dijo la persona' },
       quantity: { type: 'NUMBER', description: 'unidades (por defecto 1)' },
       unit_price: { type: 'NUMBER', description: 'precio unitario en USD solo si la persona lo dijo; si no, se usa el del catálogo' },
-      variant: { type: 'STRING', description: 'talla, tono o presentación si el producto las tiene (ej. "M", "120 Classic Ivory", "50 ml")' },
+      variant: { type: 'STRING', description: 'talla, tono o presentación si el producto las tiene (ej. "M", "Azul marino", "50 ml")' },
     },
     required: ['product'],
   },
