@@ -22,14 +22,21 @@ create index if not exists product_variants_product_idx on public.product_varian
 
 alter table public.product_variants enable row level security;
 
-drop policy if exists "Variantes visibles para todos" on public.product_variants;
-create policy "Variantes visibles para todos" on public.product_variants for select using (true);
-drop policy if exists "Solo admin crea variantes" on public.product_variants;
-create policy "Solo admin crea variantes" on public.product_variants for insert to authenticated with check (public.is_admin());
-drop policy if exists "Solo admin edita variantes" on public.product_variants;
-create policy "Solo admin edita variantes" on public.product_variants for update to authenticated using (public.is_admin()) with check (public.is_admin());
-drop policy if exists "Solo admin borra variantes" on public.product_variants;
-create policy "Solo admin borra variantes" on public.product_variants for delete to authenticated using (public.is_admin());
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'product_variants' and policyname = 'Variantes visibles para todos') then
+    create policy "Variantes visibles para todos" on public.product_variants for select using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'product_variants' and policyname = 'Solo admin crea variantes') then
+    create policy "Solo admin crea variantes" on public.product_variants for insert to authenticated with check (public.is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'product_variants' and policyname = 'Solo admin edita variantes') then
+    create policy "Solo admin edita variantes" on public.product_variants for update to authenticated using (public.is_admin()) with check (public.is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where tablename = 'product_variants' and policyname = 'Solo admin borra variantes') then
+    create policy "Solo admin borra variantes" on public.product_variants for delete to authenticated using (public.is_admin());
+  end if;
+end $$;
 
 grant select on public.product_variants to anon, authenticated;
 grant insert, update, delete on public.product_variants to authenticated;
@@ -39,7 +46,15 @@ alter table public.sales add column if not exists variant_id uuid references pub
 alter table public.sales add column if not exists variant_label text;
 
 -- El checkout envía la variante de cada ítem
-alter type public.order_item_input add attribute variant_id uuid;
+do $$
+begin
+  if not exists (select 1 from pg_attribute where attrelid = (select typrelid from pg_type where oid = 'public.order_item_input'::regtype) and attname = 'variant_id') then
+    alter type public.order_item_input add attribute variant_id uuid;
+  end if;
+end $$;
+
+-- Manojitos no guardaba el delivery aparte en el pedido: el checkout y confirm_order lo usan
+alter table public.orders add column if not exists delivery_fee numeric(10,2) not null default 0;
 
 -- ── Sincronización producto ← variantes ──
 create or replace function public.sync_product_from_variants()
@@ -65,8 +80,7 @@ begin
 end;
 $$;
 
-drop trigger if exists product_variants_sync on public.product_variants;
-create trigger product_variants_sync
+create or replace trigger product_variants_sync
   after insert or update or delete on public.product_variants
   for each row execute function public.sync_product_from_variants();
 
@@ -87,8 +101,7 @@ begin
 end;
 $$;
 
-drop trigger if exists products_guard_variant_stock on public.products;
-create trigger products_guard_variant_stock
+create or replace trigger products_guard_variant_stock
   before update of stock on public.products
   for each row execute function public.guard_variant_stock();
 
@@ -136,8 +149,10 @@ revoke execute on function public.apply_stock_change(uuid, uuid, integer, text) 
 revoke execute on function public.sync_product_from_variants() from public, anon, authenticated;
 revoke execute on function public.guard_variant_stock() from public, anon, authenticated;
 
+-- (Manojitos conserva la firma de su process_checkout: sin valores por defecto salvo el delivery,
+--  así no choca con las versiones anteriores de la función que siguen en la base)
 -- ── Checkout: valida stock y precio de la variante ──
-create or replace function public.process_checkout(items order_item_input[], payment_method text, client_name text, client_phone text, notes text default null::text, total_bs_rate numeric default null::numeric, p_banco_origen text default null::text, p_numero_referencia text default null::text, p_delivery_fee numeric default 0)
+create or replace function public.process_checkout(items order_item_input[], payment_method text, client_name text, client_phone text, notes text, total_bs_rate numeric, p_banco_origen text, p_numero_referencia text, p_delivery_fee numeric default 0)
 returns jsonb
 language plpgsql
 security definer
