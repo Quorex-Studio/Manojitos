@@ -7,23 +7,27 @@ type Env = Record<string, string>;
 // Valores por defecto de la marca: si falta una variable en .env / Vercel, el build
 // sigue funcionando (index.html usa %VITE_*% y un placeholder vacío rompe el build).
 export const BRAND_ENV_DEFAULTS: Env = {
-  VITE_BRAND_NAME: "EINA",
-  VITE_BRAND_DOMAIN: "einashopv.com",
+  VITE_BRAND_NAME: "Manojitos",
+  VITE_BRAND_DOMAIN: "manojitos.vercel.app",
   VITE_GTM_ID: "",
 };
 
-/** Completa process.env con los valores por defecto que falten (loadEnv los incluye). */
-export function applyBrandEnvDefaults(): void {
+/**
+ * Completa process.env con los valores por defecto que falten (loadEnv los incluye).
+ * `fileEnv` = lo que ya trae el .env: Vite le da prioridad a process.env sobre el .env, así que
+ * un valor por defecto escrito aquí taparía el del archivo (pasaba con VITE_GTM_ID).
+ */
+export function applyBrandEnvDefaults(fileEnv: Env = {}): void {
   for (const [key, value] of Object.entries(BRAND_ENV_DEFAULTS)) {
-    if (process.env[key] === undefined) process.env[key] = value;
+    if (process.env[key] === undefined && fileEnv[key] === undefined) process.env[key] = value;
   }
 }
 
 const manifest = (env: Env) =>
   JSON.stringify(
     {
-      name: env.VITE_BRAND_NAME || "EINA",
-      short_name: env.VITE_BRAND_NAME || "EINA",
+      name: env.VITE_BRAND_NAME || "Manojitos",
+      short_name: env.VITE_BRAND_NAME || "Manojitos",
       icons: [
         { src: "/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
         { src: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
@@ -38,7 +42,7 @@ const manifest = (env: Env) =>
   );
 
 const robots = (env: Env) =>
-  ["User-agent: *", "Allow: /", "", `Host: https://${env.VITE_BRAND_DOMAIN || "einashopv.com"}`, ""].join("\n");
+  ["User-agent: *", "Allow: /", "", `Host: https://${env.VITE_BRAND_DOMAIN || "manojitos.vercel.app"}`, ""].join("\n");
 
 export function brandFiles(env: Env): Plugin {
   const files: Record<string, { type: string; body: () => string }> = {

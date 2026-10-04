@@ -1,5 +1,5 @@
 // Marca configurable por secreto de Supabase (supabase secrets set BRAND_NAME=...)
-const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "EINA";
+const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";

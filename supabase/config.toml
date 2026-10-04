@@ -1,5 +1,5 @@
 # Ref del proyecto Supabase de la tienda (se usa con `supabase link`)
-project_id = "texjndtgxwbkpjqdqbud"
+project_id = "utfoempgdbhhikpvbvir"
 
 [functions.get-bcv-rate]
 verify_jwt = false

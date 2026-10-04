@@ -1,5 +1,5 @@
 // Marca configurable: BRAND_NAME=... node update_templates.js
-const BRAND_NAME = process.env.BRAND_NAME || "EINA";
+const BRAND_NAME = process.env.BRAND_NAME || "Manojitos";
 /**
  * Supabase Email Templates Configuration Script for la tienda
  * 

@@ -16,8 +16,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // Setup Web Push (si faltan las claves VAPID la función responde 503 en vez de caerse al arrancar)
 const VAPID_PUBLIC_KEY = Deno.env.get("VITE_VAPID_PUBLIC_KEY") ?? "";
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
-const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "EINA";
-const VAPID_CONTACT = Deno.env.get("VAPID_CONTACT_EMAIL") ?? "admin@einashopv.com";
+const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
+const VAPID_CONTACT = Deno.env.get("VAPID_CONTACT_EMAIL") ?? "admin@manojitos.com";
 const pushConfigured = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
 if (pushConfigured) {
   webPush.setVapidDetails(`mailto:${VAPID_CONTACT}`, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);

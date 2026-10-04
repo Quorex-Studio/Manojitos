@@ -1,5 +1,5 @@
 // Marca configurable por secreto de Supabase (supabase secrets set BRAND_NAME=...)
-const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "EINA";
+const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
 export const createWelcomeEmail = (link?: string) => `
 <div style="font-family: 'Quicksand', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #c4607a 0%, #a04961 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">

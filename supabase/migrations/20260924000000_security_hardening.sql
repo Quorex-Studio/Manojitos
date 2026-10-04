@@ -1,4 +1,4 @@
--- Endurecimiento tras los advisors de seguridad (primer despliegue de EINA).
+-- Endurecimiento tras los advisors de seguridad (plantilla compartida con EINA).
 
 -- 1. pg_net fuera de public (los crons usan el schema net.*, no cambia nada)
 DROP EXTENSION IF EXISTS pg_net;

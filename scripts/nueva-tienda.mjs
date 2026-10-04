@@ -23,7 +23,7 @@ if (existsSync(".env") && (await ask("Ya existe .env, ¿sobrescribir? (s/n)", "n
   process.exit(0);
 }
 
-const name = await ask("Nombre de la tienda", "EINA");
+const name = await ask("Nombre de la tienda", "Manojitos");
 const domain = await ask("Dominio (sin https://)", `${name.toLowerCase().replace(/[^a-z0-9]+/g, "")}.com`);
 const values = {
   VITE_BRAND_NAME: name,

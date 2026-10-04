@@ -5,7 +5,7 @@ import { applyBrandEnvDefaults, brandFiles } from "./scripts/vite-brand-files";
 
 export default defineConfig(({ mode }: { mode: string }) => {
   const isProd = mode === 'production';
-  applyBrandEnvDefaults();
+  applyBrandEnvDefaults(loadEnv(mode, process.cwd(), 'VITE_'));
   const env = loadEnv(mode, process.cwd(), 'VITE_');
 
   const plugins = [

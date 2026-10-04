@@ -1,5 +1,5 @@
 // Marca configurable por secreto de Supabase (supabase secrets set BRAND_NAME=...)
-const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "EINA";
+const BRAND_NAME = Deno.env.get("BRAND_NAME") ?? "Manojitos";
 const ASSISTANT_NAME = Deno.env.get("ASSISTANT_NAME") ?? "Ángela";
 // Contacto y horario de la tienda (secretos BRAND_WHATSAPP / STORE_HOURS). Sin WhatsApp,
 // la asistente remite a la sección de Atención al Cliente.
