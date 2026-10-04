@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { productVariants, variantLabel } from "@/lib/productCategories";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import AngelaMascot, { type MascotState } from "@/components/AngelaMascot";
+import { ChatMarkdown } from "@/components/chat/ChatMarkdown";
 
 /** Operación que la asistente dejó preparada; solo se ejecuta al confirmar. */
 interface Proposal {
@@ -377,13 +378,15 @@ export default function AngelaChat() {
                   )}
                   <div
                     className={cn(
-                      "max-w-[80%] whitespace-pre-line rounded-2xl px-3.5 py-2 text-sm",
+                      "rounded-2xl px-3.5 py-2 text-sm",
                       m.role === "user"
-                        ? "rounded-br-sm bg-primary text-primary-foreground"
-                        : "rounded-bl-sm bg-muted text-foreground",
+                        ? "max-w-[80%] whitespace-pre-line rounded-br-sm bg-primary text-primary-foreground"
+                        : "min-w-0 max-w-[88%] rounded-bl-sm bg-muted text-foreground",
                     )}
                   >
-                    {m.content}
+                    {m.role === "assistant"
+                      ? <ChatMarkdown text={m.content} onNavigate={(to) => { setOpen(false); navigate(to); }} />
+                      : m.content}
                   </div>
                 </div>
                 {isAdmin && m.attachments?.map((a) => <ReportAttachmentCard key={a.id} attachment={a} />)}
