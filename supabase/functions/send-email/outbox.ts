@@ -54,10 +54,20 @@ async function ownerAlerts(admin: SupabaseClient): Promise<OwnerAlerts | null> {
   return c?.enabled && c.whatsapp_phone && c.callmebot_apikey ? c : null;
 }
 
+/** Número para CallMeBot / WhatsApp: siempre internacional 58 + número sin el 0 ("0414 123 4567" → "584141234567"). */
+export function toWhatsAppPhone(value?: string | null): string {
+  let d = String(value ?? "").replace(/\D/g, "").replace(/^00/, "");
+  if (d.startsWith("58")) d = d.slice(2);
+  d = d.replace(/^0+/, "");
+  return d ? `58${d}` : "";
+}
+
 /** WhatsApp a la dueña vía CallMeBot. Devuelve el error como texto (nunca lanza). */
 export async function sendOwnerWhatsApp(cfg: OwnerAlerts, text: string): Promise<string | null> {
   try {
-    const phone = String(cfg.whatsapp_phone).replace(/\D/g, "");
+    // Siempre internacional 58 + número sin el 0 (CallMeBot rechaza 0414…)
+    const phone = toWhatsAppPhone(cfg.whatsapp_phone);
+    if (phone.length < 12) return `Número de WhatsApp incompleto: ${cfg.whatsapp_phone}`;
     const url = `https://api.callmebot.com/whatsapp.php?phone=%2B${phone}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(String(cfg.callmebot_apikey))}`;
     const res = await fetch(url);
     const body = await res.text();

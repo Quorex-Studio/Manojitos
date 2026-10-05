@@ -1,12 +1,13 @@
 import { PhoneInput, DocumentIdInput } from '@/components/ui/ve-inputs';
-import { BRAND_NAME } from '@/config/brand';
+import { BRAND, BRAND_NAME } from '@/config/brand';
 import { paymentConfigLabel, PAYMENT_CONFIG_LABELS } from '@/lib/paymentMethodFields';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import React, { useState, useEffect, useMemo } from 'react';
-import { Loader, Refresh, DollarSign, Euro, Calculator, CreditCard, Moon, Sun, Plus, Edit, Trash2, TickCircle, AlertTriangle, Category } from 'reicon-react';
+import { Loader, Refresh, DollarSign, Euro, Calculator, CreditCard, Moon, Sun, Plus, Edit, Trash2, TickCircle, AlertTriangle, Category, Sparkles } from 'reicon-react';
 import { useSearchParams } from 'react-router-dom';
 import { CategoriesSettings } from '@/components/settings/CategoriesSettings';
 import { OwnerAlertsSettings } from '@/components/settings/OwnerAlertsSettings';
+import { AssistantMemoryCard } from '@/components/assistant/AssistantMemoryCard';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useExchangeRate } from '@/hooks/useExchangeRate';
 import { useCurrency, DisplayCurrency } from '@/contexts/CurrencyContext';
@@ -391,6 +392,9 @@ export default function Settings() {
               </div>
             </SectionCard>
             <OwnerAlertsSettings />
+            <SectionCard title={`Lo que ${BRAND.assistantName} recuerda`} description="Datos y recordatorios que le pediste anotar. Puedes borrarlos." icon={<Sparkles />}>
+              <AssistantMemoryCard />
+            </SectionCard>
           </TabsContent>
         </Tabs>
       </div>

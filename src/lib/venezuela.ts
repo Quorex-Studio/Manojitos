@@ -41,6 +41,14 @@ export function joinPhone(prefix: string, number: string): string {
   return `+58${prefix.replace(/^0/, '')}${n}`;
 }
 
+/** Número para CallMeBot / WhatsApp: siempre internacional 58 + número sin el 0 ("0414 123 4567" → "584141234567"). */
+export function toWhatsAppPhone(value?: string | null): string {
+  let d = String(value ?? '').replace(/\D/g, '').replace(/^00/, '');
+  if (d.startsWith('58')) d = d.slice(2);
+  d = d.replace(/^0+/, '');
+  return d ? `58${d}` : '';
+}
+
 /** true si el teléfono tiene el formato completo que exige la base. */
 export const isCompletePhone = (value?: string | null) => /^\+58(?:4(?:12|14|16|22|24|26)|2\d{2})\d{7}$/.test(value || '');
 

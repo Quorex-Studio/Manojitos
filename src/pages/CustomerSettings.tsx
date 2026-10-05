@@ -3,7 +3,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { Loader, Lock, Bell, Logout, ArrowLeft, Eye, EyeOff, Check, CreditCard, User, ChevronRight, DollarSign } from 'reicon-react';
+import { Loader, Lock, Bell, Logout, ArrowLeft, Eye, EyeOff, Check, CreditCard, User, ChevronRight, DollarSign, Sparkles } from 'reicon-react';
+import { AssistantMemoryCard } from '@/components/assistant/AssistantMemoryCard';
+import { BRAND } from '@/config/brand';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { StoreLayout } from '@/components/store/StoreLayout';
@@ -275,6 +277,10 @@ export default function CustomerSettings() {
           </Section>
 
           {/* Cuenta */}
+          <Section title={`Lo que ${BRAND.assistantName} recuerda`} icon={Sparkles}>
+            <AssistantMemoryCard />
+          </Section>
+
           <Section title="Cuenta" icon={User}>
             <div className="divide-y divide-border">
               <div className="pb-3 text-sm">
