@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PhoneInput } from '@/components/ui/ve-inputs';
+import { toWhatsAppPhone } from '@/lib/venezuela';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -39,12 +40,15 @@ export function OwnerAlertsSettings() {
   const [form, setForm] = useState<OwnerAlerts>(EMPTY);
   useEffect(() => { if (stored) setForm(stored.value); }, [stored]);
 
-  const complete = form.whatsapp_phone.length > 4 && form.callmebot_apikey.trim().length > 3;
+  const waPhone = toWhatsAppPhone(form.whatsapp_phone);
+  const complete = waPhone.length >= 12 && form.callmebot_apikey.trim().length > 3;
 
   const save = useMutation({
     mutationFn: async (value: OwnerAlerts) => {
       if (!user) throw new Error('Sesión no válida');
-      const conditions = { ...value, callmebot_apikey: value.callmebot_apikey.trim() };
+      // CallMeBot exige 58 + número sin el 0 (nunca 0414…)
+      const phone = toWhatsAppPhone(value.whatsapp_phone);
+      const conditions = { ...value, whatsapp_phone: phone ? `+${phone}` : '', callmebot_apikey: value.callmebot_apikey.trim() };
       const { error } = stored?.id
         ? await supabase.from('business_rules').update({ conditions }).eq('id', stored.id)
         : await supabase.from('business_rules').insert({
@@ -60,7 +64,7 @@ export function OwnerAlertsSettings() {
   const test = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('send-email', {
-        body: { action: 'owner_whatsapp_test', data: { whatsapp_phone: form.whatsapp_phone, callmebot_apikey: form.callmebot_apikey.trim() } },
+        body: { action: 'owner_whatsapp_test', data: { whatsapp_phone: `+${toWhatsAppPhone(form.whatsapp_phone)}`, callmebot_apikey: form.callmebot_apikey.trim() } },
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'CallMeBot no aceptó el mensaje');
@@ -92,6 +96,7 @@ export function OwnerAlertsSettings() {
             <div className="space-y-1.5">
               <Label htmlFor="oa-phone">Tu WhatsApp</Label>
               <PhoneInput id="oa-phone" value={form.whatsapp_phone} onChange={v => setForm(f => ({ ...f, whatsapp_phone: v }))} inputClassName="h-11 rounded-xl" />
+              {waPhone.length >= 12 && <p className="text-xs text-muted-foreground">Se envía como +{waPhone}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="oa-key">Clave de CallMeBot</Label>

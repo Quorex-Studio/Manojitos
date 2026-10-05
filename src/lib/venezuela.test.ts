@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { splitPhone, joinPhone, isCompletePhone, formatPhone, splitDoc, joinDoc } from './venezuela';
+import { splitPhone, joinPhone, isCompletePhone, formatPhone, splitDoc, joinDoc, toWhatsAppPhone } from './venezuela';
 
 describe('teléfonos', () => {
   it.each([
@@ -35,5 +35,22 @@ describe('documentos', () => {
   it('une', () => {
     expect(joinDoc('E', '81.234.567')).toBe('E-81234567');
     expect(joinDoc('V', '')).toBe('');
+  });
+});
+
+describe('WhatsApp (CallMeBot)', () => {
+  it.each([
+    ['04141234567', '584141234567'],
+    ['0414-123.45.67', '584141234567'],
+    ['+584141234567', '584141234567'],
+    ['584141234567', '584141234567'],
+    ['+5804141234567', '584141234567'],
+    ['00584141234567', '584141234567'],
+    ['4141234567', '584141234567'],
+    ['02951234567', '582951234567'],
+  ])('%s → %s', (input, out) => expect(toWhatsAppPhone(input)).toBe(out));
+  it('vacío', () => {
+    expect(toWhatsAppPhone('')).toBe('');
+    expect(toWhatsAppPhone(null)).toBe('');
   });
 });
