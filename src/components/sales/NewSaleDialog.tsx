@@ -235,7 +235,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     if (clientMode !== 'walkin' && !hasClient) return clientMode === 'search' ? 'Elige un cliente de la lista' : 'Escribe el nombre del cliente';
     if (clientMode === 'new' && !isValidVePhone(phoneNormalized)) return 'Completa el teléfono (7 dígitos después del prefijo)';
     if (clientMode === 'new' && !isValidEmail(client.email)) return 'Escribe el correo del cliente (se le crea su cuenta)';
-    if (modality !== 'fiado' && !method) return 'Elige el método de pago';
+    if (!method) return modality === 'fiado' ? 'Elige con qué va a pagar ($ o Bs)' : 'Elige el método de pago';
     if (isCash && payToday > 0 && receivedNum <= 0) return 'Indica cuánto recibiste';
     if (cashShort) return 'El monto recibido no alcanza';
     return '';
@@ -593,49 +593,47 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
               )}
             </div>
 
-            {/* Método y efectivo */}
-            {modality !== 'fiado' && (
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">Método de pago {modality !== 'contado' && <span className="font-normal text-muted-foreground">(de lo que paga hoy)</span>}</p>
-                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Método de pago">
-                  {paymentMethods.map(m => (
-                    <button key={m.method_key} type="button" role="radio" aria-checked={method === m.method_key} onClick={() => setMethod(m.method_key)} className={pill(method === m.method_key)}>
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-                {isCash && payToday > 0 && (
-                  <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
-                    <Label htmlFor="ns-received">Recibido ({method === 'efectivo_usd' ? '$' : 'Bs'})</Label>
-                    <Input
-                      id="ns-received"
-                      inputMode="decimal"
-                      value={received}
-                      onChange={e => setReceived(e.target.value.replace(/[^0-9.,]/g, '').slice(0, 12))}
-                      placeholder="0.00"
-                      className="h-12 rounded-xl text-lg font-bold"
-                    />
-                    <div className="flex flex-wrap gap-1.5">
-                      {Array.from(new Set([
-                        Math.ceil(dueInMethod * 100) / 100,
-                        ...(method === 'efectivo_usd' ? [5, 10, 20, 50, 100] : [100, 500, 1000, 5000]).map(step => Math.ceil(dueInMethod / step) * step),
-                      ])).filter(v => v > 0).slice(0, 5).map(v => (
-                        <button key={v} type="button" onClick={() => setReceived(String(v))} className="h-8 rounded-full border border-border px-3 text-xs font-medium hover:border-primary">
-                          {v === Math.ceil(dueInMethod * 100) / 100 ? 'Exacto' : method === 'efectivo_usd' ? `$${v}` : `Bs ${v}`}
-                        </button>
-                      ))}
-                    </div>
-                    {receivedNum > 0 && (
-                      <p className={cn('text-sm font-semibold', cashShort ? 'text-sale' : 'text-success')}>
-                        {cashShort
-                          ? `Faltan ${method === 'efectivo_usd' ? `$${Math.abs(change).toFixed(2)}` : formatBS(Math.abs(change))}`
-                          : `Vuelto: ${method === 'efectivo_usd' ? `$${change.toFixed(2)}` : formatBS(change)}`}
-                      </p>
-                    )}
-                  </div>
-                )}
+            {/* Método y efectivo (en fiado también: el método define la moneda y el precio, $ o Bs) */}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Método de pago {modality === 'fiado' ? <span className="font-normal text-muted-foreground">(con qué va a pagar: define el precio en $ o Bs)</span> : modality !== 'contado' && <span className="font-normal text-muted-foreground">(de lo que paga hoy)</span>}</p>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Método de pago">
+                {paymentMethods.map(m => (
+                  <button key={m.method_key} type="button" role="radio" aria-checked={method === m.method_key} onClick={() => setMethod(m.method_key)} className={pill(method === m.method_key)}>
+                    {m.label}
+                  </button>
+                ))}
               </div>
-            )}
+              {isCash && payToday > 0 && (
+                <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
+                  <Label htmlFor="ns-received">Recibido ({method === 'efectivo_usd' ? '$' : 'Bs'})</Label>
+                  <Input
+                    id="ns-received"
+                    inputMode="decimal"
+                    value={received}
+                    onChange={e => setReceived(e.target.value.replace(/[^0-9.,]/g, '').slice(0, 12))}
+                    placeholder="0.00"
+                    className="h-12 rounded-xl text-lg font-bold"
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {Array.from(new Set([
+                      Math.ceil(dueInMethod * 100) / 100,
+                      ...(method === 'efectivo_usd' ? [5, 10, 20, 50, 100] : [100, 500, 1000, 5000]).map(step => Math.ceil(dueInMethod / step) * step),
+                    ])).filter(v => v > 0).slice(0, 5).map(v => (
+                      <button key={v} type="button" onClick={() => setReceived(String(v))} className="h-8 rounded-full border border-border px-3 text-xs font-medium hover:border-primary">
+                        {v === Math.ceil(dueInMethod * 100) / 100 ? 'Exacto' : method === 'efectivo_usd' ? `$${v}` : `Bs ${v}`}
+                      </button>
+                    ))}
+                  </div>
+                  {receivedNum > 0 && (
+                    <p className={cn('text-sm font-semibold', cashShort ? 'text-sale' : 'text-success')}>
+                      {cashShort
+                        ? `Faltan ${method === 'efectivo_usd' ? `$${Math.abs(change).toFixed(2)}` : formatBS(Math.abs(change))}`
+                        : `Vuelto: ${method === 'efectivo_usd' ? `$${change.toFixed(2)}` : formatBS(change)}`}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Nota */}
             {showNotes ? (
