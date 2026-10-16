@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Search, Plus, Minus, Trash2, Loader, User, Check, Package, CloseSquare, ShoppingCart } from 'reicon-react';
 import { createCustomerAccount, isValidEmail } from '@/lib/customerAccounts';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,8 +70,6 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const [client, setClient] = useState(EMPTY_CLIENT);
   const [clientSelected, setClientSelected] = useState(false);
   const [clientQuery, setClientQuery] = useState('');
-  const [clientResults, setClientResults] = useState<ClientMatch[]>([]);
-  const [clientSearching, setClientSearching] = useState(false);
   const [modality, setModality] = useState<SaleModality>('contado');
   const [method, setMethod] = useState('');
   const [received, setReceived] = useState('');
@@ -81,7 +79,6 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   // Producto con varias tallas/tonos/presentaciones: se elige cuál antes de agregarlo
   const [pickFor, setPickFor] = useState<string | null>(null);
   const { byName } = useProductCategories();
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const reset = () => {
     setProductQuery('');
@@ -90,7 +87,6 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     setClient(EMPTY_CLIENT);
     setClientSelected(false);
     setClientQuery('');
-    setClientResults([]);
     setModality('contado');
     setMethod('');
     setReceived('');
@@ -174,55 +170,52 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const cashShort = isCash && payToday > 0 && receivedNum > 0 && change < -0.009;
 
   // ── Cliente ──
-  const runClientSearch = useCallback(async (raw: string) => {
-    const safe = raw.trim().replace(/[,%()]/g, ' ').replace(/\s+/g, ' ').trim();
-    if (safe.length < 2) { setClientResults([]); setClientSearching(false); return; }
-    setClientSearching(true);
-    try {
-      const [salesRes, profRes] = await Promise.allSettled([
+  // Directorio completo (clientes registrados + los que ya compraron), filtrado aquí mismo:
+  // así aparecen todos, sin el tope de 8 resultados que tenía la búsqueda en el servidor.
+  const { data: clientDirectory = [], isLoading: clientSearching } = useQuery({
+    queryKey: ['sale-client-directory'],
+    enabled: open && clientMode === 'search',
+    staleTime: 60_000,
+    queryFn: async () => {
+      const [salesRes, profRes] = await Promise.all([
         supabase.from('sales')
           .select('client_name, client_dni, client_phone, client_email, client_address, created_at')
           .not('client_name', 'is', null)
-          .or(`client_name.ilike.%${safe}%,client_dni.ilike.%${safe}%,client_phone.ilike.%${safe}%`)
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(5000),
         supabase.from('customer_profiles')
           .select('full_name, dni, phone, email, address')
-          .or(`full_name.ilike.%${safe}%,dni.ilike.%${safe}%,phone.ilike.%${safe}%`)
-          .limit(20),
+          .order('full_name', { ascending: true })
+          .limit(5000),
       ]);
       const map = new Map<string, ClientMatch>();
       const push = (m: ClientMatch) => {
         const name = m.name.trim();
         if (!name) return;
         const key = m.dni.trim().toUpperCase() || name.toLowerCase();
-        if (!map.has(key)) map.set(key, m);
+        if (!map.has(key)) map.set(key, { ...m, name });
       };
-      if (profRes.status === 'fulfilled') {
-        for (const r of profRes.value.data || []) push({ name: r.full_name || '', dni: r.dni || '', phone: r.phone || '', email: r.email || '', address: r.address || '' });
-      }
-      if (salesRes.status === 'fulfilled') {
-        for (const r of salesRes.value.data || []) push({ name: r.client_name || '', dni: r.client_dni || '', phone: r.client_phone || '', email: r.client_email || '', address: r.client_address || '' });
-      }
-      setClientResults(Array.from(map.values()).slice(0, 8));
-    } catch {
-      setClientResults([]);
-    } finally {
-      setClientSearching(false);
-    }
-  }, []);
+      for (const r of profRes.data || []) push({ name: r.full_name || '', dni: r.dni || '', phone: r.phone || '', email: r.email || '', address: r.address || '' });
+      for (const r of salesRes.data || []) push({ name: r.client_name || '', dni: r.client_dni || '', phone: r.client_phone || '', email: r.client_email || '', address: r.client_address || '' });
+      return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    },
+  });
 
-  useEffect(() => {
-    if (clientMode !== 'search' || clientSelected) return;
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => runClientSearch(clientQuery), 300);
-    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
-  }, [clientQuery, clientMode, clientSelected, runClientSearch]);
+  const clientResults = useMemo(() => {
+    const fold = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const q = fold(clientQuery.trim());
+    if (!q) return clientDirectory;
+    const digits = q.replace(/\D/g, '');
+    return clientDirectory.filter(m =>
+      fold(m.name).includes(q) ||
+      fold(m.dni).includes(q) ||
+      (digits.length >= 3 && (m.phone.replace(/\D/g, '').includes(digits) || m.dni.replace(/\D/g, '').includes(digits))),
+    );
+  }, [clientDirectory, clientQuery]);
 
   const pickClient = (m: ClientMatch) => {
     setClient({ dni: m.dni, name: m.name, phone: m.phone, email: m.email, address: m.address });
     setClientSelected(true);
-    setClientResults([]);
   };
 
   const changeClientMode = (mode: ClientMode) => {
@@ -230,7 +223,6 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     setClient(EMPTY_CLIENT);
     setClientSelected(false);
     setClientQuery('');
-    setClientResults([]);
   };
 
   const phoneNormalized = normalizeVePhone(client.phone);
@@ -332,6 +324,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     }
 
     if (!failed && clientMode === 'new') queryClient.invalidateQueries({ queryKey: ['customers'] });
+    if (!failed) queryClient.invalidateQueries({ queryKey: ['sale-client-directory'] });
 
     setSubmitting(false);
     if (!failed) {
@@ -505,7 +498,12 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                       {clientSearching && <Loader className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
                     </div>
                     {clientResults.length > 0 && (
-                      <ul className="max-h-56 divide-y divide-border overflow-y-auto rounded-2xl border border-border bg-card">
+                      <p className="px-1 text-xs text-muted-foreground">
+                        {clientQuery.trim() ? `${clientResults.length} de ${clientDirectory.length} clientes` : `${clientDirectory.length} clientes · escribe para filtrar`}
+                      </p>
+                    )}
+                    {clientResults.length > 0 && (
+                      <ul className="max-h-64 divide-y divide-border overflow-y-auto rounded-2xl border border-border bg-card">
                         {clientResults.map((m, i) => (
                           <li key={`${m.dni}-${m.name}-${i}`}>
                             <button type="button" onClick={() => pickClient(m)} className="w-full px-3 py-2.5 text-left hover:bg-primary/5">
@@ -516,7 +514,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                         ))}
                       </ul>
                     )}
-                    {clientQuery.trim().length >= 2 && !clientSearching && clientResults.length === 0 && (
+                    {!clientSearching && clientResults.length === 0 && (
                       <p className="text-xs text-muted-foreground">
                         Sin coincidencias.{' '}
                         <button type="button" className="font-semibold text-primary underline-offset-2 hover:underline" onClick={() => { changeClientMode('new'); setClient({ ...EMPTY_CLIENT, name: /\d/.test(clientQuery) ? '' : clientQuery, dni: /\d/.test(clientQuery) ? clientQuery.toUpperCase() : '' }); }}>
