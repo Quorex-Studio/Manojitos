@@ -2,6 +2,16 @@
 
 **Detectado:** 24-09-2026 en EinaShopV (copia de Manojitos) · **Estado en Manojitos:** eliminado el 27-09-2026 (estuvo desde el commit inicial hasta este arreglo).
 
+> 🚨 **16-10-2026 — SEGUNDA REINFECCIÓN.** El *merge commit* del PR #21 (`243fa5b`, 04-10-2026,
+> hecho desde un equipo local) metió tres cambios que no venían de ninguna de las dos ramas:
+> `postcss.config.js` infectado otra vez (15 KB), un **`api.js` nuevo** (29 KB de código escondido
+> tras tabuladores) y `package.json` con `"dev"`/`"build"` cambiados a `node api.js && …`.
+> El candado frenó los builds de Vercel (por eso producción no se actualizaba desde el 04-10),
+> **pero `npm run dev` en ese equipo sí ejecutó `api.js`**. Se restauraron los archivos y el
+> candado ahora revisa también todo `.js/.ts` suelto en la raíz y que los scripts de
+> `package.json` no ejecuten archivos fuera de `scripts/`. El equipo que hizo ese merge sigue
+> comprometido: aplicar "Qué hacer" **antes** de volver a hacer commits desde él.
+
 > ⚠️ **27-09-2026 — REINFECCIÓN.** El archivo infectado volvió en `121bbb1` (PR #39, commit hecho
 > desde un equipo local) y estuvo en `main` hasta este arreglo: **todas las compilaciones de Vercel
 > desde el PR #39 ejecutaron el malware**. Manojitos nunca se limpió (32 KB en su `main`).
