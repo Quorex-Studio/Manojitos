@@ -1090,6 +1090,7 @@ export default function Sales() {
                     <SelectItem value="fiado">Fiado Quincena</SelectItem>
                     <SelectItem value="dos_partes">En 2 Partes</SelectItem>
                     <SelectItem value="financiamiento">Financiamiento</SelectItem>
+                    <SelectItem value="cashea">Cashea</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={saleSort} onValueChange={(v) => setSortParam('orden', v)}>
