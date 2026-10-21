@@ -80,12 +80,12 @@ const ITEMS_SCHEMA = {
 export const ACTION_TOOL_DECLARATIONS = [
   { name: 'preparar_carrito', description: 'Prepara agregar productos al carrito de la clienta (cuando dice "quiero comprar…", "agrégame…", "me llevo…"). No compra: la clienta confirma y luego paga en el checkout.',
     parameters: { type: 'OBJECT', properties: { items: ITEMS_SCHEMA }, required: ['items'] } },
-  { name: 'preparar_venta', description: 'SOLO ADMIN. Prepara registrar una venta hecha en persona ("vendí 2 blusas a María por pago móvil"). Varios productos en una sola venta. modalidad: "contado" (pagada completa) o "fiado" (queda por cobrar, con abono_inicial opcional). Si la clienta es nueva, su correo es obligatorio: con él se le crea su cuenta.',
+  { name: 'preparar_venta', description: 'SOLO ADMIN. Prepara registrar una venta hecha en persona ("vendí 2 blusas a María por pago móvil"). Varios productos en una sola venta. modalidad: "contado" (pagada completa) o "fiado" (queda por cobrar, con abono_inicial opcional). Si la clienta es nueva, el correo es opcional (con correo se le crea su cuenta); en fiado necesita teléfono o correo.',
     parameters: { type: 'OBJECT', properties: {
       items: ITEMS_SCHEMA,
       client_name: { type: 'STRING' },
       client_phone: { type: 'STRING' },
-      client_email: { type: 'STRING', description: 'correo de la clienta; obligatorio si es nueva' },
+      client_email: { type: 'STRING', description: 'correo de la clienta (opcional); si lo da, se le crea su cuenta' },
       payment_method: { type: 'STRING', description: 'pago_movil, transferencia, zelle, binance, zinli, wally, efectivo_usd o efectivo_bs' },
       modalidad: { type: 'STRING', description: 'contado o fiado' },
       abono_inicial: { type: 'NUMBER', description: 'USD pagados hoy en una venta fiada' },
@@ -230,7 +230,8 @@ export async function prepareAction(name: string, args: Record<string, unknown>,
         if (modality === 'fiado' && !clientName) {
           return { status: 'falta_dato', message: 'Una venta fiada necesita el nombre de la clienta. Pregúntalo.' };
         }
-        // Clienta nueva (no está en Clientes): se le crea su cuenta con el correo, que es obligatorio
+        // Clienta nueva (no está en Clientes): el correo es opcional; con él se le crea su cuenta.
+        // En fiado sin correo hace falta el teléfono: es lo que luego enlaza la deuda con su cuenta.
         const clientPhone = String(args.client_phone ?? '').trim();
         const clientEmail = String(args.client_email ?? '').trim().toLowerCase();
         let newCustomer = false;
@@ -244,15 +245,18 @@ export async function prepareAction(name: string, args: Record<string, unknown>,
             ? await db.from('customer_profiles').select('user_id').ilike('email', clientEmail).limit(1)
             : { data: [] };
           newCustomer = !byName?.length && !byPhone?.length && !byEmail?.length;
-          if (newCustomer && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clientEmail)) {
-            return { status: 'falta_dato', message: `${clientName} es una clienta nueva: pide su correo (obligatorio, con él se le crea su cuenta y le llega la factura) y su teléfono.` };
+          if (newCustomer && clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clientEmail)) {
+            return { status: 'falta_dato', message: `El correo "${clientEmail}" no es válido. Pide que lo repita o regístrala sin correo.` };
+          }
+          if (newCustomer && modality === 'fiado' && !clientEmail && phone10.length !== 10) {
+            return { status: 'falta_dato', message: `${clientName} es una clienta nueva y la venta es fiada: pide su teléfono (o su correo) para poder cobrarle.` };
           }
         }
         const total = round2(resolved!.reduce((s, i) => s + i.quantity * i.unitPrice, 0));
         const abono = modality === 'fiado' ? Math.min(round2(Number(args.abono_inicial) || 0), total) : total;
         const lines = [
           ...resolved!.map(i => `${i.quantity} × ${i.product.name}${i.variant ? ` (${i.variant.label})` : ''} — ${money(i.quantity * i.unitPrice)}`),
-          clientName ? `Cliente: ${clientName}${newCustomer ? ` (nueva: se crea su cuenta con ${clientEmail})` : ''}` : 'Cliente: venta de mostrador',
+          clientName ? `Cliente: ${clientName}${newCustomer ? (clientEmail ? ` (nueva: se crea su cuenta con ${clientEmail})` : ' (nueva, sin correo: no se crea cuenta)') : ''}` : 'Cliente: venta de mostrador',
           modality === 'contado'
             ? `Pagado completo por ${PAYMENT_LABELS[method!]}`
             : `Fiado · abona hoy ${money(abono)}${abono > 0 && method ? ` por ${PAYMENT_LABELS[method]}` : ''} · queda ${money(total - abono)}`,
