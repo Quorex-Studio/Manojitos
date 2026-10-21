@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ArrowDown, ArrowRight2, ArrowUp, ChartSuccess, CloseCircle, DollarSign, Download, FileText, Receipt, Search, ShoppingCart, Users, Wallet } from 'reicon-react';
+import { ArrowDown, ArrowRight2, ArrowUp, ChartSuccess, MoneyRecive, CloseCircle, DollarSign, Download, FileText, Receipt, Search, ShoppingCart, Users, Wallet } from 'reicon-react';
 import ExcelJS from 'exceljs';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ReceivablesReportDialog } from '@/components/reports/ReceivablesReportDialog';
+import { IncomeByMonth } from '@/components/reports/IncomeByMonth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +26,7 @@ import {
 } from '@/lib/salesReport';
 
 const REPORT_LAUNCH_DATE = '2026-01-01';
-const VIEWS = ['resumen', 'productos', 'clientas', 'detalle'] as const;
+const VIEWS = ['resumen', 'ingresos', 'productos', 'clientas', 'detalle'] as const;
 type View = (typeof VIEWS)[number];
 const PAGE = 50;
 
@@ -363,6 +364,7 @@ export default function Reports() {
         <Tabs value={view} onValueChange={v => update({ vista: v === 'resumen' ? null : v })}>
           <TabsList className="admin-tabs">
             <TabsTrigger value="resumen"><ChartSuccess className="h-4 w-4" />Resumen</TabsTrigger>
+            <TabsTrigger value="ingresos"><MoneyRecive className="h-4 w-4" />Ingresos por mes</TabsTrigger>
             <TabsTrigger value="productos"><ShoppingCart className="h-4 w-4" />Productos</TabsTrigger>
             <TabsTrigger value="clientas"><Users className="h-4 w-4" />Clientas</TabsTrigger>
             <TabsTrigger value="detalle"><FileText className="h-4 w-4" />Detalle ({filtered.length})</TabsTrigger>
@@ -466,6 +468,11 @@ export default function Reports() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* INGRESOS POR MES Y MÉTODO DE PAGO */}
+          <TabsContent value="ingresos" className="mt-4">
+            <IncomeByMonth />
           </TabsContent>
 
           {/* PRODUCTOS */}

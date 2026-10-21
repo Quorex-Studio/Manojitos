@@ -21,6 +21,7 @@ import { formatBS } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { normalizeImageUrl } from '@/lib/imageUrl';
 import { useProductCategories } from '@/hooks/useProductCategories';
+import { InventorySummary } from '@/components/products/InventorySummary';
 import { CategoryDetailFields, type VariantRow } from '@/components/products/CategoryDetailFields';
 import { sortedVariants } from '@/lib/productCategories';
 
@@ -806,6 +807,9 @@ export default function Products() {
             </Button>
           </div>
         </div>
+
+        {/* Resumen del inventario: disponibles, costo bruto y valor de venta */}
+        {products.length > 0 && <InventorySummary products={products} />}
 
         {/* Filtros: búsqueda, estado de stock (chips), categoría y orden */}
         <div className="space-y-3">

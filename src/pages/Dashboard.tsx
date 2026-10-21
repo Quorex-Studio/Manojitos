@@ -21,6 +21,8 @@ import { formatBS } from '@/lib/utils';
 import { isToday } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { filterSales, summarizeSales } from '@/lib/salesReport';
+import { localDateISO } from '@/lib/dates';
 
 // Dashboard admin — Premium editorial
 export default function Dashboard() {
@@ -100,6 +102,16 @@ export default function Dashboard() {
         vendidos: p.sold_count
       }));
   }, [products]);
+
+  // Top del mes: productos y clientes con más ventas (en dinero) desde el día 1
+  const monthTop = useMemo(() => {
+    const now = new Date();
+    const from = localDateISO(new Date(now.getFullYear(), now.getMonth(), 1));
+    const to = localDateISO(now);
+    const s = summarizeSales(filterSales(sales, { from, to }));
+    return { from, to, products: s.topProducts.slice(0, 5), clients: s.topClients.slice(0, 5) };
+  }, [sales]);
+  const monthName = new Date().toLocaleDateString('es-VE', { month: 'long' });
 
   const hasWeekSales = salesChartData.some(d => d.ventas > 0);
   const hasTopSellers = topProductsData.some(d => d.vendidos > 0);
@@ -433,6 +445,42 @@ export default function Dashboard() {
             </Card>
           </motion.div>
         </div>
+
+        {/* Top del mes */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}>
+          <Card className="bg-card backdrop-blur-sm border border-border/40 shadow-sm dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle className="font-serif text-lg tracking-tight text-foreground/80">Top de {monthName}</CardTitle>
+              <Link to={`/reports?desde=${monthTop.from}&hasta=${monthTop.to}`} className="text-sm font-medium text-primary hover:underline">Ver reportes</Link>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-2">
+              {([
+                { title: 'Productos más vendidos', items: monthTop.products.map(p => ({ key: p.name, name: p.name, detail: `${p.units} ${p.units === 1 ? 'unidad' : 'unidades'}`, amount: p.amount })), empty: 'Aún no hay ventas este mes.' },
+                { title: 'Mejores clientas', items: monthTop.clients.map(c => ({ key: c.name, name: c.name, detail: `${c.tickets} ${c.tickets === 1 ? 'compra' : 'compras'}`, amount: c.amount })), empty: 'Las ventas con clienta aparecen aquí.' },
+              ]).map(col => (
+                <div key={col.title}>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{col.title}</p>
+                  {col.items.length === 0 ? (
+                    <p className="rounded-xl bg-muted/30 px-3 py-4 text-sm text-muted-foreground">{col.empty}</p>
+                  ) : (
+                    <ol className="space-y-1">
+                      {col.items.map((it, i) => (
+                        <li key={it.key} className="flex items-center gap-3 rounded-xl px-2 py-1.5">
+                          <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold', i === 0 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground')}>{i + 1}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium">{it.name}</span>
+                            <span className="block text-xs text-muted-foreground">{it.detail}</span>
+                          </span>
+                          <span className="text-sm font-semibold tabular-nums">${it.amount.toFixed(2)}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Recent Sales */}
         <motion.div
