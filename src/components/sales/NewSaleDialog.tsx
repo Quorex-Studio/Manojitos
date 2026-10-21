@@ -234,7 +234,9 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     if (modality !== 'contado' && !hasClient) return 'Las ventas a crédito necesitan un cliente';
     if (clientMode !== 'walkin' && !hasClient) return clientMode === 'search' ? 'Elige un cliente de la lista' : 'Escribe el nombre del cliente';
     if (clientMode === 'new' && !isValidVePhone(phoneNormalized)) return 'Completa el teléfono (7 dígitos después del prefijo)';
-    if (clientMode === 'new' && !isValidEmail(client.email)) return 'Escribe el correo del cliente (se le crea su cuenta)';
+    if (clientMode === 'new' && client.email.trim() && !isValidEmail(client.email)) return 'El correo no es válido (o déjalo vacío)';
+    // Sin correo no hay cuenta: en crédito/fiado el teléfono es lo que luego enlaza la deuda con su cuenta
+    if (clientMode === 'new' && modality !== 'contado' && !client.email.trim() && !phoneNormalized) return 'En crédito o fiado pon el teléfono o el correo del cliente';
     if (!method) return modality === 'fiado' ? 'Elige con qué va a pagar ($ o Bs)' : 'Elige el método de pago';
     if (isCash && payToday > 0 && receivedNum <= 0) return 'Indica cuánto recibiste';
     if (cashShort) return 'El monto recibido no alcanza';
@@ -261,10 +263,11 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
       finalNotes = `[FIADO QUINCENA - 100% al ${formatCutoffDate(cut1)}] ${finalNotes}`.trim();
     }
 
-    // Cliente nuevo: primero su cuenta (correo, sin contraseña), para que la venta quede a su nombre
+    // Cliente nuevo con correo: primero su cuenta (sin contraseña), para que la venta quede a su nombre.
+    // Sin correo, la venta guarda sus datos y luego aparece en "Buscar cliente".
     let customerUserId: string | null = null;
     let accountCreated = false;
-    if (clientMode === 'new') {
+    if (clientMode === 'new' && client.email.trim()) {
       try {
         const account = await createCustomerAccount({
           email: client.email.trim().toLowerCase(),
@@ -546,7 +549,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="ns-email">Correo *</Label>
+                    <Label htmlFor="ns-email">Correo <span className="font-normal text-muted-foreground">(opcional: con correo se le crea su cuenta)</span></Label>
                     <Input id="ns-email" type="email" inputMode="email" autoComplete="off" value={client.email} onChange={e => setClient(c => ({ ...c, email: e.target.value.replace(/\s/g, '').slice(0, 100) }))} placeholder="nombre@correo.com" className={cn('h-11 rounded-xl', client.email && !isValidEmail(client.email) && 'border-sale')} />
                   </div>
                   <div className="space-y-1">
