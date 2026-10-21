@@ -38,8 +38,14 @@ serve(async (req) => {
       })
     }
 
-    // Verificar si el usuario que llama es admin real (usando app_metadata en lugar de tabla profiles)
-    if (adminUser?.app_metadata?.is_super_admin !== true) {
+    // Quien llama: administración (is_super_admin) o un empleado activo (role 'vendedor'),
+    // que solo puede crear la cuenta de una clienta desde Nueva venta.
+    const isAdmin = adminUser?.app_metadata?.is_super_admin === true
+    const bannedUntil = (adminUser as { banned_until?: string | null }).banned_until
+    const isEmployee = !isAdmin && adminUser?.app_metadata?.role === 'vendedor' && !(bannedUntil && new Date(bannedUntil) > new Date())
+    const body = await req.json()
+    const { action, userId, newPassword } = body
+    if (!isAdmin && !(isEmployee && action === 'create_customer')) {
       return new Response(JSON.stringify({ error: 'No autorizado. Se requiere rol de admin.' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -67,14 +73,59 @@ serve(async (req) => {
       }
     )
 
-    const body = await req.json()
-    const { action, userId, newPassword } = body
+    const json = (payload: unknown, status = 200) =>
+      new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+    // Empleados (solo administración): cuentas con app_metadata.role = 'vendedor'
+    if (action === 'list_employees') {
+      const employees = []
+      for (let page = 1; page <= 20; page++) {
+        const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage: 1000 })
+        if (error) return json({ error: error.message }, 500)
+        for (const u of data.users) {
+          if (u.app_metadata?.role !== 'vendedor' || u.app_metadata?.is_super_admin === true) continue
+          employees.push({
+            id: u.id,
+            email: u.email,
+            full_name: u.user_metadata?.full_name ?? '',
+            banned_until: (u as { banned_until?: string | null }).banned_until ?? null,
+            last_sign_in_at: u.last_sign_in_at ?? null,
+            created_at: u.created_at,
+          })
+        }
+        if (data.users.length < 1000) break
+      }
+      return json({ success: true, employees })
+    }
+
+    if (action === 'create_employee') {
+      const email = String(body.email ?? '').trim().toLowerCase()
+      const fullName = String(body.full_name ?? '').trim().slice(0, 120)
+      const password = String(body.password ?? '')
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ error: 'Escribe un correo válido' }, 400)
+      if (!fullName) return json({ error: 'Falta el nombre del empleado' }, 400)
+      if (password.length < 8) return json({ error: 'La contraseña debe tener al menos 8 caracteres' }, 400)
+
+      const { data: existingId, error: findError } = await adminClient.rpc('admin_find_user_by_email', { p_email: email })
+      if (findError) return json({ error: findError.message }, 500)
+      if (existingId) return json({ error: 'Ese correo ya tiene una cuenta (de clienta o de empleado). Usa otro correo.' }, 409)
+
+      const created = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName },
+        app_metadata: { role: 'vendedor', created_by_admin: true },
+      })
+      if (created.error || !created.data.user) return json({ error: created.error?.message ?? 'No se pudo crear el empleado' }, 500)
+      // Un empleado no es clienta: fuera de la cartera de clientes si el trigger le creó ficha
+      await adminClient.from('customer_profiles').delete().eq('user_id', created.data.user.id)
+      return json({ success: true, user_id: created.data.user.id })
+    }
 
     // Clienta nueva desde Nueva venta o Ángela: cuenta con su correo y SIN contraseña. Ella la crea
     // con "Olvidé mi contraseña" y, al entrar, completa su perfil (profile_pending).
     if (action === 'create_customer') {
-      const json = (payload: unknown, status = 200) =>
-        new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       const email = String(body.email ?? '').trim().toLowerCase()
       const fullName = String(body.full_name ?? '').trim().slice(0, 120)
       const phone = String(body.phone ?? '').trim().slice(0, 30) || null
@@ -111,6 +162,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    // Nunca sobre una cuenta de administración
+    const { data: target } = await adminClient.auth.admin.getUserById(userId)
+    if (target?.user?.app_metadata?.is_super_admin === true) return json({ error: 'No se puede modificar una cuenta de administración' }, 403)
 
     let result = null;
 

@@ -3,9 +3,10 @@ import { BRAND, BRAND_NAME } from '@/config/brand';
 import { paymentConfigLabel, PAYMENT_CONFIG_LABELS } from '@/lib/paymentMethodFields';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import React, { useState, useEffect, useMemo } from 'react';
-import { Loader, Refresh, DollarSign, Euro, Calculator, CreditCard, Moon, Sun, Plus, Edit, Trash2, TickCircle, AlertTriangle, Category, Sparkles } from 'reicon-react';
+import { Loader, Refresh, DollarSign, Euro, Calculator, CreditCard, Moon, Sun, Plus, Edit, Trash2, TickCircle, AlertTriangle, Category, Sparkles, User } from 'reicon-react';
 import { useSearchParams } from 'react-router-dom';
 import { CategoriesSettings } from '@/components/settings/CategoriesSettings';
+import { EmployeesSettings } from '@/components/settings/EmployeesSettings';
 import { OwnerAlertsSettings } from '@/components/settings/OwnerAlertsSettings';
 import { AssistantMemoryCard } from '@/components/assistant/AssistantMemoryCard';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -62,7 +63,7 @@ export default function Settings() {
   const { theme, setTheme } = useTheme();
   // La pestaña va en la URL: "Administrar categorías" desde Productos abre /settings?tab=categorias
   const [searchParams, setSearchParams] = useSearchParams();
-  const TABS = ['pagos', 'categorias', 'tasa', 'precios', 'preferencias'];
+  const TABS = ['pagos', 'categorias', 'tasa', 'precios', 'empleados', 'preferencias'];
   const tab = TABS.includes(searchParams.get('tab') || '') ? searchParams.get('tab')! : 'pagos';
   const setTab = (value: string) => setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', value); return n; }, { replace: true });
 
@@ -197,7 +198,7 @@ export default function Settings() {
       <div className="max-w-3xl space-y-5">
         <div>
           <h1 className="page-header">Configuración</h1>
-          <p className="page-subtitle">Datos de pago, categorías, tasa, precios y preferencias de {BRAND_NAME}</p>
+          <p className="page-subtitle">Datos de pago, categorías, tasa, precios, empleados y preferencias de {BRAND_NAME}</p>
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
@@ -209,6 +210,7 @@ export default function Settings() {
             <TabsTrigger value="categorias"><Category className="h-4 w-4" />Categorías</TabsTrigger>
             <TabsTrigger value="tasa"><DollarSign className="h-4 w-4" />Tasa</TabsTrigger>
             <TabsTrigger value="precios"><Calculator className="h-4 w-4" />Precios</TabsTrigger>
+            <TabsTrigger value="empleados"><User className="h-4 w-4" />Empleados</TabsTrigger>
             <TabsTrigger value="preferencias">{theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}Preferencias</TabsTrigger>
           </TabsList>
 
@@ -365,6 +367,11 @@ export default function Settings() {
           {/* ===== CATEGORÍAS ===== */}
           <TabsContent value="categorias" className="mt-5 space-y-4">
             <CategoriesSettings />
+          </TabsContent>
+
+          {/* ===== EMPLEADOS ===== */}
+          <TabsContent value="empleados" className="mt-5 space-y-4">
+            <EmployeesSettings />
           </TabsContent>
 
           {/* ===== PREFERENCIAS ===== */}

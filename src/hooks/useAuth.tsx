@@ -1,6 +1,6 @@
 /**
  * useAuth — Hook and Provider to manage Supabase Authentication state.
- * Returns: { user, session, loading, isAdmin, signIn, signUp, signOut }
+ * Returns: { user, session, loading, isAdmin, isEmployee, isStaff, signIn, signUp, signOut }
  */
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
@@ -11,6 +11,10 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  /** Empleado (role 'vendedor'): solo factura ventas */
+  isEmployee: boolean;
+  /** Administración o empleado: puede vender desde el panel */
+  isStaff: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (
     email: string, 
@@ -37,6 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Verificar si el usuario es admin leyendo is_super_admin de app_metadata
   const isAdmin = Boolean(user?.app_metadata?.is_super_admin);
+  const isEmployee = !isAdmin && user?.app_metadata?.role === 'vendedor';
+  const isStaff = isAdmin || isEmployee;
 
   useEffect(() => {
     // Timeout de seguridad: si la sesión no resuelve en 4s, liberar el loading.
@@ -123,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, isEmployee, isStaff, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

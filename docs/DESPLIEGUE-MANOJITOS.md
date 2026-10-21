@@ -36,3 +36,22 @@ sección «6. Borrar una compra» del archivo hasta el final, más esta línea:
 ```sql
 grant delete on public.purchase_items, public.purchase_payments, public.expense_categories, public.expenses to authenticated;
 ```
+
+## 21-10-2026: empleados desde EINA
+
+| Archivo del repo | Versión en Supabase | Qué hizo en Manojitos |
+|---|---|---|
+| `20261016030000_employees.sql` (secciones 1 a 5, salvo «no borran ventas») | `20261021220013` | `is_staff()` e `is_employee()`; `confirm_pos_sale`, `process_group_abono` y `create_ledger_entry` aceptan empleados activos (`recalculate_sale_group` no tenía chequeo); políticas «Empleados ven clientes», «Empleados no editan ventas» y «Empleados leen la regla de precios» |
+| `20261016030000_employees.sql` (política «Empleados no borran ventas») | `employees_no_delete_sales` | Política restrictiva: el empleado no borra ventas |
+
+Prueba (en una transacción que se deshizo, con una cuenta de clienta convertida en vendedor por un
+momento): el vendedor registró y confirmó una venta fiada (stock 5 → 4), abonó, **no pudo editarla**
+(0 filas) y **no pudo anularla** («No autorizado»). Después se verificó que no quedó nada.
+
+En el archivo de Manojitos los `drop policy if exists` + `create policy` de EINA se cambiaron por
+«crear solo si no existe» (mismo resultado y se puede reaplicar), porque Supabase pide confirmación
+para las sentencias destructivas.
+
+**Edge function** `admin-actions` desplegada (versión 10, `verify_jwt = false` como antes): agrega
+`list_employees` y `create_employee` (solo administración) y deja que un empleado use
+`create_customer`; ninguna acción toca una cuenta de administración.

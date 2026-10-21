@@ -20,6 +20,7 @@ const Sales = lazy(() => import("./pages/Sales"));
 const Providers = lazy(() => import("./pages/Providers"));
 const Expenses = lazy(() => import("./pages/Expenses"));
 const Accounts = lazy(() => import("./pages/Accounts"));
+const Seller = lazy(() => import("./pages/Seller"));
 const Reports = lazy(() => import("./pages/Reports"));
 const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
 const ProductRequests = lazy(() => import("./pages/ProductRequests"));
@@ -107,7 +108,7 @@ const queryClient = new QueryClient();
 
 // Ruta protegida para el panel administrativo (solo admins)
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, isEmployee } = useAuth();
 
   if (loading) {
     return (
@@ -122,9 +123,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
 
-  // Si está autenticado pero NO es admin, redirigir a tienda
+  // Empleado: solo su panel de ventas. Otro usuario que no es admin: a la tienda
   if (!isAdmin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={isEmployee ? "/vender" : "/"} replace />;
   }
 
   return <>{children}</>;
@@ -165,11 +166,27 @@ function LazyPage({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Redirige al dashboard si el admin ya está autenticado, o al perfil si es un cliente normal
+// Ruta del empleado (rol «vendedor»); administración también puede entrar
+function StaffRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading, isStaff } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!isStaff) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+// Redirige al dashboard si el admin ya está autenticado, a Ventas si es empleado, o al perfil si es un cliente normal
 function AdminAuthRoute() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isEmployee } = useAuth();
   if (!user) return <Auth />;
   if (isAdmin) return <Navigate to="/dashboard" replace />;
+  if (isEmployee) return <Navigate to="/vender" replace />;
   return <Navigate to="/cliente/perfil" replace />;
 }
 
@@ -205,6 +222,7 @@ function AppRoutes() {
 
       {/* ===== RUTAS ADMIN ===== */}
       <Route path="/auth" element={<LazyPage><AdminAuthRoute /></LazyPage>} />
+      <Route path="/vender" element={<LazyPage><StaffRoute><Seller /></StaffRoute></LazyPage>} />
       <Route path="/dashboard" element={<LazyPage><ProtectedRoute><Dashboard /></ProtectedRoute></LazyPage>} />
       <Route path="/dashboard/clientes" element={<LazyPage><ProtectedRoute><Customers /></ProtectedRoute></LazyPage>} />
       <Route path="/products" element={<LazyPage><ProtectedRoute><Products /></ProtectedRoute></LazyPage>} />
