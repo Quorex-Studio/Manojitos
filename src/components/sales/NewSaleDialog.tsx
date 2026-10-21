@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { Search, Plus, Minus, Trash2, Loader, User, Check, Package, CloseSquare, ShoppingCart } from 'reicon-react';
+import { Search, Plus, Minus, Trash2, Loader, User, Check, Package, CloseSquare, ShoppingCart, Edit, Sparkles } from 'reicon-react';
+import { useAuth } from '@/hooks/useAuth';
 import { createCustomerAccount, isValidEmail } from '@/lib/customerAccounts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -25,9 +26,14 @@ import { useProductCategories } from '@/hooks/useProductCategories';
 
 type SaleModality = 'contado' | 'dos_partes' | 'financiamiento' | 'fiado';
 type ClientMode = 'walkin' | 'search' | 'new';
-type ClientMatch = { name: string; dni: string; phone: string; email: string; address: string };
-/** Una línea por producto y variante (talla, tono o presentación) */
-interface CartLine { key: string; productId: string; variantId?: string; qty: number }
+type ClientMatch = { name: string; dni: string; phone: string; email: string; address: string; userId?: string | null };
+/**
+ * Una línea por producto y variante (talla, tono o presentación), o un servicio especial /
+ * pedido personalizado que no sale del inventario (custom = descripción).
+ * price: precio unitario en USD puesto a mano por la administración (si no, el del catálogo).
+ */
+interface CartLine { key: string; productId: string; variantId?: string; qty: number; price?: number; custom?: string }
+const MAX_CUSTOM_QTY = 999;
 
 const EMPTY_CLIENT = { dni: '', name: '', phone: '', email: '', address: '' };
 const BS_METHODS = ['efectivo_bs', 'pago_movil', 'transferencia'];
@@ -78,6 +84,17 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const [submitting, setSubmitting] = useState(false);
   // Producto con varias tallas/tonos/presentaciones: se elige cuál antes de agregarlo
   const [pickFor, setPickFor] = useState<string | null>(null);
+  // Cambiar el precio de una línea (solo administración)
+  const { isAdmin } = useAuth();
+  const [priceEdit, setPriceEdit] = useState<{ key: string; value: string } | null>(null);
+  // Servicio especial / pedido personalizado (sin inventario)
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customForm, setCustomForm] = useState({ description: '', price: '', qty: '1' });
+  // Fiado con abono inicial opcional (USD)
+  const [abono, setAbono] = useState('');
+  // Cuenta de la clienta elegida (para que la venta quede en su ficha) y correo para crearle una
+  const [clientUserId, setClientUserId] = useState<string | null>(null);
+  const [saveEmail, setSaveEmail] = useState('');
   const { byName } = useProductCategories();
 
   const reset = () => {
@@ -92,6 +109,12 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     setReceived('');
     setNotes('');
     setShowNotes(false);
+    setPriceEdit(null);
+    setCustomOpen(false);
+    setCustomForm({ description: '', price: '', qty: '1' });
+    setAbono('');
+    setClientUserId(null);
+    setSaveEmail('');
   };
 
   const close = (next: boolean) => {
@@ -109,11 +132,12 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     return list.slice(0, q ? 12 : 8);
   }, [products, productQuery]);
 
-  const qtyInCart = (productId: string) => cart.filter(l => l.productId === productId).reduce((n, l) => n + l.qty, 0);
+  const qtyInCart = (productId: string) => cart.filter(l => !l.custom && l.productId === productId).reduce((n, l) => n + l.qty, 0);
   const variantOf = (productId: string, variantId?: string) =>
     variantId ? productById.get(productId)?.product_variants?.find(v => v.id === variantId) ?? null : null;
   const lineStock = (productId: string, variantId?: string) =>
     variantId ? variantOf(productId, variantId)?.stock ?? 0 : productById.get(productId)?.stock ?? 0;
+  const lineMax = (l: CartLine) => (l.custom !== undefined ? MAX_CUSTOM_QTY : lineStock(l.productId, l.variantId));
 
   const addLine = (productId: string, variantId?: string) => {
     const product = productById.get(productId);
@@ -138,30 +162,44 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const setQty = (key: string, qty: number) => {
     const line = cart.find(l => l.key === key);
     if (!line) return;
-    const next = Math.max(0, Math.min(qty, lineStock(line.productId, line.variantId)));
+    const next = Math.max(0, Math.min(qty, lineMax(line)));
     setCart(prev => next === 0 ? prev.filter(l => l.key !== key) : prev.map(l => l.key === key ? { ...l, qty: next } : l));
   };
 
   // ── Montos ──
   const isBsPayment = BS_METHODS.includes(method);
   const surchargePct = modality === 'financiamiento' ? (pricingConfig?.credit_surcharge_pct || 10) : 0;
-  const lines = cart.map(l => {
-    const p = productById.get(l.productId)!;
-    const variant = p ? variantOf(l.productId, l.variantId) : null;
+  type SaleLine = CartLine & {
+    product: (typeof products)[number] | null;
+    variant: ReturnType<typeof variantOf>;
+    name: string; stock: number; base: number; listBase: number; unit: number; subtotal: number;
+  };
+  const lines = cart.flatMap((l): SaleLine[] => {
+    if (l.custom !== undefined) {
+      const base = l.price ?? 0;
+      const unit = base * (1 + surchargePct / 100);
+      return [{ ...l, product: null, variant: null, name: l.custom, stock: MAX_CUSTOM_QTY, base, listBase: base, unit, subtotal: unit * l.qty }];
+    }
+    const p = productById.get(l.productId);
+    if (!p) return [];
+    const variant = variantOf(l.productId, l.variantId);
     // Una variante con precio propio manda; si no, el precio del producto (o su precio en Bs)
-    const base = variant && variant.price_usd != null
+    const listBase = variant && variant.price_usd != null
       ? variantPrice(p.price_usd, variant)
-      : isBsPayment && p?.price_bs_usd != null && Number(p.price_bs_usd) > 0 ? Number(p.price_bs_usd) : Number(p?.price_usd);
+      : isBsPayment && p.price_bs_usd != null && Number(p.price_bs_usd) > 0 ? Number(p.price_bs_usd) : Number(p.price_usd);
+    // Precio puesto a mano por la administración (descuento, precio especial)
+    const base = l.price ?? listBase;
     const unit = base * (1 + surchargePct / 100);
-    return { ...l, product: p, variant, stock: lineStock(l.productId, l.variantId), unit, subtotal: unit * l.qty };
-  }).filter(l => l.product);
+    return [{ ...l, product: p, variant, name: p.name, stock: lineStock(l.productId, l.variantId), base, listBase, unit, subtotal: unit * l.qty }];
+  });
   const total = lines.reduce((s, l) => s + l.subtotal, 0);
   const totalBs = convertToBS(total);
   const [cut1, cut2] = getNextTwoCutoffDates();
+  const abonoNum = Math.max(0, Number(abono.replace(',', '.')) || 0);
   const payToday =
     modality === 'contado' ? total :
     modality === 'dos_partes' ? total / 2 :
-    modality === 'financiamiento' ? total / 3 : 0;
+    modality === 'financiamiento' ? total / 3 : Math.min(abonoNum, total);
 
   const isCash = method === 'efectivo_usd' || method === 'efectivo_bs';
   const receivedNum = Number(received.replace(',', '.')) || 0;
@@ -179,12 +217,12 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     queryFn: async () => {
       const [salesRes, profRes] = await Promise.all([
         supabase.from('sales')
-          .select('client_name, client_dni, client_phone, client_email, client_address, created_at')
+          .select('client_name, client_dni, client_phone, client_email, client_address, customer_user_id, created_at')
           .not('client_name', 'is', null)
           .order('created_at', { ascending: false })
           .limit(5000),
         supabase.from('customer_profiles')
-          .select('full_name, dni, phone, email, address')
+          .select('user_id, full_name, dni, phone, email, address')
           .order('full_name', { ascending: true })
           .limit(5000),
       ]);
@@ -195,8 +233,8 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
         const key = m.dni.trim().toUpperCase() || name.toLowerCase();
         if (!map.has(key)) map.set(key, { ...m, name });
       };
-      for (const r of profRes.data || []) push({ name: r.full_name || '', dni: r.dni || '', phone: r.phone || '', email: r.email || '', address: r.address || '' });
-      for (const r of salesRes.data || []) push({ name: r.client_name || '', dni: r.client_dni || '', phone: r.client_phone || '', email: r.client_email || '', address: r.client_address || '' });
+      for (const r of profRes.data || []) push({ name: r.full_name || '', dni: r.dni || '', phone: r.phone || '', email: r.email || '', address: r.address || '', userId: r.user_id });
+      for (const r of salesRes.data || []) push({ name: r.client_name || '', dni: r.client_dni || '', phone: r.client_phone || '', email: r.client_email || '', address: r.client_address || '', userId: r.customer_user_id });
       return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'es'));
     },
   });
@@ -215,6 +253,8 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
 
   const pickClient = (m: ClientMatch) => {
     setClient({ dni: m.dni, name: m.name, phone: m.phone, email: m.email, address: m.address });
+    setClientUserId(m.userId ?? null);
+    setSaveEmail(m.userId ? '' : m.email);
     setClientSelected(true);
   };
 
@@ -223,6 +263,8 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     setClient(EMPTY_CLIENT);
     setClientSelected(false);
     setClientQuery('');
+    setClientUserId(null);
+    setSaveEmail('');
   };
 
   const phoneNormalized = normalizeVePhone(client.phone);
@@ -230,13 +272,15 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
 
   // ── Validación: el botón explica lo que falta ──
   const missing = (() => {
-    if (!lines.length) return 'Agrega al menos un producto';
+    if (!lines.length) return 'Agrega al menos un producto o servicio';
+    if (lines.some(l => !(l.unit > 0))) return 'Hay una línea sin precio';
     if (modality !== 'contado' && !hasClient) return 'Las ventas a crédito necesitan un cliente';
     if (clientMode !== 'walkin' && !hasClient) return clientMode === 'search' ? 'Elige un cliente de la lista' : 'Escribe el nombre del cliente';
     if (clientMode === 'new' && !isValidVePhone(phoneNormalized)) return 'Completa el teléfono (7 dígitos después del prefijo)';
     if (clientMode === 'new' && client.email.trim() && !isValidEmail(client.email)) return 'El correo no es válido (o déjalo vacío)';
     // Sin correo no hay cuenta: en crédito/fiado el teléfono es lo que luego enlaza la deuda con su cuenta
     if (clientMode === 'new' && modality !== 'contado' && !client.email.trim() && !phoneNormalized) return 'En crédito o fiado pon el teléfono o el correo del cliente';
+    if (clientMode === 'search' && clientSelected && !clientUserId && saveEmail && !isValidEmail(saveEmail)) return 'Revisa el correo del cliente';
     if (!method) return modality === 'fiado' ? 'Elige con qué va a pagar ($ o Bs)' : 'Elige el método de pago';
     if (isCash && payToday > 0 && receivedNum <= 0) return 'Indica cuánto recibiste';
     if (cashShort) return 'El monto recibido no alcanza';
@@ -260,17 +304,23 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     } else if (modality === 'financiamiento') {
       finalNotes = `[FINANCIAMIENTO ${BRAND_NAME_UPPER} +${surchargePct}% - Inicial 33%, Cuota 1: ${formatCutoffDate(cut1)}, Cuota 2: ${formatCutoffDate(cut2)}] ${finalNotes}`.trim();
     } else if (modality === 'fiado') {
-      finalNotes = `[FIADO QUINCENA - 100% al ${formatCutoffDate(cut1)}] ${finalNotes}`.trim();
+      finalNotes = (payToday > 0
+        ? `[FIADO - abonó $${payToday.toFixed(2)}, resta $${(total - payToday).toFixed(2)} al ${formatCutoffDate(cut1)}] ${finalNotes}`
+        : `[FIADO QUINCENA - 100% al ${formatCutoffDate(cut1)}] ${finalNotes}`).trim();
+    }
+    if (lines.some(l => l.custom !== undefined)) {
+      finalNotes = `[SERVICIO ESPECIAL] ${finalNotes}`.trim();
     }
 
-    // Cliente nuevo con correo: primero su cuenta (sin contraseña), para que la venta quede a su nombre.
-    // Sin correo, la venta guarda sus datos y luego aparece en "Buscar cliente".
-    let customerUserId: string | null = null;
+    // Con correo (cliente nuevo, o buscado sin cuenta) primero se crea su cuenta (sin contraseña) para que la venta quede a su nombre.
+    // Sin correo no se crea cuenta: la venta guarda sus datos y luego aparece en "Buscar cliente".
+    let customerUserId: string | null = clientMode === 'search' && clientSelected ? clientUserId : null;
     let accountCreated = false;
-    if (clientMode === 'new' && client.email.trim()) {
+    const accountEmail = clientMode === 'new' ? client.email : clientMode === 'search' && !customerUserId ? saveEmail : '';
+    if (accountEmail.trim()) {
       try {
         const account = await createCustomerAccount({
-          email: client.email.trim().toLowerCase(),
+          email: accountEmail.trim().toLowerCase(),
           full_name: sanitizeText(client.name.trim()),
           phone: phoneNormalized || null,
           dni: client.dni.trim() || null,
@@ -289,18 +339,23 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     const saleGroupId = crypto.randomUUID();
     const withClient = clientMode !== 'walkin';
     let failed = false;
+    // Lo pagado hoy se reparte entre las líneas; la última se queda con el redondeo
+    const ratio = total > 0 ? payToday / total : 0;
+    let paidLeft = Math.round(payToday * 100) / 100;
 
-    for (const line of lines) {
-      const itemTotal = line.subtotal;
-      const paid =
-        modality === 'contado' ? itemTotal :
-        modality === 'dos_partes' ? itemTotal / 2 :
-        modality === 'financiamiento' ? itemTotal / 3 : 0;
+    for (const [i, line] of lines.entries()) {
+      const itemTotal = Math.round(line.subtotal * 100) / 100;
+      const paid = modality === 'contado'
+        ? itemTotal
+        : i === lines.length - 1 ? Math.min(paidLeft, itemTotal) : Math.min(Math.round(itemTotal * ratio * 100) / 100, paidLeft);
+      paidLeft = Math.round((paidLeft - paid) * 100) / 100;
       const { data, error } = await addSale({
-        product_id: line.productId,
-        product_name: line.variant
+        product_id: line.product ? line.productId : null,
+        product_name: line.custom !== undefined
+          ? `Servicio especial: ${line.custom}`
+          : line.variant && line.product
           ? `${line.product.name} (${variantLabel(byName(line.product.category)?.detail_kind)}: ${line.variant.label})`
-          : line.product.name,
+          : line.name,
         variant_id: line.variant?.id ?? null,
         variant_label: line.variant?.label ?? null,
         quantity: line.qty,
@@ -318,7 +373,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
         sale_modality: modality,
         sale_group_id: saleGroupId,
         amount_paid: paid,
-        payment_status: paid >= itemTotal ? 'paid' : paid > 0 ? 'partial' : 'pending',
+        payment_status: paid >= itemTotal - 0.005 ? 'paid' : paid > 0 ? 'partial' : 'pending',
         status: isCredit ? 'confirmed' : 'pending',
         notes: finalNotes ? sanitizeText(finalNotes) : null,
       } as Parameters<typeof addSale>[0]);
@@ -326,18 +381,39 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
       if (data?.id) await confirmSale(data.id);
     }
 
-    if (!failed && clientMode === 'new') queryClient.invalidateQueries({ queryKey: ['customers'] });
+    if (!failed && withClient) queryClient.invalidateQueries({ queryKey: ['customers'] });
     if (!failed) queryClient.invalidateQueries({ queryKey: ['sale-client-directory'] });
+    if (!failed && withClient) queryClient.invalidateQueries({ queryKey: ['sale-clients'] });
 
     setSubmitting(false);
     if (!failed) {
       toast.success('Venta registrada', {
-        description: `$${total.toFixed(2)}${hasClient ? ` · ${client.name}` : ''}${accountCreated ? `. Se creó su cuenta con ${client.email.trim()}: para entrar, toca «Olvidé mi contraseña» en la tienda.` : ''}`,
+        description: `$${total.toFixed(2)}${hasClient ? ` · ${client.name}` : ''}${accountCreated ? `. Se creó su cuenta con ${accountEmail.trim()}: para entrar, toca «Olvidé mi contraseña» en la tienda.` : ''}`,
         duration: accountCreated ? 9000 : undefined,
       });
       onCreated?.();
       close(false);
     }
+  };
+
+  const commitPrice = () => {
+    if (!priceEdit) return;
+    const value = Number(priceEdit.value.replace(',', '.'));
+    if (Number.isFinite(value) && value > 0) {
+      setCart(prev => prev.map(l => l.key === priceEdit.key ? { ...l, price: Math.round(value * 100) / 100 } : l));
+    }
+    setPriceEdit(null);
+  };
+  const resetPrice = (key: string) => setCart(prev => prev.map(l => l.key === key ? { ...l, price: undefined } : l));
+
+  const customPrice = Number(customForm.price.replace(',', '.')) || 0;
+  const customQty = Math.max(1, Math.min(MAX_CUSTOM_QTY, Math.floor(Number(customForm.qty) || 1)));
+  const addCustom = () => {
+    const description = customForm.description.trim().replace(/\s+/g, ' ');
+    if (description.length < 3 || customPrice <= 0) return;
+    setCart(prev => [...prev, { key: `custom:${crypto.randomUUID()}`, productId: '', qty: customQty, price: Math.round(customPrice * 100) / 100, custom: description.slice(0, 150) }]);
+    setCustomForm({ description: '', price: '', qty: '1' });
+    setCustomOpen(false);
   };
 
   const money = (usd: number) => (isBsPayment && rate > 0 ? formatBS(convertToBS(usd)) : `$${usd.toFixed(2)}`);
@@ -356,6 +432,17 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
         <div className="grid grid-cols-[minmax(0,1fr)] sm:max-h-[calc(90vh-9rem)] sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] sm:overflow-hidden">
           {/* ── Columna 1: productos ── */}
           <section className="min-w-0 space-y-3 border-border p-5 sm:overflow-y-auto sm:border-r sm:p-6" aria-label="Productos">
+            <button
+              type="button"
+              onClick={() => setCustomOpen(true)}
+              className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-primary/50 bg-primary/5 p-3 text-left transition-colors hover:border-primary"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary"><Sparkles className="h-5 w-5" /></span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">Servicio especial o pedido personalizado</span>
+                <span className="block text-xs text-muted-foreground">Sin inventario: escribe qué es y cuánto cuesta</span>
+              </span>
+            </button>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -439,9 +526,40 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                         className="flex items-center gap-3 px-3 py-2.5"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{l.product.name}</p>
+                          <p className="truncate text-sm font-medium">{l.name}</p>
+                          {l.custom !== undefined && <p className="text-xs font-medium text-primary">Servicio especial</p>}
                           {l.variant && <p className="truncate text-xs font-medium text-primary">{l.variant.label}</p>}
-                          <p className="text-xs text-muted-foreground">{money(l.unit)} c/u</p>
+                          {priceEdit?.key === l.key ? (
+                            <div className="mt-1 flex items-center gap-1">
+                              <span className="text-xs text-muted-foreground">$</span>
+                              <Input
+                                autoFocus
+                                inputMode="decimal"
+                                value={priceEdit.value}
+                                onChange={e => setPriceEdit({ key: l.key, value: e.target.value.replace(/[^0-9.,]/g, '').slice(0, 10) })}
+                                onKeyDown={e => { if (e.key === 'Enter') commitPrice(); if (e.key === 'Escape') setPriceEdit(null); }}
+                                onBlur={commitPrice}
+                                aria-label={`Precio de ${l.name} en dólares`}
+                                className="h-8 w-24 rounded-lg px-2 text-sm"
+                              />
+                            </div>
+                          ) : isAdmin ? (
+                            <button
+                              type="button"
+                              onClick={() => setPriceEdit({ key: l.key, value: l.base.toFixed(2) })}
+                              className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
+                              aria-label={`Cambiar el precio de ${l.name}`}
+                            >
+                              {money(l.unit)} c/u <Edit className="h-3 w-3" />
+                            </button>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">{money(l.unit)} c/u</p>
+                          )}
+                          {l.price !== undefined && l.custom === undefined && Math.abs(l.price - l.listBase) > 0.004 && priceEdit?.key !== l.key && (
+                            <button type="button" onClick={() => resetPrice(l.key)} className="block text-[11px] text-muted-foreground underline-offset-2 hover:underline">
+                              Precio cambiado (lista ${l.listBase.toFixed(2)}) · volver
+                            </button>
+                          )}
                         </div>
                         <div className="flex items-center rounded-full border border-border">
                           <button type="button" onClick={() => setQty(l.key, l.qty - 1)} aria-label="Quitar uno" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted">
@@ -489,7 +607,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                       <p className="truncate text-sm font-semibold">{client.name}</p>
                       <p className="truncate text-xs text-muted-foreground">{[client.dni, client.phone].filter(Boolean).join(' · ') || 'Sin datos de contacto'}</p>
                     </div>
-                    <button type="button" onClick={() => { setClientSelected(false); setClient(EMPTY_CLIENT); }} aria-label="Cambiar cliente" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted">
+                    <button type="button" onClick={() => { setClientSelected(false); setClient(EMPTY_CLIENT); setClientUserId(null); setSaveEmail(''); }} aria-label="Cambiar cliente" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted">
                       <CloseSquare className="h-4 w-4" />
                     </button>
                   </div>
@@ -525,6 +643,21 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                         </button>
                       </p>
                     )}
+                  </div>
+                )
+              )}
+
+              {clientMode === 'search' && clientSelected && (
+                clientUserId ? (
+                  <p className="text-xs text-success">Tiene cuenta: la venta queda en su ficha de Clientes.</p>
+                ) : (
+                  <div className="space-y-1 rounded-2xl border border-border bg-card p-3">
+                    <Label htmlFor="ns-save-email">Correo para guardarlo en Clientes (opcional)</Label>
+                    <Input id="ns-save-email" type="email" inputMode="email" autoComplete="off" value={saveEmail}
+                      onChange={e => setSaveEmail(e.target.value.replace(/\s/g, '').slice(0, 100))}
+                      placeholder="nombre@correo.com"
+                      className={cn('h-11 rounded-xl', saveEmail && !isValidEmail(saveEmail) && 'border-sale')} />
+                    <p className="text-xs text-muted-foreground">Aún no tiene cuenta. Con el correo se le crea y la venta queda en su ficha; sin correo igual aparece en Clientes como «sin cuenta».</p>
                   </div>
                 )
               )}
@@ -589,6 +722,16 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                   </button>
                 ))}
               </div>
+              {modality === 'fiado' && (
+                <div className="space-y-1 rounded-2xl border border-border bg-card p-3">
+                  <Label htmlFor="ns-abono">Abono hoy (opcional, $)</Label>
+                  <Input id="ns-abono" inputMode="decimal" value={abono}
+                    onChange={e => setAbono(e.target.value.replace(/[^0-9.,]/g, '').slice(0, 10))}
+                    placeholder="0.00" className="h-11 rounded-xl" />
+                  {abonoNum > total + 0.004 && total > 0 && <p className="text-xs text-sale">El abono no puede pasar del total; se toma {money(total)}.</p>}
+                  {payToday > 0 && <p className="text-xs text-muted-foreground">Queda por cobrar <strong>{money(total - payToday)}</strong></p>}
+                </div>
+              )}
               {modality === 'financiamiento' && total > 0 && (
                 <p className="rounded-xl bg-secondary px-3 py-2 text-xs text-secondary-foreground">
                   Inicial hoy <strong>{money(total / 3)}</strong> · Cuota {formatCutoffDate(cut1)} <strong>{money(total / 3)}</strong> · Cuota {formatCutoffDate(cut2)} <strong>{money(total / 3)}</strong>
@@ -670,6 +813,41 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
           </div>
         </div>
       </DialogContent>
+
+      {/* Servicio especial / pedido personalizado */}
+      <Dialog open={customOpen} onOpenChange={setCustomOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Servicio especial</DialogTitle>
+            <DialogDescription>Para pedidos personalizados o servicios que no están en el inventario. No descuenta stock.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="cs-desc">Descripción del pedido *</Label>
+              <Textarea id="cs-desc" value={customForm.description} rows={3} className="resize-none rounded-xl"
+                onChange={e => setCustomForm(f => ({ ...f, description: e.target.value.slice(0, 150) }))}
+                placeholder="Ej: maquillaje para boda a domicilio, kit personalizado…" />
+              <p className="text-right text-[11px] text-muted-foreground">{customForm.description.length}/150</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label htmlFor="cs-price">Precio ($) *</Label>
+                <Input id="cs-price" inputMode="decimal" value={customForm.price} placeholder="0.00" className="h-11 rounded-xl"
+                  onChange={e => setCustomForm(f => ({ ...f, price: e.target.value.replace(/[^0-9.,]/g, '').slice(0, 10) }))} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="cs-qty">Cantidad</Label>
+                <Input id="cs-qty" inputMode="numeric" value={customForm.qty} className="h-11 rounded-xl"
+                  onChange={e => setCustomForm(f => ({ ...f, qty: e.target.value.replace(/\D/g, '').slice(0, 3) }))} />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">Si el cliente deja un abono, elige «Fiado» en ¿Cómo paga? y escribe el monto abonado.</p>
+            <Button className="h-11 w-full rounded-full" disabled={customForm.description.trim().length < 3 || customPrice <= 0} onClick={addCustom}>
+              Agregar {customPrice > 0 ? `· $${(customPrice * customQty).toFixed(2)}` : ''}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Elegir talla, tono o presentación */}
       <Dialog open={!!pickFor} onOpenChange={o => !o && setPickFor(null)}>

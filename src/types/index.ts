@@ -119,6 +119,8 @@ export interface Sale {
   amount_paid: number | null;
   payment_status: string | null;
   sale_group_id: string | null;
+  /** Cuenta de la clienta (la venta y lo que debe aparecen en su ficha de Clientes) */
+  customer_user_id?: string | null;
   notes: string | null;
   status: SaleStatus;
   created_at: string;

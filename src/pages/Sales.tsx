@@ -2,7 +2,7 @@ import { BRAND, BRAND_NAME, BRAND_NAME_UPPER } from '@/config/brand';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle, Receipt, ArrowRight2 } from 'reicon-react';
+import { TickCircle, Location, BoxAdd, Truck, Loader, Plus, ShoppingCart, Search, Trash2, Check, CloseSquare, ClipboardList, User, Phone, Mailbox, DollarSign, Calendar, CreditCard, Bank, FileText, Package, Refresh, InfoCircle, Receipt, ArrowRight2, Edit } from 'reicon-react';
 import { getNextTwoCutoffDates, getNextThreeCutoffDates, formatCutoffDate } from '@/lib/cutoffDates';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -35,6 +35,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { notifyCustomer } from '@/lib/notify';
 import { ProductSummaryTab } from '@/components/sales/ProductSummaryTab';
 import { NewSaleDialog } from '@/components/sales/NewSaleDialog';
+import { EditSaleDialog } from '@/components/sales/EditSaleDialog';
 import { PAYMENT_METHOD_LABELS } from '@/lib/paymentMethodFields';
 import { Sale, Product, CheckoutItem, OrderItem, ProductDebtor, SaleStatus, SalePayment, SaleReturnType } from '@/types';
 
@@ -148,7 +149,7 @@ export default function Sales() {
   const [receivableTab, setReceivableTab] = useState('pending');
   const navigate = useNavigate();
   // --- STATE ---
-  const { sales, addSale, confirmSale, deleteSale, registerSalePayment, updateSale, updateSalePayment, voidSalePayment, processSaleReturn, refetch: refetchSales } = useSales();
+  const { sales, addSale, confirmSale, deleteSale, registerSalePayment, updateSalePayment, voidSalePayment, processSaleReturn, refetch: refetchSales } = useSales();
   const { products, refetch: refetchProducts } = useProducts();
   const { rate, convertToBS } = useExchangeRate();
   const { methods: activePaymentMethods } = usePaymentMethods(false);
@@ -207,12 +208,8 @@ export default function Sales() {
   const [abonoSettle, setAbonoSettle] = useState(false);
   const [abonoNotes, setAbonoNotes] = useState<string>('');
 
-  const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  const [editSaleForm, setEditSaleForm] = useState({
-    amount_paid: '',
-    total_usd: '',
-    total_bs: '',
-  });
+  // Editar una venta completa (cliente, fecha, método, nombres y precios, nota)
+  const [editItems, setEditItems] = useState<Sale[] | null>(null);
 
   const [editingPayment, setEditingPayment] = useState<SalePayment | null>(null);
   const [editPaymentForm, setEditPaymentForm] = useState({
@@ -278,25 +275,6 @@ export default function Sales() {
       console.error(e);
     } finally {
       setIsLoadingPayments(false);
-    }
-  };
-
-  const handleUpdateSale = async () => {
-    if (!editingSale) return;
-    setIsSubmitting(true);
-    try {
-      await updateSale({
-        id: editingSale.id,
-        updates: {
-          total_usd: Number(editSaleForm.total_usd) || 0,
-          total_bs: Number(editSaleForm.total_bs) || 0,
-        }
-      });
-      setEditingSale(null);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -986,14 +964,7 @@ export default function Sales() {
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 px-2 py-0 text-xs text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
-                                  onClick={() => {
-                                    setEditingSale(sale);
-                                    setEditSaleForm({
-                                      amount_paid: sale.amount_paid ? String(sale.amount_paid) : '0',
-                                      total_usd: sale.total_usd ? String(sale.total_usd) : '0',
-                                      total_bs: sale.total_bs ? String(sale.total_bs) : '0',
-                                    });
-                                  }}
+                                  onClick={() => setEditItems(group.sales)}
                                 >
                                   Editar
                                 </Button>
@@ -1183,6 +1154,16 @@ export default function Sales() {
                           >
                             <Receipt className="h-4 w-4" />
                             <span className="hidden sm:inline">Recibo</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditItems(group.items)}
+                            className="flex-shrink-0 gap-1.5"
+                            aria-label="Editar venta"
+                          >
+                            <Edit className="h-4 w-4" />
+                            <span className="hidden sm:inline">Editar</span>
                           </Button>
                           {group.items.some(s => (Number(s.quantity) - Number(s.returned_quantity || 0)) > 0) && (
                             <Button
@@ -1826,41 +1807,7 @@ export default function Sales() {
       </Dialog>
 
       {/* MODAL EDITAR VENTA */}
-      <Dialog open={!!editingSale} onOpenChange={(open) => !open && setEditingSale(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Editar Venta / Cuenta por Cobrar</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Deuda Total USD</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={editSaleForm.total_usd}
-                onChange={(e) => setEditSaleForm(prev => ({ ...prev, total_usd: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Deuda Total Bs</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={editSaleForm.total_bs}
-                onChange={(e) => setEditSaleForm(prev => ({ ...prev, total_bs: e.target.value }))}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingSale(null)} disabled={isSubmitting}>
-              Cancelar
-            </Button>
-            <Button onClick={handleUpdateSale} disabled={isSubmitting} className="btn-gold">
-              Guardar Cambios
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditSaleDialog items={editItems} onOpenChange={open => { if (!open) setEditItems(null); }} onSaved={() => refetchSales()} />
 
       {/* MODAL HISTORIAL DE ABONOS */}
       <ReceiptDialog data={receiptGroup ? saleGroupReceipt(receiptGroup, receiptPayments) : null} onClose={() => setReceiptGroup(null)} />

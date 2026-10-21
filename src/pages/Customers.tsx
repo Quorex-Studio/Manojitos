@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CustomerDetailDialog } from '@/components/customers/CustomerDetailDialog';
 import { KYC_META, KycBadge, KycFilter, initials, whatsappLink } from '@/components/customers/customerUi';
 import { useCustomers, CustomerProfile } from '@/hooks/useCustomers';
+import { useSaleClients, type SaleClient } from '@/hooks/useSaleClients';
+import { SaleClientsList } from '@/components/customers/SaleClientsList';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +34,11 @@ export default function Customers() {
   const [filter, setFilter] = useState<KycFilter>('all');
   const [sort, setSort] = useState<SortKey>('recent');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Con cuenta (perfiles) o clientes de las ventas que aún no tienen cuenta
+  const [view, setView] = useState<'accounts' | 'sales'>('accounts');
+  const { data: saleClients } = useSaleClients();
+  const withoutAccount = saleClients?.withoutAccount ?? [];
+  const owingWithout = withoutAccount.filter(c => c.balanceUsd > 0.009).length;
 
   const counts = useMemo(() => {
     const c: Record<KycFilter, number> = { all: customers.length, pending: 0, approved: 0, rejected: 0, none: 0 };
@@ -74,7 +81,7 @@ export default function Customers() {
         <div>
           <h1 className="page-header">Clientes</h1>
           <p className="page-subtitle">
-            {counts.all} {counts.all === 1 ? 'cliente' : 'clientes'}
+            {counts.all} con cuenta{withoutAccount.length > 0 && ` · ${withoutAccount.length} sin cuenta`}
             {counts.pending > 0 && <> · <button type="button" onClick={() => setFilter('pending')} className="font-medium text-primary underline-offset-2 hover:underline">{counts.pending} por revisar</button></>}
           </p>
         </div>
@@ -104,6 +111,25 @@ export default function Customers() {
           </Select>
         </div>
 
+        {/* Con cuenta / sin cuenta (clientes que solo están en las ventas) */}
+        <div className="grid grid-cols-2 gap-2 rounded-full bg-secondary p-1 sm:inline-grid sm:w-auto" role="tablist" aria-label="Tipo de cliente">
+          {([
+            { v: 'accounts', t: `Con cuenta · ${counts.all}` },
+            { v: 'sales', t: `Sin cuenta · ${withoutAccount.length}${owingWithout ? ` (${owingWithout} deben)` : ''}` },
+          ] as const).map(o => (
+            <button key={o.v} type="button" role="tab" aria-selected={view === o.v} onClick={() => setView(o.v)}
+              className={cn('h-10 rounded-full px-4 text-sm font-medium transition-colors', view === o.v ? 'bg-card shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+              {o.t}
+            </button>
+          ))}
+        </div>
+
+        {view === 'sales' ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Clientes de tus ventas (contado, fiado o a crédito) que aún no tienen cuenta. Guárdalos con su correo o vincúlalos a su cuenta para ver todo en su ficha.</p>
+            <SaleClientsList clients={withoutAccount} profiles={customers} search={search} />
+          </div>
+        ) : (<>
         {/* Filtros por estado de verificación, con conteo */}
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-hide md:mx-0 md:flex-wrap md:px-0" role="tablist" aria-label="Filtrar por verificación">
           {FILTERS.map(f => (
@@ -146,11 +172,12 @@ export default function Customers() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i, 12) * 0.025, duration: 0.2 }}
               >
-                <CustomerCard customer={c} onOpen={() => setSelectedId(c.id)} />
+                <CustomerCard customer={c} sales={saleClients?.accounts.get(c.user_id)} onOpen={() => setSelectedId(c.id)} />
               </motion.li>
             ))}
           </ul>
         )}
+        </>)}
       </div>
 
       <CustomerDetailDialog
@@ -163,7 +190,7 @@ export default function Customers() {
   );
 }
 
-function CustomerCard({ customer: c, onOpen }: { customer: CustomerProfile; onOpen: () => void }) {
+function CustomerCard({ customer: c, sales, onOpen }: { customer: CustomerProfile; sales?: SaleClient; onOpen: () => void }) {
   const pending = c.kyc_status === 'pending';
   return (
     <div
@@ -187,6 +214,7 @@ function CustomerCard({ customer: c, onOpen }: { customer: CustomerProfile; onOp
         <div className="flex items-center gap-2">
           <KycBadge status={c.kyc_status} />
           <span className="text-xs text-muted-foreground">{format(new Date(c.created_at), 'dd MMM yy', { locale: es })}</span>
+          {sales && sales.balanceUsd > 0.009 && <span className="text-xs font-semibold text-sale">Debe ${sales.balanceUsd.toFixed(2)}</span>}
         </div>
       </div>
       {c.phone && (
