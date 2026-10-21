@@ -11,7 +11,7 @@ export interface NewCustomerInput {
 }
 
 /**
- * Crea la cuenta de una clienta nueva desde el panel (edge function admin-actions, solo admin):
+ * Crea la cuenta de una clienta nueva desde el panel (edge function admin-actions; admin o empleado):
  * con su correo y sin contraseña. Ella entra con "Olvidé mi contraseña" y completa su perfil.
  * Si el correo ya tiene cuenta, devuelve esa. Lanza un Error con el motivo si no se puede.
  */
