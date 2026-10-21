@@ -79,6 +79,7 @@ export function useSales() {
           sale_group_id: validated.sale_group_id ?? undefined,
           variant_id: validated.variant_id ?? null,
           variant_label: validated.variant_label ?? null,
+          ...(validated.customer_user_id ? { customer_user_id: validated.customer_user_id } : {}),
           amount_paid: validated.amount_paid,
           payment_status: validated.payment_status,
           notes: validated.notes,

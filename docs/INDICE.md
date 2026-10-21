@@ -15,6 +15,7 @@
 | [REPORTES-PDF.md](./REPORTES-PDF.md) | Reportes PDF estilo factura (Por cobrar, estado de cuenta, ventas), Reportes interactivo y PDF desde Ina/Ángela: diseño, visual y lógica | 🔴 Para portar |
 | [MANOJITOS-FASE-3.md](./MANOJITOS-FASE-3.md) | Fase 3 (04-10-2026): mejoras con base de datos aplicadas en Manojitos, edge functions desplegadas, lo pendiente de aprobar y lo que no se porta (costeo) | 🔴 Estado actual |
 | [CREDITO-CASHEA.md](./CREDITO-CASHEA.md) | Crédito modalidad Cashea: estado actual, camino A (afiliarse) o B (crédito propio por niveles y cuotas) y preguntas para decidir | 🟡 Por decidir |
+| [DESPLIEGUE-MANOJITOS.md](./DESPLIEGUE-MANOJITOS.md) | Registro de migraciones aplicadas en la base de Manojitos (con su versión en Supabase) y lo que quedó por revisar | 🔴 Al desplegar |
 
 ## 🎯 Ruta de Estudio Recomendida
 
