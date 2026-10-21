@@ -40,6 +40,8 @@ const PAYMENT_LABELS: Record<string, string> = {
   zinli: 'Zinli', wally: 'Wally', efectivo_usd: 'Efectivo (USD)', efectivo_bs: 'Efectivo (Bs)',
 };
 const PAYMENT_KEYS = Object.keys(PAYMENT_LABELS);
+/** Pagos en bolívares: usan el precio en Bs del producto (price_bs_usd), igual que Nueva venta. */
+const BS_METHODS = ['pago_movil', 'transferencia', 'efectivo_bs'];
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -86,7 +88,7 @@ export const ACTION_TOOL_DECLARATIONS = [
       client_name: { type: 'STRING' },
       client_phone: { type: 'STRING' },
       client_email: { type: 'STRING', description: 'correo de la clienta (opcional); si lo da, se le crea su cuenta' },
-      payment_method: { type: 'STRING', description: 'pago_movil, transferencia, zelle, binance, zinli, wally, efectivo_usd o efectivo_bs' },
+      payment_method: { type: 'STRING', description: 'pago_movil, transferencia, zelle, binance, zinli, wally, efectivo_usd o efectivo_bs. Define el precio: en Bs (pago_movil, transferencia, efectivo_bs) se cobra el precio en Bs del producto. También en fiado: si dice "en bs" y no dice cómo, usa pago_movil' },
       modalidad: { type: 'STRING', description: 'contado o fiado' },
       abono_inicial: { type: 'NUMBER', description: 'USD pagados hoy en una venta fiada' },
     }, required: ['items'] } },
@@ -115,13 +117,13 @@ export const ACTION_TOOL_DECLARATIONS = [
 export const isActionTool = (name: string) => name.startsWith('preparar_');
 
 type VariantRow = { id: string; label: string; stock: number; price_usd: number | null; sort_order: number };
-type ProductRow = { id: string; name: string; price_usd: number; stock: number; image_url: string | null; product_variants?: VariantRow[] | null };
+type ProductRow = { id: string; name: string; price_usd: number; price_bs_usd?: number | null; stock: number; image_url: string | null; product_variants?: VariantRow[] | null };
 
 /** Busca un producto real. Nunca inventa: único, ambiguo (opciones) o no encontrado. */
 async function resolveProduct(db: Db, term: string): Promise<{ status: 'ok'; product: ProductRow } | { status: 'ambiguous'; options: string[] } | { status: 'none' }> {
   const clean = term.trim().replace(/[%,()]/g, ' ').replace(/\s+/g, ' ');
   if (!clean) return { status: 'none' };
-  const cols = 'id, name, price_usd, stock, image_url, product_variants(id, label, stock, price_usd, sort_order)';
+  const cols = 'id, name, price_usd, price_bs_usd, stock, image_url, product_variants(id, label, stock, price_usd, sort_order)';
   let { data } = await db.from('products').select(cols).ilike('name', `%${clean}%`).limit(8);
   if (!data?.length) {
     // Todas las palabras, en cualquier orden ("jean alto" → "Jean tiro alto")
@@ -145,7 +147,7 @@ type RawItem = { product?: unknown; quantity?: unknown; unit_price?: unknown; va
 const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 
 /** Resuelve todos los productos de una lista; si alguno falla, devuelve el problema para que la IA pregunte. */
-async function resolveItems(db: Db, rawItems: unknown, checkStock: boolean) {
+async function resolveItems(db: Db, rawItems: unknown, checkStock: boolean, bsPrice = false) {
   const items = Array.isArray(rawItems) ? (rawItems as RawItem[]) : [];
   if (!items.length) return { error: { status: 'error', message: 'No entendí qué productos. Pregunta cuáles.' } };
   const resolved: { product: ProductRow; variant: VariantRow | null; quantity: number; unitPrice: number }[] = [];
@@ -174,7 +176,10 @@ async function resolveItems(db: Db, rawItems: unknown, checkStock: boolean) {
     if (checkStock && available < quantity) {
       return { error: { status: 'sin_stock', product: fullName, disponible: available, message: `Solo hay ${available} unidades de ${fullName}.` } };
     }
-    const listPrice = variant && variant.price_usd != null ? Number(variant.price_usd) : Number(r.product.price_usd);
+    // Una variante con precio propio manda; si no, el precio del producto (o su precio en Bs si paga en Bs)
+    const listPrice = variant && variant.price_usd != null
+      ? Number(variant.price_usd)
+      : bsPrice && Number(r.product.price_bs_usd) > 0 ? Number(r.product.price_bs_usd) : Number(r.product.price_usd);
     const price = Number(it.unit_price) > 0 ? Number(it.unit_price) : listPrice;
     resolved.push({ product: r.product, variant, quantity, unitPrice: round2(price) });
   }
@@ -219,10 +224,10 @@ export async function prepareAction(name: string, args: Record<string, unknown>,
       }
 
       case 'preparar_venta': {
-        const { resolved, error } = await resolveItems(db, args.items, true);
-        if (error) return error;
         const modality = String(args.modalidad ?? '').toLowerCase().includes('fia') ? 'fiado' : 'contado';
         const method = normalizeMethod(args.payment_method);
+        const { resolved, error } = await resolveItems(db, args.items, true, !!method && BS_METHODS.includes(method));
+        if (error) return error;
         if (modality === 'contado' && !method) {
           return { status: 'falta_dato', message: 'Pregunta con qué método pagó (Pago Móvil, Transferencia, Zelle, Binance, Zinli, Wally o efectivo).' };
         }
