@@ -16,6 +16,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatBS, cn } from '@/lib/utils';
 import { formatPhone } from '@/lib/venezuela';
 import { whatsappLink } from '@/components/customers/customerUi';
+import { useQueryClient } from '@tanstack/react-query';
+import { PurchaseDialog } from '@/components/purchases/PurchaseDialog';
+import { PurchaseDetailDialog } from '@/components/purchases/PurchaseDetailDialog';
+import { usePurchasesDetail, usePurchasingActions, type PurchaseRow } from '@/hooks/usePurchasing';
+import { toast } from 'sonner';
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 const monthLabel = (key: string) => {
@@ -27,7 +32,15 @@ const monthLabel = (key: string) => {
 export default function Providers() {
   const confirmDialog = useConfirm();
   const reduce = useReducedMotion();
-  const { providers, purchases, addProvider, deleteProvider, addPurchase, deletePurchase, refetch } = useProviders();
+  const { providers, purchases: basicPurchases, addProvider, deleteProvider, addPurchase, refetch: refetchBasic } = useProviders();
+  // Compras con sus productos y pagos (si la base aún no tiene la migración, las de siempre)
+  const queryClient = useQueryClient();
+  const { data: detail } = usePurchasesDetail();
+  const purchases: PurchaseRow[] = detail?.rows ?? (basicPurchases as unknown as PurchaseRow[]).map(p => ({ ...p, amount_paid: p.status === 'paid' ? p.amount_usd : 0, purchase_items: [], purchase_payments: [] } as PurchaseRow));
+  const refetch = () => { refetchBasic(); queryClient.invalidateQueries({ queryKey: ['purchases-detail'] }); };
+  const [newPurchase, setNewPurchase] = useState<{ open: boolean; provider: string }>({ open: false, provider: '' });
+  const [openPurchase, setOpenPurchase] = useState<PurchaseRow | null>(null);
+  const { deletePurchase: removePurchase } = usePurchasingActions();
   const { rate } = useExchangeRate();
   const [tab, setTab] = useState('compras');
   const [search, setSearch] = useState('');
@@ -139,7 +152,7 @@ export default function Providers() {
             <p className="page-subtitle">Lo que compras para la tienda y a quién</p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex">
-            <Button className="h-11 rounded-full" onClick={() => setPurchaseOpen(true)}><Plus className="h-4 w-4" />Registrar compra</Button>
+            <Button className="h-11 rounded-full" onClick={() => setNewPurchase({ open: true, provider: '' })}><Plus className="h-4 w-4" />Registrar compra</Button>
             <Button variant="outline" className="h-11 rounded-full" onClick={() => setProviderOpen(true)}><Plus className="h-4 w-4" />Proveedor</Button>
           </div>
         </div>
@@ -158,6 +171,11 @@ export default function Providers() {
           ))}
         </section>
 
+        <p className="-mt-2 text-xs text-muted-foreground">
+          ¿Compra sin productos del inventario (insumos, materiales)?{' '}
+          <button type="button" className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => setPurchaseOpen(true)}>Registrar solo el monto</button>
+        </p>
+
         <div className="relative">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input type="search" value={search} onChange={e => setSearch(e.target.value.slice(0, 60))} placeholder="Buscar proveedor o nota" className="h-12 rounded-full pl-12" aria-label="Buscar" />
@@ -175,7 +193,7 @@ export default function Providers() {
               <EmptyState
                 title={purchases.length === 0 ? 'Aún no hay compras' : 'Nada coincide con la búsqueda'}
                 text="Registra lo que compras a tus proveedores para saber cuánto inviertes cada mes."
-                action={purchases.length === 0 ? <Button className="h-11 rounded-full" onClick={() => setPurchaseOpen(true)}><Plus className="h-4 w-4" />Registrar compra</Button> : null}
+                action={purchases.length === 0 ? <Button className="h-11 rounded-full" onClick={() => setNewPurchase({ open: true, provider: '' })}><Plus className="h-4 w-4" />Registrar compra</Button> : null}
               />
             ) : months.map(([key, list]) => (
               <section key={key}>
@@ -193,13 +211,17 @@ export default function Providers() {
                       className="flex items-center gap-3 px-4 py-3"
                     >
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Truck className="h-5 w-5" /></span>
-                      <div className="min-w-0 flex-1">
+                      <button type="button" onClick={() => setOpenPurchase(p)} className="min-w-0 flex-1 text-left" aria-label={`Ver compra de ${p.provider_name}`}>
                         <p className="truncate font-medium">{p.provider_name}</p>
                         <p className="truncate text-xs text-muted-foreground">
                           {p.purchase_date ? new Date(p.purchase_date + 'T00:00:00').toLocaleDateString('es-VE', { day: 'numeric', month: 'short' }) : 'Sin fecha'}
+                          {p.purchase_items.length > 0 ? ` · ${p.purchase_items.reduce((n, i) => n + i.quantity, 0)} uds de ${p.purchase_items.length} ${p.purchase_items.length === 1 ? 'producto' : 'productos'}` : ''}
                           {p.notes ? ` · ${p.notes.replace(/^\[Treinta\]\s*/, '')}` : ''}
                         </p>
-                      </div>
+                        {Number(p.amount_usd) - Number(p.amount_paid) > 0.009 && (
+                          <p className="text-xs font-semibold text-sale">Por pagar {money(Number(p.amount_usd) - Number(p.amount_paid))}</p>
+                        )}
+                      </button>
                       <div className="text-right">
                         <p className="font-semibold tabular-nums">{money(Number(p.amount_usd))}</p>
                         {p.amount_bs ? <p className="text-[11px] text-muted-foreground">{formatBS(Number(p.amount_bs))}</p> : null}
@@ -210,7 +232,15 @@ export default function Providers() {
                         className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:text-destructive"
                         aria-label={`Eliminar compra de ${p.provider_name}`}
                         onClick={async () => {
-                          if (await confirmDialog({ title: '¿Eliminar esta compra?', description: `${p.provider_name} · ${money(Number(p.amount_usd))}. No se puede deshacer.`, confirmText: 'Eliminar', destructive: true })) deletePurchase(p.id);
+                          const units = p.purchase_items.reduce((n, i) => n + i.quantity, 0);
+                          if (!(await confirmDialog({ title: '¿Eliminar esta compra?', description: `${p.provider_name} · ${money(Number(p.amount_usd))}.${units ? ` Se descuentan del inventario las ${units} unidades que sumó.` : ''} No se puede deshacer.`, confirmText: 'Eliminar', destructive: true }))) return;
+                          try {
+                            await removePurchase.mutateAsync(p.id);
+                            refetch();
+                            toast.success('Compra eliminada');
+                          } catch (e) {
+                            toast.error('No se pudo eliminar', { description: e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e) });
+                          }
                         }}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -270,7 +300,7 @@ export default function Providers() {
                           variant="outline"
                           size="sm"
                           className="h-10 flex-1 rounded-full"
-                          onClick={() => { setPurchaseForm(f => ({ ...f, provider: provider.name })); setPurchaseOpen(true); }}
+                          onClick={() => setNewPurchase({ open: true, provider: provider.name })}
                         >
                           <Plus className="h-4 w-4" />Compra
                         </Button>
@@ -293,8 +323,8 @@ export default function Providers() {
       <Dialog open={purchaseOpen} onOpenChange={setPurchaseOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Registrar compra</DialogTitle>
-            <DialogDescription>Lo que pagaste a un proveedor por mercancía o insumos.</DialogDescription>
+            <DialogTitle>Compra sin productos</DialogTitle>
+            <DialogDescription>Solo el monto: insumos o materiales que no entran al inventario.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddPurchase} className="space-y-4">
             <div className="space-y-1.5">
@@ -340,6 +370,9 @@ export default function Providers() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <PurchaseDialog open={newPurchase.open} defaultProvider={newPurchase.provider} onOpenChange={o => { setNewPurchase(n => ({ ...n, open: o })); if (!o) refetch(); }} />
+      <PurchaseDetailDialog purchase={openPurchase} onOpenChange={o => { if (!o) setOpenPurchase(null); }} />
 
       {/* Nuevo proveedor */}
       <Dialog open={providerOpen} onOpenChange={setProviderOpen}>
