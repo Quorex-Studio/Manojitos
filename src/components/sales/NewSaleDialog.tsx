@@ -24,7 +24,17 @@ import { toast } from 'sonner';
 import { sortedVariants, variantLabel, variantPrice } from '@/lib/productCategories';
 import { useProductCategories } from '@/hooks/useProductCategories';
 
-type SaleModality = 'contado' | 'dos_partes' | 'financiamiento' | 'fiado';
+type SaleModality = 'contado' | 'dos_partes' | 'financiamiento' | 'fiado' | 'cashea';
+/** Cashea: inicial según el nivel del cliente (Nivel 1 = 50% … Nivel 6 = 0%); el resto lo paga Cashea a la tienda y el cliente se lo paga a Cashea en 3 o 6 cuotas. */
+export const CASHEA_LEVELS = [50, 40, 30, 20, 10, 0] as const;
+/** Plan de Cashea. `initialOverride`: la inicial exacta que indica Cashea (manda sobre la del nivel). */
+export function casheaPlan(total: number, level: number, installments: 3 | 6, initialOverride?: string) {
+  const pct = CASHEA_LEVELS[Math.min(Math.max(level, 1), 6) - 1];
+  const manual = initialOverride ? Number(initialOverride.replace(',', '.')) : NaN;
+  const initial = Number.isFinite(manual) && manual >= 0 ? Math.min(Math.round(manual * 100) / 100, total) : Math.round(total * pct) / 100;
+  const financed = Math.max(0, Math.round((total - initial) * 100) / 100);
+  return { pct, initial, financed, installment: Math.round((financed / installments) * 100) / 100 };
+}
 type ClientMode = 'walkin' | 'search' | 'new';
 type ClientMatch = { name: string; dni: string; phone: string; email: string; address: string; userId?: string | null };
 /**
@@ -38,7 +48,7 @@ const MAX_CUSTOM_QTY = 999;
 const EMPTY_CLIENT = { dni: '', name: '', phone: '', email: '', address: '' };
 const BS_METHODS = ['efectivo_bs', 'pago_movil', 'transferencia'];
 const FALLBACK_METHODS: { method_key: string; label: string }[] = Object.entries(PAYMENT_METHOD_LABELS)
-  .filter(([key]) => !key.startsWith('efectivo'))
+  .filter(([key]) => !key.startsWith('efectivo') && key !== 'cashea')
   .map(([method_key, label]) => ({ method_key, label }));
 
 /** Convierte teléfonos venezolanos a +58XXXXXXXXXX (formato que exige la base). */
@@ -65,7 +75,8 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const { products } = useProducts();
   const { rate, convertToBS } = useExchangeRate();
   const { methods: configuredMethods } = usePaymentMethods(false);
-  const paymentMethods: { method_key: string; label: string }[] = configuredMethods.length > 0 ? configuredMethods : FALLBACK_METHODS;
+  // Cashea es una modalidad (no el método con que se paga la inicial)
+  const paymentMethods: { method_key: string; label: string }[] = (configuredMethods.length > 0 ? configuredMethods : FALLBACK_METHODS).filter(m => m.method_key !== 'cashea');
   const { config: pricingConfig } = usePricingConfig();
   const queryClient = useQueryClient();
   const reduceMotion = useReducedMotion();
@@ -90,6 +101,11 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   // Servicio especial / pedido personalizado (sin inventario)
   const [customOpen, setCustomOpen] = useState(false);
   const [customForm, setCustomForm] = useState({ description: '', price: '', qty: '1' });
+  // Cashea: nivel del cliente (1-6) y cuotas (3 o 6)
+  const [casheaLevel, setCasheaLevel] = useState(1);
+  const [casheaInstallments, setCasheaInstallments] = useState<3 | 6>(3);
+  // Inicial exacta que indica la plataforma de Cashea (Merchant web); vacío = la del nivel
+  const [casheaInitialInput, setCasheaInitialInput] = useState('');
   // Fiado con abono inicial opcional (USD)
   const [abono, setAbono] = useState('');
   // Cuenta de la clienta elegida (para que la venta quede en su ficha) y correo para crearle una
@@ -105,6 +121,9 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     setClientSelected(false);
     setClientQuery('');
     setModality('contado');
+    setCasheaLevel(1);
+    setCasheaInstallments(3);
+    setCasheaInitialInput('');
     setMethod('');
     setReceived('');
     setNotes('');
@@ -199,7 +218,11 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const payToday =
     modality === 'contado' ? total :
     modality === 'dos_partes' ? total / 2 :
-    modality === 'financiamiento' ? total / 3 : Math.min(abonoNum, total);
+    modality === 'financiamiento' ? total / 3 :
+    modality === 'cashea' ? casheaPlan(total, casheaLevel, casheaInstallments, casheaInitialInput).initial : Math.min(abonoNum, total);
+  // Cashea: lo que paga Cashea a la tienda y cada cuota que el cliente le paga a Cashea
+  const casheaFinanced = modality === 'cashea' ? casheaPlan(total, casheaLevel, casheaInstallments, casheaInitialInput).financed : 0;
+  const casheaInstallment = modality === 'cashea' ? casheaPlan(total, casheaLevel, casheaInstallments, casheaInitialInput).installment : 0;
 
   const isCash = method === 'efectivo_usd' || method === 'efectivo_bs';
   const receivedNum = Number(received.replace(',', '.')) || 0;
@@ -274,7 +297,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
   const missing = (() => {
     if (!lines.length) return 'Agrega al menos un producto o servicio';
     if (lines.some(l => !(l.unit > 0))) return 'Hay una línea sin precio';
-    if (modality !== 'contado' && !hasClient) return 'Las ventas a crédito necesitan un cliente';
+    if (modality !== 'contado' && modality !== 'cashea' && !hasClient) return 'Las ventas a crédito necesitan un cliente';
     if (clientMode !== 'walkin' && !hasClient) return clientMode === 'search' ? 'Elige un cliente de la lista' : 'Escribe el nombre del cliente';
     if (clientMode === 'new' && !isValidVePhone(phoneNormalized)) return 'Completa el teléfono (7 dígitos después del prefijo)';
     if (clientMode === 'new' && client.email.trim() && !isValidEmail(client.email)) return 'El correo no es válido (o déjalo vacío)';
@@ -303,6 +326,8 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
       finalNotes = `[EN 2 PARTES - 50% contado, 50% al ${formatCutoffDate(cut1)}] ${finalNotes}`.trim();
     } else if (modality === 'financiamiento') {
       finalNotes = `[FINANCIAMIENTO ${BRAND_NAME_UPPER} +${surchargePct}% - Inicial 33%, Cuota 1: ${formatCutoffDate(cut1)}, Cuota 2: ${formatCutoffDate(cut2)}] ${finalNotes}`.trim();
+    } else if (modality === 'cashea') {
+      finalNotes = `[CASHEA Nivel ${casheaLevel} · inicial $${payToday.toFixed(2)} · ${casheaInstallments} cuotas de $${casheaInstallment.toFixed(2)} que cobra Cashea] ${finalNotes}`.trim();
     } else if (modality === 'fiado') {
       finalNotes = (payToday > 0
         ? `[FIADO - abonó $${payToday.toFixed(2)}, resta $${(total - payToday).toFixed(2)} al ${formatCutoffDate(cut1)}] ${finalNotes}`
@@ -335,7 +360,8 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
       }
     }
 
-    const isCredit = modality !== 'contado';
+    // Cashea no es crédito de la tienda: Cashea le paga el resto
+    const isCredit = modality !== 'contado' && modality !== 'cashea';
     const saleGroupId = crypto.randomUUID();
     const withClient = clientMode !== 'walkin';
     let failed = false;
@@ -362,7 +388,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
         unit_price_usd: line.unit,
         total_usd: itemTotal,
         total_bs: convertToBS(itemTotal),
-        payment_method: method || 'efectivo_usd',
+        payment_method: modality === 'cashea' && payToday <= 0 ? 'cashea' : method || 'efectivo_usd',
         client_name: withClient && client.name ? sanitizeText(client.name) : null,
         client_dni: withClient && client.dni ? sanitizeText(client.dni) : null,
         client_email: withClient && client.email ? sanitizeText(client.email) : null,
@@ -381,11 +407,34 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
       if (data?.id) await confirmSale(data.id);
     }
 
+    // Cashea: lo que financia Cashea entra como pago con método Cashea (la venta queda pagada)
+    let casheaPending = false;
+    if (!failed && modality === 'cashea' && casheaFinanced > 0.004) {
+      const amount = Math.round(casheaFinanced * 100) / 100;
+      const { error } = await supabase.rpc('process_group_abono', {
+        p_sale_group_id: saleGroupId,
+        p_amount_usd: amount,
+        p_amount_bs: convertToBS(amount),
+        p_exchange_rate: rate || 0,
+        p_usdt_rate: 0,
+        p_usdt_bought: 0,
+        p_payment_method: 'cashea',
+        p_notes: `Cashea: ${casheaInstallments} cuotas (Nivel ${casheaLevel})`,
+      });
+      casheaPending = !!error;
+    }
+
     if (!failed && withClient) queryClient.invalidateQueries({ queryKey: ['customers'] });
     if (!failed) queryClient.invalidateQueries({ queryKey: ['sale-client-directory'] });
     if (!failed && withClient) queryClient.invalidateQueries({ queryKey: ['sale-clients'] });
 
     setSubmitting(false);
+    if (casheaPending) {
+      toast.warning('El pago de Cashea quedó por registrar', {
+        description: `La venta se guardó, pero los $${casheaFinanced.toFixed(2)} de Cashea quedaron por cobrar. Regístralos en Por cobrar como abono con método Cashea.`,
+        duration: 10000,
+      });
+    }
     if (!failed) {
       toast.success('Venta registrada', {
         description: `$${total.toFixed(2)}${hasClient ? ` · ${client.name}` : ''}${accountCreated ? `. Se creó su cuenta con ${accountEmail.trim()}: para entrar, toca «Olvidé mi contraseña» en la tienda.` : ''}`,
@@ -705,6 +754,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                   { v: 'dos_partes', t: 'En 2 partes', d: `50% hoy · 50% el ${formatCutoffDate(cut1)}` },
                   { v: 'financiamiento', t: 'Financiado', d: `+${pricingConfig?.credit_surcharge_pct || 10}% · inicial y 2 cuotas` },
                   { v: 'fiado', t: 'Fiado', d: `Paga todo el ${formatCutoffDate(cut1)}` },
+                  { v: 'cashea', t: 'Cashea', d: 'Inicial según su nivel · 3 o 6 cuotas' },
                 ] as { v: SaleModality; t: string; d: string }[]).map(o => (
                   <button
                     key={o.v}
@@ -722,6 +772,41 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
                   </button>
                 ))}
               </div>
+              {modality === 'cashea' && (
+                <div className="space-y-3 rounded-2xl border border-border bg-card p-3">
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-muted-foreground">Nivel del cliente en Cashea</p>
+                    <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Nivel en Cashea">
+                      {CASHEA_LEVELS.map((pct, i) => (
+                        <button key={pct} type="button" role="radio" aria-checked={casheaLevel === i + 1} onClick={() => setCasheaLevel(i + 1)}
+                          className={cn('h-11 rounded-xl border px-2 text-xs font-medium transition-colors', casheaLevel === i + 1 ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:border-primary/50')}>
+                          Nivel {i + 1} · {pct}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-muted-foreground">Cuotas</p>
+                    <div className="flex gap-2" role="radiogroup" aria-label="Cuotas de Cashea">
+                      {([3, 6] as const).map(n => (
+                        <button key={n} type="button" role="radio" aria-checked={casheaInstallments === n} onClick={() => setCasheaInstallments(n)} className={pill(casheaInstallments === n)}>{n} cuotas</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="ns-cashea-initial">Inicial que indica Cashea ($)</Label>
+                    <Input id="ns-cashea-initial" inputMode="decimal" value={casheaInitialInput}
+                      onChange={e => setCasheaInitialInput(e.target.value.replace(/[^0-9.,]/g, '').slice(0, 10))}
+                      placeholder={casheaPlan(total, casheaLevel, casheaInstallments).initial.toFixed(2)} className="h-11 rounded-xl" />
+                    <p className="text-[11px] text-muted-foreground">Cópiala de la plataforma de Cashea al escanear el QR. Vacía = la del nivel.</p>
+                  </div>
+                  {total > 0 && (
+                    <p className="rounded-xl bg-secondary px-3 py-2 text-xs text-secondary-foreground">
+                      Inicial hoy en la tienda <strong>{money(payToday)}</strong>{casheaInitialInput ? '' : ` (${CASHEA_LEVELS[casheaLevel - 1]}%)`} · Cashea te paga <strong>{money(casheaFinanced)}</strong> · el cliente le paga a Cashea {casheaInstallments} cuotas de <strong>{money(casheaInstallment)}</strong>
+                    </p>
+                  )}
+                </div>
+              )}
               {modality === 'fiado' && (
                 <div className="space-y-1 rounded-2xl border border-border bg-card p-3">
                   <Label htmlFor="ns-abono">Abono hoy (opcional, $)</Label>
@@ -741,7 +826,7 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
 
             {/* Método y efectivo (en fiado también: el método define la moneda y el precio, $ o Bs) */}
             <div className="space-y-2">
-              <p className="text-sm font-semibold">Método de pago {modality === 'fiado' ? <span className="font-normal text-muted-foreground">(con qué va a pagar: define el precio en $ o Bs)</span> : modality !== 'contado' && <span className="font-normal text-muted-foreground">(de lo que paga hoy)</span>}</p>
+              <p className="text-sm font-semibold">Método de pago {modality === 'fiado' ? <span className="font-normal text-muted-foreground">(con qué va a pagar: define el precio en $ o Bs)</span> : modality === 'cashea' ? <span className="font-normal text-muted-foreground">(de la inicial)</span> : modality !== 'contado' && <span className="font-normal text-muted-foreground">(de lo que paga hoy)</span>}</p>
               <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Método de pago">
                 {paymentMethods.map(m => (
                   <button key={m.method_key} type="button" role="radio" aria-checked={method === m.method_key} onClick={() => setMethod(m.method_key)} className={pill(method === m.method_key)}>
