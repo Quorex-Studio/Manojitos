@@ -10,6 +10,7 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   wally: 'Wally',
   efectivo_usd: 'Efectivo $',
   efectivo_bs: 'Efectivo Bs',
+  cashea: 'Cashea',
 };
 
 // Nombres legibles de los datos de cada método de pago (payment_methods.config).
