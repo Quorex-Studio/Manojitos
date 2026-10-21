@@ -235,6 +235,8 @@ export function NewSaleDialog({ open, onOpenChange, onCreated }: NewSaleDialogPr
     if (clientMode !== 'walkin' && !hasClient) return clientMode === 'search' ? 'Elige un cliente de la lista' : 'Escribe el nombre del cliente';
     if (clientMode === 'new' && !isValidVePhone(phoneNormalized)) return 'Completa el teléfono (7 dígitos después del prefijo)';
     if (clientMode === 'new' && client.email.trim() && !isValidEmail(client.email)) return 'El correo no es válido (o déjalo vacío)';
+    // Sin correo no hay cuenta: en crédito/fiado el teléfono es lo que luego enlaza la deuda con su cuenta
+    if (clientMode === 'new' && modality !== 'contado' && !client.email.trim() && !phoneNormalized) return 'En crédito o fiado pon el teléfono o el correo del cliente';
     if (!method) return modality === 'fiado' ? 'Elige con qué va a pagar ($ o Bs)' : 'Elige el método de pago';
     if (isCash && payToday > 0 && receivedNum <= 0) return 'Indica cuánto recibiste';
     if (cashShort) return 'El monto recibido no alcanza';
