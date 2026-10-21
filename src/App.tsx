@@ -18,6 +18,8 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Products = lazy(() => import("./pages/Products"));
 const Sales = lazy(() => import("./pages/Sales"));
 const Providers = lazy(() => import("./pages/Providers"));
+const Expenses = lazy(() => import("./pages/Expenses"));
+const Accounts = lazy(() => import("./pages/Accounts"));
 const Reports = lazy(() => import("./pages/Reports"));
 const AdminNotifications = lazy(() => import("./pages/AdminNotifications"));
 const ProductRequests = lazy(() => import("./pages/ProductRequests"));
@@ -209,6 +211,8 @@ function AppRoutes() {
       <Route path="/sales" element={<LazyPage><ProtectedRoute><Sales /></ProtectedRoute></LazyPage>} />
       <Route path="/credits" element={<LazyPage><ProtectedRoute><Credits /></ProtectedRoute></LazyPage>} />
       <Route path="/providers" element={<LazyPage><ProtectedRoute><Providers /></ProtectedRoute></LazyPage>} />
+      <Route path="/gastos" element={<LazyPage><ProtectedRoute><Expenses /></ProtectedRoute></LazyPage>} />
+      <Route path="/cuentas" element={<LazyPage><ProtectedRoute><Accounts /></ProtectedRoute></LazyPage>} />
       <Route path="/reports" element={<LazyPage><ProtectedRoute><Reports /></ProtectedRoute></LazyPage>} />
       <Route path="/notificaciones" element={<LazyPage><ProtectedRoute><AdminNotifications /></ProtectedRoute></LazyPage>} />
       <Route path="/solicitudes" element={<LazyPage><ProtectedRoute><ProductRequests /></ProtectedRoute></LazyPage>} />

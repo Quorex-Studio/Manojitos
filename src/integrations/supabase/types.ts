@@ -688,6 +688,75 @@ export type Database = {
           },
         ]
       }
+      expense_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount_bs: number | null
+          amount_usd: number
+          category_id: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          expense_date: string
+          id: string
+          paid_at: string | null
+          payment_method: string | null
+          provider_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_bs?: number | null
+          amount_usd: number
+          category_id?: string | null
+          created_at?: string
+          description: string
+          due_date?: string | null
+          expense_date?: string
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          provider_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Update: {
+          amount_bs?: number | null
+          amount_usd?: number
+          category_id?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          expense_date?: string
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          provider_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exchange_rates: {
         Row: {
           created_at: string
@@ -1195,8 +1264,87 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_items: {
+        Row: {
+          created_at: string
+          id: string
+          landed_unit_cost_usd: number
+          product_id: string | null
+          product_name: string
+          purchase_id: string
+          quantity: number
+          unit_cost_usd: number
+          variant_id: string | null
+          variant_label: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          landed_unit_cost_usd: number
+          product_id?: string | null
+          product_name: string
+          purchase_id: string
+          quantity: number
+          unit_cost_usd: number
+          variant_id?: string | null
+          variant_label?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          landed_unit_cost_usd?: number
+          product_id?: string | null
+          product_name?: string
+          purchase_id?: string
+          quantity?: number
+          unit_cost_usd?: number
+          variant_id?: string | null
+          variant_label?: string | null
+        }
+        Relationships: []
+      }
+      purchase_payments: {
+        Row: {
+          amount_bs: number | null
+          amount_usd: number
+          id: string
+          notes: string | null
+          paid_at: string
+          payment_method: string
+          purchase_id: string
+          user_id: string
+        }
+        Insert: {
+          amount_bs?: number | null
+          amount_usd: number
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          payment_method: string
+          purchase_id: string
+          user_id?: string
+        }
+        Update: {
+          amount_bs?: number | null
+          amount_usd?: number
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          payment_method?: string
+          purchase_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       purchases: {
         Row: {
+          amount_paid: number
+          due_date: string | null
+          payment_method: string | null
+          shipping_usd: number
+          subtotal_usd: number | null
+          tax_pct: number
+          tax_usd: number
           amount_bs: number | null
           amount_usd: number
           created_at: string
@@ -1210,6 +1358,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          amount_paid?: number
+          due_date?: string | null
+          payment_method?: string | null
+          shipping_usd?: number
+          subtotal_usd?: number | null
+          tax_pct?: number
+          tax_usd?: number
           amount_bs?: number | null
           amount_usd: number
           created_at?: string
@@ -1223,6 +1378,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          amount_paid?: number
+          due_date?: string | null
+          payment_method?: string | null
+          shipping_usd?: number
+          subtotal_usd?: number | null
+          tax_pct?: number
+          tax_usd?: number
           amount_bs?: number | null
           amount_usd?: number
           created_at?: string
@@ -1586,6 +1748,10 @@ export type Database = {
         }
         Returns: string
       }
+      delete_purchase: {
+        Args: { p_purchase_id: string }
+        Returns: Json
+      }
       edit_group_abono: {
         Args: {
           p_abono_id: string
@@ -1663,6 +1829,16 @@ export type Database = {
         Returns: string
       }
       normalize_ve_phone: { Args: { p_phone: string }; Returns: string }
+      pay_purchase: {
+        Args: {
+          p_amount_bs: number | null
+          p_amount_usd: number
+          p_notes?: string | null
+          p_payment_method: string
+          p_purchase_id: string
+        }
+        Returns: Json
+      }
       process_checkout: {
         Args: {
           client_name: string
@@ -1718,6 +1894,10 @@ export type Database = {
         Returns: undefined
       }
       reject_order: { Args: { p_order_id: string }; Returns: undefined }
+      register_purchase: {
+        Args: { p_items: Json; p_purchase: Json }
+        Returns: Json
+      }
       rpc_register_abono: {
         Args: {
           p_amount: number

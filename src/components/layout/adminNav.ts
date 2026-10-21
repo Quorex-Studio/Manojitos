@@ -1,4 +1,4 @@
-import { Layout, Package, ShoppingCart, Truck, FileText, Settings, FileUp, Wallet, Users, Scale, Heart, Bell } from 'reicon-react';
+import { Layout, Package, ShoppingCart, Truck, FileText, Settings, FileUp, Wallet, Users, Scale, Heart, Bell, MoneySend, Bank } from 'reicon-react';
 
 export interface AdminNavItem {
   icon: typeof Layout;
@@ -25,7 +25,9 @@ export const ADMIN_NAV: { title: string; items: AdminNavItem[] }[] = [
   {
     title: 'Gestión',
     items: [
-      { icon: Truck, label: 'Proveedores', path: '/providers' },
+      { icon: Truck, label: 'Proveedores y compras', short: 'Compras', path: '/providers' },
+      { icon: MoneySend, label: 'Gastos', path: '/gastos' },
+      { icon: Bank, label: 'Por pagar y cobrar', short: 'Cuentas', path: '/cuentas' },
       { icon: FileText, label: 'Reportes', path: '/reports' },
       { icon: FileUp, label: 'Importar productos', path: '/import-products' },
       { icon: Scale, label: 'Reglas de negocio', path: '/reglas' },
