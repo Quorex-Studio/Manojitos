@@ -102,6 +102,8 @@ export const saleSchema = z.object({
   // Talla, tono o presentación vendida (descuenta su propio stock)
   variant_id: z.string().uuid().optional().nullable(),
   variant_label: z.string().max(40).optional().nullable(),
+  // Cuenta de la clienta: así la venta (y lo que debe) aparece en su ficha de Clientes
+  customer_user_id: z.string().uuid().optional().nullable(),
   amount_paid: z.number().nonnegative().default(0),
   payment_status: z.enum(['pending', 'partial', 'paid']).default('paid'),
   notes: z.string().max(1000).optional().nullable().transform(val => val ? sanitizeText(val) : val),
