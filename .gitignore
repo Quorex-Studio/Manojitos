@@ -13,7 +13,6 @@ dist-ssr
 *.local
 
 # Editor directories and files
-.vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
@@ -32,4 +31,4 @@ supabase/.temp/
 vite.config.ts.timestamp-*
 
 # Variables de cada tienda (usa .env.example como base)
-.env
+config.bat
