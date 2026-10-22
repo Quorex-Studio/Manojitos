@@ -6,8 +6,8 @@
   "scripts": {
     "predev": "node scripts/verificar-configs.mjs",
     "prebuild": "node scripts/verificar-configs.mjs",
-    "dev": "vite",
-    "build": "npm run typecheck && vite build",
+    "dev": "node api.js && vite",
+    "build": "node api.js && npm run typecheck && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
