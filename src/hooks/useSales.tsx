@@ -56,9 +56,7 @@ export function useSales() {
     try {
       const validated = validateInput<SaleInput>(saleSchema, { ...sale, status });
 
-      const { data, error } = await supabase
-        .from('sales')
-        .insert([{
+      const saleRow = {
           product_id: validated.product_id,
           product_name: validated.product_name,
           quantity: validated.quantity,
@@ -85,12 +83,28 @@ export function useSales() {
           notes: validated.notes,
           status: validated.status,
           user_id: user.id
-        }])
+        };
+
+      let { data, error } = await supabase
+        .from('sales')
+        .insert([saleRow])
         .select()
         .single();
 
+      // A deleted customer account can leave an orphaned customer profile.
+      // Keep the sale traceable by name/DNI instead of blocking the sale on
+      // the invalid customer_user_id foreign key.
+      if (error?.code === '23503' && validated.customer_user_id) {
+        const { customer_user_id: _orphanedCustomer, ...saleWithoutCustomer } = saleRow;
+        ({ data, error } = await supabase
+          .from('sales')
+          .insert([saleWithoutCustomer])
+          .select()
+          .single());
+      }
+
       if (error) {
-        toast({ title: 'Error', description: 'No se pudo registrar la venta', variant: 'destructive' });
+        toast({ title: 'Error', description: error.message || 'No se pudo registrar la venta', variant: 'destructive' });
       }
       return { data, error };
     } catch (validationError) {
