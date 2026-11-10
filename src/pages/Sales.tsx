@@ -985,7 +985,7 @@ export default function Sales() {
                             Una cuenta saldada (pendingAmountUsd <= 0) no debe poder
                             recibir más abonos ni volver a marcarse como pagada. */}
                         {pendingAmountUsd > 0.005 ? (
-                          <div className="flex gap-2 w-full mt-2">
+                          <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 w-full mt-2 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)]">
                             <Button
                               variant="outline"
                               size="icon"
@@ -996,7 +996,7 @@ export default function Sales() {
                               <Receipt className="h-4 w-4" />
                             </Button>
                             <Button
-                              className="flex-1"
+                              className="min-w-0 whitespace-normal"
                               variant="outline"
                               onClick={() => openAbono(group, false)}
                             >
@@ -1004,7 +1004,7 @@ export default function Sales() {
                               Reportar Abono
                             </Button>
                             <Button
-                              className="flex-1"
+                              className="col-span-2 min-w-0 whitespace-normal sm:col-span-1"
                               variant={isPartial ? "default" : "secondary"}
                               onClick={() => openAbono(group, true)}
                             >
