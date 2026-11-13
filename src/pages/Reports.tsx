@@ -79,7 +79,7 @@ function RankRow({ rank, title, detail, amount, max, active, onClick }: {
         {rank !== undefined && <span className="w-6 shrink-0 text-center text-xs font-semibold tabular-nums text-muted-foreground">{rank}</span>}
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="truncate text-sm font-medium">{title}</p>
+            <p className="min-w-0 flex-1 truncate text-sm font-medium">{title}</p>
             <p className="shrink-0 text-sm font-semibold tabular-nums">{money(amount)}</p>
           </div>
           <div className="mt-1.5 flex items-center gap-2">
@@ -285,7 +285,7 @@ export default function Reports() {
         </div>
 
         {/* Filtros: rangos rápidos + fechas + búsqueda */}
-        <Card className="border-border">
+        <Card className="min-w-0 border-border">
           <CardContent className="space-y-4 p-4">
             <div className="-mx-4 flex gap-2 overflow-x-auto px-4 scrollbar-hide md:mx-0 md:px-0" role="group" aria-label="Rango rápido">
               {presets.map(p => {
@@ -299,14 +299,14 @@ export default function Reports() {
                 );
               })}
             </div>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-[1fr_1fr_2fr]">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
+              <div className="min-w-0 space-y-1.5">
                 <Label htmlFor="rep-desde">Desde</Label>
-                <Input id="rep-desde" type="date" value={from} min={REPORT_LAUNCH_DATE} max={today} onChange={e => e.target.value && setRange(e.target.value, to < e.target.value ? e.target.value : to)} className="input-glass rounded-xl" />
+                <Input id="rep-desde" type="date" value={from} min={REPORT_LAUNCH_DATE} max={today} onChange={e => e.target.value && setRange(e.target.value, to < e.target.value ? e.target.value : to)} className="input-glass min-w-0 max-w-full rounded-xl" />
               </div>
-              <div className="space-y-1.5">
+              <div className="min-w-0 space-y-1.5">
                 <Label htmlFor="rep-hasta">Hasta</Label>
-                <Input id="rep-hasta" type="date" value={to} min={REPORT_LAUNCH_DATE} max={today} onChange={e => e.target.value && setRange(from > e.target.value ? e.target.value : from, e.target.value)} className="input-glass rounded-xl" />
+                <Input id="rep-hasta" type="date" value={to} min={REPORT_LAUNCH_DATE} max={today} onChange={e => e.target.value && setRange(from > e.target.value ? e.target.value : from, e.target.value)} className="input-glass min-w-0 max-w-full rounded-xl" />
               </div>
               <div className="col-span-2 space-y-1.5 md:col-span-1">
                 <Label htmlFor="rep-q">Buscar producto o clienta</Label>
@@ -371,8 +371,8 @@ export default function Reports() {
           </TabsList>
 
           {/* RESUMEN: gráfico por día + métodos de pago */}
-          <TabsContent value="resumen" className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[2fr_1fr]">
-            <Card className="border-border">
+          <TabsContent value="resumen" className="mt-4 grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <Card className="min-w-0 border-border">
               <CardContent className="p-4 md:p-5">
                 <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                   <div>
@@ -420,7 +420,7 @@ export default function Reports() {
               </CardContent>
             </Card>
 
-            <Card className="border-border">
+            <Card className="min-w-0 border-border">
               <CardContent className="p-4 md:p-5">
                 <h2 className="font-serif text-lg font-semibold">Métodos de pago</h2>
                 <p className="mb-2 text-xs text-muted-foreground">Toca uno para filtrar todo el reporte.</p>
@@ -439,7 +439,7 @@ export default function Reports() {
             </Card>
 
             <Card className="border-border lg:col-span-2">
-              <CardContent className="grid gap-4 p-4 md:grid-cols-2 md:p-5">
+              <CardContent className="grid min-w-0 grid-cols-1 gap-4 p-4 md:grid-cols-2 md:p-5">
                 <div>
                   <div className="mb-1 flex items-center justify-between">
                     <h2 className="font-serif text-lg font-semibold">Lo más vendido</h2>
@@ -477,7 +477,7 @@ export default function Reports() {
 
           {/* PRODUCTOS */}
           <TabsContent value="productos" className="mt-4">
-            <Card className="border-border">
+            <Card className="min-w-0 border-border">
               <CardContent className="p-4 md:p-5">
                 <p className="mb-2 text-sm text-muted-foreground">{summary.topProducts.length} productos vendidos · toca uno para ver sus ventas.</p>
                 <ul className="-mx-3 space-y-0.5">
@@ -493,7 +493,7 @@ export default function Reports() {
 
           {/* CLIENTAS */}
           <TabsContent value="clientas" className="mt-4">
-            <Card className="border-border">
+            <Card className="min-w-0 border-border">
               <CardContent className="p-4 md:p-5">
                 <p className="mb-2 text-sm text-muted-foreground">{summary.topClients.length} clientas compraron en el período · toca una para ver sus compras.</p>
                 <ul className="-mx-3 space-y-0.5">
@@ -510,7 +510,7 @@ export default function Reports() {
 
           {/* DETALLE */}
           <TabsContent value="detalle" className="mt-4">
-            <Card className="border-border">
+            <Card className="min-w-0 border-border">
               <CardContent className="space-y-3 p-4 md:p-5">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-muted-foreground">
