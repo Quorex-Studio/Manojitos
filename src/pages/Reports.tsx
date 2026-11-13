@@ -271,7 +271,7 @@ export default function Reports() {
 
   return (
     <AppLayout>
-      <div className="space-y-5">
+      <div className="min-w-0 space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="page-header">Reportes</h1>
@@ -361,8 +361,8 @@ export default function Reports() {
         </button>
         <ReceivablesReportDialog open={receivablesOpen} onOpenChange={setReceivablesOpen} />
 
-        <Tabs value={view} onValueChange={v => update({ vista: v === 'resumen' ? null : v })}>
-          <TabsList className="admin-tabs">
+        <Tabs className="min-w-0" value={view} onValueChange={v => update({ vista: v === 'resumen' ? null : v })}>
+          <TabsList className="admin-tabs max-w-full overflow-x-auto">
             <TabsTrigger value="resumen"><ChartSuccess className="h-4 w-4" />Resumen</TabsTrigger>
             <TabsTrigger value="ingresos"><MoneyRecive className="h-4 w-4" />Ingresos por mes</TabsTrigger>
             <TabsTrigger value="productos"><ShoppingCart className="h-4 w-4" />Productos</TabsTrigger>
@@ -371,7 +371,7 @@ export default function Reports() {
           </TabsList>
 
           {/* RESUMEN: gráfico por día + métodos de pago */}
-          <TabsContent value="resumen" className="mt-4 grid gap-4 lg:grid-cols-[2fr_1fr]">
+          <TabsContent value="resumen" className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[2fr_1fr]">
             <Card className="border-border">
               <CardContent className="p-4 md:p-5">
                 <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
@@ -391,7 +391,8 @@ export default function Reports() {
                     <p className="max-w-xs text-sm text-muted-foreground">No hay ventas en este período. Prueba otro rango o quita los filtros.</p>
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={260}>
+                  <div className="min-w-0">
+                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={chartData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
                       <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.6} />
                       <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} stroke="hsl(var(--muted-foreground))" minTickGap={16} />
