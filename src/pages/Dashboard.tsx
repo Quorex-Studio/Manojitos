@@ -453,25 +453,25 @@ export default function Dashboard() {
               <CardTitle className="font-serif text-lg tracking-tight text-foreground/80">Top de {monthName}</CardTitle>
               <Link to={`/reports?desde=${monthTop.from}&hasta=${monthTop.to}`} className="text-sm font-medium text-primary hover:underline">Ver reportes</Link>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
+            <CardContent className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
               {([
                 { title: 'Productos más vendidos', items: monthTop.products.map(p => ({ key: p.name, name: p.name, detail: `${p.units} ${p.units === 1 ? 'unidad' : 'unidades'}`, amount: p.amount })), empty: 'Aún no hay ventas este mes.' },
                 { title: 'Mejores clientas', items: monthTop.clients.map(c => ({ key: c.name, name: c.name, detail: `${c.tickets} ${c.tickets === 1 ? 'compra' : 'compras'}`, amount: c.amount })), empty: 'Las ventas con clienta aparecen aquí.' },
               ]).map(col => (
-                <div key={col.title}>
+                <div key={col.title} className="min-w-0">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{col.title}</p>
                   {col.items.length === 0 ? (
                     <p className="rounded-xl bg-muted/30 px-3 py-4 text-sm text-muted-foreground">{col.empty}</p>
                   ) : (
                     <ol className="space-y-1">
                       {col.items.map((it, i) => (
-                        <li key={it.key} className="flex items-center gap-3 rounded-xl px-2 py-1.5">
+                        <li key={it.key} className="flex min-w-0 items-center gap-3 rounded-xl px-2 py-1.5">
                           <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold', i === 0 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground')}>{i + 1}</span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium">{it.name}</span>
+                            <span className="block break-words text-sm font-medium [overflow-wrap:anywhere]">{it.name}</span>
                             <span className="block text-xs text-muted-foreground">{it.detail}</span>
                           </span>
-                          <span className="text-sm font-semibold tabular-nums">${it.amount.toFixed(2)}</span>
+                          <span className="shrink-0 text-sm font-semibold tabular-nums">${it.amount.toFixed(2)}</span>
                         </li>
                       ))}
                     </ol>
