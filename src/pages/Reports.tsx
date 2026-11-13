@@ -299,16 +299,16 @@ export default function Reports() {
                 );
               })}
             </div>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
               <div className="min-w-0 space-y-1.5">
                 <Label htmlFor="rep-desde">Desde</Label>
-                <Input id="rep-desde" type="date" value={from} min={REPORT_LAUNCH_DATE} max={today} onChange={e => e.target.value && setRange(e.target.value, to < e.target.value ? e.target.value : to)} className="input-glass min-w-0 max-w-full rounded-xl" />
+                <Input id="rep-desde" type="date" value={from} min={REPORT_LAUNCH_DATE} max={today} onChange={e => e.target.value && setRange(e.target.value, to < e.target.value ? e.target.value : to)} style={{ minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }} className="input-glass rounded-xl [&::-webkit-date-and-time-value]:min-w-0 [&::-webkit-date-and-time-value]:text-left" />
               </div>
               <div className="min-w-0 space-y-1.5">
                 <Label htmlFor="rep-hasta">Hasta</Label>
-                <Input id="rep-hasta" type="date" value={to} min={REPORT_LAUNCH_DATE} max={today} onChange={e => e.target.value && setRange(from > e.target.value ? e.target.value : from, e.target.value)} className="input-glass min-w-0 max-w-full rounded-xl" />
+                <Input id="rep-hasta" type="date" value={to} min={REPORT_LAUNCH_DATE} max={today} onChange={e => e.target.value && setRange(from > e.target.value ? e.target.value : from, e.target.value)} style={{ minWidth: 0, width: '100%', maxWidth: '100%', boxSizing: 'border-box' }} className="input-glass rounded-xl [&::-webkit-date-and-time-value]:min-w-0 [&::-webkit-date-and-time-value]:text-left" />
               </div>
-              <div className="col-span-2 space-y-1.5 md:col-span-1">
+              <div className="min-w-0 space-y-1.5 sm:col-span-2 md:col-span-1">
                 <Label htmlFor="rep-q">Buscar producto o clienta</Label>
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
