@@ -391,8 +391,7 @@ export default function Reports() {
                     <p className="max-w-xs text-sm text-muted-foreground">No hay ventas en este período. Prueba otro rango o quita los filtros.</p>
                   </div>
                 ) : (
-                  <div className="min-w-0">
-                   <ResponsiveContainer width="100%" height={260}>
+                  <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={chartData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
                       <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.6} />
                       <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} stroke="hsl(var(--muted-foreground))" minTickGap={16} />
