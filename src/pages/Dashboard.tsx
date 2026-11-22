@@ -57,7 +57,14 @@ export default function Dashboard() {
   const stats = useMemo(() => {
     const todaySales = sales.filter(s => isToday(new Date(s.created_at)));
     const todayTotal = todaySales.reduce((acc, s) => acc + Number(s.total_usd), 0);
-    const monthTotal = sales.reduce((acc, s) => acc + Number(s.total_usd), 0);
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const monthSales = sales.filter(s => {
+      const date = new Date(s.created_at);
+      return date >= monthStart && date < nextMonthStart;
+    });
+    const monthTotal = monthSales.reduce((acc, s) => acc + Number(s.total_usd), 0);
     const totalCreditBalance = credits.reduce((acc, c) => acc + Number(c.current_balance), 0);
     const lowStockProducts = products.filter(needsRestock);
 
@@ -65,6 +72,7 @@ export default function Dashboard() {
       todaySales: todaySales.length,
       todayTotal,
       monthTotal,
+      monthSales,
       totalCreditBalance,
       lowStockCount: lowStockProducts.length,
       totalProducts: products.length,
@@ -281,25 +289,25 @@ export default function Dashboard() {
           <StatCard
             title="Ventas del Mes"
             value={formatCurrencyPair(stats.monthTotal).primary}
-            subtitle={`${sales.length} ventas`}
+            subtitle={`${stats.monthSales.length} ventas`}
             tertiaryText={formatCurrencyPair(stats.monthTotal).secondary}
             icon={<ChartSuccess className="h-6 w-6" />}
             variant="default"
             delay={0.1}
             href="/sales"
             hoverContent={
-              sales.length > 0 ? (
+              stats.monthSales.length > 0 ? (
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold border-b border-border/50 pb-2">Últimas Ventas</h4>
                   <ul className="text-sm space-y-1">
-                    {sales.slice(0, 5).map(s => (
+                    {stats.monthSales.slice(0, 5).map(s => (
                       <li key={s.id} className="flex justify-between items-center text-xs">
                         <span className="truncate w-32">{s.product_name}</span>
                         <span className="font-bold text-gradient-gold">${Number(s.total_usd).toFixed(2)}</span>
                       </li>
                     ))}
                   </ul>
-                  {sales.length > 5 && <p className="text-xs text-muted-foreground pt-1">+ {sales.length - 5} ventas previas</p>}
+                  {stats.monthSales.length > 5 && <p className="text-xs text-muted-foreground pt-1">+ {stats.monthSales.length - 5} ventas previas</p>}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No hay ventas registradas</p>
