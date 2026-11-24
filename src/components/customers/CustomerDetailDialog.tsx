@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { CustomerProfile } from '@/hooks/useCustomers';
 import { KycBadge, initials, whatsappLink } from './customerUi';
+import { useSaleClients } from '@/hooks/useSaleClients';
 import { useKycUrl } from '@/hooks/useKycUrl';
 
 
@@ -35,6 +36,7 @@ const emailKey = (value: string | null) => (value ?? '').trim().toLowerCase();
 function CustomerContactEditor({ customer }: { customer: CustomerProfile }) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
+  const { data: saleClients } = useSaleClients(editing);
   const [busy, setBusy] = useState(false);
   const [matches, setMatches] = useState<Array<{ name: string; fields: string[] }>>([]);
   const [draft, setDraft] = useState({ full_name: '', dni: '', phone: '', email: '', address: '' });
@@ -101,6 +103,15 @@ function CustomerContactEditor({ customer }: { customer: CustomerProfile }) {
             onChange={event => { setMatches([]); setDraft(previous => ({ ...previous, [key]: event.target.value })); }} />
         </label>
       ))}
+      {(saleClients?.withoutAccount ?? []).filter(client =>
+        (identityKey(draft.dni) && identityKey(draft.dni) === identityKey(client.dni)) ||
+        (phoneKey(draft.phone) && phoneKey(draft.phone) === phoneKey(client.phone)) ||
+        (emailKey(draft.email) && emailKey(draft.email) === emailKey(client.email))
+      ).map(client => (
+        <p key={client.key} className="rounded-lg border border-border p-3 text-sm">
+          Coincidencia sin cuenta: {client.name || 'Cliente sin nombre'} · {client.purchases} compras · saldo {money(client.balanceUsd)}
+        </p>
+      ))}
       <p className="text-xs text-muted-foreground">El correo de contacto no cambia el correo con el que se inicia sesión.</p>
       {matches.length > 0 && (
         <div role="alert" className="space-y-1 rounded-lg border border-border p-3 text-sm">
@@ -117,7 +128,7 @@ function CustomerContactEditor({ customer }: { customer: CustomerProfile }) {
 }
 
 type KycStatus = 'approved' | 'rejected' | 'pending';
-type AdminAction = 'suspend' | 'restore' | 'delete' | 'change_password';
+type AdminAction = 'suspend' | 'restore' | 'delete' | 'change_password' | 'send_password_reset';
 
 interface CustomerDetailDialogProps {
   customer: CustomerProfile | null;
@@ -252,7 +263,7 @@ export function CustomerDetailDialog({ customer, onOpenChange, onUpdateStatus, i
         throw new Error((data as { error?: string } | null)?.error || error?.message || 'No se pudo completar la acción');
       }
       const done: Record<AdminAction, string> = {
-        suspend: 'Cuenta suspendida', restore: 'Cuenta reactivada', delete: 'Cliente eliminado', change_password: 'Contraseña actualizada',
+        suspend: 'Cuenta suspendida', restore: 'Cuenta reactivada', delete: 'Cliente eliminado', change_password: 'Contraseña actualizada', send_password_reset: 'Enlace de recuperación solicitado',
       };
       toast({ title: done[action] });
       setPassword('');
@@ -432,6 +443,11 @@ export function CustomerDetailDialog({ customer, onOpenChange, onUpdateStatus, i
                       <Button type="submit" variant="secondary" className="h-11 rounded-full" disabled={busy || password.length < 6}>Guardar</Button>
                     </div>
                   </form>
+                  <Button type="button" variant="outline" disabled={busy} onClick={async () => {
+                    if (await confirmDialog({ title: '¿Enviar enlace de recuperación?', description: 'Se enviará al correo de acceso de esta cuenta.', confirmText: 'Enviar enlace' })) {
+                      await runAdminAction('send_password_reset');
+                    }
+                  }}>Enviar enlace de recuperación</Button>
 
                   <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
                     <p className="flex items-center gap-2 text-sm font-semibold"><Ban className="h-4 w-4" />Acceso a la tienda</p>
