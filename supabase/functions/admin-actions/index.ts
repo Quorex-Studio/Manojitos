@@ -191,6 +191,15 @@ serve(async (req) => {
         result = await adminClient.auth.admin.deleteUser(userId)
         break;
       
+      case 'send_password_reset': {
+        const email = target?.user?.email
+        if (!email) return json({ error: 'La cuenta no tiene un correo de acceso vigente' }, 404)
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+          redirectTo: 'https://manojitos-quorex-studio.vercel.app/cliente/recuperar',
+        })
+        if (error) return json({ error: error.message }, 400)
+        return json({ success: true })
+      }
       case 'change_password':
         if (!newPassword || newPassword.length < 6) {
           return new Response(JSON.stringify({ error: 'Contraseña inválida (mínimo 6 caracteres)' }), {
