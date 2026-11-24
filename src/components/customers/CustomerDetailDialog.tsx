@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -18,6 +18,103 @@ import { cn } from '@/lib/utils';
 import type { CustomerProfile } from '@/hooks/useCustomers';
 import { KycBadge, initials, whatsappLink } from './customerUi';
 import { useKycUrl } from '@/hooks/useKycUrl';
+
+
+const contactFields = [
+  { key: 'full_name', label: 'Nombre completo', type: 'text' },
+  { key: 'dni', label: 'Cédula', type: 'text' },
+  { key: 'phone', label: 'Teléfono', type: 'tel' },
+  { key: 'email', label: 'Correo de contacto', type: 'email' },
+  { key: 'address', label: 'Dirección', type: 'text' },
+] as const;
+
+const identityKey = (value: string | null) => (value ?? '').replace(/[^a-z0-9]/gi, '').toUpperCase().replace(/^[VE](?=\d)/, '');
+const phoneKey = (value: string | null) => (value ?? '').replace(/\D/g, '').replace(/^58(?=\d{10}$)|^0(?=\d{10}$)/, '');
+const emailKey = (value: string | null) => (value ?? '').trim().toLowerCase();
+
+function CustomerContactEditor({ customer }: { customer: CustomerProfile }) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [matches, setMatches] = useState<Array<{ name: string; fields: string[] }>>([]);
+  const [draft, setDraft] = useState({ full_name: '', dni: '', phone: '', email: '', address: '' });
+
+  const startEditing = () => {
+    setDraft({ full_name: customer.full_name ?? '', dni: customer.dni ?? '', phone: customer.phone ?? '', email: customer.email ?? '', address: customer.address ?? '' });
+    setMatches([]);
+    setEditing(true);
+  };
+
+  const save = async () => {
+    const values = {
+      full_name: draft.full_name.trim(),
+      dni: draft.dni.trim() || null,
+      phone: draft.phone.trim(),
+      email: emailKey(draft.email) || null,
+      address: draft.address.trim() || null,
+    };
+    setBusy(true);
+    setMatches([]);
+    try {
+      const { data: profiles, error } = await supabase.from('customer_profiles')
+        .select('id, full_name, dni, phone, email').neq('id', customer.id);
+      if (error) throw error;
+      const keys = {
+        'Cédula': identityKey(values.dni),
+        'Teléfono': phoneKey(values.phone),
+        'Correo': emailKey(values.email),
+      };
+      const conflicts = (profiles ?? []).flatMap(profile => {
+        const fields = [
+          keys.Cédula && keys.Cédula === identityKey(profile.dni) ? 'Cédula' : '',
+          keys.Teléfono && keys.Teléfono === phoneKey(profile.phone) ? 'Teléfono' : '',
+          keys.Correo && keys.Correo === emailKey(profile.email) ? 'Correo' : '',
+        ].filter(Boolean);
+        return fields.length ? [{ name: profile.full_name || 'Cliente sin nombre', fields }] : [];
+      });
+      if (conflicts.length) {
+        setMatches(conflicts);
+        return;
+      }
+      const { error: updateError } = await supabase.from('customer_profiles')
+        .update(values).eq('id', customer.id).select('id').single();
+      if (updateError) throw updateError;
+      await queryClient.invalidateQueries({ queryKey: ['customers'] });
+      setEditing(false);
+      toast({ title: 'Datos de contacto actualizados' });
+    } catch (error) {
+      const detail = error as { message?: string };
+      toast({ title: 'No se pudo guardar la ficha', description: detail.message, variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!editing) return <Button type="button" variant="outline" onClick={startEditing}>Editar datos de contacto</Button>;
+
+  return (
+    <form className="space-y-3 rounded-xl border border-border p-4" onSubmit={event => { event.preventDefault(); void save(); }}>
+      {contactFields.map(({ key, label, type }) => (
+        <label key={key} className="block space-y-1 text-sm font-medium">
+          <span>{label}</span>
+          <Input type={type} value={draft[key]} required={key === 'full_name'} disabled={busy}
+            onChange={event => { setMatches([]); setDraft(previous => ({ ...previous, [key]: event.target.value })); }} />
+        </label>
+      ))}
+      <p className="text-xs text-muted-foreground">El correo de contacto no cambia el correo con el que se inicia sesión.</p>
+      {matches.length > 0 && (
+        <div role="alert" className="space-y-1 rounded-lg border border-border p-3 text-sm">
+          <p>Hay datos que coinciden con otras fichas. Revisa las coincidencias antes de guardar.</p>
+          <ul>{matches.map(({ name, fields }, index) => <li key={index}>{name} · {fields.join(', ')}</li>)}</ul>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" disabled={busy}>{busy ? 'Guardando…' : 'Guardar datos'}</Button>
+        <Button type="button" variant="ghost" disabled={busy} onClick={() => setEditing(false)}>Cancelar</Button>
+      </div>
+    </form>
+  );
+}
 
 type KycStatus = 'approved' | 'rejected' | 'pending';
 type AdminAction = 'suspend' | 'restore' | 'delete' | 'change_password';
@@ -219,6 +316,7 @@ export function CustomerDetailDialog({ customer, onOpenChange, onUpdateStatus, i
               <div className="sm:max-h-[min(60vh,560px)] sm:overflow-y-auto">
                 {/* RESUMEN */}
                 <TabsContent value="resumen" className="mt-0 space-y-4 p-5 sm:p-6">
+                  <CustomerContactEditor key={customer.id} customer={customer} />
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-2xl border border-border bg-card p-4">
                       <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><ShoppingBag className="h-3.5 w-3.5" />Compras</p>
